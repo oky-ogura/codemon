@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>新規登録（生徒）</title>
+</head>
+<body>
+    <h2>新規登録（生徒）</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">登録</button>
+    </form>
+    <p><a href="{% url 'student_login' %}">生徒ログインページへ</a></p>
+</body>
+</html>
