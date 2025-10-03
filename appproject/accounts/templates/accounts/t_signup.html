@@ -60,14 +60,10 @@
         <h2>新規登録（教員）</h2>
         <form method="post">
             {% csrf_token %}
-            <label for="id_username">ユーザー名</label>
-            <input type="text" name="username" id="id_username" required>
-            <label for="id_email">メールアドレス</label>
-            <input type="email" name="email" id="id_email" required>
-            <label for="id_password1">パスワード</label>
-            <input type="password" name="password1" id="id_password1" required>
-            <label for="id_password2">パスワード（確認）</label>
-            <input type="password" name="password2" id="id_password2" required>
+            {% if form.non_field_errors %}
+                <div class="form-errors">{{ form.non_field_errors }}</div>
+            {% endif %}
+            {{ form.as_p }}
             <button type="submit">登録</button>
         </form>
         <a href="{% url 'teacher_login' %}">ログインページへ</a>

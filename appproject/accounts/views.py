@@ -2,16 +2,22 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login, authenticate, logout
 from django.contrib import messages
+from django.contrib.auth.hashers import make_password
+from .forms import TeacherSignupForm
+
 
 def teacher_signup(request):
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        form = TeacherSignupForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            login(request, user)
+            instance = form.save(commit=False)
+            # パスワードをハッシュ化して保存
+            instance.password = make_password(form.cleaned_data.get('password1'))
+            instance.save()
+            # 登録後はログインページへリダイレクト
             return redirect('teacher_login')
     else:
-        form = UserCreationForm()
+        form = TeacherSignupForm()
     return render(request, 'accounts/t_signup.html', {'form': form})
 
 def student_signup(request):
