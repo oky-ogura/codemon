@@ -21,6 +21,7 @@ from django.views.generic import RedirectView
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls')),
+    path('codemon/', include('codemon.urls')),
     # Redirect root URL to the accounts app (adjust if you want a different homepage)
     path('', RedirectView.as_view(url='/accounts/', permanent=False)),
 ]

@@ -55,6 +55,16 @@ def student_login(request):
             messages.error(request, 'ユーザー名またはパスワードが間違っています')
     return render(request, 'accounts/s_login.html')
 
+
+def student_home(request):
+    # Simple placeholder student home
+    return render(request, 'accounts/student_home.html')
+
+
+def teacher_home(request):
+    # Simple placeholder teacher home
+    return render(request, 'accounts/teacher_home.html')
+
 def user_logout(request):
     logout(request)
     return redirect('home')  # ログアウト後の遷移先を適宜変更

@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>新しいチェックリスト作成</h1>
+
+{% if messages %}
+  <ul class="messages">
+    {% for message in messages %}
+      <li>{{ message }}</li>
+    {% endfor %}
+  </ul>
+{% endif %}
+
+<div class="navigation-tabs">
+  <a href="{% url 'codemon:checklist_list' %}" class="tab">チェックリスト</a>
+  <a href="#" class="tab" id="save-tab">保存</a>
+  <a href="{% url 'accounts:student_home' %}" class="tab" id="account-tab">アカウント</a>
+</div>
+
+<div class="chat-ai-bubble">
+  <a href="{% url 'codemon:chat' %}" class="chat-button">
+    <i class="fas fa-comments"></i>
+    AIチャット
+  </a>
+</div>
+
+<form method="post" id="checklist-form">{% csrf_token %}
+  <label>タイトル: <input type="text" name="name" required></label><br>
+  <label>説明: <textarea name="description"></textarea></label><br>
+  
+  <div id="checklist-items">
+    <!-- チェックリストアイテムがここに追加されます -->
+  </div>
+  
+  <button type="button" id="add-item" class="btn-add-item">+ チェックリストを追加</button>
+  <div class="form-actions">
+    <button type="submit" class="btn-save">作成</button>
+    <a href="{% url 'codemon:checklist_list' %}"><button type="button" class="btn-back">戻る</button></a>
+  </div>
+</form>
+
+<style>
+.navigation-tabs {
+  display: flex;
+  margin-bottom: 20px;
+}
+
+.tab {
+  padding: 10px 20px;
+  margin-right: 10px;
+  text-decoration: none;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.chat-ai-bubble {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+}
+
+.chat-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 15px;
+  background-color: #007bff;
+  color: white;
+  text-decoration: none;
+  border-radius: 20px;
+}
+
+.btn-add-item {
+  margin: 10px 0;
+  padding: 8px 16px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.checklist-item {
+  margin: 10px 0;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const accountTab = document.getElementById('account-tab');
+  const saveTab = document.getElementById('save-tab');
+  const addItemBtn = document.getElementById('add-item');
+  const checklistItems = document.getElementById('checklist-items');
+  let itemCount = 0;
+
+  // アカウントタブのリンクをユーザーロールに基づいて更新
+  {% if request.user.role == 'teacher' %}
+    accountTab.href = "{% url 'accounts:teacher_home' %}";
+  {% endif %}
+
+  // 保存タブのクリックイベント
+  saveTab.addEventListener('click', function(e) {
+    e.preventDefault();
+    // システム保存画面への遷移
+    window.location.href = "{% url 'codemon:systems_list' %}";
+  });
+
+  // チェックリスト項目の追加
+  addItemBtn.addEventListener('click', function() {
+    const itemDiv = document.createElement('div');
+    itemDiv.className = 'checklist-item';
+    itemCount++;
+    
+    itemDiv.innerHTML = `
+      <input type="text" name="item_text_${itemCount}" placeholder="チェックリスト項目を入力" required>
+      <button type="button" class="btn-remove" onclick="this.parentElement.remove()">削除</button>
+    `;
+    
+    checklistItems.appendChild(itemDiv);
+  });
+});
+</script>
+{% endblock %}

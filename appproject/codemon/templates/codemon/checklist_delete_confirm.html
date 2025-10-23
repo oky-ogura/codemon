@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>チェックリスト削除</h1>
+
+<div class="navigation-tabs">
+  <a href="{% url 'codemon:systems_list' %}" class="tab">システム</a>
+  <a href="{% url 'codemon:algorithms_list' %}" class="tab">アルゴリズム</a>
+  <a href="{% url 'codemon:checklist_list' %}" class="tab">チェックリスト</a>
+  <a href="{% url 'accounts:student_home' %}" class="tab" id="account-tab">アカウント</a>
+</div>
+
+<div class="chat-ai-bubble">
+  <a href="{% url 'codemon:chat' %}" class="chat-button">
+    <i class="fas fa-comments"></i>
+    AIチャット
+  </a>
+</div>
+
+<div class="delete-confirmation">
+  <h2>「{{ checklist.checklist_name }}」を削除しますか？</h2>
+  <p class="warning">この操作は取り消せません。</p>
+  
+  <div class="checklist-preview">
+    <p class="description">{{ checklist.checklist_description }}</p>
+    <div class="items-list">
+      {% for item in checklist.items.all %}
+      <div class="item">
+        <span class="item-text">{{ item.item_text }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <form method="post" class="delete-form">
+    {% csrf_token %}
+    <div class="form-actions">
+      <button type="submit" class="btn-delete">削除する</button>
+      <a href="{% url 'codemon:checklist_detail' pk=checklist.checklist_id %}" class="btn-back">戻る</a>
+    </div>
+  </form>
+</div>
+
+<style>
+.navigation-tabs {
+  display: flex;
+  margin-bottom: 20px;
+}
+
+.tab {
+  padding: 10px 20px;
+  margin-right: 10px;
+  text-decoration: none;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.chat-ai-bubble {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+}
+
+.chat-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 15px;
+  background-color: #007bff;
+  color: white;
+  text-decoration: none;
+  border-radius: 20px;
+}
+
+.delete-confirmation {
+  max-width: 800px;
+  margin: 20px auto;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.warning {
+  color: #dc3545;
+  font-weight: bold;
+  margin: 20px 0;
+}
+
+.checklist-preview {
+  margin: 20px 0;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.items-list {
+  margin-top: 10px;
+}
+
+.item {
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.btn-delete {
+  padding: 10px 20px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-back {
+  padding: 10px 20px;
+  background-color: #6c757d;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const accountTab = document.getElementById('account-tab');
+  
+  // アカウントタブのリンクをユーザーロールに基づいて更新
+  {% if request.user.role == 'teacher' %}
+    accountTab.href = "{% url 'accounts:teacher_home' %}";
+  {% endif %}
+});
+</script>
+{% endblock %}
