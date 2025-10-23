@@ -7,4 +7,8 @@ urlpatterns = [
     path('student_login/', views.student_login, name='student_login'),
     path('student_signup/', views.student_signup, name='student_signup'),
     path('logout/', views.user_logout, name='logout'),
+    path('block/', views.block_index, name='block_index'),
+    path('block/save/', views.block_save, name='block_save'),
+    path('system/', views.system_index, name='system_index'),
+    path('system/save/', views.system_save, name='system_save'),
 ]
