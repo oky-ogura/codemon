@@ -58,3 +58,19 @@ def student_login(request):
 def user_logout(request):
     logout(request)
     return redirect('home')  # ログアウト後の遷移先を適宜変更
+
+def block_index(request):
+    return render(request, 'block/index.html')
+
+def system_index(request):
+    return render(request, 'system/index.html')
+
+# ブロック作成保存
+def block_save(request):
+    # 必要なら POST 処理をここに追加（保存処理など）
+    return render(request, 'block/save.html')
+
+# システム作成保存
+def system_save(request):
+    # 必要なら POST 処理をここに追加（保存処理など）
+    return render(request, 'system/save.html')
