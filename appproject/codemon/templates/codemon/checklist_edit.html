@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="navigation-tabs">
+  <a href="{% url 'codemon:systems_list' %}" class="tab">システム</a>
+  <a href="{% url 'codemon:algorithms_list' %}" class="tab">アルゴリズム</a>
+  <a href="{% url 'codemon:checklist_list' %}" class="tab active">チェックリスト</a>
+  {% if request.user.role == 'teacher' %}
+    <a href="{% url 'accounts:teacher_home' %}" class="tab" id="account-tab">アカウント</a>
+  {% else %}
+    <a href="{% url 'accounts:student_home' %}" class="tab" id="account-tab">アカウント</a>
+  {% endif %}
+</div>
+
+<div class="chat-ai-bubble">
+  <a href="{% url 'codemon:chat' %}" class="chat-button">
+    <i class="fas fa-comments"></i>
+    AIチャット
+  </a>
+</div>
+
+<div class="checklist-edit-container">
+  <h1>チェックリストを編集</h1>
+
+  <form method="post" class="checklist-form">
+    {% csrf_token %}
+    <div class="form-group">
+      <label for="checklist_name">チェックリスト名</label>
+      <input type="text" id="checklist_name" name="checklist_name"
+             value="{{ checklist.checklist_name }}" required>
+    </div>
+
+    <div class="form-group">
+      <label for="checklist_items">項目（1行ごとに入力）</label>
+      <textarea id="checklist_items" name="checklist_items" rows="10" required>
+{% for item in checklist.items.all %}
+{{ item.content }}
+{% endfor %}
+      </textarea>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-save">保存する</button>
+      <a href="{% url 'codemon:checklist_detail' checklist.checklist_id %}" class="btn-cancel">キャンセル</a>
+    </div>
+  </form>
+</div>
+
+<style>
+.navigation-tabs {
+  display: flex;
+  margin-bottom: 20px;
+}
+.tab {
+  padding: 10px 20px;
+  margin-right: 10px;
+  text-decoration: none;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+.tab.active {
+  background-color: #007bff;
+  color: white;
+  font-weight: bold;
+}
+.chat-ai-bubble {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+.chat-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 15px;
+  background-color: #007bff;
+  color: white;
+  text-decoration: none;
+  border-radius: 20px;
+}
+.checklist-edit-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+.form-group {
+  margin-bottom: 20px;
+}
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+input[type="text"],
+textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1em;
+}
+textarea {
+  font-family: monospace;
+  white-space: pre;
+}
+.form-actions {
+  margin-top: 20px;
+}
+.btn-save {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.btn-cancel {
+  background-color: #6c757d;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 4px;
+  text-decoration: none;
+  margin-left: 10px;
+}
+.btn-save:hover,
+.btn-cancel:hover {
+  opacity: 0.9;
+}
+</style>
+{% endblock %}

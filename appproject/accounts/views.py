@@ -32,25 +32,31 @@ def student_signup(request):
     return render(request, 'accounts/s_signup.html', {'form': form})
 
 def teacher_login(request):
+    # ログイン後のリダイレクト先を取得
+    next_url = request.GET.get('next', 'codemon:checklist_list')
+    
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            return redirect('teacher_home')  # ログイン後の遷移先を適宜変更
+            return redirect(next_url)
         else:
             messages.error(request, 'ユーザー名またはパスワードが間違っています')
     return render(request, 'accounts/t_login.html')
 
 def student_login(request):
+    # ログイン後のリダイレクト先を取得
+    next_url = request.GET.get('next', 'codemon:checklist_list')
+    
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            return redirect('student_home')  # ログイン後の遷移先を適宜変更
+            return redirect(next_url)
         else:
             messages.error(request, 'ユーザー名またはパスワードが間違っています')
     return render(request, 'accounts/s_login.html')

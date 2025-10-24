@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>チェックリスト選択</h1>
+
+<p>以下の操作を選択してください。</p>
+
+<div class="actions">
+  <a class="btn" href="{% url 'codemon:checklist_list' %}">作成したチェックリスト一覧</a>
+  <a class="btn" href="{% url 'codemon:checklist_create' %}">新しいチェックリストを作る</a>
+</div>
+
+<div class="tabs" style="margin-top:20px">
+  <a class="tab" href="{% url 'codemon:systems_list' %}">システム</a>
+  <a class="tab" href="{% url 'codemon:algorithms_list' %}">アルゴリズム</a>
+  <a class="tab" href="{% url 'codemon:checklist_list' %}">チェックリスト</a>
+  {% if user and user.type == 'teacher' %}
+    <a class="tab" href="{% url 'accounts:teacher_home' %}">アカウント（教員）</a>
+  {% else %}
+    <a class="tab" href="{% url 'accounts:student_home' %}">アカウント（生徒）</a>
+  {% endif %}
+</div>
+
+<div style="margin-top:30px">
+  <a class="chat" href="{% url 'codemon:chat' %}">💬 チャットAIと会話する</a>
+</div>
+
+<style>
+.btn{display:inline-block;padding:10px 16px;margin-right:8px;background:#007bff;color:#fff;text-decoration:none;border-radius:4px}
+.tab{display:inline-block;padding:8px 12px;margin-right:6px;border:1px solid #ddd;border-radius:4px;text-decoration:none;color:#333}
+.chat{display:inline-block;padding:8px 12px;background:#28a745;color:#fff;border-radius:20px;text-decoration:none}
+</style>
+
+{% endblock %}

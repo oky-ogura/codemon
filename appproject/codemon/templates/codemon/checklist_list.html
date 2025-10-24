@@ -1,27 +1,180 @@
 {% extends 'base.html' %}
 {% block content %}
-<h1>チェックリスト一覧</h1>
-<p><a href="{% url 'codemon:checklist_create' %}">新しいチェックリストを作る</a></p>
-<table>
-  <thead>
-    <tr>
-      <th>チェックリスト名</th>
-      <th>作成日時</th>
-      <th>最終更新日時</th>
-    </tr>
-  </thead>
+<div class="navigation-tabs">
+  <a href="{% url 'codemon:systems_list' %}" class="tab">システム</a>
+  <a href="{% url 'codemon:algorithms_list' %}" class="tab">アルゴリズム</a>
+  <a href="{% url 'codemon:checklist_list' %}" class="tab">チェックリスト</a>
+  <a href="{% url 'accounts:student_home' %}" class="tab" id="account-tab">アカウント</a>
+</div>
+
+<div class="chat-ai-bubble">
+  <a href="{% url 'codemon:chat' %}" class="chat-button">
+    <i class="fas fa-comments"></i>
+    AIチャット
+  </a>
+</div>
+
+<div class="checklist-container">
+  <h1>チェックリスト一覧</h1>
+  <div class="create-button">
+    <a href="{% url 'codemon:checklist_create' %}" class="btn-create">新しいチェックリストを作る</a>
+  </div>
+  <table class="checklist-table">
+    <thead>
+      <tr>
+        <th>チェックリスト名</th>
+        <th>作成日時</th>
+        <th>最終更新日時</th>
+        <th>操作</th>
+      </tr>
+    </thead>
   <tbody>
   {% for cl in checklists %}
     <tr>
-      <td><a href="{% url 'codemon:checklist_detail' cl.checklist_id %}">{{ cl.checklist_name }}</a></td>
+      <td><a href="{% url 'codemon:checklist_detail' cl.checklist_id %}" class="checklist-link">{{ cl.checklist_name }}</a></td>
       <td>{{ cl.created_at|date:"Y-m-d H:i" }}</td>
       <td>{{ cl.updated_at|date:"Y-m-d H:i" }}</td>
+      <td class="action-buttons">
+        <a href="{% url 'codemon:checklist_save' pk=cl.checklist_id %}" class="btn-edit">編集</a>
+        <a href="{% url 'codemon:checklist_delete_confirm' pk=cl.checklist_id %}" class="btn-delete">削除</a>
+      </td>
     </tr>
   {% empty %}
-    <tr><td colspan="3">作成されたチェックリストはありません。</td></tr>
+    <tr><td colspan="4" class="no-items">作成されたチェックリストはありません。</td></tr>
   {% endfor %}
   </tbody>
 </table>
 
-<p><a href="{% url 'accounts:accounts_root' %}">戻る</a></p>
+<div class="back-button">
+  <a href="{% url 'accounts:accounts_root' %}" class="btn-back">戻る</a>
+</div>
+</div>
+
+<style>
+.navigation-tabs {
+  display: flex;
+  margin-bottom: 20px;
+}
+
+.tab {
+  padding: 10px 20px;
+  margin-right: 10px;
+  text-decoration: none;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.chat-ai-bubble {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+}
+
+.chat-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 15px;
+  background-color: #007bff;
+  color: white;
+  text-decoration: none;
+  border-radius: 20px;
+}
+
+.checklist-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.create-button {
+  margin: 20px 0;
+}
+
+.btn-create {
+  padding: 10px 20px;
+  background-color: #28a745;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.checklist-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+
+.checklist-table th,
+.checklist-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.checklist-table th {
+  background-color: #f8f9fa;
+  font-weight: bold;
+}
+
+.checklist-link {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.checklist-link:hover {
+  text-decoration: underline;
+}
+
+.action-buttons {
+  white-space: nowrap;
+}
+
+.btn-edit {
+  padding: 6px 12px;
+  background-color: #28a745;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  margin-right: 5px;
+}
+
+.btn-delete {
+  padding: 6px 12px;
+  background-color: #dc3545;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+}
+
+.back-button {
+  margin-top: 20px;
+}
+
+.btn-back {
+  padding: 10px 20px;
+  background-color: #6c757d;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.no-items {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const accountTab = document.getElementById('account-tab');
+  
+  {% if request.user.role == 'teacher' %}
+    accountTab.href = "{% url 'accounts:teacher_home' %}";
+  {% endif %}
+});
+</script>
 {% endblock %}

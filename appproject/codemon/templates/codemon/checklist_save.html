@@ -1,17 +1,9 @@
 {% extends 'base.html' %}
 {% block content %}
-<h1>チェックリスト保存</h1>
-
-{% if messages %}
-  <ul class="messages">
-    {% for message in messages %}
-      <li class="{{ message.tags }}">{{ message }}</li>
-    {% endfor %}
-  </ul>
-{% endif %}
-
 <div class="navigation-tabs">
-  <a href="{% url 'codemon:checklist_create' %}" class="tab">チェックリスト</a>
+  <a href="{% url 'codemon:systems_list' %}" class="tab">システム</a>
+  <a href="{% url 'codemon:algorithms_list' %}" class="tab">アルゴリズム</a>
+  <a href="{% url 'codemon:checklist_list' %}" class="tab">チェックリスト</a>
   <a href="{% url 'accounts:student_home' %}" class="tab" id="account-tab">アカウント</a>
 </div>
 
@@ -22,27 +14,36 @@
   </a>
 </div>
 
-<div class="checklist-save-form">
-  <h2>{{ checklist.checklist_name }}</h2>
-  <p class="description">{{ checklist.checklist_description }}</p>
-  
-  <form method="post" id="save-form">{% csrf_token %}
-    <div class="items-list">
+<div class="checklist-edit">
+  <h1>チェックリストの編集</h1>
+  <form method="post" class="edit-form">
+    {% csrf_token %}
+    <div class="form-group">
+      <label for="checklist_name">チェックリスト名</label>
+      <input type="text" id="checklist_name" name="checklist_name" value="{{ checklist.checklist_name }}" required>
+    </div>
+    
+    <div class="form-group">
+      <label for="checklist_description">説明</label>
+      <textarea id="checklist_description" name="checklist_description">{{ checklist.checklist_description }}</textarea>
+    </div>
+
+    <div class="items-section">
+      <h2>チェック項目</h2>
       {% for item in checklist.items.all %}
-      <div class="checklist-item">
-        <input type="text" name="item_text_{{ item.checklist_item_id }}" 
-               value="{{ item.item_text }}" required>
-        <input type="hidden" name="item_id_{{ item.checklist_item_id }}" 
-               value="{{ item.checklist_item_id }}">
-      </div>
+        <div class="item-entry">
+          <input type="hidden" name="item_ids[]" value="{{ item.checklist_item_id }}">
+          <input type="text" name="item_texts[]" value="{{ item.item_text }}" required>
+          <button type="button" class="btn-remove" onclick="removeItem(this)">削除</button>
+        </div>
       {% endfor %}
+      <div id="new-items"></div>
+      <button type="button" class="btn-add" onclick="addNewItem()">項目を追加</button>
     </div>
 
     <div class="form-actions">
-      <button type="submit" class="btn-save">上書き保存</button>
-      <a href="{% url 'codemon:checklist_list' %}" class="btn-back">
-        チェックリスト一覧に戻る
-      </a>
+      <button type="submit" class="btn-save">保存</button>
+      <a href="{% url 'codemon:checklist_detail' pk=checklist.checklist_id %}" class="btn-cancel">キャンセル</a>
     </div>
   </form>
 </div>
@@ -78,36 +79,83 @@
   border-radius: 20px;
 }
 
-.checklist-save-form {
+.checklist-edit {
   max-width: 800px;
-  margin: 20px auto;
+  margin: 0 auto;
   padding: 20px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
 }
 
-.items-list {
+.edit-form {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.form-group input[type="text"],
+.form-group textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.form-group textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.items-section {
   margin: 20px 0;
 }
 
-.checklist-item {
-  margin: 10px 0;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+.item-entry {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
-.checklist-item input[type="text"] {
-  width: 100%;
+.item-entry input[type="text"] {
+  flex: 1;
   padding: 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
 }
 
+.btn-remove {
+  padding: 8px 16px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-add {
+  padding: 8px 16px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
 .form-actions {
+  margin-top: 30px;
   display: flex;
   gap: 10px;
-  margin-top: 20px;
 }
 
 .btn-save {
@@ -117,19 +165,22 @@
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  font-size: 16px;
 }
 
-.btn-back {
+.btn-cancel {
   padding: 10px 20px;
   background-color: #6c757d;
   color: white;
   text-decoration: none;
   border-radius: 4px;
+  font-size: 16px;
 }
 
 .messages {
   list-style: none;
   padding: 0;
+  margin-bottom: 20px;
 }
 
 .messages .success {
@@ -139,16 +190,42 @@
   border-radius: 4px;
   color: #155724;
 }
+
+.messages .error {
+  padding: 10px;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  color: #721c24;
+}
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const accountTab = document.getElementById('account-tab');
   
-  // アカウントタブのリンクをユーザーロールに基づいて更新
   {% if request.user.role == 'teacher' %}
     accountTab.href = "{% url 'accounts:teacher_home' %}";
   {% endif %}
 });
+
+function addNewItem() {
+  const container = document.getElementById('new-items');
+  const itemEntry = document.createElement('div');
+  itemEntry.className = 'item-entry';
+  
+  itemEntry.innerHTML = `
+    <input type="hidden" name="new_item_ids[]" value="">
+    <input type="text" name="new_item_texts[]" required>
+    <button type="button" class="btn-remove" onclick="removeItem(this)">削除</button>
+  `;
+  
+  container.appendChild(itemEntry);
+}
+
+function removeItem(button) {
+  const itemEntry = button.parentElement;
+  itemEntry.remove();
+}
 </script>
 {% endblock %}

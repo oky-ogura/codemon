@@ -140,6 +140,10 @@ LOGIN_URL = 'accounts:student_login'  # デフォルトのログインページ
 LOGIN_REDIRECT_URL = 'codemon:checklist_list'  # ログイン後のリダイレクト先
 LOGOUT_REDIRECT_URL = 'accounts:student_login'  # ログアウト後のリダイレクト先
 
+# Development helper: when True, views under codemon allow anonymous access for
+# manual verification. MUST be False in production.
+ALLOW_ANONYMOUS_VIEWS = True
+
 # Simple logging to console for middleware exceptions
 LOGGING = {
     'version': 1,
