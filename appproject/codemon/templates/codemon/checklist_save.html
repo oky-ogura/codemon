@@ -16,7 +16,7 @@
 
 <div class="checklist-edit">
   <h1>チェックリストの編集</h1>
-  <form method="post" class="edit-form">
+  <form method="post" class="edit-form" action="{% url 'codemon:checklist_save' pk=checklist.checklist_id %}">
     {% csrf_token %}
     <div class="form-group">
       <label for="checklist_name">チェックリスト名</label>
