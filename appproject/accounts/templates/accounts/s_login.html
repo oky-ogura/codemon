@@ -3,59 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <title>ログイン（生徒）</title>
-    <style>
-        body { background: #f5f7fa; font-family: 'Segoe UI', sans-serif; }
-        .login-box {
-            margin: 80px auto;
-            width: 350px;
-            padding: 32px 28px 24px 28px;
-            background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-        }
-        .login-box h2 {
-            text-align: center;
-            margin-bottom: 24px;
-            color: #333;
-        }
-        .login-box form {
-            display: flex;
-            flex-direction: column;
-        }
-        .login-box input, .login-box button {
-            margin-bottom: 14px;
-            padding: 10px;
-            font-size: 1em;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-        }
-        .login-box button {
-            background: #007bff;
-            color: #fff;
-            border: none;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .login-box button:hover {
-            background: #0056b3;
-        }
-        .login-box label {
-            margin-bottom: 4px;
-            color: #444;
-        }
-    </style>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'accounts/login.css' %}">
 </head>
 <body>
-    <div class="login-box">
-        <h2>ログイン（生徒）</h2>
-        <form method="post">
-            {% csrf_token %}
-            <label for="id_username">ユーザー名</label>
-            <input type="text" name="username" id="id_username" required>
-            <label for="id_password">パスワード</label>
-            <input type="password" name="password" id="id_password" required>
-            <button type="submit">ログイン</button>
-        </form>
+    <div class="login-container">
+        <div class="card">
+            <div class="form-side">
+                <h1 class="title">ログイン画面</h1>
+                <form method="post" class="login-form">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="id_username">名前</label>
+                        <input type="text" name="username" id="id_username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="id_password">パスワード</label>
+                        <input type="password" name="password" id="id_password" required>
+                    </div>
+                    <div class="links">
+                        <a href="{% url 'password_reset' %}" class="muted">パスワードを忘れた場合</a>
+                        <a href="{% url 'student_signup' %}" class="muted">アカウント新規作成リンク</a>
+                    </div>
+                    <button type="submit" class="btn-login">ログイン</button>
+                </form>
+            </div>
+            <div class="illustration-side">
+                <div class="greeting">また会ったね！</div>
+                <!-- シンプルなスティックフィギュアSVG（ローカル画像が無ければこのSVGを使います） -->
+                <svg class="stickman" viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <circle cx="60" cy="24" r="14" fill="#fff" stroke="#333" stroke-width="2" />
+                    <line x1="60" y1="38" x2="60" y2="86" stroke="#333" stroke-width="3" />
+                    <line x1="60" y1="52" x2="40" y2="72" stroke="#333" stroke-width="3" />
+                    <line x1="60" y1="52" x2="80" y2="72" stroke="#333" stroke-width="3" />
+                    <line x1="60" y1="86" x2="40" y2="120" stroke="#333" stroke-width="3" />
+                    <line x1="60" y1="86" x2="80" y2="120" stroke="#333" stroke-width="3" />
+                </svg>
+                <div class="caption">選んだAIイラスト</div>
+            </div>
+        </div>
     </div>
 </body>
 </html>

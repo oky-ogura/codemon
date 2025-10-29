@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>AI外見設定</title>
+    <style>
+        body{margin:0;font-family:Meiryo, 'Hiragino Kaku Gothic ProN',sans-serif;background:#f8fafc}
+        .wrap{max-width:980px;margin:28px auto;padding:16px;border:2px solid #111;background:#fff}
+        h1{text-align:center;margin-top:8px}
+        .canvas{position:relative;height:420px;display:flex;align-items:center;justify-content:center}
+        /* 画像周りの四角（枠）を消すために border を無効化し、img に合わせて表示する */
+        .illustration{
+            width:220px;
+            height:240px;
+            display:block; /* img要素なので block にする */
+            border:none; /* 枠を消す */
+            background:transparent;
+            border-radius:0; /* 角丸も不要なら0に */
+            object-fit:contain; /* 画像の縦横比を保って収める */
+        }
+        .nav-left,.nav-right{position:absolute;left:40px;top:50%;transform:translateY(-50%);cursor:pointer}
+        .nav-right{left:auto;right:40px}
+        .nav-button{width:36px;height:36px;border-radius:6px;border:2px solid #222;display:flex;align-items:center;justify-content:center}
+        .controls{display:flex;justify-content:space-between;padding:20px}
+        .btn{padding:10px 18px;border-radius:10px;border:2px solid #d6d6d6;cursor:pointer}
+        .btn.primary{background:#ddeeff;border-color:#9fb8e8}
+        .btn.secondary{background:#f9dddd;border-color:#e3a3a3}
+    </style>
+</head>
+<body>
+    {% load static %}
+    <div class="wrap">
+        <h1>CodeMonの見た目を決めよう！</h1>
+        <div class="canvas">
+            <div class="nav-left" id="prev"><div class="nav-button">◀</div></div>
+            <!-- 画像表示用に div を img に変更 -->
+            <img class="illustration" id="illustration" src="" alt="AIのイラスト（大きく）">
+            <div class="nav-right" id="next"><div class="nav-button">▶</div></div>
+        </div>
+
+        <form method="post" id="aiForm">
+            {% csrf_token %}
+            <input type="hidden" name="appearance" id="appearanceInput" value="triangle">
+            <div class="controls">
+                <button type="button" class="btn secondary" id="backBtn">戻る</button>
+                <button type="submit" class="btn primary" id="decideBtn">決定</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // baseStatic は static/accounts/ への URL
+        const baseStatic = "{% static 'accounts/' %}";
+        const appearances = {{ appearances|safe }};
+        let idx = 0;
+        const illustration = document.getElementById('illustration');
+        const appearanceInput = document.getElementById('appearanceInput');
+
+        function filenameFor(a){
+            if(!a) return '';
+            // 既に拡張子があればそのまま
+            if(typeof a === 'string' && a.match(/\.(png|jpg|jpeg|gif)$/i)) return a;
+            const map = {
+                // 既存のキーをファイル名にマップ（必要なら追加）
+                'triangle':'dog.png',
+                'round':'panda.png',
+                // static/accounts 内の実際のファイル名に合わせる
+                'robot':'rabitto.png',
+            };
+            if(map[a]) return map[a];
+            return a + '.png';
+        }
+
+        function render(){
+            const a = appearances[idx];
+            const filename = filenameFor(a);
+            appearanceInput.value = filename;
+            if(filename){
+                // 日本語ファイル名にも対応するため encodeURIComponent を使用
+                illustration.src = baseStatic + encodeURIComponent(filename);
+                illustration.alt = filename;
+            } else {
+                illustration.removeAttribute('src');
+                illustration.alt = 'AIのイラスト（大きく）';
+            }
+        }
+
+        document.getElementById('prev').addEventListener('click',()=>{ idx = (idx-1+appearances.length)%appearances.length; render(); });
+        document.getElementById('next').addEventListener('click',()=>{ idx = (idx+1)%appearances.length; render(); });
+        document.getElementById('backBtn').addEventListener('click',()=>{ window.history.back(); });
+        render();
+    </script>
+</body>
+</html>
