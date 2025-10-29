@@ -74,3 +74,19 @@ def block_save(request):
 def system_save(request):
     # 必要なら POST 処理をここに追加（保存処理など）
     return render(request, 'system/save.html')
+
+# システム選択画面
+def system_choice(request):
+    return render(request, 'system/system_choice.html')
+
+# システム新規作成画面（システム名、システムの詳細入力など）
+def system_create(request):
+    return render(request, 'system/system_create.html')
+
+# システム一覧画面
+def system_list(request):
+    return render(request, 'system/system_list.html')
+
+# 該当システム詳細画面
+def system_details(request):
+    return render(request, 'system/system_details.html')

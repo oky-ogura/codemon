@@ -14,4 +14,8 @@ urlpatterns = [
     path('block/save/', views.block_save, name='block_save'),
     path('system/', views.system_index, name='system_index'),
     path('system/save/', views.system_save, name='system_save'),
+    path('system/choice/', views.system_choice, name='system_choice'),
+    path('system/create/', views.system_create, name='system_create'),
+    path('system/list/', views.system_list, name='system_list'),
+    path('system/details/', views.system_details, name='system_details'),
 ]
