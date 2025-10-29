@@ -97,7 +97,6 @@
     background:var(--card);
     padding:18px;
     border-radius:8px;
-    border:1px solid #e6e6e9;
     box-shadow:0 1px 3px rgba(0,0,0,0.04);
   }
 
@@ -128,7 +127,6 @@
     background:transparent;
     border:2px solid transparent;
     margin-bottom:6px;
-    /* 目立たせるために軽い影と背景を追加 */
     background: linear-gradient(180deg, rgba(0,0,0,0.02), transparent);
     box-shadow: 0 2px 6px rgba(0,0,0,0.06);
     transition: transform .12s ease, box-shadow .12s ease;
@@ -210,13 +208,12 @@
           </div>
 
           <button id="overwriteBtn" class="big-btn btn-save" aria-label="上書き保存">上書き保存</button>
-
-          <!-- 表示はするが押しても遷移しない -->
-          <button id="toListBtn" class="big-btn btn-back" aria-label="システム一覧画面に戻る" aria-disabled="true">システム一覧画面に戻る</button>
+          <!-- 「システム一覧画面に戻る」ボタンは有効化して挙動を追加 -->
+          <button id="toListBtn" class="big-btn btn-back" aria-label="システム一覧画面に戻る">システム一覧画面に戻る</button>
         </div>
       </div>
 
-      <p class="note">上書き保存は未実装です。システム一覧へ戻るボタンは現在無効です。</p>
+      <p class="note">上書き保存は未実装です。システム一覧へ戻る前に確認を行います。</p>
     </div>
   </main>
 
@@ -236,7 +233,8 @@
           if(typeof tab.blur === 'function') tab.blur();
 
           if(tab.id === 'tab-system'){
-            window.location.href = '/accounts/system/';
+            // システムタブ押下で system_choice へ遷移
+            window.location.href = '/accounts/system/choice/';
             return;
           }
           if(tab.id === 'tab-algorithm'){
@@ -254,33 +252,75 @@
   }
 })();
 
-/* 保存画面用スクリプト */
+</script>
+
+<script>
+/* 保存画面用スクリプト
+   - 矢印戻りは保存済みでなければ確認表示、保存済みなら直接遷移
+   - toListBtn は常に確認表示
+   - 上書き保存はダミー（実行すると保存済み扱いにする）
+*/
 (function(){
-  // 矢印クリックでシステム作成画面へ戻る
-  const arrow = document.getElementById('arrowBack');
-  if(arrow){
-    arrow.addEventListener('click', function(){
-      location.href = '/accounts/system/';
+  // 変更検知（将来のために残す）
+  let isDirty = false;
+  function bindChangeDetection(){
+    const els = document.querySelectorAll('input, textarea, select');
+    els.forEach(el => {
+      const ev = (el.tagName.toLowerCase() === 'select') ? 'change' : 'input';
+      el.addEventListener(ev, () => { isDirty = true; });
     });
   }
+  bindChangeDetection();
 
-  // 「システム一覧画面に戻る」ボタンは無効化（表示のみ）
-  const toListBtn = document.getElementById('toListBtn');
-  if(toListBtn){
-    toListBtn.setAttribute('aria-disabled','true');
-    toListBtn.addEventListener('click', function(e){
+  // 共通：確認ダイアログ表示 -> true なら遷移先へ移動
+  function confirmAndNavigate(message, url){
+    const ok = confirm(message);
+    if(!ok) return;
+    location.href = url;
+  }
+
+  // 矢印クリック: 保存済みなら直接遷移、未保存なら確認ダイアログを出す
+  const arrow = document.getElementById('arrowBack');
+  if(arrow){
+    arrow.addEventListener('click', function(e){
       e.preventDefault();
-      e.stopPropagation();
+      if(isDirty){
+        const ok = confirm('変更が保存されていません。変更を破棄してシステム作成画面に戻りますか？');
+        if(!ok) return;
+        location.href = '/accounts/system/';
+      }else{
+        // 保存済み（または変更なし）は即遷移
+        location.href = '/accounts/system/';
+      }
     });
   }
 
   // 上書き保存（ダミー）
   const overwriteBtn = document.getElementById('overwriteBtn');
   if(overwriteBtn){
-    overwriteBtn.addEventListener('click', function(){
-      alert('上書き保存は未実装です（ダミー）。');
+
+    overwriteBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      isDirty = false;
+      alert('上書き保存は未実装です（ダミー）。変更は保存済み扱いになります。');
     });
   }
+
+  // 「システム一覧画面に戻る」ボタン：常に確認表示
+  const toListBtn = document.getElementById('toListBtn');
+  if(toListBtn){
+    toListBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      confirmAndNavigate('変更が保存されていない場合は破棄されます。システム一覧画面に戻りますか？', '/accounts/system/list/');
+    });
+  }
+
+  // ページ離脱時の確認（オプション、コメント解除で強制表示）
+  window.addEventListener('beforeunload', function(e){
+    // 必要なら以下を有効にしてください（ブラウザによっては表示されないことがあります）
+    // e.preventDefault();
+    // e.returnValue = '';
+  });
 })();
 </script>
 </body>

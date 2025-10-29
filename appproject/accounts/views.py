@@ -63,7 +63,6 @@ def user_logout(request):
     logout(request)
     return redirect('home')  # ログアウト後の遷移先を適宜変更
 
-<<<<<<< HEAD
 def account_view(request):
     # groups の取得はプロジェクトに合わせて変更してください
     try:
@@ -145,8 +144,7 @@ def user_logout(request):
     # GET は戻す（確認はフロントで行うため）
     return redirect('s_account')
 # ...existing code...
-=======
->>>>>>> main
+
 def block_index(request):
     return render(request, 'block/index.html')
 
@@ -162,7 +160,6 @@ def block_save(request):
 def system_save(request):
     # 必要なら POST 処理をここに追加（保存処理など）
     return render(request, 'system/save.html')
-<<<<<<< HEAD
 
 def group_create(request):
     if request.method == 'POST':
@@ -229,5 +226,20 @@ def user_logout(request):
     # GET は戻す（確認はフロントで行うため）
     return redirect('s_account')
 # ...existing code...
-=======
->>>>>>> main
+
+# システム選択画面
+def system_choice(request):
+    return render(request, 'system/system_choice.html')
+
+# システム新規作成画面（システム名、システムの詳細入力など）
+def system_create(request):
+    return render(request, 'system/system_create.html')
+
+# システム一覧画面
+def system_list(request):
+    return render(request, 'system/system_list.html')
+
+# 該当システム詳細画面
+def system_details(request):
+    return render(request, 'system/system_details.html')
+

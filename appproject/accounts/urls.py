@@ -19,10 +19,17 @@ urlpatterns = [
     path('system/', views.system_index, name='system_index'),
     path('system/save/', views.system_save, name='system_save'),
 <<<<<<< HEAD
+<<<<<<< HEAD
     path('groups/create/', views.group_create, name='group_create'),
     path('groups/add_member/', views.add_member_popup, name='group_add_member'),
     path('groups/menu/', views.group_menu, name='group_menu'),
     path('s_account/', views.s_account_view, name='s_account'),
 =======
+>>>>>>> main
+=======
+    path('system/choice/', views.system_choice, name='system_choice'),
+    path('system/create/', views.system_create, name='system_create'),
+    path('system/list/', views.system_list, name='system_list'),
+    path('system/details/', views.system_details, name='system_details'),
 >>>>>>> main
 ]
