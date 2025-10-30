@@ -6,6 +6,7 @@ from django.contrib.auth.hashers import make_password
 from .forms import TeacherSignupForm, StudentSignupForm
 from django.urls import reverse
 from django.contrib.auth import views as auth_views
+from django.contrib.auth.forms import SetPasswordForm
 
 
 # カスタムのパスワード再設定ビュー
@@ -199,3 +200,46 @@ def ai_initial_save(request):
         pass
 
     return redirect('accounts_root')
+
+def block_index(request):
+    return render(request, 'block/index.html')
+
+def system_index(request):
+    return render(request, 'system/index.html')
+
+# ブロック作成保存
+def block_save(request):
+    # 必要なら POST 処理をここに追加（保存処理など）
+    return render(request, 'block/save.html')
+
+# システム作成保存
+def system_save(request):
+    # 必要なら POST 処理をここに追加（保存処理など）
+    return render(request, 'system/save.html')
+
+# システム選択画面
+def system_choice(request):
+    return render(request, 'system/system_choice.html')
+
+# システム新規作成画面（システム名、システムの詳細入力など）
+def system_create(request):
+    return render(request, 'system/system_create.html')
+
+# システム一覧画面
+def system_list(request):
+    return render(request, 'system/system_list.html')
+
+# 該当システム詳細画面
+def system_details(request):
+    return render(request, 'system/system_details.html')
+
+
+# 開発用: パスワード再設定確認テンプレートをトークンなしでプレビューする簡易ビュー
+def preview_password_reset_confirm(request):
+    """開発環境でテンプレート確認のために、SetPasswordForm の空フォームを渡してレンダリングするビュー。
+
+    本番にデプロイする際はこの URL を削除してください。
+    """
+    form = SetPasswordForm(user=None)
+    return render(request, 'accounts/password_reset_confirm.html', {'form': form})
+

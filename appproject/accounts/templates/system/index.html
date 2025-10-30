@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>システム作成</title>
+  <style>
+    :root { --nav-height:56px; --primary:#1976d2; --bg:#f9f9fb; --muted:#666; }
+    .top-nav {
+      box-sizing:border-box;
+      width:100%;
+      max-width:980px;
+      height:var(--nav-height);
+      margin:16px auto 8px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:6px 12px;
+      background:linear-gradient(180deg,#fff,#fafafa);
+      border-radius:10px;
+      box-shadow:0 1px 3px rgba(0,0,0,0.06);
+      border:1px solid #e6e6e9;
+    }
+    .nav-brand{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin-right:8px;
+      padding-right:8px;
+      border-right:1px solid #eee;
+    }
+    .nav-brand .logo{
+      width:36px;
+      height:36px;
+      border-radius:6px;
+      background:var(--primary);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      color:#fff;
+      font-weight:700;
+      font-size:18px;
+    }
+    .nav-brand .title{
+      font-size:15px;
+      color:#111;
+      font-weight:600;
+    }
+    .nav-tabs{
+      display:flex;
+      justify-content: space-evenly;
+      align-items:center;
+      width:100%;
+    }
+    .nav-tab{
+      appearance:none;
+      border:0;
+      background:transparent;
+      padding:8px 12px;
+      border-radius:8px;
+      font-size:14px;
+      cursor:pointer;
+      color:var(--muted);
+      transition: all .12s ease;
+    }
+    .nav-tab:hover{
+      background:#f0f6ff;
+      color:var(--primary);
+      transform:translateY(-1px);
+    }
+    .nav-tab.active{
+      background:var(--primary);
+      color:#fff;
+      box-shadow:0 2px 6px rgba(25,118,210,0.18);
+    }
+
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .button-bar {
+      width: 860px;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .button-bar button {
+      margin-right: 10px;
+      font-size: 16px;
+      padding: 6px 18px;
+      border-radius: 4px;
+      border: 1px solid #bbb;
+      background: #f5f5f5;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .button-bar button:hover {
+      background: #e0e0e0;
+    }
+
+    .button-bar button.active {
+      background:#1976d2;
+      color:#fff;
+      box-shadow:0 6px 16px rgba(25,118,210,0.12);
+    }
+
+    .shortcut-bar {
+      width: 860px;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      margin-bottom: 16px;
+      margin-top: 0;
+    }
+    .shortcut-bar button {
+      margin-right: 10px;
+      font-size: 18px;
+      padding: 6px 18px;
+      border-radius: 4px;
+      border: 1px solid #bbb;
+      background: #f5f5f5;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .shortcut-bar button:hover {
+      background: #e0e0e0;
+    }
+    .shortcut-bar .shortcut-label {
+      font-size: 14px;
+      color: #555;
+      margin-right: 20px;
+    }
+
+    /* 既存の青い保存スタイル（参照用） */
+    .shortcut-save {
+      padding: 10px 18px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(10,59,110,0.08);
+      background: linear-gradient(180deg,#cfe7ff,#b6d9ff);
+      color: #0a3b6e;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(10,59,110,0.06);
+      margin-left: 6px;
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .shortcut-save:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(10,59,110,0.10);
+    }
+    .shortcut-save[aria-disabled="true"]{
+      opacity: 0.7;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    /* ご希望の緑スタイル（優先的に適用されるようセレクタを具体化） */
+    .shortcut-bar .shortcut-btns #saveBtn {
+      font-size: 18px;
+      margin-left: 8px;
+      background: #28a745;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 14px;
+      cursor: pointer;
+    }
+    .shortcut-bar .shortcut-btns #saveBtn:hover {
+      background: #1e7e34;
+    }
+
+    /* Run/実行 ボタンの見た目を統一 */
+    .shortcut-bar .shortcut-btns #executeBtn {
+      font-size: 18px;
+      margin-left: 10px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 16px;
+      cursor: pointer;
+    }
+    .shortcut-bar .shortcut-btns #executeBtn:hover {
+      background: #0056b3;
+    }
+
+    #slideArea {
+      width: 860px;
+      height: 440px;
+      border: 2px dashed #666;
+      position: relative;
+      background-color: #fdfdfd;
+      overflow: hidden;
+      margin: 0 auto;
+      display: block;
+    }
+
+    .input-container {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      min-width: 180px;
+      min-height: 40px;
+      cursor: grab;
+      box-sizing: border-box;
+      left: 0;
+      top: 0;
+    }
+
+    .input-container.grabbing { cursor: grabbing; }
+
+    .input-label {
+      margin-right: 5px;
+      white-space: nowrap;
+      padding: 2px 4px;
+      border: 1px dashed transparent;
+      min-width: 40px;
+    }
+    .input-label[contenteditable="true"]:focus {
+      outline: none;
+      border: 1px dashed #999;
+      background: #f0f0f0;
+    }
+
+    .input-box {
+      resize: both;
+      overflow: auto;
+      min-width: 120px;
+      min-height: 40px;
+      padding: 5px;
+      box-sizing: border-box;
+    }
+
+    .draggable-btn {
+      position: absolute;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: grab;
+      min-width: 60px;
+      min-height: 30px;
+      box-sizing: border-box;
+    }
+    .draggable-btn.grabbing { cursor: grabbing; }
+    .draggable-btn:hover {
+      filter: brightness(0.9);
+    }
+
+    /* drag handle */
+    .drag-handle {
+      position: absolute;
+      left: -10px;
+      top: -10px;
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      background: rgba(0,0,0,0.06);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:12px;
+      color: rgba(0,0,0,0.6);
+      cursor: grab;
+      user-select: none;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      z-index: 1000;
+    }
+    .drag-handle:active { cursor: grabbing; }
+    .drag-handle.hidden { display:none; }
+
+    #slideArea #trash {
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      width: 52px;
+      height: 52px;
+      background: #eee;
+      border: 2px solid #888;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      color: #888;
+      z-index: 2000;
+      transition: background 0.2s, color 0.2s;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      user-select: none;
+    }
+    #slideArea #trash.dragover {
+      background: #ffdddd;
+      color: #d32f2f;
+      border-color: #d32f2f;
+    }
+
+    /* 追記用 CSS: 選択矩形とテキストボックス */
+    .textarea-selection {
+      position: absolute;
+      border: 2px dashed rgba(25,118,210,0.9);
+      background: rgba(25,118,210,0.07);
+      z-index: 1500;
+      pointer-events: none;
+      box-sizing:border-box;
+    }
+
+    /* 非選択時はコンテナ枠を非表示にする（要望） */
+    .text-input-container {
+      position: absolute;
+      box-sizing: border-box;
+      z-index: 1200;
+      display: block;
+      min-width: 40px;
+      min-height: 24px;
+      border: none;           /* 非選択時は枠を消す */
+      background: transparent;
+      cursor: grab;           /* クリックしてドラッグ可能 */
+      overflow: auto;
+      /* コンテナ自体でリサイズさせる（内側の要素はリサイズ不可にする） */
+      resize: both;
+    }
+    .text-input-container.grabbing { cursor: grabbing; }
+
+    /* テキスト自体はコンテナに合わせて伸縮し、個別のリサイズハンドルは持たない */
+    .text-input {
+      width: 100%;
+      height: 100%;
+      padding: 6px 8px;
+      box-sizing: border-box;
+      /* 内側はリサイズを無効化して、コンテナのリサイズだけにする */
+      resize: none !important;
+      overflow: auto;
+      outline: none;
+      border: none;           /* 非選択時は枠を消す */
+      background: rgba(255,255,255,0.96);
+      font-size: 14px;
+      line-height: 1.4;
+      min-height: 20px;
+      min-width: 20px;
+      display: block;
+    }
+
+    /* 編集（フォーカス）時にのみ枠／影を表示（セレクタ修正済み） */
+    .text-input-container:focus-within {
+      border: 1px dashed rgba(0,0,0,0.12);
+      background: rgba(255,255,255,0.98);
+      box-shadow: 0 6px 18px rgba(25,118,210,0.04);
+      cursor: text;
+    }
+    .text-input_container:focus-within .text-input {
+      border: 1px solid rgba(0,0,0,0.12);
+      background: rgba(255,255,255,0.98);
+    }
+
+    /* 表示用のリサイズ中クラス（視覚のヒント、任意） */
+    .text-input-container.resizing {
+      box-shadow: 0 0 0 2px rgba(25,118,210,0.06) inset;
+      pointer-events: auto;
+      cursor: nwse-resize;
+    }
+
+    /* プレビュー用オーバーレイ（より画面全体に表示） */
+    .preview-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      display: flex;
+      flex-direction: column;
+      z-index: 9999;
+      align-items: stretch;
+      justify-content: center;
+      padding: 8px;                 /* 少なめの余白でより全画面に見せる */
+      box-sizing:border-box;
+    }
+    .preview-header {
+      height: 48px;
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:8px;
+      z-index: 10010;
+    }
+    .preview-close {
+      background:#fff;
+      border:1px solid #ccc;
+      padding:6px 12px;
+      border-radius:6px;
+      cursor:pointer;
+      font-weight:600;
+    }
+    .preview-area {
+      flex:1;
+      background:transparent;
+      border-radius:6px;
+      overflow:hidden;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:4px;                  /* 軽い内側余白 */
+      box-sizing:border-box;
+    }
+    /* プレビューでほぼ全画面表示にする（max 制限を除去） */
+    #previewSlideArea {
+      width: calc(100vw - 16px);    /* 左右に小さな余白を残す */
+      height: calc(100vh - 72px);   /* ヘッダ分と上下に余白を残す */
+      max-width: none;
+      max-height: none;
+      border: 2px dashed #666;
+      position:relative;
+      background:#fff;
+      box-sizing:border-box;
+      border-radius:6px;
+      overflow:auto;
+    }
+
+    @media (max-width:980px){
+      .button-bar, .shortcut-bar, #slideArea { width: 92%; max-width:860px; }
+      #previewSlideArea { width: calc(100vw - 8px); height: calc(100vh - 72px); }
+    }
+  </style>
+</head>
+<body>
+  <header class="top-nav" role="banner" aria-label="メインナビゲーション">
+    <nav class="nav-tabs" role="navigation" aria-label="タブメニュー">
+      <button type="button" class="nav-tab active" id="tab-system" aria-pressed="true" title="システム">システム</button>
+      <button type="button" class="nav-tab" id="tab-algorithm" aria-pressed="false" title="アルゴリズム">アルゴリズム</button>
+      <button type="button" class="nav-tab" id="tab-progress" aria-pressed="false" title="進捗確認">進捗確認</button>
+      <button type="button" class="nav-tab" id="tab-account" aria-pressed="false" title="アカウント">アカウント</button>
+    </nav>
+  </header>
+
+  <h1>システム作成</h1>
+  <div class="button-bar">
+    <button id="addTextBtn">あいう</button>
+    <button id="addNumberBtn">123</button>
+    <button id="addDatetimeBtn">日時</button>
+    <button id="addButtonBtn">ボタン追加</button>
+  </div>
+
+  <div class="shortcut-bar">
+    <button id="undoBtn" title="元に戻す (Ctrl+Z)">←</button>
+    <button id="redoBtn" title="やり直し (Ctrl+Y)">→</button>
+
+    <div class="shortcut-btns" aria-hidden="false">
+      <button id="executeBtn" aria-disabled="false">実行</button>
+      <button id="saveBtn" aria-disabled="false">保存</button>
+    </div>
+  </div>
+
+  <div id="slideArea">
+    <div id="trash" title="ここにドラッグで削除">🗑️</div>
+  </div>
+
+  <script>
+    (function(){
+      try{
+        const tabs = document.querySelectorAll('.nav-tab');
+        tabs.forEach(tab=>{
+          tab.addEventListener('click', (e)=>{
+            try{
+              tabs.forEach(t=>{
+                t.classList.remove('active');
+                t.setAttribute('aria-pressed','false');
+              });
+              tab.classList.add('active');
+              tab.setAttribute('aria-pressed','true');
+              if(typeof tab.blur === 'function') tab.blur();
+
+              if(tab.id === 'tab-system'){
+                // システムタブ押下でシステム選択画面に遷移
+                window.location.href = '/accounts/system/choice/';
+                return;
+              }
+              if(tab.id === 'tab-algorithm'){
+                window.location.href = 'http://127.0.0.1:8000/accounts/block/';
+                return;
+              }
+            }catch(err){
+              console.error('tab click handler error', err);
+            }
+          });
+        });
+      }catch(err){
+        console.error('tabs init error', err);
+      }
+    })();
+
+    const colorOptions = [
+      { name: "あお", value: "#2196F3" },
+      { name: "あか", value: "#F44336" },
+      { name: "みどり", value: "#4CAF50" },
+      { name: "きいろ", value: "#FFEB3B", textColor: "#333" },
+      { name: "オレンジ", value: "#FF9800" },
+      { name: "むらさき", value: "#9C27B0" },
+      { name: "くろ", value: "#333" },
+      { name: "しろ", value: "#fff", textColor: "#333" }
+    ];
+
+    let history = [];
+    let historyIndex = -1;
+
+    function saveHistory() {
+      const slide = document.getElementById("slideArea");
+      history = history.slice(0, historyIndex + 1);
+      history.push(slide.innerHTML);
+      historyIndex++;
+    }
+
+    function restoreHistory(index) {
+      const slide = document.getElementById("slideArea");
+      slide.innerHTML = history[index];
+      Array.from(slide.children).forEach(el => {
+        if (el.classList.contains("input-container") || el.classList.contains("draggable-btn") || el.classList.contains("text-input-container")) {
+          addDragHandleIfMissing(el);
+          makeDraggable(el);
+        }
+      });
+    }
+
+    function undo() {
+      if (historyIndex > 0) {
+        historyIndex--;
+        restoreHistory(historyIndex);
+      }
+    }
+
+    function redo() {
+      if (historyIndex < history.length - 1) {
+        historyIndex++;
+        restoreHistory(historyIndex);
+      }
+    }
+
+    document.getElementById("undoBtn").addEventListener("click", undo);
+    document.getElementById("redoBtn").addEventListener("click", redo);
+    document.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        undo();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        redo();
+      }
+    });
+
+    // 保存ボタン: クリックでシステム保存画面へ遷移
+    const saveBtn = document.getElementById('saveBtn');
+    if (saveBtn) {
+      saveBtn.addEventListener('click', function(e){
+        e.preventDefault();
+        window.location.href = '/accounts/system/save/';
+      });
+    }
+
+    // 実行ボタン: プレビューを全画面で表示し、テキストボックスは編集・リサイズ不可とする
+    const executeBtn = document.getElementById('executeBtn');
+    if (executeBtn) {
+      executeBtn.addEventListener('click', function(e){
+        e.preventDefault();
+        openPreview();
+      });
+    }
+
+    // small helper: add drag handle if missing
+    function addDragHandleIfMissing(container) {
+      if (!container || container.querySelector('.drag-handle')) return;
+      const handle = document.createElement('div');
+      handle.className = 'drag-handle';
+      handle.title = '移動';
+      handle.textContent = '≡';
+      container.appendChild(handle);
+    }
+
+    // 汎用: プレビュー内で使うドラッグ機能（親コンテナを指定） — 既存のため残すが、プレビューでは使用しない
+    function makeDraggableForPreview(el, parent) {
+      let offsetX=0, offsetY=0, dragging=false;
+      el.style.position = 'absolute';
+      el.addEventListener('mousedown', function(evt){
+        if (evt.button !== 0) return;
+        if (evt.target && (evt.target.classList && (evt.target.classList.contains('input-label') || evt.target.classList.contains('input-box') || evt.target.classList.contains('text-input')))) {
+          return;
+        }
+        evt.preventDefault();
+        const parentRect = parent.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        offsetX = evt.clientX - elRect.left;
+        offsetY = evt.clientY - elRect.top;
+        dragging = true;
+        document.body.style.userSelect = 'none';
+        el.style.zIndex = 2000;
+      });
+      function onMove(evt){
+        if (!dragging) return;
+        const parentRect = parent.getBoundingClientRect();
+        let x = evt.clientX - parentRect.left - offsetX;
+        let y = evt.clientY - parentRect.top - offsetY;
+        x = Math.max(0, Math.min(x, parent.clientWidth - el.offsetWidth));
+        y = Math.max(0, Math.min(y, parent.clientHeight - el.offsetHeight));
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+      }
+      function onUp(evt){
+        if (dragging) {
+          dragging = false;
+          el.style.zIndex = '';
+          document.body.style.userSelect = '';
+        }
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    }
+
+    // 改良版 makeDraggable:
+    // - ハンドルでのドラッグをサポート
+    // - ネイティブリサイズ（要素のサイズ変更）中は位置を固定する（移動を無効化）
+    function makeDraggable(el) {
+      if (!el) return;
+      el.style.position = 'absolute';
+      addDragHandleIfMissing(el);
+
+      const handle = el.querySelector('.drag-handle');
+      let dragging = false;
+      let startX = 0, startY = 0;
+      let offsetX = 0, offsetY = 0;
+      let moved = false;
+      const threshold = 5; // px
+
+      // リサイズ検出フラグとデバウンスタイマー
+      let resizing = false;
+      let resizeTimer = null;
+
+      // 初期サイズ（mousedown 時点）を保持して簡易判定に使う
+      let initialWidth = el.offsetWidth;
+      let initialHeight = el.offsetHeight;
+
+      // ResizeObserver を使用してサイズ変化を検出 → リサイズ中フラグを立てる
+      let ro = null;
+      try {
+        ro = new ResizeObserver(() => {
+          // サイズ変化が来たらリサイズ中とみなす
+          resizing = true;
+          el.classList.add('resizing');
+          if (resizeTimer) clearTimeout(resizeTimer);
+          // サイズ変化が止まってから 120ms でリサイズ完了と判断
+          resizeTimer = setTimeout(() => {
+            resizing = false;
+            el.classList.remove('resizing');
+            resizeTimer = null;
+            // 更新された幅高さを記録しておく
+            initialWidth = el.offsetWidth;
+            initialHeight = el.offsetHeight;
+          }, 120);
+        });
+        // 観察対象はコンテナ自身（テキストボックスはコンテナをリサイズする想定）
+        ro.observe(el);
+      } catch (err) {
+        ro = null;
+      }
+
+      function setGrabbing(state){
+        if (state) {
+          el.classList.add('grabbing');
+          if (el.classList.contains('draggable-btn')) el.classList.add('grabbing');
+        } else {
+          el.classList.remove('grabbing');
+          if (el.classList.contains('draggable-btn')) el.classList.remove('grabbing');
+        }
+      }
+
+      function onDown(clientX, clientY, isHandle) {
+        // クリックした要素が編集可能なら、ハンドル以外ではドラッグ開始しない
+        const active = document.elementFromPoint(clientX, clientY);
+        if (active) {
+          if (active.classList && (active.classList.contains('input-box') || active.classList.contains('text-input') || active.classList.contains('input-label') || active.getAttribute('contenteditable') === 'true')) {
+            if (!isHandle) return false;
+          }
+        }
+        const elRect = el.getBoundingClientRect();
+        offsetX = clientX - elRect.left;
+        offsetY = clientY - elRect.top;
+        startX = clientX;
+        startY = clientY;
+        moved = false;
+        document.body.style.userSelect = 'none';
+
+        // mousedown 時点でのサイズを保持（マウス操作でネイティブリサイズ開始判定に利用）
+        initialWidth = el.offsetWidth;
+        initialHeight = el.offsetHeight;
+
+        return true;
+      }
+
+      function startDrag() {
+        if (resizing) return; // リサイズ中はドラッグしない
+        dragging = true;
+        setGrabbing(true);
+        el.style.zIndex = 1000;
+      }
+
+      function stopDrag(dropX, dropY) {
+        if (dragging) {
+          const trash = document.getElementById("trash");
+          if (trash) {
+            const trashRect = trash.getBoundingClientRect();
+            if (dropX > trashRect.left && dropX < trashRect.right && dropY > trashRect.top && dropY < trashRect.bottom) {
+              if (el.parentNode) el.parentNode.removeChild(el);
+              saveHistory();
+            }
+            trash.classList.remove('dragover');
+          }
+        }
+        dragging = false;
+        setGrabbing(false);
+        el.style.zIndex = '';
+        document.body.style.userSelect = '';
+      }
+
+      // mouse events
+      function mousedownHandler(e) {
+        if (e.button !== 0) return;
+        const isHandle = e.target === handle || e.target.closest('.drag-handle');
+        if (!onDown(e.clientX, e.clientY, isHandle)) return;
+
+        const onMoveWhileDown = function(ev){
+          // まず、ネイティブリサイズが発生しているか簡易判定（サイズ差異）
+          if (!resizing && (el.offsetWidth !== initialWidth || el.offsetHeight !== initialHeight)) {
+            resizing = true;
+            el.classList.add('resizing');
+            if (resizeTimer) clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+              resizing = false;
+              el.classList.remove('resizing');
+              resizeTimer = null;
+              initialWidth = el.offsetWidth;
+              initialHeight = el.offsetHeight;
+            }, 120);
+          }
+
+          // リサイズ中は位置を変更しない（フォームと同様に固定）
+          if (resizing) {
+            return;
+          }
+
+          const dx = ev.clientX - startX;
+          const dy = ev.clientY - startY;
+          if (!moved && Math.hypot(dx, dy) >= threshold) {
+            moved = true;
+            startDrag();
+          }
+          if (dragging) {
+            const slide = document.getElementById("slideArea");
+            const slideRect = slide.getBoundingClientRect();
+            let x = ev.clientX - slideRect.left - offsetX;
+            let y = ev.clientY - slideRect.top - offsetY;
+            x = Math.max(0, Math.min(x, slide.clientWidth - el.offsetWidth));
+            y = Math.max(0, Math.min(y, slide.clientHeight - el.offsetHeight));
+            el.style.left = x + "px";
+            el.style.top = y + "px";
+
+            const trash = document.getElementById("trash");
+            const trashRect = trash.getBoundingClientRect();
+            if (
+              ev.clientX > trashRect.left &&
+              ev.clientX < trashRect.right &&
+              ev.clientY > trashRect.top &&
+              ev.clientY < trashRect.bottom
+            ) {
+              trash.classList.add("dragover");
+            } else {
+              trash.classList.remove("dragover");
+            }
+          }
+        };
+        const onUpWhileDown = function(ev){
+          stopDrag(ev.clientX, ev.clientY);
+          document.removeEventListener('mousemove', onMoveWhileDown);
+          document.removeEventListener('mouseup', onUpWhileDown);
+        };
+        document.addEventListener('mousemove', onMoveWhileDown);
+        document.addEventListener('mouseup', onUpWhileDown);
+      }
+
+      // touch events
+      function touchstartHandler(e) {
+        if (!e.touches || e.touches.length === 0) return;
+        const touch = e.touches[0];
+        const isHandle = e.target === handle || e.target.closest('.drag-handle');
+        if (!onDown(touch.clientX, touch.clientY, isHandle)) return;
+        const onTouchMove = function(ev){
+          const t = ev.touches[0];
+
+          // touch でもサイズ差でリサイズ判定
+          if (!resizing && (el.offsetWidth !== initialWidth || el.offsetHeight !== initialHeight)) {
+            resizing = true;
+            el.classList.add('resizing');
+            if (resizeTimer) clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+              resizing = false;
+              el.classList.remove('resizing');
+              resizeTimer = null;
+              initialWidth = el.offsetWidth;
+              initialHeight = el.offsetHeight;
+            }, 120);
+          }
+          if (resizing) return;
+
+          const dx = t.clientX - startX;
+          const dy = t.clientY - startY;
+          if (!moved && Math.hypot(dx, dy) >= threshold) {
+            moved = true;
+            startDrag();
+          }
+          if (dragging) {
+            const slide = document.getElementById("slideArea");
+            const slideRect = slide.getBoundingClientRect();
+            let x = t.clientX - slideRect.left - offsetX;
+            let y = t.clientY - slideRect.top - offsetY;
+            x = Math.max(0, Math.min(x, slide.clientWidth - el.offsetWidth));
+            y = Math.max(0, Math.min(y, slide.clientHeight - el.offsetHeight));
+            el.style.left = x + "px";
+            el.style.top = y + "px";
+          }
+        };
+        const onTouchEnd = function(ev){
+          const last = ev.changedTouches && ev.changedTouches[0];
+          stopDrag(last ? last.clientX : startX, last ? last.clientY : startY);
+          document.removeEventListener('touchmove', onTouchMove);
+          document.removeEventListener('touchend', onTouchEnd);
+        };
+        document.addEventListener('touchmove', onTouchMove, {passive:false});
+        document.addEventListener('touchend', onTouchEnd);
+      }
+
+      // attach handlers to handle and container
+      handle.addEventListener('mousedown', mousedownHandler);
+      el.addEventListener('mousedown', mousedownHandler);
+
+      handle.addEventListener('touchstart', touchstartHandler, {passive:true});
+      el.addEventListener('touchstart', touchstartHandler, {passive:true});
+
+      // cleanup on element removal: disconnect observer if any
+      const mo = new MutationObserver(mutations => {
+        if (!document.body.contains(el)) {
+          try { if (ro) ro.disconnect(); } catch(e){}
+          try { mo.disconnect(); } catch(e){}
+        }
+      });
+      mo.observe(document.body, {childList: true, subtree: true});
+    }
+
+    // プレビューを作成して表示（プレビュー内は描画テキストボックスは非編集・非リサイズ、その他フォームは入力可）
+    function openPreview(){
+      if (document.getElementById('previewOverlay')) return;
+      const original = document.getElementById('slideArea');
+      if (!original) return;
+
+      // overlay elements
+      const overlay = document.createElement('div');
+      overlay.id = 'previewOverlay';
+      overlay.className = 'preview-overlay';
+      overlay.setAttribute('role','dialog');
+      overlay.setAttribute('aria-modal','true');
+
+      const header = document.createElement('div');
+      header.className = 'preview-header';
+
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'preview-close';
+      closeBtn.textContent = '閉じる (Esc)';
+      closeBtn.setAttribute('aria-label','閉じる');
+      header.appendChild(closeBtn);
+
+      const areaWrap = document.createElement('div');
+      areaWrap.className = 'preview-area';
+
+      // clone slideArea and adjust
+      const clone = original.cloneNode(true);
+      clone.id = 'previewSlideArea';
+      // remove trash if exists
+      const trash = clone.querySelector('#trash');
+      if (trash) trash.remove();
+
+      // --- 変更: inputs/textareas を「入力可能」にする（pointer-events: auto）、ただし描画テキスト（.text-input）は非編集にする ---
+      // Enable native form controls in preview (allow typing)
+      clone.querySelectorAll('input,textarea').forEach(el => {
+        try {
+          // remove any disabled/readOnly that may have been cloned
+          el.removeAttribute('disabled');
+          el.readOnly = false;
+          el.style.pointerEvents = 'auto';
+          // prevent native resize handles in preview UI
+          el.style.resize = 'none';
+        } catch(e){}
+      });
+      // For elements that were contenteditable but are "drawn text boxes" (.text-input), keep them non-editable.
+      clone.querySelectorAll('.text-input, [contenteditable]').forEach(el => {
+        try {
+          // If it's specifically the drawn text-input element (class .text-input), keep it non-editable.
+          if (el.classList && el.classList.contains('text-input')) {
+            el.removeAttribute('contenteditable');
+            el.setAttribute('aria-readonly','true');
+            el.style.pointerEvents = 'none';
+          } else {
+            // For other contenteditable elements (e.g. labels), make them non-editable (display-only) in preview
+            el.removeAttribute('contenteditable');
+            el.setAttribute('aria-readonly','true');
+            el.style.pointerEvents = 'none';
+          }
+        } catch(e){}
+      });
+
+      // Remove drag handles in preview (no move)
+      clone.querySelectorAll('.drag-handle').forEach(h => h.remove());
+
+      // Inject preview-only style:
+      const previewStyle = document.createElement('style');
+      previewStyle.textContent = `
+        /* 基本: プレビュー内ではほとんどの要素への操作を無効化 */
+        #previewSlideArea * { pointer-events: none !important; }
+
+        /* ボタン類はプレビューで有効にする */
+        #previewSlideArea button,
+        #previewSlideArea .draggable-btn {
+          pointer-events: auto !important;
+        }
+
+        /* ネイティブの input / textarea / input-box は入力（typing）を許可 */
+        #previewSlideArea input,
+        #previewSlideArea textarea,
+        #previewSlideArea .input-box {
+          pointer-events: auto !important;
+          user-select: text !important;
+        }
+
+        /* 描画して配置したテキストボックス（.text-input）は表示のみ（編集・リサイズ不可） */
+        #previewSlideArea .text-input,
+        #previewSlideArea .text-input-container {
+          pointer-events: none !important;
+          resize: none !important;
+        }
+
+        /* 親コンテナ／ボタン等の移動やドラッグを見た目上も無効化 */
+        #previewSlideArea .input-container,
+        #previewSlideArea .draggable-btn,
+        #previewSlideArea .text-input-container {
+          cursor: default !important;
+          user-select: text !important;
+        }
+
+        /* フォーカス時の見た目を抑える（入力不可なものは枠を表示しない） */
+        #previewSlideArea .input-label,
+        #previewSlideArea .text-input,
+        #previewSlideArea input,
+        #previewSlideArea textarea {
+          outline: none !important;
+          background: transparent !important;
+        }
+
+        /* プレビュー領域表示の調整 */
+        #previewSlideArea { -webkit-user-select: text !important; user-select: text !important; box-shadow: 0 6px 30px rgba(0,0,0,0.24); }
+      `;
+      overlay.appendChild(previewStyle);
+
+      // Reattach simple click handlers for cloned buttons so they work in preview
+      clone.querySelectorAll('button, .draggable-btn').forEach(btn => {
+        try {
+          btn.style.pointerEvents = 'auto';
+          btn.addEventListener('click', function(ev){
+            ev.stopPropagation();
+            const label = (btn.textContent || 'ボタン').trim();
+            try { alert('プレビュー：ボタン「' + label + '」が押されました'); } catch(e){}
+          });
+        } catch(err) {}
+      });
+
+      // Append clone
+      areaWrap.appendChild(clone);
+      overlay.appendChild(header);
+      overlay.appendChild(areaWrap);
+      document.body.appendChild(overlay);
+
+      // prevent background scrolling while preview open
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+
+      // close handlers
+      function closeOverlay(){
+        try{ overlay.remove(); }catch(err){}
+        document.body.style.overflow = prevOverflow || '';
+      }
+      closeBtn.addEventListener('click', closeOverlay);
+      overlay.addEventListener('click', function(evt){
+        if (evt.target === overlay) closeOverlay();
+      });
+      document.addEventListener('keydown', function onEsc(e){
+        if (e.key === 'Escape') {
+          closeOverlay();
+          document.removeEventListener('keydown', onEsc);
+        }
+      });
+    }
+
+    function getRandomPosition(width=100, height=40) {
+      const slide = document.getElementById("slideArea");
+      const x = Math.random() * Math.max(0, slide.clientWidth - width);
+      const y = Math.random() * Math.max(0, slide.clientHeight - height);
+      return {x, y};
+    }
+
+    function createInput(defaultLabel, placeholder, onlyNumber=false) {
+      let container = document.createElement("div");
+      container.classList.add("input-container");
+
+      let label = document.createElement("div");
+      label.classList.add("input-label");
+      label.textContent = defaultLabel;
+      label.contentEditable = "true";
+
+      let textarea = document.createElement("textarea");
+      textarea.classList.add("input-box");
+      textarea.placeholder = placeholder;
+
+      if (onlyNumber) {
+        textarea.addEventListener("input", function() {
+          this.value = this.value.replace(/[^0-9\n]/g, "");
+        });
+      }
+
+      container.appendChild(label);
+      container.appendChild(textarea);
+
+      let pos = getRandomPosition();
+      container.style.left = pos.x + "px";
+      container.style.top = pos.y + "px";
+
+      // add handle then make draggable
+      addDragHandleIfMissing(container);
+      makeDraggable(container);
+      document.getElementById("slideArea").appendChild(container);
+      saveHistory();
+    }
+
+    function createDatetimeInput() {
+      let container = document.createElement("div");
+      container.classList.add("input-container");
+
+      let label = document.createElement("div");
+      label.classList.add("input-label");
+      label.textContent = "日時：";
+      label.contentEditable = "true";
+
+      let input = document.createElement("input");
+      input.type = "datetime-local";
+      input.style.minWidth = "180px";
+      input.style.minHeight = "36px";
+      input.style.fontSize = "16px";
+      input.style.padding = "4px 8px";
+      input.style.boxSizing = "border-box";
+      input.classList.add("input-box");
+
+      container.appendChild(label);
+      container.appendChild(input);
+
+      let pos = getRandomPosition(240, 40);
+      container.style.left = pos.x + "px";
+      container.style.top = pos.y + "px";
+
+      addDragHandleIfMissing(container);
+      makeDraggable(container);
+      document.getElementById("slideArea").appendChild(container);
+      saveHistory();
+    }
+
+    function createButton(labelText, width, height, color, textColor) {
+      let btn = document.createElement("button");
+      btn.classList.add("draggable-btn");
+      btn.textContent = labelText;
+
+      btn.style.width = width + "px";
+      btn.style.height = height + "px";
+      btn.style.background = color;
+      btn.style.color = textColor || "#fff";
+
+      let isDragging = false;
+      let startX, startY;
+
+      btn.addEventListener("mousedown", function(e) {
+        startX = e.clientX;
+        startY = e.clientY;
+        isDragging = false;
+      });
+
+      document.addEventListener("mousemove", function(e) {
+        if (startX !== undefined &&
+            (Math.abs(e.clientX - startX) > 3 || Math.abs(e.clientY - startY) > 3)) {
+          isDragging = true;
+        }
+      });
+
+      btn.addEventListener("mouseup", function(e) {
+        if (!isDragging) {
+          alert("ボタン「" + btn.textContent + "」が押されました");
+        }
+        startX = undefined;
+        startY = undefined;
+      });
+
+      let pos = getRandomPosition(width, height);
+      btn.style.left = pos.x + "px";
+      btn.style.top = pos.y + "px";
+
+      // add handle and make draggable
+      addDragHandleIfMissing(btn);
+      makeDraggable(btn);
+      document.getElementById("slideArea").appendChild(btn);
+      saveHistory();
+    }
+
+    document.getElementById("addTextBtn").addEventListener("click", function() {
+      createInput("文字：", "文字を入力（改行できます）");
+    });
+
+    document.getElementById("addNumberBtn").addEventListener("click", function() {
+      createInput("数字：", "数字を入力（改行可）", true);
+    });
+
+    document.getElementById("addDatetimeBtn").addEventListener("click", function() {
+      createDatetimeInput();
+    });
+
+    document.getElementById("addButtonBtn").addEventListener("click", function() {
+      let name = prompt("ボタンの名前を入力してください", "ボタン");
+      if (!name) return;
+
+      let width = parseInt(prompt("ボタンの幅(px)", "100"));
+      let height = parseInt(prompt("ボタンの高さ(px)", "40"));
+      if (isNaN(width) || isNaN(height)) {
+        alert("数値を正しく入力してください");
+        return;
+      }
+
+      let colorNameList = colorOptions.map(opt => opt.name).join(" / ");
+      let colorName = prompt(
+        "ボタンの色を選んで入力してください：\n" + colorNameList,
+        colorOptions[0].name
+      );
+      if (!colorName) colorName = colorOptions[0].name;
+      let colorObj = colorOptions.find(opt => opt.name === colorName);
+      if (!colorObj) {
+        alert("色の名前は「" + colorNameList + "」から選んでください。");
+        return;
+      }
+
+      createButton(name, width, height, colorObj.value, colorObj.textColor);
+    });
+
+    window.onload = function() {
+      // add handles to existing elements (if any) and ensure draggables
+      Array.from(document.querySelectorAll('.input-container, .draggable-btn, .text-input-container')).forEach(el=>{
+        addDragHandleIfMissing(el);
+        makeDraggable(el);
+      });
+      saveHistory();
+    };
+  </script>
+
+  <!-- ここから追加: PowerPoint風に選択範囲でテキスト入力できる機能 -->
+  <script>
+    (function(){
+      const slide = document.getElementById('slideArea');
+      const buttonBar = document.querySelector('.button-bar');
+      if (!slide || !buttonBar) return;
+
+      // ボタンを追加
+      const drawBtn = document.createElement('button');
+      drawBtn.id = 'drawTextBtn';
+      drawBtn.textContent = 'テキストボックス';
+      drawBtn.title = 'ドラッグで選択してテキストボックスを作成';
+      buttonBar.appendChild(drawBtn);
+
+      let drawing = false;
+      let startX = 0, startY = 0;
+      let selRect = null;
+
+      function toLocalCoords(clientX, clientY) {
+        const rect = slide.getBoundingClientRect();
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        return {x, y};
+      }
+
+      function startDrawing(e) {
+        if (!drawing) return;
+        // 左ボタンのみ
+        if (e.button !== 0) return;
+        const coords = toLocalCoords(e.clientX, e.clientY);
+        startX = Math.max(0, Math.min(slide.clientWidth, coords.x));
+        startY = Math.max(0, Math.min(slide.clientHeight, coords.y));
+        selRect = document.createElement('div');
+        selRect.className = 'textarea-selection';
+        selRect.style.left = startX + 'px';
+        selRect.style.top = startY + 'px';
+        selRect.style.width = '0px';
+        selRect.style.height = '0px';
+        slide.appendChild(selRect);
+        document.addEventListener('mousemove', onMouseMoveDuringDraw);
+        document.addEventListener('mouseup', onMouseUpAfterDraw);
+      }
+
+      function onMouseMoveDuringDraw(e) {
+        if (!selRect) return;
+        const coords = toLocalCoords(e.clientX, e.clientY);
+        let curX = Math.max(0, Math.min(slide.clientWidth, coords.x));
+        let curY = Math.max(0, Math.min(slide.clientHeight, coords.y));
+        const left = Math.min(startX, curX);
+        const top = Math.min(startY, curY);
+        const w = Math.max(2, Math.abs(curX - startX));
+        const h = Math.max(2, Math.abs(curY - startY));
+        selRect.style.left = left + 'px';
+        selRect.style.top = top + 'px';
+        selRect.style.width = w + 'px';
+        selRect.style.height = h + 'px';
+      }
+
+      function onMouseUpAfterDraw(e) {
+        document.removeEventListener('mousemove', onMouseMoveDuringDraw);
+        document.removeEventListener('mouseup', onMouseUpAfterDraw);
+        if (!selRect) return;
+        const rect = selRect.getBoundingClientRect();
+        const slideRect = slide.getBoundingClientRect();
+        // compute local coords
+        const left = rect.left - slideRect.left;
+        const top = rect.top - slideRect.top;
+        const width = rect.width;
+        const height = rect.height;
+        selRect.remove();
+        selRect = null;
+
+        // ignore tiny selections
+        if (width < 10 || height < 10) {
+          return;
+        }
+
+        // create text box container
+        const container = document.createElement('div');
+        container.classList.add('text-input-container');
+        container.style.left = Math.max(0, Math.min(slide.clientWidth - 10, left)) + 'px';
+        container.style.top = Math.max(0, Math.min(slide.clientHeight - 10, top)) + 'px';
+        container.style.width = Math.min(slide.clientWidth - left, width) + 'px';
+        container.style.height = Math.min(slide.clientHeight - top, height) + 'px';
+
+        const textDiv = document.createElement('div');
+        textDiv.classList.add('text-input', 'input-box');
+        textDiv.contentEditable = 'true';
+        textDiv.innerHTML = ''; // start empty
+        container.appendChild(textDiv);
+
+        slide.appendChild(container);
+
+        // add handle + make draggable
+        addDragHandleIfMissing(container);
+        try { makeDraggable(container); } catch (err) { console.error(err); }
+
+        // focus for immediate editing
+        setTimeout(() => {
+          textDiv.focus();
+          // place caret at end
+          const range = document.createRange();
+          range.selectNodeContents(textDiv);
+          range.collapse(false);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }, 10);
+
+        // save history
+        try { saveHistory(); } catch (err) { console.error(err); }
+      }
+
+      // toggle drawing mode
+      drawBtn.addEventListener('click', function(){
+        drawing = !drawing;
+        drawBtn.classList.toggle('active', drawing);
+        slide.style.cursor = drawing ? 'crosshair' : '';
+        // ensure any in-progress selection is cleared
+        if (!drawing && selRect) {
+          selRect.remove();
+          selRect = null;
+        }
+      });
+
+      // start mousedown on slide only when drawing mode active
+      slide.addEventListener('mousedown', function(e){
+        // don't interfere with dragging existing elements
+        // if target is an existing control, ignore
+        if (!drawing) return;
+        // if clicking on an existing interactive element, ignore
+        if (e.target && (e.target.closest('.input-container') || e.target.closest('.draggable-btn') || e.target.closest('.text-input-container'))) {
+          return;
+        }
+        startDrawing(e);
+      });
+
+      // cancel drawing with Escape
+      document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape' && drawing) {
+          drawing = false;
+          drawBtn.classList.remove('active');
+          slide.style.cursor = '';
+          if (selRect) { selRect.remove(); selRect = null; }
+        }
+      });
+
+      // on window resize, cancel drawing
+      window.addEventListener('resize', function(){
+        if (selRect) { selRect.remove(); selRect = null; }
+      });
+
+    })();
+  </script>
+  
+
+</body>
+</html>
