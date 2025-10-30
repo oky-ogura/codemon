@@ -18,4 +18,10 @@ urlpatterns = [
     path('system/create/', views.system_create, name='system_create'),
     path('system/list/', views.system_list, name='system_list'),
     path('system/details/', views.system_details, name='system_details'),
+    path('account/', views.account_view, name='account_dashboard'),
+    path('groups/create/', views.group_create, name='group_create'),
+    path('groups/add_member/', views.add_member_popup, name='group_add_member'),
+    path('groups/menu/', views.group_menu, name='group_menu'),
+    path('s_account/', views.s_account_view, name='s_account'),
+
 ]

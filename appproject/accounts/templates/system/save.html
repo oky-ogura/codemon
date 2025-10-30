@@ -208,7 +208,6 @@
           </div>
 
           <button id="overwriteBtn" class="big-btn btn-save" aria-label="上書き保存">上書き保存</button>
-
           <!-- 「システム一覧画面に戻る」ボタンは有効化して挙動を追加 -->
           <button id="toListBtn" class="big-btn btn-back" aria-label="システム一覧画面に戻る">システム一覧画面に戻る</button>
         </div>
@@ -252,6 +251,7 @@
     console.error('tabs init error', err);
   }
 })();
+
 </script>
 
 <script>
@@ -298,6 +298,7 @@
   // 上書き保存（ダミー）
   const overwriteBtn = document.getElementById('overwriteBtn');
   if(overwriteBtn){
+
     overwriteBtn.addEventListener('click', function(e){
       e.preventDefault();
       isDirty = false;
