@@ -125,9 +125,22 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+
+# project-level static files directory (for development)
+# include BASE_DIR/static so {% static 'accounts/...' %} finds files placed there
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
+
+# where collectstatic will collect files for production (not used in DEBUG mode)
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Development-time email backend: print emails to console so password-reset links are visible during development
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
