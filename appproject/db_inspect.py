@@ -1,14 +1,10 @@
-#!/usr/bin/env python
-"""簡易接続確認スクリプト（実行専用）
 
-このスクリプトは直接実行したときだけ PostgreSQL へ接続します。
-Django の起動時に自動実行されないように、モジュールとしての副作用は排除しています。
-"""
+# ...existing code...
 import os
 import psycopg2
 
-
 def main():
+    # PGPASSWORD と DB_PASSWORD の両方を許容
     host = os.environ.get("DB_HOST", "localhost")
     user = os.environ.get("DB_USER", "postgres")
     dbname = os.environ.get("DB_NAME", "codemon")
@@ -33,6 +29,6 @@ def main():
     cur.close()
     conn.close()
 
-
 if __name__ == '__main__':
     main()
+
