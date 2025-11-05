@@ -1,6 +1,7 @@
 from django import forms
 from .models import Account
 from django.core.exceptions import ValidationError
+from django.contrib.auth.hashers import make_password
 
 
 class TeacherSignupForm(forms.ModelForm):
@@ -9,10 +10,11 @@ class TeacherSignupForm(forms.ModelForm):
 
     class Meta:
         model = Account
-        fields = ['user_name', 'email']
+        fields = ['user_name', 'email', 'age']
         labels = {
             'user_name': '氏名',
             'email': 'メールアドレス',
+            'age': '年齢',
         }
 
     def clean_password2(self):
@@ -30,11 +32,10 @@ class TeacherSignupForm(forms.ModelForm):
 
     def save(self, commit=True):
         instance = super().save(commit=False)
-        # パスワードのハッシュ化はビュー側で Django の make_password を使うためここでは保留
-        instance.password = self.cleaned_data.get('password1')
+        # ハッシュ化して保存
+        instance.password = make_password(self.cleaned_data.get('password1'))
         # デフォルト値を設定
         instance.account_type = 'teacher'
-        instance.type = '教員'
         if commit:
             instance.save()
         return instance
@@ -69,10 +70,10 @@ class StudentSignupForm(forms.ModelForm):
 
     def save(self, commit=True):
         instance = super().save(commit=False)
-        instance.password = self.cleaned_data.get('password1')
+        # ハッシュ化して保存
+        instance.password = make_password(self.cleaned_data.get('password1'))
         # 生徒アカウントとして設定
         instance.account_type = 'student'
-        instance.type = '生徒'
         if commit:
             instance.save()
         return instance

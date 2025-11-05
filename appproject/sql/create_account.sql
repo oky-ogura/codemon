@@ -19,9 +19,11 @@ CREATE TABLE IF NOT EXISTS account (
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     account_type VARCHAR(20),
+    age INTEGER DEFAULT NULL,
     created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     group_id INTEGER DEFAULT NULL,
-    CONSTRAINT fk_account_group FOREIGN KEY (group_id) REFERENCES "group"(group_id) ON DELETE SET NULL
+    CONSTRAINT fk_account_group FOREIGN KEY (group_id) REFERENCES "group"(group_id) ON DELETE SET NULL,
+    CONSTRAINT chk_account_age_nonneg CHECK (age IS NULL OR age >= 0)
 );
 -- ...existing code...
 

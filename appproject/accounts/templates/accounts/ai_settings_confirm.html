@@ -28,10 +28,21 @@
         <div class="col left">
             <h3>あなたの情報</h3>
             {% if request.user.is_authenticated %}
-                <div class="label">名前: {{ request.user.user_name|default:request.user.username }}</div>
+                <div class="label">名前: {{ request.user.user_name|default:request.user.get_full_name|default:request.user.username }}</div>
                 <div class="label">メールアドレス: {{ request.user.email }}</div>
+            {% elif 'pending_account_name' in request.session or 'account_user_name' in request.session %}
+                {% if 'pending_account_name' in request.session %}
+                    <div class="label">名前: {{ request.session.pending_account_name }}</div>
+                {% else %}
+                    <div class="label">名前: {{ request.session.account_user_name }}</div>
+                {% endif %}
+                {% if 'pending_account_email' in request.session %}
+                    <div class="label">メールアドレス: {{ request.session.pending_account_email }}</div>
+                {% else %}
+                    <div class="label">メールアドレス: {{ request.session.account_email }}</div>
+                {% endif %}
             {% else %}
-                <div class="label">(未ログイン)</div>
+                <div class="label">(未ログイン — 登録・ログインするとここに表示されます)</div>
             {% endif %}
             <!-- 「あなたの情報を変更」は新規登録画面へ移動するためリンクに変更 -->
             <a href="{% url 'student_signup' %}" class="btn secondary" style="text-decoration:none;display:inline-block;padding:10px 22px">あなたの情報を変更</a>
@@ -65,7 +76,7 @@
         if(!a) return '';
         const map = { 'triangle':'dog.png','round':'panda.png','robot':'rabitto.png' };
         if(map[a]) return map[a];
-        return a + '.png';
+        return a;
     }
     const ill = document.getElementById('ai_ill');
     const filename = filenameFor(appearance);

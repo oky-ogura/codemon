@@ -3,41 +3,65 @@
             <h2>新しく始めよう！</h2>
             <form method="post" class="signup-form">
                 {% csrf_token %}
+
+                {# 全体の非フィールドエラー表示 #}
+                {% if form.non_field_errors %}
+                    <div class="form-errors">
+                        {% for err in form.non_field_errors %}
+                            <div class="error">{{ err }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
                 <div class="form-grid">
                     <label class="label">名前</label>
-                    <div class="control"><input type="text" id="id_name" name="user_name" required></div>
+                    <div class="control">
+                        <input type="text" id="id_name" name="user_name" required value="{{ form.user_name.value|default_if_none:'' }}">
+                        {% if form.user_name.errors %}
+                            <div class="error">{{ form.user_name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
 
                     <label class="label">年齢</label>
                     <div class="control age-wrap">
                         <select id="id_age" name="age">
                             <option value="">▽</option>
                             {% for i in ages %}
-                                <option value="{{ i }}"{% if i == 8 %} selected{% endif %}>{{ i }}歳</option>
+                                <option value="{{ i }}"{% if form.age.value|stringformat:"s" == i|stringformat:"s" %} selected{% endif %}>{{ i }}歳</option>
                             {% endfor %}
                         </select>
+                        {% if form.age.errors %}
+                            <div class="error">{{ form.age.errors.0 }}</div>
+                        {% endif %}
                     </div>
 
                     <label class="label">メールアドレス</label>
-                    <div class="control"><input type="email" id="id_email" name="email" required></div>
+                    <div class="control">
+                        <input type="email" id="id_email" name="email" required value="{{ form.email.value|default_if_none:'' }}">
+                        {% if form.email.errors %}
+                            <div class="error">{{ form.email.errors.0 }}</div>
+                        {% endif %}
+                    </div>
 
                     <label class="label">パスワード</label>
                     <div class="control"><input type="password" id="id_password1" name="password1" required></div>
+                    {% if form.password1.errors %}
+                        <div class="error">{{ form.password1.errors.0 }}</div>
+                    {% endif %}
 
                     <label class="label">パスワード確認</label>
                     <div class="control"><input type="password" id="id_password2" name="password2" required></div>
+                    {% if form.password2.errors %}
+                        <div class="error">{{ form.password2.errors.0 }}</div>
+                    {% endif %}
 
-                    <label class="label">ユーザー</label>
-                    <div class="control">
-                        <select id="id_role" name="role">
-                            <option value="student">生徒</option>
-                            <option value="teacher">教員</option>
-                        </select>
-                    </div>
+                    {# アカウント種別はこのテンプレートが生徒用なので固定する（ユーザーによる選択は外す） #}
+                    <input type="hidden" name="role" value="student">
                 </div>
 
                 <div class="submit-area">
-                    <!-- 新しく作る を押すと AI 外見設定画面へ移動。フォーム送信は行わない。 -->
-                    <a href="{% url 'ai_appearance' %}" class="big-btn" role="button">新しく作る</a>
+                    <!-- フォームを送信してアカウントを作成し、次の AI 外見設定画面へ移動 -->
+                    <button type="submit" class="big-btn">新しく作る</button>
                 </div>
             </form>
         <style>

@@ -11,7 +11,7 @@ class Account(models.Model):
     age = models.IntegerField(blank=True, null=True, verbose_name='年齢')
     account_type = models.CharField(max_length=20, blank=True, null=True, verbose_name='アカウント種別')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='登録日時')
-    type = models.CharField(max_length=50, blank=True, null=True, verbose_name='種別')
+    
 
     class Meta:
         db_table = 'account'

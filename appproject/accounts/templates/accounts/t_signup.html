@@ -25,44 +25,60 @@
             <h2>新規登録（教員）</h2>
             <form method="post" class="signup-form">
                 {% csrf_token %}
+
                 {% if form.non_field_errors %}
                     <div class="form-errors">{{ form.non_field_errors }}</div>
                 {% endif %}
+
                 <div class="form-grid">
                     <label class="label">名前</label>
-                    <div class="control">{{ form.user_name }}</div>
+                    <div class="control">
+                        <input type="text" name="user_name" id="id_name" required value="{{ form.user_name.value|default_if_none:'' }}">
+                        {% if form.user_name.errors %}
+                            <div class="error">{{ form.user_name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
 
                     <label class="label">メールアドレス</label>
-                    <div class="control">{{ form.email }}</div>
+                    <div class="control">
+                        <input type="email" name="email" id="id_email" required value="{{ form.email.value|default_if_none:'' }}">
+                        {% if form.email.errors %}
+                            <div class="error">{{ form.email.errors.0 }}</div>
+                        {% endif %}
+                    </div>
 
                     <label class="label">パスワード</label>
-                    <div class="control">{{ form.password1 }}</div>
+                    <div class="control"><input type="password" id="id_password1" name="password1" required></div>
+                    {% if form.password1.errors %}
+                        <div class="error">{{ form.password1.errors.0 }}</div>
+                    {% endif %}
 
                     <label class="label">パスワード確認</label>
-                    <div class="control">{{ form.password2 }}</div>
+                    <div class="control"><input type="password" id="id_password2" name="password2" required></div>
+                    {% if form.password2.errors %}
+                        <div class="error">{{ form.password2.errors.0 }}</div>
+                    {% endif %}
 
                     <label class="label">年齢</label>
-                    <div class="control">
-                        <select name="age" id="id_age">
+                    <div class="control age-wrap">
+                        <select id="id_age" name="age">
                             <option value="">▽</option>
                             {% for i in ages %}
-                                <option value="{{ i }}">{{ i }}歳</option>
+                                <option value="{{ i }}"{% if form.age.value|stringformat:"s" == i|stringformat:"s" %} selected{% endif %}>{{ i }}歳</option>
                             {% endfor %}
                         </select>
+                        {% if form.age.errors %}
+                            <div class="error">{{ form.age.errors.0 }}</div>
+                        {% endif %}
                     </div>
 
-                    <label class="label">ユーザー</label>
-                    <div class="control">
-                        <select name="role" id="id_role">
-                            <option value="teacher">教員</option>
-                            <option value="student">生徒</option>
-                        </select>
-                    </div>
+                    {# このテンプレートは教員登録用なので role は固定 #}
+                    <input type="hidden" name="role" value="teacher">
                 </div>
 
                 <div class="submit-area">
-                    <!-- 新しく作る を押すと AI 外見設定画面へ移動。フォーム送信は行わない。 -->
-                    <a href="{% url 'ai_appearance' %}" class="big-btn" role="button">新しく作る</a>
+                    <!-- フォーム送信して教員アカウントを作成 -->
+                    <button type="submit" class="big-btn">新しく作る</button>
                 </div>
             </form>
             <div style="text-align:center;margin-top:12px"><a href="{% url 'teacher_login' %}">ログインページへ</a></div>

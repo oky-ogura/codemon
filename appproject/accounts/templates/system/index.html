@@ -178,6 +178,7 @@
       background: #1e7e34;
     }
 
+
     /* Run/実行 ボタンの見た目を統一 */
     .shortcut-bar .shortcut-btns #executeBtn {
       font-size: 18px;
@@ -192,7 +193,6 @@
     .shortcut-bar .shortcut-btns #executeBtn:hover {
       background: #0056b3;
     }
-
     #slideArea {
       width: 860px;
       height: 440px;
@@ -254,7 +254,6 @@
     .draggable-btn:hover {
       filter: brightness(0.9);
     }
-
     /* drag handle */
     .drag-handle {
       position: absolute;
@@ -561,7 +560,6 @@
         window.location.href = '/accounts/system/save/';
       });
     }
-
     // 実行ボタン: プレビューを全画面で表示し、テキストボックスは編集・リサイズ不可とする
     const executeBtn = document.getElementById('executeBtn');
     if (executeBtn) {
@@ -1042,7 +1040,6 @@
       let pos = getRandomPosition();
       container.style.left = pos.x + "px";
       container.style.top = pos.y + "px";
-
       // add handle then make draggable
       addDragHandleIfMissing(container);
       makeDraggable(container);
@@ -1074,7 +1071,6 @@
       let pos = getRandomPosition(240, 40);
       container.style.left = pos.x + "px";
       container.style.top = pos.y + "px";
-
       addDragHandleIfMissing(container);
       makeDraggable(container);
       document.getElementById("slideArea").appendChild(container);
@@ -1118,7 +1114,6 @@
       let pos = getRandomPosition(width, height);
       btn.style.left = pos.x + "px";
       btn.style.top = pos.y + "px";
-
       // add handle and make draggable
       addDragHandleIfMissing(btn);
       makeDraggable(btn);
@@ -1266,7 +1261,6 @@
         container.appendChild(textDiv);
 
         slide.appendChild(container);
-
         // add handle + make draggable
         addDragHandleIfMissing(container);
         try { makeDraggable(container); } catch (err) { console.error(err); }
@@ -1328,7 +1322,6 @@
 
     })();
   </script>
-  
 
 </body>
 </html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>グループ参加確認</title>
+<style>
+  body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;padding:24px}
+  .box{width:760px;margin:40px auto;background:#fff;border:1px solid #ddd;padding:32px;border-radius:8px;text-align:center}
+  h1{font-size:20px;margin-bottom:12px}
+  p.question{font-size:18px;color:#333;margin:26px 0}
+  .controls{display:flex;justify-content:center;gap:40px;margin-top:36px}
+  .btn{padding:18px 36px;border-radius:12px;border:none;cursor:pointer;font-size:16px}
+  .btn-cancel{background:#f6c6c6}
+  .btn-join{background:#cfe6ff}
+  .group-name{font-weight:700;margin-top:6px}
+</style>
+</head>
+<body>
+  <div class="box">
+    <h1>グループ参加確認画面</h1>
+    <p class="question">グループに参加する？</p>
+    <form method="post" style="margin-top:28px">
+      {% csrf_token %}
+      <div class="controls">
+        <button type="submit" name="action" value="cancel" class="btn btn-cancel">しない！</button>
+        <button type="submit" name="action" value="join" class="btn btn-join">する！</button>
+      </div>
+    </form>
+  </div>
+</body>
+</html>
