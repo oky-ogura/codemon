@@ -54,6 +54,7 @@
             <div class="label">名前: <strong>{{ ai_name }}</strong></div>
             <div class="label">性格: {{ ai_personality }}</div>
             <div class="label">語尾: {{ ai_speech }}</div>
+            <!-- OK を押して確認画面へ（GET で表示） -->
             <form method="post" action="{% url 'ai_initial_save' %}">
                 {% csrf_token %}
                 <input type="hidden" name="ai_name" value="{{ ai_name }}">
