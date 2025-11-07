@@ -2,117 +2,130 @@
 <html lang="ja">
 <head>
     <meta charset="utf-8">
-    <title>アカウント</title>
+    <title>アカウント（教員）</title>
     <style>
-        body { background:#f5f7fa; font-family: 'Segoe UI', sans-serif; color:#333; }
-        .container { width:960px; margin:32px auto; background:#fff; border-radius:8px; padding:20px; box-shadow:0 6px 20px rgba(0,0,0,0.06); }
-        .tabs { display:flex; gap:8px; margin-bottom:16px; }
-        .tab { padding:8px 12px; background:#eef2f7; border-radius:6px; font-weight:600; }
-        .main { display:flex; gap:24px; }
-        .left { width:180px; text-align:center; }
-        .avatar { width:120px; height:120px; border-radius:50%; background:#e9eef6; display:inline-block; line-height:120px; font-size:48px; color:#7a8aa3; margin-bottom:8px; }
-        .info { flex:1; }
-        .info-table { width:100%; border-collapse:collapse; margin-bottom:12px; }
-        .info-table td { padding:6px 8px; vertical-align:top; }
-        .info-table .label { color:#666; width:120px; }
-        .groups { border-top:1px dashed #ddd; padding-top:12px; display:flex; gap:18px; flex-wrap:wrap; }
-        .group-card { background:#f7f9fc; padding:10px 12px; border-radius:8px; min-width:220px; position:relative; }
-        .group-card .title { font-weight:700; margin-bottom:6px; }
-        .group-actions { display:flex; gap:8px; margin-top:8px; }
-        .btn { padding:6px 10px; border-radius:6px; border:none; cursor:pointer; font-weight:600; }
-        .btn-primary { background:#2196f3; color:#fff; }
-        .btn-danger { background:#f46b6b; color:#fff; }
-        .btn-secondary { background:#e0e6ef; color:#333; }
-        .logout { position:absolute; right:16px; top:16px; }
+        body { font-family: "Segoe UI", Meiryo, sans-serif; background:#f5f7fa; margin:0; padding:20px; }
+        /* 上部タブ */
+        .top-tabs { max-width:1000px; margin:0 auto 18px; border:2px solid #333; background:#fff; padding:6px 8px; box-sizing:border-box; }
+        .tabs { display:flex; gap:0; }
+        .tabs a { flex:1 0 auto; display:block; padding:8px 12px; border-right:1px solid #333; text-align:center; text-decoration:none; color:#111; font-weight:600; }
+        .tabs a:last-child { border-right: none; }
 
-        /* 確認モーダル用 */
-        #confirm-modal{position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:9999}
-        #confirm-modal .box{background:#fff;padding:18px;border-radius:8px;min-width:300px;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,0.12)}
-        #confirm-modal .buttons{margin-top:14px;display:flex;gap:12px;justify-content:center}
-        #confirm-modal .btn{padding:8px 12px;border-radius:6px;border:none;cursor:pointer;font-weight:600}
-        #confirm-modal .yes{background:#f46b6b;color:#fff}
-        #confirm-modal .no{background:#e0e6ef}
+        /* メインカード */
+        .card { max-width:1000px; margin:0 auto; background:#fff; border:1px solid #ddd; padding:18px; box-shadow:0 6px 20px rgba(0,0,0,0.05); box-sizing:border-box; }
+
+        .main { display:flex; gap:24px; align-items:flex-start; }
+        .left { width:220px; text-align:center; }
+        .avatar-circle {
+            width:140px; height:140px; border-radius:50%; border:3px solid #bbb; display:flex; align-items:center; justify-content:center; background:#fafafa; font-size:48px; margin:6px auto;
+        }
+        .meta { margin-top:10px; font-size:14px; color:#333; }
+        .logout-area { margin-top:14px; }
+
+        .info { flex:1; }
+        .info-table { width:100%; border-collapse:collapse; }
+        .info-table td { padding:6px 8px; vertical-align:top; }
+        .info-table .label { width:140px; font-weight:700; color:#666; }
+        .info-table .value { color:#222; }
+
+        .top-row { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+        .id-box { font-size:18px; font-weight:700; color:#333; }
+
+        /* グループリスト */
+        .groups { margin-top:16px; display:flex; flex-direction:column; gap:10px; }
+        .group-row { display:flex; align-items:center; gap:12px; padding:8px; border-radius:6px; background:#f8f9fb; border:1px solid #e6e9ee; }
+        .group-name { flex:1; font-weight:600; color:#222; }
+        .group-meta { color:#666; font-size:13px; }
+        .btn { padding:6px 10px; border-radius:6px; border:1px solid #bbb; background:#f0f2f5; cursor:pointer; font-size:13px; }
+        .btn.detail { background:#e8f0ff; border-color:#9cc0ff; }
+        .btn.del { background:#ffecec; border-color:#ffa6a6; }
+        .btn.logout { background:#2b8cff; color:#fff; border:none; padding:10px 18px; border-radius:8px; }
+
+        /* レスポンシブ */
+        @media(max-width:720px){
+            .main { flex-direction:column; }
+            .left { width:100%; text-align:left; display:flex; gap:12px; align-items:center; }
+            .avatar-circle { width:96px; height:96px; font-size:32px; }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="tabs">
-            <div class="tab">システムタブ</div>
-            <div class="tab">アルゴリズムタブ</div>
-            <div class="tab">進捗管理タブ</div>
-            <div class="tab">アカウント</div>
-        </div>
+    <div class="top-tabs">
+        <nav class="tabs">
+            <a href="#">システムタブ</a>
+            <a href="#">アルゴリズムタブ</a>
+            <a href="#">進捗管理タブ</a>
+            <a href="{% url 'account_entry' %}">アカウント</a>
+        </nav>
+    </div>
 
+    <div class="card">
         <div class="main">
             <div class="left">
-                <div class="avatar">{% if user.profile.avatar %}<img src="{{ user.profile.avatar.url }}" alt="avatar" style="width:120px;height:120px;border-radius:50%;">{% else %}👤{% endif %}</div>
-                <div>ID <strong>{{ user.profile.id|default:"22222222" }}</strong></div>
-               　<div style="margin-top:8px;"><a href="{% url 'logout' %}" class="btn btn-secondary logout">ログアウト</a></div>
-               <!-- ログアウト：確認モーダルを表示するボタン -->
-               <div style="margin-top:8px;">
-                  <form id="logout-form" method="post" action="{% url 'logout' %}" style="display:inline">
-                     {% csrf_token %}
-                     <button type="button" id="logout-btn" class="btn btn-secondary logout">ログアウト</button>
-                 </form>
-              </div>
+                <div class="avatar-circle">
+                    {% if user.profile.avatar %}
+                        <img src="{{ user.profile.avatar.url }}" alt="avatar" style="width:100%;height:100%;border-radius:50%;">
+                    {% else %}
+                        👤
+                    {% endif %}
+                </div>
 
+                <div class="meta">
+                    <div>ID <strong>{{ account.user_id|default:user.id }}</strong></div>
+                    <div>名前 <strong>{{ account.user_name|default:user.get_full_name|default:"codemon" }}</strong></div>
+                    <div>年齢 {{ account.age|default:user.profile.age|default:"38歳" }}</div>
+
+                    <div class="logout-area">
+                        <form id="logout-form" method="post" action="{% url 'logout' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn logout">ログアウト</button>
+                        </form>
+                    </div>
+                </div>
             </div>
 
             <div class="info">
-                <table class="info-table">
-                    <tr><td class="label">名前</td><td><strong>{{ user.get_full_name|default:"codemon" }}</strong></td></tr>
-                    <tr><td class="label">所属</td><td>{{ user.profile.kyojin|default:"kyouinn" }}</td></tr>
-                    <tr><td class="label">年齢</td><td>{{ user.profile.age|default:"38歳" }}</td></tr>
-                    <tr><td class="label">性格</td><td>{{ user.profile.personality|default:"穏やか" }}</td></tr>
-                    <tr><td class="label">語尾</td><td>{{ user.profile.talk_style|default:"っち" }}</td></tr>
-                    <tr><td class="label">初めて会った日</td><td>{{ user.profile.first_met|date:"Y/n/j"|default:"2025/9/26" }}</td></tr>
-                    <tr><td class="label">累計日数</td><td>{{ user.profile.total_days|default:"3日" }}</td></tr>
+                <div class="top-row">
+                    <div class="id-box">名前: {{ account.user_name|default:user.get_full_name|default:"codemon" }}</div>
+                    <div style="text-align:right">
+                        <div>初めて会った日: <strong>{% if first_met %}{{ first_met|date:"Y/n/j" }}{% else %}---{% endif %}</strong></div>
+                        <div>累計日数: <strong>{{ total_days|default:"0日" }}</strong></div>
+                    </div>
+                </div>
+
+                <table class="info-table" style="margin-top:12px;">
+                    <tr><td class="label">所属</td><td class="value">{{ account.account_type|default:user.profile.kyojin|default:"教員" }}</td></tr>
                 </table>
 
-                {% comment %} <div class="groups">
-                    <!-- 例: グループカードはループで出力 -->
-                    {% for group in groups %}
-                    <div class="group-card">
-                        <div class="title">{{ group.name }}</div>
-                        <div>人数: {{ group.count }}人</div>
-                        <div class="group-actions">
-                            <a href="{% url 'group_detail' group.id %}" class="btn btn-primary">詳細</a>
-                            <form method="post" action="{% url 'group_delete' group.id %}" style="display:inline">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-danger">削除</button>
-                            </form>
+                <div class="groups">
+                    <div style="font-weight:700; color:#444;">グループ</div>
+
+                        {% if groups %}
+                            {% for g in groups %}
+                                <div class="group-row">
+                                    <div class="group-name">{{ g.name }}</div>
+                                    <div class="group-meta">{{ g.member_count }}人</div>
+                                    <a class="btn detail" href="{% url 'group_detail' g.group_id %}">詳細ボタン</a>
+                                    <form method="post" action="{% url 'group_delete' g.group_id %}" style="display:inline">
+                                        {% csrf_token %}
+                                        <button class="btn del">削除ボタン</button>
+                                    </form>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div style="padding:10px 6px; color:#666;">グループはありません</div>
+                        {% endif %}
+
+                        <div style="margin-top:8px;">
+                            <a class="btn" href="{% url 'group_create' %}">新規作成</a>
                         </div>
+                        
                     </div>
-                    {% empty %}
-                    <div class="group-card">
-                        <div class="title">所属グループはありません</div>
-                    </div>
-                    {% endfor %}
 
-                    <div style="min-width:200px; display:flex; align-items:center;">
-                        <a href="{% url 'group_create' %}" class="btn btn-primary">新規作成</a>
-                    </div>
-                </div> {% endcomment %}
-            </div>
-        </div>
-    </div>
-
-    <!-- 確認モーダル -->
-    <div id="confirm-modal" aria-hidden="true">
-        <div class="box" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
-            <div id="confirm-title">ログアウトしますか？</div>
-                <div class="buttons">
-                    <button class="btn yes" id="confirm-yes">はい</button>
-                    <button class="btn no" id="confirm-no">いいえ</button>
                 </div>
+
             </div>
         </div>
     </div>
-
 </body>
-<script>
-document.getElementById('logout-btn').addEventListener('click', function(){ document.getElementById('confirm-modal').style.display = 'flex'; });
-document.getElementById('confirm-no').addEventListener('click', function(){ document.getElementById('confirm-modal').style.display = 'none'; });
-document.getElementById('confirm-yes').addEventListener('click', function(){ document.getElementById('logout-form').submit(); });
-</script>
 </html>
