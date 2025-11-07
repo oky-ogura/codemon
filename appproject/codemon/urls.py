@@ -52,7 +52,7 @@ urlpatterns = [
     path('chat/threads/<int:thread_id>/edit/', views.thread_edit, name='thread_edit'),
     path('chat/threads/<int:thread_id>/delete/', views.thread_delete, name='thread_delete'),
     # Upload attachments for chat (AJAX POST)
-    path('chat/upload_attachment/', views.upload_attachment, name='upload_attachment'),
+    path('chat/upload_attachments/', views.upload_attachments, name='upload_attachments'),
     # Thread actions
     path('chat/thread/<int:thread_id>/score/', views.score_thread, name='score_thread'),
     path('chat/message/<int:message_id>/score/', views.score_message, name='score_message'),
@@ -64,7 +64,7 @@ urlpatterns = [
     # メッセージ検索
     path('chat/search/', views.search_messages, name='search_messages'),
     path('', views.index, name='index'),
-    path('upload_attachments/', views.upload_attachments, name='upload_attachments'),
+    path('chat/upload_attachment/', views.upload_attachments, name='upload_attachments'),
 ]
 
 # 開発環境での静的ファイル配信設定

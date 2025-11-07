@@ -493,7 +493,7 @@ def checklist_delete(request, pk):
 
 
 @require_POST
-def upload_attachment(request):
+def upload_attachments(request):
     """Handle file upload for chat. Creates a ChatMessage (if needed) and a ChatAttachment,
     then broadcasts the message to the thread group so WebSocket clients receive it.
 
@@ -969,3 +969,5 @@ def search_messages(request):
         'query': query,
         'results': results
     })
+def index(request):
+    return render(request, 'codemon/index.html')

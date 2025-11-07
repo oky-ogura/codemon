@@ -1,6 +1,5 @@
 from django.db import models
 
-
 class Account(models.Model):
     # user_id は PostgreSQL のシーケンスで管理（20000001 から開始）
     user_id = models.BigAutoField(primary_key=True)

@@ -21,7 +21,6 @@ from django.contrib.auth.hashers import make_password
 
 from django.contrib.auth.decorators import login_required
 from .forms import TeacherSignupForm, ProfileEditForm
-
 from django.http import HttpResponseRedirect
 
 from django.db import connection
@@ -113,7 +112,7 @@ def teacher_signup(request):
             except Exception:
                 pass
             # 登録後は AI 外見設定へ遷移
-            return redirect('ai_appearance')
+            return redirect('accounts:ai_appearance')
     else:
         form = TeacherSignupForm()
     ages = range(3, 121)
@@ -132,7 +131,7 @@ def student_signup(request):
             except Exception:
                 pass
             # サインアップ後は AI 外見設定へ遷移
-            return redirect('ai_appearance')
+            return redirect('accounts:ai_appearance')
     else:
         form = StudentSignupForm()
     ages = range(3, 121)
@@ -140,16 +139,9 @@ def student_signup(request):
 
 
 def teacher_login(request):
-    # ログイン後のリダイレクト先を取得
-    next_url = request.GET.get('next', 'codemon:checklist_list')
+
     
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            return redirect(next_url)
+
     """
     教員ログイン:
     - POST: account テーブルの user_name + account_type='teacher' で照合し、
@@ -193,11 +185,6 @@ def student_login(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
 
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            return redirect(next_url)
-
         # Account テーブルを使って認証（auth_user を利用しない）
         acc = Account.objects.filter(email=username).first() or Account.objects.filter(user_name=username).first()
         if acc and check_password(password, acc.password):
@@ -211,7 +198,8 @@ def student_login(request):
                 request.session.save()
             except Exception:
                 pass
-            return redirect('account_dashboard')
+            return render(request, 'accounts/karihome.html')
+
         else:
             messages.error(request, 'ユーザー名またはパスワードが間違っています')
     return render(request, 'accounts/s_login.html')
@@ -229,7 +217,7 @@ def teacher_home(request):
 def user_logout(request):
 
     logout(request)
-    return redirect('home')  # ログアウト後の遷移先を適宜変更
+    return redirect('accounts:home')  # ログアウト後の遷移先を適宜変更
 
 @login_required
 def edit_profile(request):
@@ -285,7 +273,7 @@ def ai_appearance(request):
         except Exception:
             pass
         # 外見選択後は初期設定画面へ遷移させる
-        return redirect('ai_initial')
+        return redirect('accounts:ai_initial')
 
     appearances = ['triangle', 'round', 'robot']
     return render(request, 'accounts/ai_appearance.html', {'appearances': appearances})
@@ -336,7 +324,7 @@ def ai_initial_settings(request):
 def ai_initial_confirm(request):
     """受け取ったフォーム入力を保存せずに確認表示するビュー"""
     if request.method != 'POST':
-        return redirect('ai_initial')
+        return redirect('accounts:ai_initial')
 
     ai_name = request.POST.get('ai_name', '')
     ai_personality = request.POST.get('ai_personality', '')
@@ -356,7 +344,7 @@ def ai_initial_save(request):
     from .models import AiConfig
 
     if request.method != 'POST':
-        return redirect('ai_initial')
+        return redirect('accounts:ai_initial')
 
     ai_name = request.POST.get('ai_name', '')
     ai_personality = request.POST.get('ai_personality', '')
@@ -379,7 +367,7 @@ def ai_initial_save(request):
     except Exception:
         pass
 
-    return redirect('accounts_root')
+    return redirect('accounts:accounts_root')
 
 def block_index(request):
     return render(request, 'block/index.html')
@@ -478,11 +466,11 @@ def group_create(request):
 
         if not group_name:
             messages.error(request, 'グループ名を入力してください。')
-            return redirect('group_create')
+            return redirect('accounts:group_create')
 
         if not user_id:
             messages.error(request, 'ユーザーが特定できません。ログインしてください。')
-            return redirect('student_login')
+            return redirect('accounts:student_login')
 
         # パスワードはハッシュ化して保存（空可）
         hashed = make_password(group_password) if group_password else ''
@@ -509,14 +497,14 @@ def group_create(request):
 
         except Exception as e:
             messages.error(request, f'グループ作成に失敗しました: {e}')
-            return redirect('group_create')
+            return redirect('accounts:group_create')
 
         messages.success(request, 'グループを作成しました。')
         # 存在すれば group_detail に飛ばす（なければアカウントページへ）
         try:
-            return redirect('group_detail', group_id=group_id)
+            return redirect('accounts:group_detail', group_id=group_id)
         except Exception:
-            return redirect('account_entry')
+            return redirect('accounts:account_entry')
 
     # GET の場合は作成ページを表示
     return render(request, 'group/create_group.html', {})
@@ -553,7 +541,7 @@ def group_join_confirm(request):
             return render(request, 'accounts/karihome.html', {})
         else:
             # 未ログイン等は生徒ログインへ誘導
-            return redirect('student_login')
+            return redirect('accounts:student_login')
 
     # POST 処理（join/cancel）
     action = request.POST.get('action')
@@ -562,7 +550,7 @@ def group_join_confirm(request):
         # 簡易的にグループメニューを表示します。
         return render(request, 'group/group_menu.html', {})
     else:
-        return redirect('account_entry')
+        return redirect('accounts:account_entry')
 
 
 # ...existing code...
@@ -672,7 +660,7 @@ def account_entry(request):
     email = request.session.get('account_email') or (getattr(request.user, 'email', None) if getattr(request.user, 'is_authenticated', False) else None)
 
     if not user_id and not email:
-        return redirect('student_login')
+        return redirect('accounts:student_login')
 
     with connection.cursor() as cursor:
         if user_id:
@@ -689,7 +677,7 @@ def account_entry(request):
             )
         row = cursor.fetchone()
         if not row:
-            return redirect('student_login')
+            return redirect('accounts:student_login')
         account = {
             'user_id': row[0],
             'user_name': row[1],
@@ -782,6 +770,7 @@ def account_entry(request):
     else:
         return render(request, 'accounts/s_account.html', context)
 
+def account_entry(request):
+    return render(request, 'accounts/karihome.html')
 
-    
 

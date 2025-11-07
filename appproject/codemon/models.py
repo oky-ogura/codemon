@@ -83,7 +83,7 @@ class Group(models.Model):
     group_id = models.BigAutoField(primary_key=True)
     group_name = models.CharField(max_length=50, verbose_name='グループ名')
     description = models.TextField(blank=True, null=True, verbose_name='グループ説明')
-    owner = models.ForeignKey(Account, on_delete=models.CASCADE, verbose_name='作成者', related_name='owned_groups')
+    owner = models.ForeignKey(Account, on_delete=models.CASCADE, null=True, blank=True)
     members = models.ManyToManyField(Account, through='GroupMember', related_name='joined_groups')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新日時')
