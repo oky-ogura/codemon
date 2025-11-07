@@ -567,7 +567,8 @@ def password_reset_confirm(request, uidb64, token):
             new_pw = form.cleaned_data['new_password1']
             account.password = make_password(new_pw)
             account.save()
-            return HttpResponseRedirect(reverse('password_reset_complete'))
+            # パスワード更新後はログイン画面へリダイレクト
+            return HttpResponseRedirect(reverse('student_login'))
     else:
         form = _SetNewPasswordForm()
 
