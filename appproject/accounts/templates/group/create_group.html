@@ -9,15 +9,19 @@
 
       <div class="form-row" style="align-items:flex-start">
         <div class="label">メンバー</div>
-        <div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <input type="text" id="member_id" placeholder="学籍番号" style="width:160px;padding:8px;border:1px solid #999;border-radius:4px">
-            <input type="text" id="member_name" placeholder="氏名" style="width:240px;padding:8px;border:1px solid #999;border-radius:4px">
-            <!-- 変更: ボタンで inline 追加するのではなく、別ページへ遷移する -->
-            <a href="{% url 'group_add_member' %}" class="add-btn">追加する</a>
-          </div>
-          <div class="small-note">追加後は下の一覧に表示されます。削除はチップをクリックしてください。</div>
-        </div>
+          <form method="post" action="{% url 'group_create' %}">
+            {% csrf_token %}
+            <div class="form-row" style="align-items:flex-start">
+              <div class="label">グループ情報</div>
+              <div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <input type="text" name="group_name" id="group_name" placeholder="グループ名" style="width:240px;padding:8px;border:1px solid #999;border-radius:4px" required>
+                  <input type="password" name="group_password" id="group_password" placeholder="パスワード" style="width:160px;padding:8px;border:1px solid #999;border-radius:4px">
+                  <button type="submit" class="add-btn">グループを作成</button>
+                </div>
+              </div>
+            </div>
+          </form>  
       </div>
 
     <!-- ...existing code (members list, hiddenMembers, controls) ... -->
