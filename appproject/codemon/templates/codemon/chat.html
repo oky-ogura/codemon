@@ -1,5 +1,551 @@
 {% extends 'base.html' %}
+{% load static %}
+
 {% block content %}
-<h1>チャットAI（プレースホルダ）</h1>
-<p>ここからチャットAIとの会話を開始します（実装は後で）。</p>
+<style>
+   /* Line風チャットのスタイル */
+  .chat-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background: #f5f5f5;
+    height: calc(100vh - 100px);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chat-header {
+    background: #00c300;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 10px 10px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .chat-header img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+  }
+
+  .messages-container {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background: #ffffff;
+  }
+
+  .message {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+  }
+
+  .message.sent {
+    flex-direction: row-reverse;
+  }
+
+  .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #f0f0f0;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .avatar-placeholder {
+    font-size: 20px;
+    color: #666;
+    text-transform: uppercase;
+  }
+
+  .message-content {
+    max-width: 60%;
+  }
+
+  .message-bubble {
+    padding: 10px 15px;
+    border-radius: 20px;
+    margin-bottom: 5px;
+    position: relative;
+    word-break: break-all;
+  }
+
+  .message.received .message-bubble {
+    background: #f0f0f0;
+    border-radius: 0 20px 20px 20px;
+  }
+
+  .message.sent .message-bubble {
+    background: #00c300;
+    color: white;
+    border-radius: 20px 0 20px 20px;
+  }
+
+  .message-meta {
+    font-size: 0.8em;
+    color: #888;
+    margin-top: 2px;
+  }
+
+  .message.sent .message-meta {
+    text-align: right;
+  }
+
+  .chat-input-container {
+    padding: 20px;
+    background: #f8f8f8;
+    border-top: 1px solid #eee;
+    display: flex;
+    gap: 10px;
+  }
+
+  .chat-input {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    resize: none;
+    min-height: 40px;
+    max-height: 100px;
+  }
+
+  .chat-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+
+  .send-btn {
+    background: #00c300;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+  }
+
+  .attach-btn {
+    background: #f0f0f0;
+    border: none;
+    padding: 10px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .attachment {
+    margin-top: 5px;
+    padding: 8px 12px;
+    background: #f8f8f8;
+    border-radius: 8px;
+    display: inline-block;
+    transition: background-color 0.2s;
+  }
+
+  .attachment:hover {
+    background: #f0f0f0;
+  }
+
+  .file-link {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: #333;
+  }
+
+  .file-icon {
+    margin-right: 8px;
+    font-size: 1.2em;
+  }
+
+  .filename {
+    font-size: 0.9em;
+    word-break: break-all;
+  }
+
+  .attachment-preview {
+    margin-top: 8px;
+    max-width: 300px;
+    background: #f8f8f8;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .image-link {
+    display: block;
+  }
+
+  .file-preview {
+    width: 100%;
+    height: auto;
+    display: block;
+    transition: opacity 0.2s;
+  }
+
+  .file-preview:hover {
+    opacity: 0.9;
+  }
+
+  .attachment-info {
+    padding: 8px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #eee;
+  }
+
+  .download-btn {
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: #00c300;
+    color: white;
+    text-decoration: none;
+    font-size: 0.9em;
+  }
+
+  .download-btn:hover {
+    background: #00b300;
+  }
+
+  .read-receipt {
+    font-size: 0.8em;
+    color: #00c300;
+    text-align: right;
+    cursor: pointer;
+  }
+
+  .read-receipt:hover {
+    text-decoration: underline;
+  }
+
+  .read-receipt-tooltip {
+    position: absolute;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    font-size: 0.9em;
+    z-index: 100;
+    display: none;
+  }
+
+  .read-receipt-tooltip.show {
+    display: block;
+  }
+
+  .read-receipt-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .read-receipt-list li {
+    padding: 4px 0;
+    border-bottom: 1px solid #eee;
+  }
+
+  .read-receipt-list li:last-child {
+    border-bottom: none;
+  }
+
+  /* スコア付与と表示のスタイル */
+  .score {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #ffeb3b;
+    border-radius: 12px;
+    font-size: 0.9em;
+    margin-left: 5px;
+  }
+
+  .score-form {
+    display: none;
+    margin-top: 5px;
+    padding: 8px;
+    background: #f8f8f8;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+  }
+
+  .message.received .score-form {
+    margin-left: 50px;
+  }
+
+  .score-form.show {
+    display: block;
+  }
+
+  .score-form input[type="number"] {
+    width: 60px;
+    padding: 4px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-right: 8px;
+  }
+
+  .score-form textarea {
+    width: 100%;
+    padding: 4px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin: 8px 0;
+    resize: vertical;
+    min-height: 60px;
+  }
+
+  .score-form button {
+    background: #00c300;
+    color: white;
+    border: none;
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .score-button {
+    background: transparent;
+    border: 1px solid #00c300;
+    color: #00c300;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.9em;
+    margin-left: 5px;
+    cursor: pointer;
+  }
+
+  .score-display {
+    display: inline-block;
+    margin-left: 5px;
+  }
+
+  /* 添付ファイルのプレビュー */
+  .file-preview {
+    max-width: 200px;
+    max-height: 200px;
+    object-fit: contain;
+    border-radius: 10px;
+    margin-top: 5px;
+  }
+
+  /* ファイル選択のカスタマイズ */
+  .file-input {
+    display: none;
+  }
+
+  .upload-progress {
+    background: #f0f0f0;
+    border-radius: 10px;
+    height: 4px;
+    margin: 5px 0;
+    overflow: hidden;
+  }
+
+  .upload-progress .bar {
+    background: #00c300;
+    height: 100%;
+    width: 0;
+    transition: width 0.3s ease;
+  }
+
+  .upload-error {
+    color: #ff4444;
+    font-size: 0.9em;
+    margin: 5px 0;
+  }
+
+  #reconnectBtn {
+    background: #ff4444;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    margin-right: 10px;
+    cursor: pointer;
+  }
+</style>
+
+<!-- ✅ CSRF トークンを安全な位置に配置 -->
+<form id="csrf-form" style="display:none;">
+  {% csrf_token %}
+</form>
+
+<div class="chat-container">
+  <div class="chat-header">
+    <h3>チャット</h3>
+  </div>
+  <div class="chat-body" id="chatBody">
+    <!-- メッセージがここに追加される -->
+  </div>
+  <div class="chat-footer">
+    <textarea id="messageInput" placeholder="メッセージを入力..." rows="2"></textarea>
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center;">
+        <label for="fileInput" style="cursor: pointer; margin-right: 10px;">📎</label>
+        <input type="file" id="fileInput" multiple style="display:none;">
+        <button id="sendBtn">送信</button>
+      </div>
+      <span id="connectionStatus" class="connection-status">接続中...</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ✅ Djangoテンプレートタグを安全に使う
+  const userId = "{{ request.user.id }}";
+  const chatId = "{{ chat.id }}";
+  const wsUrl = "{{ ws_url }}";
+  const csrfToken = document.querySelector('#csrf-form input[name="csrfmiddlewaretoken"]').value;
+  const downloadBaseUrl = "{% url 'codemon:download_attachment' attachment_id=999999 %}".replace('999999', '');
+
+  const chatBody = document.getElementById('chatBody');
+  let socket;
+  let isSending = false;
+
+  const connectionStatus = document.getElementById('connectionStatus');
+  connectionStatus.textContent = "接続中...";
+
+  function connectWebSocketWithRetry(retryCount = 0) {
+    const MAX_RETRIES = 5;
+    socket = new WebSocket(wsUrl);
+
+    socket.onopen = () => {
+      connectionStatus.textContent = "🟢 接続済み";
+      connectionStatus.classList.remove('alert');
+      sendQueuedMessages();
+    };
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'new_message') {
+        const messageElement = createMessageElement(data.message);
+        chatBody.appendChild(messageElement);
+        chatBody.scrollTop = chatBody.scrollHeight;
+      }
+    };
+
+    socket.onclose = () => {
+      connectionStatus.textContent = "🔴 切断";
+      connectionStatus.classList.add('alert');
+      if (retryCount < MAX_RETRIES) {
+        setTimeout(() => connectWebSocketWithRetry(retryCount + 1), 2000);
+      }
+    };
+
+    socket.onerror = (error) => {
+      console.error('WebSocketエラー:', error);
+      connectionStatus.textContent = "⚠️ 通信エラー";
+      connectionStatus.classList.add('alert');
+    };
+  }
+
+  // ✅ 再接続ボタンは正しい関数を呼ぶように変更
+  const reconnectBtn = document.createElement('button');
+  reconnectBtn.textContent = "再接続";
+  reconnectBtn.classList.add('btn', 'btn-warning', 'btn-sm');
+  reconnectBtn.style.marginLeft = '10px';
+  reconnectBtn.addEventListener('click', () => connectWebSocketWithRetry());
+  connectionStatus.insertAdjacentElement('afterend', reconnectBtn);
+
+  // ✅ ファイル添付処理
+  document.getElementById('fileInput').addEventListener('change', async function (event) {
+    const files = event.target.files;
+    const formData = new FormData();
+    for (const file of files) {
+      formData.append('attachments', file);
+    }
+
+    const response = await fetch("{% url 'codemon:upload_attachments' %}", {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken },
+      body: formData
+    });
+    const data = await response.json();
+    alert('アップロード完了: ' + data.attachments.length + ' 件');
+  });
+
+  // ✅ 送信ボタン処理修正版
+  document.getElementById('sendBtn').addEventListener('click', async () => {
+    const content = document.getElementById('messageInput').value.trim();
+    const sendBtn = document.getElementById('sendBtn');
+    if (!content && !document.getElementById('fileInput').files.length) return;
+    if (isSending) return;
+    isSending = true;
+    sendBtn.disabled = true;
+
+    const payload = {
+      type: 'send_message',
+      chat_id: chatId,
+      content: content,
+      user_id: userId,
+    };
+
+    if (socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(payload));
+    } else {
+      enqueueMessage(payload);
+      connectionStatus.textContent = "⚠️ オフライン - 再送待機中";
+    }
+
+    document.getElementById('messageInput').value = '';
+    isSending = false;
+    sendBtn.disabled = false;
+  });
+
+  // ✅ メッセージDOM生成（URL修正版）
+  function createMessageElement(msg) {
+    const div = document.createElement('div');
+    div.classList.add('message', msg.user_id == userId ? 'user' : 'other');
+    div.dataset.messageId = msg.id;
+    div.innerHTML = `
+      <div class="meta">${msg.username}・${msg.timestamp}</div>
+      <div class="content">${msg.content || ''}</div>
+      ${msg.attachments && msg.attachments.length ? `
+        <div class="image-container">
+          ${msg.attachments.map(a => `
+            <div class="image-item">
+              <a href="${downloadBaseUrl}${a.id}/" target="_blank" class="image-link">
+                <img src="${a.url}" alt="attachment">
+              </a>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+    `;
+    return div;
+  }
+
+  // ✅ ローカル送信キュー（オフライン対応）
+  function enqueueMessage(message) {
+    const queue = JSON.parse(localStorage.getItem('messageQueue') || '[]');
+    queue.push(message);
+    localStorage.setItem('messageQueue', JSON.stringify(queue));
+  }
+
+  function sendQueuedMessages() {
+    const queue = JSON.parse(localStorage.getItem('messageQueue') || '[]');
+    queue.forEach(msg => socket.send(JSON.stringify(msg)));
+    localStorage.removeItem('messageQueue');
+  }
+
+  // ✅ 初回接続
+  connectWebSocketWithRetry();
+</script>
 {% endblock %}

@@ -30,8 +30,15 @@ SECRET_KEY = 'django-insecure-=8c_61u!25z@8p4eu&dn79=xs80y^is7&!%rrj9-!dliwy-u-r
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
+# CORS settings for development
+CORS_ALLOW_ALL_ORIGINS = True  # 開発時のみTrue
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8001",
+    "http://127.0.0.1:8001",
+]
 
 # Application definition
 
@@ -44,6 +51,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'accounts',
     'codemon',
+    # Channels for WebSocket/real-time chat
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -77,6 +86,9 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'appproject.wsgi.application'
+
+# ASGI application (Channels)
+ASGI_APPLICATION = 'appproject.asgi.application'
 
 
 # Database
@@ -130,6 +142,23 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Media files (user uploads, chat attachments, avatars)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# File upload settings
+MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5MB
+ALLOWED_UPLOAD_EXTENSIONS = [
+    # Images
+    '.jpg', '.jpeg', '.png', '.gif',
+    # Documents
+    '.pdf', '.doc', '.docx', '.txt',
+    # Archives
+    '.zip', '.rar',
+    # Code
+    '.py', '.java', '.cpp', '.h'
+]
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
@@ -144,17 +173,57 @@ LOGOUT_REDIRECT_URL = 'accounts:student_login'  # ログアウト後のリダイ
 # manual verification. MUST be False in production.
 ALLOW_ANONYMOUS_VIEWS = True
 
-# Simple logging to console for middleware exceptions
+# Channels configuration - using in-memory layer for development
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
+
+# Detailed logging configuration for development
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'django.server': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'django.channels': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'daphne': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
         },
     },
     'root': {
         'handlers': ['console'],
-        'level': 'INFO',
+        'level': 'DEBUG',
     },
 }
+
+# AI integration settings (external API)
+AI_API_KEY = os.getenv('AI_API_KEY', '')
+# Default model to call for chat completions
+AI_MODEL = os.getenv('AI_MODEL', 'gpt-3.5-turbo')

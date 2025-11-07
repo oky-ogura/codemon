@@ -7,6 +7,7 @@ app_name = 'accounts'  # アプリケーション名前空間を追加
 urlpatterns = [
     # Redirect the accounts root to the student login page
     path('', RedirectView.as_view(url='student_login/', permanent=False), name='accounts_root'),
+    path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('login/', RedirectView.as_view(url='student_login/', permanent=False), name='login'),  # デフォルトのログインURLをリダイレクト
     path('teacher_login/', views.teacher_login, name='teacher_login'),
     path('teacher_signup/', views.teacher_signup, name='teacher_signup'),

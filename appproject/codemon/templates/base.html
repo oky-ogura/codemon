@@ -11,16 +11,6 @@
   </style>
 </head>
 <body>
-  <nav>
-    {% load static %}
-    <a href="{% url 'accounts:accounts_root' %}">ホーム</a>
-    <a href="{% url 'codemon:checklist_list' %}">チェックリスト</a>
-    <a href="{% url 'codemon:systems_list' %}">システム</a>
-    <a href="{% url 'codemon:algorithms_list' %}">アルゴリズム</a>
-    <a href="{% url 'accounts:accounts_root' %}">アカウント</a>
-    <a href="{% url 'codemon:chat' %}">チャットAI</a>
-  </nav>
-
   {% if messages %}
   <ul class="messages">
     {% for message in messages %}

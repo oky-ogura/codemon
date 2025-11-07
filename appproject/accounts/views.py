@@ -3,7 +3,8 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login, authenticate, logout
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password
-from .forms import TeacherSignupForm
+from django.contrib.auth.decorators import login_required
+from .forms import TeacherSignupForm, ProfileEditForm
 
 
 def teacher_signup(request):
@@ -74,3 +75,28 @@ def teacher_home(request):
 def user_logout(request):
     logout(request)
     return redirect('home')  # ログアウト後の遷移先を適宜変更
+
+@login_required
+def edit_profile(request):
+    if request.method == 'POST':
+        form = ProfileEditForm(request.POST, request.FILES, instance=request.user)
+        if form.is_valid():
+            user = form.save(commit=False)
+            
+            # アバター削除の処理
+            if request.POST.get('delete_avatar') == 'true':
+                # 既存のアバターファイルを削除
+                if user.avatar:
+                    user.avatar.delete()
+                user.avatar = None
+            # アバターアップロードの処理
+            elif form.cleaned_data.get('avatar'):
+                from .utils import resize_avatar_image
+                user.avatar = resize_avatar_image(form.cleaned_data['avatar'])
+            
+            user.save()
+            messages.success(request, 'プロフィールを更新しました。')
+            return redirect('codemon:chat')  # チャット画面にリダイレクト
+    else:
+        form = ProfileEditForm(instance=request.user)
+    return render(request, 'accounts/edit_profile.html', {'form': form})

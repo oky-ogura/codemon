@@ -1,11 +1,10 @@
 {% extends 'base.html' %}
 {% block content %}
-<h1>チェックリスト削除</h1>
 
 <div class="navigation-tabs">
   <a href="{% url 'codemon:systems_list' %}" class="tab">システム</a>
   <a href="{% url 'codemon:algorithms_list' %}" class="tab">アルゴリズム</a>
-  <a href="{% url 'codemon:checklist_list' %}" class="tab">チェックリスト</a>
+  <a href="{% url 'codemon:checklist_selection' %}" class="tab">チェックリスト</a>
   <a href="{% url 'accounts:student_home' %}" class="tab" id="account-tab">アカウント</a>
 </div>
 
@@ -18,20 +17,30 @@
 
 <div class="delete-confirmation">
   <h2>「{{ checklist.checklist_name }}」を削除しますか？</h2>
-  <p class="warning">この操作は取り消せません。</p>
-  
-  <div class="checklist-preview">
-    <p class="description">{{ checklist.checklist_description }}</p>
-    <div class="items-list">
-      {% for item in checklist.items.all %}
-      <div class="item">
-        <span class="item-text">{{ item.item_text }}</span>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
+  <p class="warning">⚠ この操作は取り消せません。</p>
 
-  <form method="post" class="delete-form">
+  <!-- 🔹 チェックリスト情報をテーブル形式で表示 -->
+  <table class="checklist-info-table">
+    <tr>
+      <th>チェックリスト名</th>
+      <td>{{ checklist.checklist_name }}</td>
+    </tr>
+    <tr>
+      <th>チェックリスト概要</th>
+      <td>{{ checklist.checklist_description }}</td>
+    </tr>
+    <tr>
+      <th>作成日</th>
+      <td>{{ checklist.created_at|date:"Y/m/d H:i" }}</td>
+    </tr>
+    <tr>
+      <th>最終更新日</th>
+      <td>{{ checklist.updated_at|date:"Y/m/d H:i" }}</td>
+    </tr>
+  </table>
+
+  <!-- 🔹 削除フォーム -->
+  <form method="post" action="{% url 'codemon:checklist_delete' checklist.checklist_id %}" class="delete-form">
     {% csrf_token %}
     <div class="form-actions">
       <button type="submit" class="btn-delete">削除する</button>
@@ -44,15 +53,20 @@
 .navigation-tabs {
   display: flex;
   margin-bottom: 20px;
+  justify-content: center;
 }
 
 .tab {
-  padding: 10px 20px;
-  margin-right: 10px;
+  padding: 10px 25px;
+  margin-right: 20px;
   text-decoration: none;
   color: #333;
   border: 1px solid #ddd;
   border-radius: 4px;
+}
+.tab.active {
+  background-color: #007bff;
+  color: white;
 }
 
 .chat-ai-bubble {
@@ -60,7 +74,6 @@
   bottom: 20px;
   right: 20px;
 }
-
 .chat-button {
   display: inline-flex;
   align-items: center;
@@ -73,63 +86,79 @@
 
 .delete-confirmation {
   max-width: 800px;
-  margin: 20px auto;
-  padding: 20px;
+  margin: 30px auto;
+  padding: 25px;
   border: 1px solid #ddd;
   border-radius: 8px;
+  background-color: #fafafa;
+}
+
+.delete-confirmation h2 {
+  text-align: center;
+  margin-bottom: 10px;
 }
 
 .warning {
   color: #dc3545;
   font-weight: bold;
-  margin: 20px 0;
+  text-align: center;
+  margin-bottom: 20px;
 }
 
-.checklist-preview {
-  margin: 20px 0;
-  padding: 20px;
-  background-color: #f8f9fa;
-  border-radius: 4px;
+/* 🔹 チェックリスト情報テーブル */
+.checklist-info-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+.checklist-info-table th {
+  width: 180px;
+  background-color: #f8f8f8;
+  text-align: left;
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+.checklist-info-table td {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  background-color: #fff;
 }
 
-.items-list {
-  margin-top: 10px;
-}
-
-.item {
-  padding: 8px;
-  border-bottom: 1px solid #eee;
-}
-
+/* 🔹 削除・戻るボタン */
 .form-actions {
   display: flex;
-  gap: 10px;
-  margin-top: 20px;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 30px;
 }
 
 .btn-delete {
-  padding: 10px 20px;
+  padding: 10px 25px;
   background-color: #dc3545;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
 }
+.btn-delete:hover {
+  background-color: #c82333;
+}
 
 .btn-back {
-  padding: 10px 20px;
+  padding: 10px 25px;
   background-color: #6c757d;
   color: white;
   text-decoration: none;
   border-radius: 4px;
+}
+.btn-back:hover {
+  background-color: #5a6268;
 }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const accountTab = document.getElementById('account-tab');
-  
-  // アカウントタブのリンクをユーザーロールに基づいて更新
   {% if request.user.role == 'teacher' %}
     accountTab.href = "{% url 'accounts:teacher_home' %}";
   {% endif %}

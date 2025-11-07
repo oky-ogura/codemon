@@ -1,7 +1,23 @@
 {% extends 'base.html' %}
 {% block content %}
-<h1>新しいチェックリスト作成</h1>
 
+<!-- 🔹 ナビゲーション -->
+<div class="navigation-tabs">
+  <a href="{% url 'codemon:systems_list' %}" class="tab">システム</a>
+  <a href="{% url 'codemon:algorithms_list' %}" class="tab">アルゴリズム</a>
+  <a href="{% url 'codemon:checklist_selection' %}" class="tab active">進捗確認</a>
+  <a href="{% url 'accounts:student_home' %}" class="tab" id="account-tab">アカウント</a>
+</div>
+
+<!-- 🔹 AIチャットボタン -->
+<div class="chat-ai-bubble">
+  <a href="{% url 'codemon:chat' %}" class="chat-button">
+    <i class="fas fa-comments"></i>
+    AIチャット
+  </a>
+</div>
+
+<!-- 🔹 メッセージ表示 -->
 {% if messages %}
   <ul class="messages">
     {% for message in messages %}
@@ -10,116 +26,170 @@
   </ul>
 {% endif %}
 
-<div class="navigation-tabs">
-  <a href="{% url 'codemon:checklist_list' %}" class="tab">チェックリスト</a>
-  <a href="#" class="tab" id="save-tab">保存</a>
-  <a href="{% url 'accounts:student_home' %}" class="tab" id="account-tab">アカウント</a>
+<!-- 🔹 フォーム本体 -->
+<div class="checklist-form-container">
+
+  <form method="post" id="checklist-form">
+    {% csrf_token %}
+
+    <div class="form-group">
+      <label for="name">チェックリスト名 <span class="required">*</span></label>
+      <input type="text" name="name" id="name" required placeholder="例：第1回課題進捗チェック">
+    </div>
+
+    <div class="form-group">
+      <label for="description">チェックリスト概要</label>
+      <textarea name="description" id="description" rows="3" placeholder="チェックリストの目的や概要を入力してください。"></textarea>
+    </div>
+
+    {% if checklist %}
+      <div class="meta-info">
+        <p><strong>作成日：</strong>{{ checklist.created_at|date:"Y/m/d H:i" }}</p>
+        <p><strong>最終更新日：</strong>{{ checklist.updated_at|date:"Y/m/d H:i" }}</p>
+      </div>
+    {% endif %}
+
+    <div class="form-actions">
+      <a href="{% url 'codemon:checklist_selection' %}" class="btn-back">戻る</a>
+      <button type="submit" class="btn-save">作成</button>
+    </div>
+  </form>
 </div>
 
-<div class="chat-ai-bubble">
-  <a href="{% url 'codemon:chat' %}" class="chat-button">
-    <i class="fas fa-comments"></i>
-    AIチャット
-  </a>
-</div>
-
-<form method="post" id="checklist-form">{% csrf_token %}
-  <label>タイトル: <input type="text" name="name" required></label><br>
-  <label>説明: <textarea name="description"></textarea></label><br>
-  
-  <div id="checklist-items">
-    <!-- チェックリストアイテムがここに追加されます -->
-  </div>
-  
-  <button type="button" id="add-item" class="btn-add-item">+ チェックリストを追加</button>
-  <div class="form-actions">
-    <button type="submit" class="btn-save">作成</button>
-    <a href="{% url 'codemon:checklist_list' %}"><button type="button" class="btn-back">戻る</button></a>
-  </div>
-</form>
-
+<!-- 🔹 スタイル -->
 <style>
+/* ===== ナビゲーション ===== */
 .navigation-tabs {
   display: flex;
+  justify-content: center;
   margin-bottom: 20px;
 }
-
 .tab {
-  padding: 10px 20px;
-  margin-right: 10px;
+  padding: 10px 30px;
+  margin-right: 25px;
   text-decoration: none;
   color: #333;
   border: 1px solid #ddd;
   border-radius: 4px;
 }
+.tab.active {
+  background-color: #007bff;
+  color: white;
+}
 
+/* ===== AIチャットボタン ===== */
 .chat-ai-bubble {
   position: fixed;
   bottom: 20px;
   right: 20px;
 }
-
 .chat-button {
   display: inline-flex;
   align-items: center;
+  gap: 8px;
   padding: 10px 15px;
   background-color: #007bff;
   color: white;
   text-decoration: none;
   border-radius: 20px;
+  font-weight: bold;
 }
 
-.btn-add-item {
-  margin: 10px 0;
-  padding: 8px 16px;
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.checklist-item {
-  margin: 10px 0;
+/* ===== メッセージエリア ===== */
+.messages {
+  max-width: 800px;
+  margin: 0 auto 20px;
+  list-style: none;
   padding: 10px;
-  border: 1px solid #ddd;
+  background-color: #e9f7ef;
+  border: 1px solid #c3e6cb;
+  color: #155724;
   border-radius: 4px;
+}
+
+/* ===== フォーム全体 ===== */
+.checklist-form-container {
+  max-width: 700px;
+  margin: 30px auto;
+  padding: 25px 30px;
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+}
+.checklist-form-container h2 {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+/* ===== 入力フィールド ===== */
+.form-group {
+  margin-bottom: 20px;
+}
+label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: bold;
+}
+.required {
+  color: #dc3545;
+}
+input[type="text"],
+textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+/* ===== メタ情報（作成日など） ===== */
+.meta-info {
+  background-color: #f1f3f5;
+  border-radius: 4px;
+  padding: 10px 15px;
+  margin: 20px 0;
+  font-size: 0.95em;
+  color: #555;
+}
+
+/* ===== ボタンエリア ===== */
+.form-actions {
+  text-align: center;
+  margin-top: 25px;
+}
+.btn-back, .btn-save {
+  display: inline-block;
+  padding: 10px 25px;
+  border-radius: 4px;
+  border: none;
+  text-decoration: none;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+}
+.btn-back {
+  background-color: #6c757d;
+  margin-right: 10px;
+}
+.btn-back:hover {
+  background-color: #5a6268;
+}
+.btn-save {
+  background-color: #28a745;
+}
+.btn-save:hover {
+  background-color: #218838;
 }
 </style>
 
+<!-- 🔹 スクリプト -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const accountTab = document.getElementById('account-tab');
-  const saveTab = document.getElementById('save-tab');
-  const addItemBtn = document.getElementById('add-item');
-  const checklistItems = document.getElementById('checklist-items');
-  let itemCount = 0;
-
-  // アカウントタブのリンクをユーザーロールに基づいて更新
   {% if request.user.role == 'teacher' %}
     accountTab.href = "{% url 'accounts:teacher_home' %}";
   {% endif %}
-
-  // 保存タブのクリックイベント
-  saveTab.addEventListener('click', function(e) {
-    e.preventDefault();
-    // システム保存画面への遷移
-    window.location.href = "{% url 'codemon:systems_list' %}";
-  });
-
-  // チェックリスト項目の追加
-  addItemBtn.addEventListener('click', function() {
-    const itemDiv = document.createElement('div');
-    itemDiv.className = 'checklist-item';
-    itemCount++;
-    
-    itemDiv.innerHTML = `
-      <input type="text" name="item_text_${itemCount}" placeholder="チェックリスト項目を入力" required>
-      <button type="button" class="btn-remove" onclick="this.parentElement.remove()">追加</button>
-    `;
-    
-    checklistItems.appendChild(itemDiv);
-  });
 });
 </script>
+
 {% endblock %}

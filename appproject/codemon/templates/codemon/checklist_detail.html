@@ -1,79 +1,102 @@
 {% extends 'base.html' %}
 {% block content %}
+
+<!-- 🔹 ナビゲーションタブ -->
 <div class="navigation-tabs">
   <a href="{% url 'codemon:systems_list' %}" class="tab">システム</a>
   <a href="{% url 'codemon:algorithms_list' %}" class="tab">アルゴリズム</a>
-  <a href="{% url 'codemon:checklist_list' %}" class="tab">チェックリスト</a>
-  <a href="{% url 'accounts:student_home' %}" class="tab" id="account-tab">アカウント</a>
+  <a href="{% url 'codemon:checklist_selection' %}" class="tab active">進捗確認</a>
+  <a href="{% if request.user.is_authenticated and request.user.role == 'teacher' %}{% url 'accounts:teacher_home' %}{% else %}{% url 'accounts:student_home' %}{% endif %}" 
+     class="tab" id="account-tab">アカウント</a>
 </div>
 
+<!-- 🔹 チャットボタン -->
 <div class="chat-ai-bubble">
   <a href="{% url 'codemon:chat' %}" class="chat-button">
-    <i class="fas fa-comments"></i>
-    AIチャット
+    <i class="fas fa-comments"></i> AIチャット
   </a>
 </div>
 
+<!-- 🔹 チェックリスト詳細 -->
 <div class="checklist-detail">
-  <h1>{{ checklist.checklist_name }}</h1>
-  <p class="description">{{ checklist.checklist_description }}</p>
 
-  <div class="actions">
-    <a href="{% url 'codemon:checklist_save' pk=checklist.checklist_id %}" class="btn-edit">編集する</a>
-    <a href="{% url 'codemon:checklist_delete_confirm' pk=checklist.checklist_id %}" class="btn-delete">削除する</a>
-    <a href="{% url 'codemon:checklist_list' %}" class="btn-back">戻る</a>
-  </div>
+  <table class="checklist-info-table">
+    <tr>
+      <th>チェックリスト名</th>
+      <td>{{ checklist.checklist_name }}</td>
+    </tr>
+    <tr>
+      <th>チェックリスト概要</th>
+      <td>{{ checklist.checklist_description }}</td>
+    </tr>
+    <tr>
+      <th>作成日</th>
+      <td>{{ checklist.created_at|date:"Y/m/d H:i" }}</td>
+    </tr>
+    <tr>
+      <th>最終更新日</th>
+      <td>{{ checklist.updated_at|date:"Y/m/d H:i" }}</td>
+    </tr>
+  </table>
 
-  <h2>項目一覧</h2>
-  <div class="items-list">
-    {% for item in checklist.items.all %}
-      <div class="item">
-        <span class="item-text {% if item.is_done %}done{% endif %}">
+  <!-- 🔹 チェックリスト項目 -->
+  <form method="POST" action="">
+    {% csrf_token %}
+    <table class="checklist-items-table">
+      {% for item in checklist.items.all %}
+      <tr>
+        <td>
+          <input type="checkbox" id="item_{{ item.checklist_item_id }}" 
+          {% if item.is_done %}checked{% endif %}
+          onchange="toggleItem({{ checklist.checklist_id }}, {{ item.checklist_item_id }}, this.checked)">
+        </td>
+        <td>
+          <label for="item_{{ item.checklist_item_id }}" {% if item.is_done %}style="text-decoration: line-through; color: gray;"{% endif %}>
           {{ item.item_text }}
-        </span>
-        <form method="post" action="{% url 'codemon:checklist_toggle_item' checklist.checklist_id item.checklist_item_id %}" class="toggle-form">
-          {% csrf_token %}
-          <button type="submit" class="btn-toggle">
-            {% if item.is_done %}未完了に戻す{% else %}完了にする{% endif %}
-          </button>
-        </form>
-      </div>
-    {% empty %}
-      <p class="no-items">項目はありません。</p>
-    {% endfor %}
+        </label>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="2">項目がありません</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </form>
+
+  <!-- 🔹 アクションボタン -->
+  <div class="actions">
+    <a href="{% url 'codemon:checklist_list' %}" class="btn-back">一覧に戻る</a>
+    <a href="{% url 'codemon:checklist_edit' pk=checklist.checklist_id %}" class="btn-edit">編集する</a>
+    <a href="{% url 'codemon:checklist_delete_confirm' pk=checklist.checklist_id %}" class="btn-delete">削除する</a>
   </div>
 
-  <div class="add-item">
-    <h3>項目を追加</h3>
-    <form method="post" class="add-form">
-      {% csrf_token %}
-      <input type="text" name="item_text" required placeholder="新しい項目を入力">
-      <button type="submit" class="btn-add">追加</button>
-    </form>
-  </div>
 </div>
 
+<!-- 🔹 スタイル -->
 <style>
+/* ナビゲーション */
 .navigation-tabs {
   display: flex;
+  justify-content: center;
   margin-bottom: 20px;
 }
-
 .tab {
-  padding: 10px 20px;
-  margin-right: 10px;
+  padding: 10px 30px;
+  margin-right: 25px;
   text-decoration: none;
   color: #333;
   border: 1px solid #ddd;
   border-radius: 4px;
 }
+.tab.active { background-color: #007bff; color: white; }
 
+/* チャットボタン */
 .chat-ai-bubble {
   position: fixed;
   bottom: 20px;
   right: 20px;
 }
-
 .chat-button {
   display: inline-flex;
   align-items: center;
@@ -84,123 +107,95 @@
   border-radius: 20px;
 }
 
+/* チェックリスト詳細 */
 .checklist-detail {
   max-width: 800px;
-  margin: 20px auto;
+  margin: 30px auto;
   padding: 20px;
-}
-
-.description {
-  margin-bottom: 20px;
-  color: #666;
-}
-
-.actions {
-  margin: 20px 0;
-}
-
-.btn-delete {
-  padding: 10px 20px;
-  background-color: #dc3545;
-  color: white;
-  text-decoration: none;
-  border-radius: 4px;
-  display: inline-block;
-}
-
-.btn-edit {
-  padding: 10px 20px;
-  background-color: #28a745;
-  color: white;
-  text-decoration: none;
-  border-radius: 4px;
-  display: inline-block;
-  margin-right: 10px;
-}
-
-.btn-back {
-  padding: 10px 20px;
-  background-color: #6c757d;
-  color: white;
-  text-decoration: none;
-  border-radius: 4px;
-  display: inline-block;
-  margin-left: 10px;
-}
-
-.items-list {
-  margin: 20px 0;
-}
-
-.item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px;
-  border-bottom: 1px solid #eee;
-}
-
-.item-text {
-  flex: 1;
-}
-
-.item-text.done {
-  text-decoration: line-through;
-  color: #666;
-}
-
-.toggle-form {
-  margin-left: 10px;
-}
-
-.btn-toggle {
-  padding: 5px 10px;
-  background-color: #6c757d;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.add-item {
-  margin-top: 30px;
-}
-
-.add-form {
-  display: flex;
-  gap: 10px;
-}
-
-.add-form input[type="text"] {
-  flex: 1;
-  padding: 8px;
   border: 1px solid #ddd;
-  border-radius: 4px;
+  border-radius: 8px;
+  background-color: #fafafa;
+}
+.checklist-info-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+.checklist-info-table th {
+  width: 180px;
+  background-color: #f8f8f8;
+  text-align: left;
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+.checklist-info-table td {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  background-color: #fff;
 }
 
-.btn-add {
-  padding: 8px 16px;
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+/* チェックリスト項目テーブル */
+.checklist-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+.checklist-items-table td {
+  padding: 8px;
+  vertical-align: middle;
 }
 
-.no-items {
-  color: #666;
-  font-style: italic;
+/* アクションボタン */
+.actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
 }
+.btn-back { padding: 10px 20px; background-color: #6c757d; color: white; border-radius: 4px; text-decoration: none; }
+.btn-edit { padding: 10px 20px; background-color: #28a745; color: white; border-radius: 4px; text-decoration: none; }
+.btn-delete { padding: 10px 20px; background-color: #dc3545; color: white; border-radius: 4px; text-decoration: none; }
+.btn-back:hover { background-color: #5a6268; }
+.btn-edit:hover { background-color: #218838; }
+.btn-delete:hover { background-color: #c82333; }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const accountTab = document.getElementById('account-tab');
-  
-  // アカウントタブのリンクをユーザーロールに基づいて更新
   {% if request.user.role == 'teacher' %}
     accountTab.href = "{% url 'accounts:teacher_home' %}";
   {% endif %}
 });
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i=0; i<cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function toggleItem(checklistId, itemId, isDone) {
+    fetch(`/codemon/checklists/${checklistId}/items/${itemId}/toggle/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 'is_done': isDone })
+    })
+    .then(response => {
+        if (!response.ok) alert('保存に失敗しました');
+    })
+    .catch(error => alert('通信エラーです'));
+}
 </script>
+
 {% endblock %}

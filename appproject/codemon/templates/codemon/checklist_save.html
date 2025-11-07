@@ -1,231 +1,197 @@
 {% extends 'base.html' %}
 {% block content %}
+
+<!-- 🔹 ナビゲーションタブ -->
 <div class="navigation-tabs">
   <a href="{% url 'codemon:systems_list' %}" class="tab">システム</a>
   <a href="{% url 'codemon:algorithms_list' %}" class="tab">アルゴリズム</a>
-  <a href="{% url 'codemon:checklist_list' %}" class="tab">チェックリスト</a>
-  <a href="{% url 'accounts:student_home' %}" class="tab" id="account-tab">アカウント</a>
+  <a href="{% url 'codemon:checklist_selection' %}" class="tab active">進捗確認</a>
+  {% if request.user.role == 'teacher' %}
+    <a href="{% url 'accounts:teacher_home' %}" class="tab" id="account-tab">アカウント</a>
+  {% else %}
+    <a href="{% url 'accounts:student_home' %}" class="tab" id="account-tab">アカウント</a>
+  {% endif %}
 </div>
 
+<!-- 💬 AIチャットボタン -->
 <div class="chat-ai-bubble">
   <a href="{% url 'codemon:chat' %}" class="chat-button">
-    <i class="fas fa-comments"></i>
-    AIチャット
+    <i class="fas fa-comments"></i> AIチャット
   </a>
 </div>
 
-<div class="checklist-edit">
-  <h1>チェックリストの編集</h1>
-  <form method="post" class="edit-form" action="{% url 'codemon:checklist_save' pk=checklist.checklist_id %}">
-    {% csrf_token %}
-    <div class="form-group">
-      <label for="checklist_name">チェックリスト名</label>
-      <input type="text" id="checklist_name" name="checklist_name" value="{{ checklist.checklist_name }}" required>
-    </div>
-    
-    <div class="form-group">
-      <label for="checklist_description">説明</label>
-      <textarea id="checklist_description" name="checklist_description">{{ checklist.checklist_description }}</textarea>
-    </div>
+<!-- 🧾 チェックリスト確認・保存フォーム -->
+<div class="checklist-edit-container">
+  <h2>チェックリストの内容確認</h2>
 
-    <div class="items-section">
-      <h2>チェック項目</h2>
-      {% for item in checklist.items.all %}
-        <div class="item-entry">
-          <input type="hidden" name="item_ids[]" value="{{ item.checklist_item_id }}">
-          <input type="text" name="item_texts[]" value="{{ item.item_text }}" required>
-          <button type="button" class="btn-remove" onclick="removeItem(this)">削除</button>
-        </div>
-      {% endfor %}
-      <div id="new-items"></div>
-      <button type="button" class="btn-add" onclick="addNewItem()">項目を追加</button>
-    </div>
+  <div class="checklist-details">
+    <p><strong>チェックリスト名：</strong> {{ checklist_name }}</p>
+    <p><strong>概要：</strong> {{ checklist_description|default:"(なし)" }}</p>
+  </div>
+
+  <h3>項目一覧</h3>
+  <ul class="checklist-items">
+    {% for item in items %}
+      <li>
+        {{ item.text }} {% if item.done %}(完了){% endif %}
+      </li>
+    {% empty %}
+      <li>項目はありません。</li>
+    {% endfor %}
+  </ul>
+
+  <form method="POST" action="{% url 'codemon:checklist_save' pk=checklist.checklist_id %}">
+    {% csrf_token %}
+    <input type="hidden" name="checklist_name" value="{{ checklist_name }}">
+    <input type="hidden" name="checklist_description" value="{{ checklist_description }}">
+    {% for item in items %}
+      <input type="hidden" name="item_{{ forloop.counter }}" value="{{ item.text }}">
+      <input type="hidden" name="done_{{ forloop.counter }}" value="{% if item.done %}on{% endif %}">
+    {% endfor %}
 
     <div class="form-actions">
-      <button type="submit" class="btn-save">保存</button>
-      <a href="{% url 'codemon:checklist_detail' pk=checklist.checklist_id %}" class="btn-cancel">キャンセル</a>
+      <button type="submit" name="confirm_save" value="1" class="btn-save">確定保存</button>
+      <a href="{% url 'codemon:checklist_edit' pk=checklist.checklist_id %}" class="btn-back">編集に戻る</a>
     </div>
   </form>
 </div>
 
+<!-- 🎨 スタイル -->
 <style>
+/* ===== ナビゲーション ===== */
 .navigation-tabs {
   display: flex;
+  justify-content: center;
   margin-bottom: 20px;
 }
-
 .tab {
-  padding: 10px 20px;
-  margin-right: 10px;
+  padding: 10px 30px;
+  margin-right: 25px;
   text-decoration: none;
   color: #333;
   border: 1px solid #ddd;
   border-radius: 4px;
+  transition: all 0.2s ease;
+}
+.tab.active,
+.tab:hover {
+  background-color: #007bff;
+  color: white;
+  font-weight: bold;
 }
 
+/* ===== チャットボタン ===== */
 .chat-ai-bubble {
   position: fixed;
   bottom: 20px;
   right: 20px;
 }
-
 .chat-button {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   padding: 10px 15px;
   background-color: #007bff;
   color: white;
   text-decoration: none;
   border-radius: 20px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+}
+.chat-button:hover {
+  background-color: #0056b3;
 }
 
-.checklist-edit {
+/* ===== メインコンテナ ===== */
+.checklist-edit-container {
   max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
+  margin: 40px auto;
+  padding: 30px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background-color: #fafafa;
+}
+.checklist-edit-container h2 {
+  text-align: center;
+  margin-bottom: 25px;
 }
 
-.edit-form {
-  background-color: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+/* ===== チェックリスト情報表示 ===== */
+.checklist-details {
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  padding: 15px 20px;
+  border-radius: 6px;
+  margin-bottom: 25px;
 }
-
-.form-group {
+.checklist-details p {
+  margin: 10px 0;
+  font-size: 1rem;
+}
+.checklist-items {
+  list-style: disc;
+  margin-left: 20px;
   margin-bottom: 20px;
 }
-
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
+.checklist-items li {
+  margin-bottom: 6px;
+}
+/* ===== 戻るリンク ===== */
+.back-arrow-container {
+  margin-bottom: 20px;
+  text-align: center;
+}
+.back-arrow {
+  display: inline-block;
+  color: #007bff;
+  text-decoration: none;
   font-weight: bold;
-}
-
-.form-group input[type="text"],
-.form-group textarea {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
   font-size: 16px;
 }
-
-.form-group textarea {
-  min-height: 100px;
-  resize: vertical;
+.back-arrow:hover {
+  text-decoration: underline;
 }
 
-.items-section {
-  margin: 20px 0;
-}
-
-.item-entry {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.item-entry input[type="text"] {
-  flex: 1;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.btn-remove {
-  padding: 8px 16px;
-  background-color: #dc3545;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.btn-add {
-  padding: 8px 16px;
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-top: 10px;
-}
-
+/* ===== ボタンエリア ===== */
 .form-actions {
-  margin-top: 30px;
   display: flex;
-  gap: 10px;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 20px;
 }
-
+.btn-save,
+.btn-back {
+  padding: 10px 25px;
+  border-radius: 5px;
+  border: none;
+  text-decoration: none;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
 .btn-save {
-  padding: 10px 20px;
   background-color: #28a745;
   color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
 }
-
-.btn-cancel {
-  padding: 10px 20px;
+.btn-save:hover {
+  background-color: #218838;
+}
+.btn-back {
   background-color: #6c757d;
   color: white;
-  text-decoration: none;
-  border-radius: 4px;
-  font-size: 16px;
 }
-
-.messages {
-  list-style: none;
-  padding: 0;
-  margin-bottom: 20px;
-}
-
-.messages .success {
-  padding: 10px;
-  background-color: #d4edda;
-  border: 1px solid #c3e6cb;
-  border-radius: 4px;
-  color: #155724;
-}
-
-.messages .error {
-  padding: 10px;
-  background-color: #f8d7da;
-  border: 1px solid #f5c6cb;
-  border-radius: 4px;
-  color: #721c24;
+.btn-back:hover {
+  background-color: #5a6268;
 }
 </style>
 
+<!-- ⚙️ スクリプト -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const accountTab = document.getElementById('account-tab');
-  
   {% if request.user.role == 'teacher' %}
     accountTab.href = "{% url 'accounts:teacher_home' %}";
   {% endif %}
 });
-
-function addNewItem() {
-  const container = document.getElementById('new-items');
-  const itemEntry = document.createElement('div');
-  itemEntry.className = 'item-entry';
-  
-  itemEntry.innerHTML = `
-    <input type="hidden" name="new_item_ids[]" value="">
-    <input type="text" name="new_item_texts[]" required>
-    <button type="button" class="btn-remove" onclick="removeItem(this)">削除</button>
-  `;
-  
-  container.appendChild(itemEntry);
-}
-
-function removeItem(button) {
-  const itemEntry = button.parentElement;
-  itemEntry.remove();
-}
 </script>
+
 {% endblock %}
