@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8" />
-  <title>システム選択</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    :root { --nav-height:56px; --primary:#1976d2; --muted:#666; --bg:#f9f9fb; }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>アルゴリズム選択</title>
+<style>
+  /* ----- 上部ナビゲーション ----- */
+  :root { --nav-height:56px; --primary:#1976d2; --muted:#666; --bg:#f9f9fb; }
     body {
       font-family: -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "メイリオ", sans-serif;
       margin: 20px;
@@ -118,80 +119,78 @@
       .action-panel { flex-direction:column; align-items:center; }
       .info { width:100%; max-width:none; }
     }
-  </style>
+</style>
 </head>
 <body>
   <header class="top-nav" role="banner" aria-label="メインナビゲーション">
 
     <nav class="nav-tabs" role="navigation" aria-label="タブメニュー">
-      <button type="button" class="nav-tab active" id="tab-system" aria-pressed="true" title="システム">システム</button>
-      <button type="button" class="nav-tab" id="tab-algorithm" aria-pressed="false" title="アルゴリズム">アルゴリズム</button>
+      <button type="button" class="nav-tab" id="tab-system" aria-pressed="false" title="システム">システム</button>
+      <button type="button" class="nav-tab active" id="tab-algorithm" aria-pressed="true" title="アルゴリズム">アルゴリズム</button>
       <button type="button" class="nav-tab" id="tab-progress" aria-pressed="false" title="進捗確認">進捗確認</button>
       <button type="button" class="nav-tab" id="tab-account" aria-pressed="false" title="アカウント">アカウント</button>
     </nav>
   </header>
 
-  <main>
-
+  <main class="page-wrap" role="main">
     <div class="action-panel" role="region" aria-label="システム操作">
       <div class="action-column" role="group" aria-label="システム操作ボタン群">
-        <button class="action-btn" id="btn-list">作成したシステム一覧を開く</button>
-        <button class="action-btn secondary" id="btn-new">新しいシステムを作成</button>
+        <button class="action-btn" id="btn-list">作成したアルゴリズム一覧を開く</button>
+        <button class="action-btn secondary" id="btn-new">新しいアルゴリズムを作成</button>
       </div>
-
     </div>
-
   </main>
 
-  <script>
-    // タブ見た目切替および一部タブで遷移（画面構成は変更しない）
-    document.querySelectorAll('.nav-tab').forEach(tab=>{
-      tab.addEventListener('click', function(e){
+<script>
+  (function(){
+  try{
+    const tabs = document.querySelectorAll('.nav-tab');
+    tabs.forEach(tab=>{
+      tab.addEventListener('click', (e)=>{
         try{
-          document.querySelectorAll('.nav-tab').forEach(t=>{
+          // クリックで見た目を切替（押せるようにする）
+          tabs.forEach(t=>{
             t.classList.remove('active');
             t.setAttribute('aria-pressed','false');
           });
-          this.classList.add('active');
-          this.setAttribute('aria-pressed','true');
-          if (typeof this.blur === 'function') this.blur();
+          tab.classList.add('active');
+          tab.setAttribute('aria-pressed','true');
+          if(typeof tab.blur === 'function') tab.blur();
 
-          // システムタブ押下でシステム選択画面（自己）または明示的に choice へ遷移
-          if (this.id === 'tab-system') {
+          // システムタブ
+          if(tab.id === 'tab-system'){
+            // system/choice へ遷移
             window.location.href = '/accounts/system/choice/';
             return;
           }
-
-          // 変更: アルゴリズムタブ押下で block/choice へ遷移
-          if (this.id === 'tab-algorithm') {
-            window.location.href = '/accounts/block/choice/';
-            return;
-          }
-
-          // 他タブは見た目切替のみ（必要なら遷移先を追加）
+          // アルゴリズムタブ
         }catch(err){
           console.error('tab click handler error', err);
         }
       });
     });
+  }catch(err){
+    console.error('tabs init error', err);
+  }
+})();
 
-    // 作成したシステム一覧ボタンは system_list へ遷移
+    // 作成したアルゴリズム一覧ボタンは block_list へ遷移
     const btnList = document.getElementById('btn-list');
     if (btnList) {
       btnList.addEventListener('click', function(e){
         e.preventDefault();
-        window.location.href = '/accounts/system/list/';
+        window.location.href = '/accounts/block/list/';
       });
     }
 
-    // 新しいシステム作成ボタンは作成画面へ遷移（画面構成は変更しない）
+    // 新しいアルゴリズム作成ボタンは作成画面へ遷移
     const btnNew = document.getElementById('btn-new');
     if (btnNew) {
       btnNew.addEventListener('click', function(e){
         e.preventDefault();
-        window.location.href = '/accounts/system/create/';
+        window.location.href = '/accounts/block/create/';
       });
     }
-  </script>
+</script>
 </body>
 </html>

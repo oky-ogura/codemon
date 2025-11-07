@@ -224,7 +224,7 @@
   </main>
 
 <script>
-/* ---------------------- ナビタブ（index.html と同じ挙動） ---------------------- */
+/* ---------------------- ナビタブ（index.html と同じ挙動、遷移先を変更） ---------------------- */
 (function(){
   try{
     const tabs = document.querySelectorAll('.nav-tab');
@@ -243,8 +243,9 @@
             window.location.href = '/accounts/system/';
             return;
           }
+          // 変更: アルゴリズムタブ押下で block/choice へ遷移
           if(tab.id === 'tab-algorithm'){
-            window.location.href = '/accounts/block/';
+            window.location.href = '/accounts/block/choice';
             return;
           }
           // 他タブは現状見た目のみ（遷移未実装）
