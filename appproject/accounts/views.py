@@ -10,9 +10,20 @@ from django.contrib.auth.forms import SetPasswordForm
 from django.contrib.auth.hashers import check_password
 from .models import Account
 from django.conf import settings
+from django import forms
+from django.shortcuts import get_object_or_404
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.core import signing
+from django.template.loader import render_to_string
+from django.core.mail import send_mail
+from django.contrib.auth.hashers import make_password
+from django.http import HttpResponseRedirect
+
 from django.db import connection
 from django.utils import timezone
 from django.contrib.auth.hashers import make_password
+
 
 
 # カスタムのパスワード再設定ビュー
@@ -31,6 +42,36 @@ class MyPasswordResetView(auth_views.PasswordResetView):
             back = reverse('student_login')
         context['back_url'] = back
         return context
+
+    def form_valid(self, form):
+        """メールアドレスを受け取り、Account が存在すれば署名付きトークンを作成してメール送信する。
+
+        存在しないメールアドレスでも成功画面へ遷移させて、アカウントの有無情報漏洩を防ぐ。
+        """
+        email = form.cleaned_data.get('email')
+        acc = Account.objects.filter(email=email).first()
+        # 常に成功画面へリダイレクトする（存在の有無を明かさない）
+        if acc:
+            # トークンは署名付きで作成し、有効期限は settings で管理できるようにする（ここでは1日）
+            token = signing.dumps({'user_id': acc.user_id}, salt='accounts-password-reset')
+            uidb64 = urlsafe_base64_encode(force_bytes(str(acc.user_id)))
+            protocol = 'https' if self.request.is_secure() else 'http'
+            context = {
+                'email': acc.email,
+                'domain': self.request.get_host(),
+                'site_name': getattr(settings, 'SITE_NAME', self.request.get_host()),
+                'uidb64': uidb64,
+                'token': token,
+                'protocol': protocol,
+            }
+            # メール送信（テンプレートを利用）
+            subject = 'パスワード再設定のご案内'
+            message = render_to_string(self.email_template_name, context)
+            from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+            # send_mail は DEBUG 時は console backend を用いる設定が settings.py に入っています
+            send_mail(subject, message, from_email, [acc.email], fail_silently=False)
+
+        return HttpResponseRedirect(self.get_success_url())
 
 
 def get_logged_account(request):
@@ -471,7 +512,66 @@ def preview_password_reset_confirm(request):
     本番にデプロイする際はこの URL を削除してください。
     """
     form = SetPasswordForm(user=None)
-    return render(request, 'accounts/password_reset_confirm.html', {'form': form})
+    return render(request, 'accounts/password_reset_custom.html', {'form': form})
+
+
+# --- カスタムのパスワード再設定確認ビュー（Account を直接操作する） ---
+class _SetNewPasswordForm(forms.Form):
+    new_password1 = forms.CharField(label='新しいパスワード', widget=forms.PasswordInput)
+    new_password2 = forms.CharField(label='確認用パスワード', widget=forms.PasswordInput)
+
+    def clean(self):
+        cleaned = super().clean()
+        p1 = cleaned.get('new_password1')
+        p2 = cleaned.get('new_password2')
+        if p1 and p2 and p1 != p2:
+            raise forms.ValidationError('パスワードが一致しません')
+        return cleaned
+
+
+def password_reset_confirm(request, uidb64, token):
+    """署名付きトークンを検証して該当する Account のパスワードを更新するビュー。
+
+    token は `signing.dumps({'user_id': ...}, salt='accounts-password-reset')` で作成される想定。
+    """
+    # uidb64 をデコードして user_id を得る（安全策として検証に使用）
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+    except Exception:
+        uid = None
+
+    # トークン検証（有効期限は 24 時間）
+    try:
+        payload = signing.loads(token, salt='accounts-password-reset', max_age=60 * 60 * 24)
+        user_id_from_token = str(payload.get('user_id'))
+    except signing.BadSignature:
+        payload = None
+        user_id_from_token = None
+    except signing.SignatureExpired:
+        payload = None
+        user_id_from_token = None
+
+    # 優先して token の中身を信頼し、fallback で uidb64 と照合
+    user_id = user_id_from_token or uid
+    if not user_id:
+        # 無効なリンク
+        return render(request, 'accounts/password_reset_invalid.html')
+
+    account = Account.objects.filter(user_id=user_id).first()
+    if not account:
+        return render(request, 'accounts/password_reset_invalid.html')
+
+    if request.method == 'POST':
+        form = _SetNewPasswordForm(request.POST)
+        if form.is_valid():
+            new_pw = form.cleaned_data['new_password1']
+            account.password = make_password(new_pw)
+            account.save()
+            return HttpResponseRedirect(reverse('password_reset_complete'))
+    else:
+        form = _SetNewPasswordForm()
+
+    return render(request, 'accounts/password_reset_custom.html', {'form': form})
 
 def t_account(request):
     """

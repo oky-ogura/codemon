@@ -31,10 +31,7 @@ urlpatterns = [
          name='password_reset_done'),
     # Confirm and complete steps for password reset flow
     path('reset/<uidb64>/<token>/',
-         auth_views.PasswordResetConfirmView.as_view(
-             template_name='accounts/password_reset_confirm.html',
-             success_url='/accounts/reset/done/'
-         ),
+         views.password_reset_confirm,
          name='password_reset_confirm'),
     # 開発用プレビュー: トークン不要で再設定フォームを表示（本番では削除推奨）
     path('debug/password_reset_confirm_preview/',
