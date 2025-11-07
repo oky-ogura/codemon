@@ -340,6 +340,32 @@ def system_details(request):
     return render(request, 'system/system_details.html')
 
 
+# アルゴリズム選択画面
+def block_choice(request):
+    """
+    /accounts/block/choice/ で block/choice.html を表示する簡易ビュー
+    """
+    return render(request, 'block/block_choice.html')
+
+# 新規アルゴリズム作成画面
+def block_create(request):
+    """
+    block_create.html を表示（表示のみ、遷移先なし）
+    """
+    return render(request, 'block/block_create.html')
+
+
+# 該当アルゴリズム詳細画面
+def block_details(request):
+    
+    return render(request, 'block/block_details.html')
+
+# アルゴリズム一覧画面
+def block_list(request):
+
+    return render(request, 'block/block_list.html')
+
+
 # アカウントダッシュボード（生徒/教員どちらでも動作する簡易版）
 def account_view(request):
     """ログインユーザーに紐づく Account を可能な限り探して適切なテンプレートを表示します。
@@ -474,5 +500,4 @@ def password_reset_confirm(request, uidb64, token):
         form = _SetNewPasswordForm()
 
     return render(request, 'accounts/password_reset_custom.html', {'form': form})
-
 
