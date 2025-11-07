@@ -140,7 +140,16 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+
+# project-level static files directory (for development)
+# include BASE_DIR/static so {% static 'accounts/...' %} finds files placed there
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
+
+# where collectstatic will collect files for production (not used in DEBUG mode)
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Media files (user uploads, chat attachments, avatars)
 MEDIA_URL = '/media/'
@@ -227,3 +236,7 @@ LOGGING = {
 AI_API_KEY = os.getenv('AI_API_KEY', '')
 # Default model to call for chat completions
 AI_MODEL = os.getenv('AI_MODEL', 'gpt-3.5-turbo')
+# Development-time email backend: print emails to console so password-reset links are visible during development
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>アルゴリズム概要</title>
+<style>
+  /* ----- 上部ナビゲーション ----- */
+  :root{ --nav-height:56px; --primary:#1976d2; --muted:#666; --bg:#f9f9fb; }
+    body{
+      font-family: -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "メイリオ", sans-serif;
+      margin:20px; background:var(--bg); color:#111;
+    }
+    .top-nav{
+      box-sizing:border-box;
+      width:100%;
+      max-width:980px;
+      height:var(--nav-height);
+      margin:16px auto 12px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:6px 12px;
+      background:linear-gradient(180deg,#fff,#fafafa);
+      border-radius:10px;
+      box-shadow:0 1px 3px rgba(0,0,0,0.06);
+      border:1px solid #e6e6e9;
+    }
+    .nav-brand{ display:flex; align-items:center; gap:8px; padding-right:8px; border-right:1px solid #eee; }
+    .nav-brand .logo{ width:36px; height:36px; border-radius:6px; background:var(--primary); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:18px; }
+    .nav-brand .title{ font-size:15px; color:#111; font-weight:600; }
+    .nav-tabs{ display:flex; justify-content: space-evenly; width:100%; align-items:center; gap:0; margin:0; }
+    .nav-tab{
+      appearance:none; border:0; background:transparent; padding:8px 12px; border-radius:8px;
+      font-size:14px; cursor:pointer; color:var(--muted); transition: all .12s ease;
+    }
+    .nav-tab:hover{ background:#f0f6ff; color:var(--primary); transform:translateY(-1px); }
+    .nav-tab.active{ background:var(--primary); color:#fff; box-shadow:0 2px 6px rgba(25,118,210,0.18); }
+
+    main{ width:100%; max-width:980px; margin:6px auto; box-sizing:border-box; }
+    h1{ text-align:center; margin-top:8px; }
+
+    /* フォーム周り */
+    .form-card {
+      background:#fff;
+      border-radius:10px;
+      padding:18px;
+      box-shadow:0 6px 18px rgba(10,10,10,0.04);
+      border:1px solid #eef2f6;
+      max-width:820px;
+      margin:18px auto;
+    }
+    .form-row { display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+    label { font-weight:600; color:#223; font-size:14px; }
+    input[type="text"], textarea, input[type="date"] {
+      width:100%;
+      box-sizing:border-box;
+      padding:10px 12px;
+      border-radius:8px;
+      border:1px solid #d7dce1;
+      font-size:15px;
+      background:#fff;
+      color:#111;
+    }
+    textarea { min-height:140px; resize:vertical; }
+    .controls { display:flex; gap:12px; justify-content:flex-end; margin-top:8px; }
+    .btn {
+      padding:10px 16px;
+      border-radius:8px;
+      border:0;
+      cursor:pointer;
+      font-weight:700;
+      font-size:14px;
+    }
+    .btn-primary {
+      background: linear-gradient(180deg,#e6f0ff,#cfe6ff);
+      color:#073763;
+      box-shadow:0 8px 18px rgba(10,59,110,0.06);
+    }
+    .btn-ghost {
+      background:transparent;
+      color:#444;
+      border:1px solid #e6e9ee;
+    }
+    .hint { font-size:13px; color:#666; margin-top:6px; }
+    .error { color:#b00020; font-size:13px; margin-top:6px; display:none; }
+
+    @media (max-width:640px){
+      .controls { flex-direction:column-reverse; align-items:stretch; }
+    }
+</style>
+</head>
+<body>
+  <header class="top-nav" role="banner" aria-label="メインナビゲーション">
+
+    <nav class="nav-tabs" role="navigation" aria-label="タブメニュー">
+      <button type="button" class="nav-tab" id="tab-system" aria-pressed="false" title="システム">システム</button>
+      <button type="button" class="nav-tab active" id="tab-algorithm" aria-pressed="true" title="アルゴリズム">アルゴリズム</button>
+      <button type="button" class="nav-tab" id="tab-progress" aria-pressed="false" title="進捗確認">進捗確認</button>
+      <button type="button" class="nav-tab" id="tab-account" aria-pressed="false" title="アカウント">アカウント</button>
+    </nav>
+  </header>
+
+  <main class="page-wrap" role="main">
+    <h1>アルゴリズム概要</h1>
+
+    <div class="form-card" aria-labelledby="formTitle" role="form">
+      <div id="formTitle" style="display:none">アルゴリズム作成フォーム</div>
+
+      <div class="form-row">
+        <label for="blockName">アルゴリズム名 <span aria-hidden="true">※</span></label>
+        <input id="blockName" type="text" placeholder="例：条件判定" maxlength="120" required aria-required="true" />
+        <div class="hint" id="nameHint">最大120文字</div>
+        <div class="error" id="nameError">このフィールドに入力してください</div>
+      </div>
+
+      <div class="form-row">
+        <label for="blockDetail">アルゴリズムの詳細 <span aria-hidden="true">※</span></label>
+        <textarea id="blockDetail" placeholder="アルゴリズムの概要、要件などを入力してください。" required aria-required="true"></textarea>
+        <div class="hint" id="detailHint">必須（改行可）</div>
+        <div class="error" id="detailError">このフィールドに入力してください</div>
+      </div>
+
+      <div class="form-row">
+        <label for="createdAt">作成日（自動入力のため編集不可）</label>
+        <input id="createdAt" type="date" readonly />
+        <div class="hint" id="createdAtHint">今日の日付が自動入力</div>
+      </div>
+
+      <div class="controls">
+        <button class="btn btn-ghost" id="cancelBtn" type="button">戻る</button>
+        <button class="btn btn-primary" id="saveBtn" type="button">作成</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // --- ナビタブ挙動 / ナビ遷移時の確認処理付き ---
+    // isDirty = フォームが未保存の変更ありフラグ
+    let isDirty = false;
+
+    const nameInput = document.getElementById('blockName');
+    const detailInput = document.getElementById('blockDetail');
+    const createdAtInput = document.getElementById('createdAt');
+    const saveBtn = document.getElementById('saveBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const nameError = document.getElementById('nameError');
+    const detailError = document.getElementById('detailError');
+
+    // 作成日を YYYY-MM-DD 形式で自動入力（時間は不要）
+    (function fillCreatedAt(){
+      if (!createdAtInput) return;
+      const d = new Date();
+      const pad = n => String(n).padStart(2,'0');
+      createdAtInput.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    })();
+
+    // フォーム変更で isDirty を true にする
+    function markDirty() { isDirty = true; }
+    if (nameInput) nameInput.addEventListener('input', markDirty);
+    if (detailInput) detailInput.addEventListener('input', markDirty);
+
+    // beforeunload: ブラウザ閉じる/リロード/バックで確認（変更あり時のみ）
+    window.addEventListener('beforeunload', function (e) {
+      if (!isDirty) return;
+      // 標準メッセージはブラウザが置き換えるため空文字で十分
+      e.preventDefault();
+      e.returnValue = '';
+    });
+
+    // タブクリック時の共通処理：
+    // - 遷移先がある場合は確認ダイアログ（変更ありなら）
+    // - OKなら isDirty=false にして遷移、キャンセルなら何もしない（見た目も遷移しない）
+    document.querySelectorAll('.nav-tab').forEach(tab=>{
+      tab.addEventListener('click', function(e){
+        e.preventDefault();
+
+        let targetUrl = null;
+        if (this.id === 'tab-system') targetUrl = '/accounts/system/choice/';
+        // 変更: アルゴリズムタブ押下で block/choice へ遷移
+        else if (this.id === 'tab-algorithm') targetUrl = '/accounts/block/choice';
+
+        if (!targetUrl) {
+          document.querySelectorAll('.nav-tab').forEach(t=>{
+            t.classList.remove('active');
+            t.setAttribute('aria-pressed','false');
+          });
+          this.classList.add('active');
+          this.setAttribute('aria-pressed','true');
+          return;
+        }
+
+        if (isDirty) {
+          const leave = confirm('入力内容が破棄されます。移動してもよろしいですか？');
+          if (!leave) return;
+          isDirty = false;
+        }
+
+        window.location.href = targetUrl;
+      });
+    });
+
+    // フォームバリデーション（UI用）
+    function validate() {
+      let ok = true;
+      const name = nameInput ? nameInput.value.trim() : '';
+      const detail = detailInput ? detailInput.value.trim() : '';
+
+      // デフォルトメッセージ
+      const requiredMsg = 'このフィールドに入力してください';
+
+      if (!name) {
+        if (nameError) {
+          nameError.textContent = requiredMsg;
+          nameError.style.display = 'block';
+        }
+        ok = false;
+      } else {
+        if (nameError) nameError.style.display = 'none';
+      }
+
+      if (!detail) {
+        if (detailError) {
+          detailError.textContent = requiredMsg;
+          detailError.style.display = 'block';
+        }
+        ok = false;
+      } else {
+        if (detailError) detailError.style.display = 'none';
+      }
+
+      // 未入力があればフォーカスを当てる（最初の未入力項目）
+      if (!ok) {
+        if (!name && nameInput) nameInput.focus();
+        else if (!detail && detailInput) detailInput.focus();
+      }
+
+      return ok;
+    }
+
+    // 作成ボタン: 必須チェックに合格したら遷移（保存処理は含めない）
+    saveBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      // 必須チェック。未入力があれば遷移しない。
+      if (!validate()) return;
+      // 未保存フラグ解除して次画面へ遷移（変更：ローカルホストのURL）
+      isDirty = false;
+      window.location.href = '/accounts/block/';
+    });
+
+    // 戻るボタン：確認ダイアログでOKなら入力破棄して block_choice へ遷移
+    cancelBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      if (!isDirty) {
+        window.location.href = '/accounts/block/choice/';
+        return;
+      }
+      const ok = confirm('入力を破棄してアルゴリズム選択画面に戻りますか？');
+      if (!ok) return;
+      nameInput.value = '';
+      detailInput.value = '';
+      if (nameError) nameError.style.display = 'none';
+      if (detailError) detailError.style.display = 'none';
+      const d = new Date();
+      const pad = n => String(n).padStart(2,'0');
+      if (createdAtInput) createdAtInput.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      isDirty = false;
+      window.location.href = '/accounts/block/choice/';
+    });
+
+    // 入力時にエラー表示を消す
+    if (nameInput) {
+      nameInput.addEventListener('input', function(){
+        if (nameInput.value.trim() && nameError) nameError.style.display = 'none';
+      });
+    }
+    if (detailInput) {
+      detailInput.addEventListener('input', function(){
+        if (detailInput.value.trim() && detailError) detailError.style.display = 'none';
+      });
+    }
+  </script>
+</body>
+</html>

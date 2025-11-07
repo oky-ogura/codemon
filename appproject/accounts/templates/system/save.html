@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>システム保存</title>
+<style>
+  :root{
+    --nav-height:56px;
+    --primary:#1976d2;
+    --bg:#f9f9f9;
+    --muted:#666;
+    --danger:#e15554;
+    --card:#fff;
+  }
+  body{
+    margin:0;
+    font-family:"Yu Gothic","Hiragino Kaku Gothic ProN","Segoe UI",sans-serif;
+    background:var(--bg);
+    color:#222;
+  }
+  .top-nav{
+    box-sizing:border-box;
+    width:100%;
+    max-width:1180px;
+    height:var(--nav-height);
+    margin:12px auto;
+    display:flex;
+    align-items:center;
+    padding:6px 12px;
+    background:linear-gradient(180deg,#fff,#fafafa);
+    border-radius:10px;
+    box-shadow:0 1px 3px rgba(0,0,0,0.06);
+    border:1px solid #e6e6e9;
+  }
+
+  .nav-brand{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-right:12px;
+    padding-right:8px;
+    border-right:1px solid #eee;
+  }
+  .nav-brand .logo{
+    width:36px;
+    height:36px;
+    border-radius:6px;
+    background:var(--primary);
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-weight:700;
+    font-size:18px;
+  }
+  .nav-brand .title{
+    font-size:15px;
+    color:#111;
+    font-weight:600;
+  }
+  .nav-tabs{
+    display:flex;
+    justify-content: space-evenly;
+    align-items:center;
+    width:100%;
+  }
+  .nav-tab{
+    appearance:none;
+    border:0;
+    background:transparent;
+    padding:8px 12px;
+    border-radius:8px;
+    font-size:14px;
+    cursor:pointer;
+    color:var(--muted);
+    transition: all .12s ease;
+  }
+  .nav-tab:hover{
+    background:#f0f6ff;
+    color:var(--primary);
+    transform:translateY(-1px);
+  }
+  .nav-tab.active{
+    background:var(--primary);
+    color:#fff;
+    box-shadow:0 2px 6px rgba(25,118,210,0.18);
+  }
+
+  .page-wrap{
+    max-width:1180px;
+    margin:20px auto;
+    padding:12px;
+    box-sizing:border-box;
+  }
+
+  .card{
+    background:var(--card);
+    padding:18px;
+    border-radius:8px;
+    box-shadow:0 1px 3px rgba(0,0,0,0.04);
+  }
+
+  /* レイアウト：中央に縦並び（矢印を上に配置） */
+  .save-layout{
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    gap:24px;
+  }
+
+  .action-column{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+    align-items:center;
+    width:320px;
+  }
+
+  .back-icon {
+    width:56px;
+    height:56px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    border-radius:8px;
+    background:transparent;
+    border:2px solid transparent;
+    margin-bottom:6px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.02), transparent);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .back-icon:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.10);
+  }
+  .back-icon[aria-disabled="true"] { opacity:0.6; cursor:default; }
+
+  .arrow-char{
+    font-size:34px;
+    line-height:1;
+    font-weight:900;
+    color:#111;
+    -webkit-text-stroke: 1.6px rgba(0,0,0,0.15);
+    text-shadow: 0 1px 0 rgba(255,255,255,0.6), 0 2px 6px rgba(0,0,0,0.08);
+    user-select:none;
+    display:inline-block;
+    transform: translateY(1px);
+  }
+
+  .big-btn{
+    width:100%;
+    padding:18px 22px;
+    font-size:18px;
+    border-radius:14px;
+    border:0;
+    cursor:pointer;
+    box-shadow:0 6px 20px rgba(0,0,0,0.06);
+  }
+  .btn-save{
+    background:linear-gradient(180deg,#cfe7ff,#b6d9ff);
+    color:#0a3b6e;
+    font-weight:600;
+    border:1px solid rgba(10,59,110,0.08);
+  }
+  .btn-back{
+    background:linear-gradient(180deg,#ffdede,#ffbdbd);
+    color:#7a1313;
+    font-weight:600;
+    border:1px solid rgba(122,19,19,0.08);
+  }
+
+  .big-btn[aria-disabled="true"]{
+    opacity:0.85;
+    cursor:not-allowed;
+    box-shadow:none;
+    transform:none;
+  }
+
+  .note{ color:#555; margin-top:12px; text-align:center; }
+
+  @media (max-width:520px){
+    .save-layout{ flex-direction:column; align-items:flex-start; }
+    .action-column{ width:100%; }
+    .save-layout { padding: 8px; }
+  }
+</style>
+</head>
+<body>
+  <header class="top-nav" role="banner" aria-label="メインナビゲーション">
+    <nav class="nav-tabs" role="navigation" aria-label="タブメニュー">
+      <button class="nav-tab active" id="tab-system" aria-pressed="true" title="システム">システム</button>
+      <button class="nav-tab" id="tab-algorithm" aria-pressed="false" title="アルゴリズム">アルゴリズム</button>
+      <button class="nav-tab" id="tab-progress" aria-pressed="false" title="進捗確認">進捗確認</button>
+      <button class="nav-tab" id="tab-account" aria-pressed="false" title="アカウント">アカウント</button>
+    </nav>
+  </header>
+
+  <main class="page-wrap" role="main">
+    <div class="card">
+      <h1>システム保存</h1>
+      <div class="save-layout" aria-label="保存操作">
+        <div class="action-column" role="group" aria-label="保存ボタン群">
+          <!-- 矢印は文字で表示（クリックでシステム作成画面へ） -->
+          <div class="back-icon" id="arrowBack" title="システム作成に戻る" aria-disabled="false" aria-hidden="false">
+            <span class="arrow-char" aria-hidden="true">←</span>
+          </div>
+
+          <button id="overwriteBtn" class="big-btn btn-save" aria-label="上書き保存">上書き保存</button>
+          <!-- 「システム一覧画面に戻る」ボタンは有効化して挙動を追加 -->
+          <button id="toListBtn" class="big-btn btn-back" aria-label="システム一覧画面に戻る">システム一覧画面に戻る</button>
+        </div>
+      </div>
+
+      <p class="note">上書き保存は未実装です。システム一覧へ戻る前に確認を行います。</p>
+    </div>
+  </main>
+
+<script>
+(function(){
+  try{
+    const tabs = document.querySelectorAll('.nav-tab');
+    tabs.forEach(tab=>{
+      tab.addEventListener('click', (e)=>{
+        try{
+          tabs.forEach(t=>{
+            t.classList.remove('active');
+            t.setAttribute('aria-pressed','false');
+          });
+          tab.classList.add('active');
+          tab.setAttribute('aria-pressed','true');
+          if(typeof tab.blur === 'function') tab.blur();
+
+          if(tab.id === 'tab-system'){
+            // システムタブ押下で system_choice へ遷移
+            window.location.href = '/accounts/system/choice/';
+            return;
+          }
+          if(tab.id === 'tab-algorithm'){
+            // 変更: アルゴリズムタブ押下で block_choice へ遷移
+            window.location.href = '/accounts/block/choice/';
+            return;
+          }
+          // 他タブは見た目のみ
+        }catch(err){
+          console.error('tab click handler error', err);
+        }
+      });
+    });
+  }catch(err){
+    console.error('tabs init error', err);
+  }
+})();
+
+</script>
+
+<script>
+/* 保存画面用スクリプト
+   - 矢印戻りは保存済みでなければ確認表示、保存済みなら直接遷移
+   - toListBtn は常に確認表示
+   - 上書き保存はダミー（実行すると保存済み扱いにする）
+*/
+(function(){
+  // 変更検知（将来のために残す）
+  let isDirty = false;
+  function bindChangeDetection(){
+    const els = document.querySelectorAll('input, textarea, select');
+    els.forEach(el => {
+      const ev = (el.tagName.toLowerCase() === 'select') ? 'change' : 'input';
+      el.addEventListener(ev, () => { isDirty = true; });
+    });
+  }
+  bindChangeDetection();
+
+  // 共通：確認ダイアログ表示 -> true なら遷移先へ移動
+  function confirmAndNavigate(message, url){
+    const ok = confirm(message);
+    if(!ok) return;
+    location.href = url;
+  }
+
+  // 矢印クリック: 保存済みなら直接遷移、未保存なら確認ダイアログを出す
+  const arrow = document.getElementById('arrowBack');
+  if(arrow){
+    arrow.addEventListener('click', function(e){
+      e.preventDefault();
+      if(isDirty){
+        const ok = confirm('変更が保存されていません。変更を破棄してシステム作成画面に戻りますか？');
+        if(!ok) return;
+        location.href = '/accounts/system/';
+      }else{
+        // 保存済み（または変更なし）は即遷移
+        location.href = '/accounts/system/';
+      }
+    });
+  }
+
+  // 上書き保存（ダミー）
+  const overwriteBtn = document.getElementById('overwriteBtn');
+  if(overwriteBtn){
+
+    overwriteBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      isDirty = false;
+      alert('上書き保存は未実装です（ダミー）。変更は保存済み扱いになります。');
+    });
+  }
+
+  // 「システム一覧画面に戻る」ボタン：常に確認表示
+  const toListBtn = document.getElementById('toListBtn');
+  if(toListBtn){
+    toListBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      confirmAndNavigate('変更が保存されていない場合は破棄されます。システム一覧画面に戻りますか？', '/accounts/system/list/');
+    });
+  }
+
+  // ページ離脱時の確認（オプション、コメント解除で強制表示）
+  window.addEventListener('beforeunload', function(e){
+    // 必要なら以下を有効にしてください（ブラウザによっては表示されないことがあります）
+    // e.preventDefault();
+    // e.returnValue = '';
+  });
+})();
+</script>
+</body>
+</html>
