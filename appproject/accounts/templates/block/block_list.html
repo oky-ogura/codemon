@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8" />
-  <title>システム一覧</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    :root { --nav-height:56px; --primary:#1976d2; --muted:#666; --bg:#f9f9fb; }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>アルゴリズム一覧</title>
+<style>
+  /* ----- 上部ナビゲーション ----- */
+  :root { --nav-height:56px; --primary:#1976d2; --muted:#666; --bg:#f9f9fb; }
     body{
       font-family: -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "メイリオ", sans-serif;
       margin:20px;
@@ -102,30 +103,31 @@
     @media (max-width:640px){
       .list-empty { padding:18px; }
     }
-  </style>
+
+</style>
 </head>
 <body>
   <header class="top-nav" role="banner" aria-label="メインナビゲーション">
 
     <nav class="nav-tabs" role="navigation" aria-label="タブメニュー">
-      <button type="button" class="nav-tab active" id="tab-system" aria-pressed="true" title="システム">システム</button>
-      <button type="button" class="nav-tab" id="tab-algorithm" aria-pressed="false" title="アルゴリズム">アルゴリズム</button>
+      <button type="button" class="nav-tab" id="tab-system" aria-pressed="false" title="システム">システム</button>
+      <button type="button" class="nav-tab active" id="tab-algorithm" aria-pressed="true" title="アルゴリズム">アルゴリズム</button>
       <button type="button" class="nav-tab" id="tab-progress" aria-pressed="false" title="進捗確認">進捗確認</button>
       <button type="button" class="nav-tab" id="tab-account" aria-pressed="false" title="アカウント">アカウント</button>
     </nav>
   </header>
 
-  <main>
-    <h1>システム一覧</h1>
+  <main class="page-wrap" role="main">
+    <h1>アルゴリズム一覧</h1>
 
-    <div class="list-card" role="region" aria-label="システム一覧">
+    <div class="list-card" role="region" aria-label="アルゴリズム一覧">
       <div class="list-empty">
-        作成済みのシステムはまだありません。<br />
-        「新しいシステムを作成」ボタンで作成を開始できます。
+        作成済みのアルゴリズムはまだありません。<br />
+        「新しいアルゴリズムを作成」ボタンで作成を開始できます。
       </div>
 
       <div class="actions" aria-hidden="false">
-        <button class="btn btn-primary" id="btn-new">新しいシステムを作成</button>
+        <button class="btn btn-primary" id="btn-new">新しいアルゴリズムを作成</button>
         <button class="btn btn-ghost" id="btn-refresh">一覧を更新</button>
       </div>
     </div>
@@ -134,8 +136,8 @@
   <!-- 追加: 左下の戻るボタン -->
   <button id="btn-back" class="btn-back" aria-label="戻る">戻る</button>
 
-  <script>
-    // ナビタブ見た目切替。システムタブとアルゴリズムタブで遷移（画面構成は変更しない）
+<script>
+ // ナビタブ見た目切替。システムタブとアルゴリズムタブで遷移（画面構成は変更しない）
     document.querySelectorAll('.nav-tab').forEach(tab=>{
       tab.addEventListener('click', function(e){
         e.preventDefault();
@@ -161,12 +163,12 @@
       });
     });
 
-    // 「新しいシステムを作成」ボタンは system_create へ遷移
+    // 「新しいアルゴリズムを作成」ボタンは block_create へ遷移
     const btnNew = document.getElementById('btn-new');
     if (btnNew) {
       btnNew.addEventListener('click', function(e){
         e.preventDefault();
-        window.location.href = '/accounts/system/create/';
+        window.location.href = '/accounts/block/create/';
       });
     }
 
@@ -180,14 +182,15 @@
       });
     }
 
-    // 追加: 左下の戻るボタン -> system_choice へ遷移
+    // 追加: 左下の戻るボタン -> block_choice へ遷移
     const btnBack = document.getElementById('btn-back');
     if (btnBack) {
       btnBack.addEventListener('click', function(e){
         e.preventDefault();
-        window.location.href = '/accounts/system/choice/';
+        window.location.href = '/accounts/block/choice/';
       });
     }
-  </script>
+
+</script>
 </body>
 </html>
