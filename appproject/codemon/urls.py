@@ -63,6 +63,7 @@ urlpatterns = [
     path('chat/attachment/<int:attachment_id>/download/', views.download_attachment, name='download_attachment'),
     # メッセージ検索
     path('chat/search/', views.search_messages, name='search_messages'),
+    path('', views.index, name='index'),
     path('upload_attachments/', views.upload_attachments, name='upload_attachments'),
 ]
 
