@@ -60,5 +60,8 @@ urlpatterns = [
     path('groups/join_confirm/', views.group_join_confirm, name='group_join_confirm'),
     path('groups/menu/', views.group_menu, name='group_menu'),
     path('s_account/', views.s_account_view, name='s_account'),
-
+    path('block/choice/', views.block_choice, name='block_choice'),
+    path('block/create/', views.block_create, name='block_create'),
+    path('block/details/', views.block_details, name='block_details'),
+    path('block/list/', views.block_list, name='block_list'),
 ]

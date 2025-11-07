@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8" />
-  <title>システム詳細</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    :root{ --nav-height:56px; --primary:#1976d2; --muted:#666; --bg:#f9f9fb; }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>アルゴリズム詳細</title>
+<style>
+  /* ----- 上部ナビゲーション ----- */
+  :root{ --nav-height:56px; --primary:#1976d2; --muted:#666; --bg:#f9f9fb; }
     body{
       font-family: -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "メイリオ", sans-serif;
       margin:20px; background:var(--bg); color:#111;
@@ -64,34 +65,36 @@
     .btn.primary{ background:var(--primary); color:#fff; border-color:transparent; box-shadow:0 4px 10px rgba(25,118,210,0.12); }
     .btn.warn{ background:#fff; color:#d32f2f; border-color:#f2c6c6; }
     .btn.ghost{ background:transparent; color:var(--muted); border-color:transparent; }
-  </style>
+
+</style>
 </head>
 <body>
   <header class="top-nav" role="banner" aria-label="メインナビゲーション">
+
     <nav class="nav-tabs" role="navigation" aria-label="タブメニュー">
-      <button type="button" class="nav-tab active" id="tab-system" aria-pressed="true" title="システム">システム</button>
-      <button type="button" class="nav-tab" id="tab-algorithm" aria-pressed="false" title="アルゴリズム">アルゴリズム</button>
+      <button type="button" class="nav-tab" id="tab-system" aria-pressed="false" title="システム">システム</button>
+      <button type="button" class="nav-tab active" id="tab-algorithm" aria-pressed="true" title="アルゴリズム">アルゴリズム</button>
       <button type="button" class="nav-tab" id="tab-progress" aria-pressed="false" title="進捗確認">進捗確認</button>
       <button type="button" class="nav-tab" id="tab-account" aria-pressed="false" title="アカウント">アカウント</button>
     </nav>
   </header>
 
-  <main>
-    <h1>システム詳細</h1>
+  <main class="page-wrap" role="main">
+    <h1>アルゴリズム詳細</h1>
 
-    <div class="card" role="region" aria-label="システム詳細内容">
-      <!-- システム名・概要を表示するフォーム（将来的に自動入力される想定） -->
-      <form class="system-form" aria-label="システム情報" onsubmit="return false;">
+    <div class="card" role="region" aria-label="アルゴリズム詳細内容">
+      <!-- アルゴリズム名・概要を表示するフォーム（将来的に自動入力される想定） -->
+      <form class="block-form" aria-label="アルゴリズム情報" onsubmit="return false;">
         <div class="form-row">
-          <label for="system-name">システム名</label>
+          <label for="block-name">アルゴリズム名</label>
           <!-- 将来的に自動入力されることを想定し、テンプレート変数を設定。編集不可 -->
-          <input id="system-name" name="name" type="text" value="{{ system.name }}" disabled aria-disabled="true" />
+          <input id="block-name" name="name" type="text" value="{{ block.name }}" disabled aria-disabled="true" />
         </div>
 
         <div class="form-row">
           <label for="system-summary">システム概要</label>
           <!-- textarea にもテンプレート変数を入れて編集不可にする -->
-          <textarea id="system-summary" name="summary" rows="6" disabled aria-disabled="true">{{ system.summary }}</textarea>
+          <textarea id="block-summary" name="summary" rows="6" disabled aria-disabled="true">{{ block.summary }}</textarea>
         </div>
 
         <!-- 下部の操作ボタン（表示） -->
@@ -104,8 +107,8 @@
     </div>
   </main>
 
-  <script>
-    // ナビタブ見た目切替（既存挙動） + アルゴリズムタブで遷移先を block_choice.html に変更
+<script>
+  // ナビタブ見た目切替（既存挙動） + アルゴリズムタブで遷移先を block_choice.html に変更
     document.querySelectorAll('.nav-tab').forEach(tab=>{
       tab.addEventListener('click', function(e){
         e.preventDefault();
@@ -132,12 +135,13 @@
       });
     });
 
-    // 戻るボタンは前の画面 system_list.html に遷移
+    // 戻るボタンは前の画面 block_list に遷移
     document.getElementById('btn-back').addEventListener('click', function(){
-      window.location.href = '/accounts/system/list/';
+      window.location.href = '/accounts/block/list/';
     });
 
     // 削除・編集ボタンは現状表示のみ（必要なら機能を実装してください）
-  </script>
+
+</script>
 </body>
 </html>
