@@ -108,6 +108,20 @@ def teacher_signup(request):
                 request.session['pending_account_email'] = instance.email
             except Exception:
                 pass
+            # サインアップ直後にセッションへアカウント情報を入れておくと
+            # 以降のフロー（AI設定など）でアカウントが参照しやすくなる
+            try:
+                request.session['is_account_authenticated'] = True
+                request.session['account_user_id'] = instance.user_id
+                request.session['account_email'] = instance.email
+                request.session['account_user_name'] = instance.user_name
+                request.session.modified = True
+                try:
+                    request.session.save()
+                except Exception:
+                    pass
+            except Exception:
+                pass
             # 登録後は AI 外見設定へ遷移
             return redirect('ai_appearance')
     else:
@@ -125,6 +139,19 @@ def student_signup(request):
             try:
                 request.session['pending_account_name'] = instance.user_name
                 request.session['pending_account_email'] = instance.email
+            except Exception:
+                pass
+            # session にアカウント情報をセットしておく（サインアップ直後の扱いを容易にする）
+            try:
+                request.session['is_account_authenticated'] = True
+                request.session['account_user_id'] = instance.user_id
+                request.session['account_email'] = instance.email
+                request.session['account_user_name'] = instance.user_name
+                request.session.modified = True
+                try:
+                    request.session.save()
+                except Exception:
+                    pass
             except Exception:
                 pass
             # サインアップ後は AI 外見設定へ遷移
@@ -187,7 +214,8 @@ def student_login(request):
                 request.session.save()
             except Exception:
                 pass
-            return redirect('account_dashboard')
+            # ログイン成功後は仮ホーム（karihome.html）を表示する
+            return render(request, 'accounts/karihome.html')
         else:
             messages.error(request, 'ユーザー名またはパスワードが間違っています')
     return render(request, 'accounts/s_login.html')
@@ -316,6 +344,31 @@ def ai_initial_save(request):
     except Exception:
         pass
 
+    # 保存後の遷移先を決定する: ログイン済みの Account があればその account_type を使う
+    # 未ログイン（サインアップ直後でセッションに account_user_id が無い等）の場合は
+    # セッションに残っている pending_account_email 等から該当アカウントを探す。
+    try:
+        if acc is None:
+            email = request.session.get('pending_account_email') or request.session.get('account_email')
+            name = request.session.get('pending_account_name') or request.session.get('account_user_name')
+            if email:
+                acc = Account.objects.filter(email=email).first()
+            if acc is None and name:
+                acc = Account.objects.filter(user_name=name).first()
+    except Exception:
+        acc = None
+
+    # 生徒はグループ参加確認へ、教員は仮ホームへ遷移
+    try:
+        if acc and getattr(acc, 'account_type', '').lower() == 'student':
+            return redirect('group_join_confirm')
+        elif acc and getattr(acc, 'account_type', '').lower() == 'teacher':
+            # teacher は karihome を表示
+            return render(request, 'accounts/karihome.html')
+    except Exception:
+        pass
+
+    # フォールバック
     return redirect('accounts_root')
 
 def block_index(request):
