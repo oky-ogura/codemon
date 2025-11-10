@@ -18,9 +18,6 @@ from django.core import signing
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from django.contrib.auth.hashers import make_password
-
-from django.contrib.auth.decorators import login_required
-from .forms import TeacherSignupForm, ProfileEditForm
 from django.http import HttpResponseRedirect
 
 from django.db import connection
@@ -111,8 +108,22 @@ def teacher_signup(request):
                 request.session['pending_account_email'] = instance.email
             except Exception:
                 pass
+            # サインアップ直後にセッションへアカウント情報を入れておくと
+            # 以降のフロー（AI設定など）でアカウントが参照しやすくなる
+            try:
+                request.session['is_account_authenticated'] = True
+                request.session['account_user_id'] = instance.user_id
+                request.session['account_email'] = instance.email
+                request.session['account_user_name'] = instance.user_name
+                request.session.modified = True
+                try:
+                    request.session.save()
+                except Exception:
+                    pass
+            except Exception:
+                pass
             # 登録後は AI 外見設定へ遷移
-            return redirect('accounts:ai_appearance')
+            return redirect('ai_appearance')
     else:
         form = TeacherSignupForm()
     ages = range(3, 121)
@@ -130,8 +141,21 @@ def student_signup(request):
                 request.session['pending_account_email'] = instance.email
             except Exception:
                 pass
+            # session にアカウント情報をセットしておく（サインアップ直後の扱いを容易にする）
+            try:
+                request.session['is_account_authenticated'] = True
+                request.session['account_user_id'] = instance.user_id
+                request.session['account_email'] = instance.email
+                request.session['account_user_name'] = instance.user_name
+                request.session.modified = True
+                try:
+                    request.session.save()
+                except Exception:
+                    pass
+            except Exception:
+                pass
             # サインアップ後は AI 外見設定へ遷移
-            return redirect('accounts:ai_appearance')
+            return redirect('ai_appearance')
     else:
         form = StudentSignupForm()
     ages = range(3, 121)
@@ -139,9 +163,6 @@ def student_signup(request):
 
 
 def teacher_login(request):
-
-    
-
     """
     教員ログイン:
     - POST: account テーブルの user_name + account_type='teacher' で照合し、
@@ -170,7 +191,6 @@ def teacher_login(request):
             request.session.modified = True
             # ログイン成功 → karihome.html を表示
             return render(request, 'accounts/karihome.html')
-
         else:
             messages.error(request, 'ユーザー名またはパスワードが違います')
 
@@ -178,13 +198,9 @@ def teacher_login(request):
     return render(request, 'accounts/t_login.html')
 
 def student_login(request):
-    # ログイン後のリダイレクト先を取得
-    next_url = request.GET.get('next', 'codemon:checklist_list')
-    
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
-
         # Account テーブルを使って認証（auth_user を利用しない）
         acc = Account.objects.filter(email=username).first() or Account.objects.filter(user_name=username).first()
         if acc and check_password(password, acc.password):
@@ -198,52 +214,13 @@ def student_login(request):
                 request.session.save()
             except Exception:
                 pass
+            # ログイン成功後は仮ホーム（karihome.html）を表示する
             return render(request, 'accounts/karihome.html')
-
         else:
             messages.error(request, 'ユーザー名またはパスワードが間違っています')
     return render(request, 'accounts/s_login.html')
 
-
-def student_home(request):
-    # Simple placeholder student home
-    return render(request, 'accounts/student_home.html')
-
-
-def teacher_home(request):
-    # Simple placeholder teacher home
-    return render(request, 'accounts/teacher_home.html')
-
 def user_logout(request):
-
-    logout(request)
-    return redirect('accounts:home')  # ログアウト後の遷移先を適宜変更
-
-@login_required
-def edit_profile(request):
-    if request.method == 'POST':
-        form = ProfileEditForm(request.POST, request.FILES, instance=request.user)
-        if form.is_valid():
-            user = form.save(commit=False)
-            
-            # アバター削除の処理
-            if request.POST.get('delete_avatar') == 'true':
-                # 既存のアバターファイルを削除
-                if user.avatar:
-                    user.avatar.delete()
-                user.avatar = None
-            # アバターアップロードの処理
-            elif form.cleaned_data.get('avatar'):
-                from .utils import resize_avatar_image
-                user.avatar = resize_avatar_image(form.cleaned_data['avatar'])
-            
-            user.save()
-            messages.success(request, 'プロフィールを更新しました。')
-            return redirect('codemon:chat')  # チャット画面にリダイレクト
-    else:
-        form = ProfileEditForm(instance=request.user)
-    return render(request, 'accounts/edit_profile.html', {'form': form})
-
     # セッション内のアカウント情報を削除してログアウト扱いにする
     for k in ['is_account_authenticated', 'account_user_id', 'account_email', 'account_user_name']:
         try:
@@ -273,7 +250,7 @@ def ai_appearance(request):
         except Exception:
             pass
         # 外見選択後は初期設定画面へ遷移させる
-        return redirect('accounts:ai_initial')
+        return redirect('ai_initial')
 
     appearances = ['triangle', 'round', 'robot']
     return render(request, 'accounts/ai_appearance.html', {'appearances': appearances})
@@ -324,7 +301,7 @@ def ai_initial_settings(request):
 def ai_initial_confirm(request):
     """受け取ったフォーム入力を保存せずに確認表示するビュー"""
     if request.method != 'POST':
-        return redirect('accounts:ai_initial')
+        return redirect('ai_initial')
 
     ai_name = request.POST.get('ai_name', '')
     ai_personality = request.POST.get('ai_personality', '')
@@ -344,7 +321,7 @@ def ai_initial_save(request):
     from .models import AiConfig
 
     if request.method != 'POST':
-        return redirect('accounts:ai_initial')
+        return redirect('ai_initial')
 
     ai_name = request.POST.get('ai_name', '')
     ai_personality = request.POST.get('ai_personality', '')
@@ -367,7 +344,32 @@ def ai_initial_save(request):
     except Exception:
         pass
 
-    return redirect('accounts:accounts_root')
+    # 保存後の遷移先を決定する: ログイン済みの Account があればその account_type を使う
+    # 未ログイン（サインアップ直後でセッションに account_user_id が無い等）の場合は
+    # セッションに残っている pending_account_email 等から該当アカウントを探す。
+    try:
+        if acc is None:
+            email = request.session.get('pending_account_email') or request.session.get('account_email')
+            name = request.session.get('pending_account_name') or request.session.get('account_user_name')
+            if email:
+                acc = Account.objects.filter(email=email).first()
+            if acc is None and name:
+                acc = Account.objects.filter(user_name=name).first()
+    except Exception:
+        acc = None
+
+    # 生徒はグループ参加確認へ、教員は仮ホームへ遷移
+    try:
+        if acc and getattr(acc, 'account_type', '').lower() == 'student':
+            return redirect('group_join_confirm')
+        elif acc and getattr(acc, 'account_type', '').lower() == 'teacher':
+            # teacher は karihome を表示
+            return render(request, 'accounts/karihome.html')
+    except Exception:
+        pass
+
+    # フォールバック
+    return redirect('accounts_root')
 
 def block_index(request):
     return render(request, 'block/index.html')
@@ -466,11 +468,11 @@ def group_create(request):
 
         if not group_name:
             messages.error(request, 'グループ名を入力してください。')
-            return redirect('accounts:group_create')
+            return redirect('group_create')
 
         if not user_id:
             messages.error(request, 'ユーザーが特定できません。ログインしてください。')
-            return redirect('accounts:student_login')
+            return redirect('student_login')
 
         # パスワードはハッシュ化して保存（空可）
         hashed = make_password(group_password) if group_password else ''
@@ -497,14 +499,14 @@ def group_create(request):
 
         except Exception as e:
             messages.error(request, f'グループ作成に失敗しました: {e}')
-            return redirect('accounts:group_create')
+            return redirect('group_create')
 
         messages.success(request, 'グループを作成しました。')
         # 存在すれば group_detail に飛ばす（なければアカウントページへ）
         try:
-            return redirect('accounts:group_detail', group_id=group_id)
+            return redirect('group_detail', group_id=group_id)
         except Exception:
-            return redirect('accounts:account_entry')
+            return redirect('account_entry')
 
     # GET の場合は作成ページを表示
     return render(request, 'group/create_group.html', {})
@@ -541,7 +543,7 @@ def group_join_confirm(request):
             return render(request, 'accounts/karihome.html', {})
         else:
             # 未ログイン等は生徒ログインへ誘導
-            return redirect('accounts:student_login')
+            return redirect('student_login')
 
     # POST 処理（join/cancel）
     action = request.POST.get('action')
@@ -550,7 +552,7 @@ def group_join_confirm(request):
         # 簡易的にグループメニューを表示します。
         return render(request, 'group/group_menu.html', {})
     else:
-        return redirect('accounts:account_entry')
+        return redirect('account_entry')
 
 
 # ...existing code...
@@ -660,7 +662,7 @@ def account_entry(request):
     email = request.session.get('account_email') or (getattr(request.user, 'email', None) if getattr(request.user, 'is_authenticated', False) else None)
 
     if not user_id and not email:
-        return redirect('accounts:student_login')
+        return redirect('student_login')
 
     with connection.cursor() as cursor:
         if user_id:
@@ -677,7 +679,7 @@ def account_entry(request):
             )
         row = cursor.fetchone()
         if not row:
-            return redirect('accounts:student_login')
+            return redirect('student_login')
         account = {
             'user_id': row[0],
             'user_name': row[1],
@@ -769,8 +771,3 @@ def account_entry(request):
         return render(request, 'accounts/t_account.html', context)
     else:
         return render(request, 'accounts/s_account.html', context)
-
-def account_entry(request):
-    return render(request, 'accounts/karihome.html')
-
-

@@ -1,25 +1,6 @@
 from django import forms
 from .models import Account
 from django.core.exceptions import ValidationError
-
-from .utils import validate_avatar_image
-
-
-class ProfileEditForm(forms.ModelForm):
-    class Meta:
-        model = Account
-        fields = ['user_name', 'avatar']
-        labels = {
-            'user_name': '氏名',
-            'avatar': 'アバター画像',
-        }
-        
-    def clean_avatar(self):
-        avatar = self.cleaned_data.get('avatar')
-        if avatar:
-            validate_avatar_image(avatar)
-        return avatar
-
 from django.contrib.auth.hashers import make_password
 
 

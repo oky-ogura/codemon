@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class Account(models.Model):
     # user_id は PostgreSQL のシーケンスで管理（20000001 から開始）
     user_id = models.BigAutoField(primary_key=True)
@@ -10,9 +11,7 @@ class Account(models.Model):
     age = models.IntegerField(blank=True, null=True, verbose_name='年齢')
     account_type = models.CharField(max_length=20, blank=True, null=True, verbose_name='アカウント種別')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='登録日時')
-    type = models.CharField(max_length=50, blank=True, null=True, verbose_name='種別')
-    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True, verbose_name='アバター画像')
-
+    
 
     class Meta:
         db_table = 'account'
