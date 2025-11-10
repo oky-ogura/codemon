@@ -440,9 +440,15 @@ def account_view(request):
     try:
         acc = get_logged_account(request)
         if acc:
-            if acc.account_type == 'teacher':
-                return render(request, 'accounts/t_account.html', {'account': acc})
-            return render(request, 'accounts/s_account.html', {'account': acc})
+            # Delegate to account_entry which builds full context (groups, dates, etc.)
+            # so that templates receive the same data structure and groups are shown.
+            try:
+                return account_entry(request)
+            except Exception:
+                # Fallback to rendering minimal templates if delegation fails
+                if acc.account_type == 'teacher':
+                    return render(request, 'accounts/t_account.html', {'account': acc})
+                return render(request, 'accounts/s_account.html', {'account': acc})
     except Exception:
         pass
 
