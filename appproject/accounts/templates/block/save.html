@@ -214,12 +214,12 @@
 
           <button id="overwriteBtn" class="big-btn btn-save" aria-label="上書き保存">上書き保存</button>
 
-          <!-- 表示はするが押しても遷移しない -->
-          <button id="toListBtn" class="big-btn btn-back" aria-label="アルゴリズム一覧画面に戻る" aria-disabled="true">アルゴリズム一覧画面に戻る</button>
+          <!-- アルゴリズム一覧へ戻るボタン（有効化） -->
+          <button id="toListBtn" class="big-btn btn-back" aria-label="アルゴリズム一覧画面に戻る" aria-disabled="false">アルゴリズム一覧画面に戻る</button>
         </div>
       </div>
 
-      <p class="note">上書き保存は未実装です。アルゴリズム一覧へ戻るボタンは現在無効です。</p>
+      <p class="note">上書き保存は未実装です。アルゴリズム一覧へ戻るボタンで一覧画面に戻ります。</p>
     </div>
   </main>
 
@@ -269,14 +269,21 @@
     });
   }
 
-  // 「アルゴリズム一覧画面に戻る」ボタンは表示するが遷移しない（無効化）
+  // 「アルゴリズム一覧画面に戻る」ボタンは一覧へ遷移させる（確認ダイアログを追加）
   const toListBtn = document.getElementById('toListBtn');
   if(toListBtn){
-    toListBtn.setAttribute('aria-disabled','true');
+    toListBtn.setAttribute('aria-disabled','false');
     toListBtn.addEventListener('click', function(e){
       e.preventDefault();
-      e.stopPropagation();
-      // 無効: 何もしない
+      const ok = window.confirm('変更が保存されていない場合は破棄されます。アルゴリズム一覧画面に戻りますか？');
+      if (ok) {
+        // 必要なら保存用のセッションデータを破棄
+        try {
+          sessionStorage.removeItem('algorithm_slide');
+          sessionStorage.removeItem('algorithm_id');
+        } catch(err) { /* ignore */ }
+        window.location.href = '/accounts/block/list/';
+      }
     });
   }
 
