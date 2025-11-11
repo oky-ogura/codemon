@@ -55,7 +55,7 @@
             <a href="#">システムタブ</a>
             <a href="#">アルゴリズムタブ</a>
             <a href="#">進捗管理タブ</a>
-            <a href="{% url 'account_entry' %}">アカウント</a>
+            <a href="{% url 'accounts:account_entry' %}">アカウント</a>
         </nav>
     </div>
 
@@ -76,7 +76,7 @@
                     <div>年齢 {{ account.age|default:user.profile.age|default:"38歳" }}</div>
 
                     <div class="logout-area">
-                        <form id="logout-form" method="post" action="{% url 'logout' %}">
+                        <form id="logout-form" method="post" action="{% url 'accounts:logout' %}">
                             {% csrf_token %}
                             <button type="submit" class="btn logout">ログアウト</button>
                         </form>
@@ -117,7 +117,7 @@
                         {% endif %}
 
                         <div style="margin-top:8px;">
-                            <a class="btn" href="{% url 'group_create' %}">新規作成</a>
+                            <a class="btn" href="{% url 'group:group_create' %}">新規作成</a>
                         </div>
                         
                     </div>

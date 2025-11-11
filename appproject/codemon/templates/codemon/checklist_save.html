@@ -6,11 +6,8 @@
   <a href="{% url 'codemon:systems_list' %}" class="tab">システム</a>
   <a href="{% url 'codemon:algorithms_list' %}" class="tab">アルゴリズム</a>
   <a href="{% url 'codemon:checklist_selection' %}" class="tab active">進捗確認</a>
-  {% if request.user.role == 'teacher' %}
-    <a href="{% url 'accounts:teacher_home' %}" class="tab" id="account-tab">アカウント</a>
-  {% else %}
-    <a href="{% url 'accounts:student_home' %}" class="tab" id="account-tab">アカウント</a>
-  {% endif %}
+  <a href="{% url 'accounts:account_entry' %}" class="tab" id="account-tab">アカウント</a>
+  
 </div>
 
 <!-- 💬 AIチャットボタン -->
