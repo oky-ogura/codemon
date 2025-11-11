@@ -17,12 +17,12 @@ CREATE TABLE IF NOT EXISTS checklist (
     checklist_name VARCHAR(100) NOT NULL,
     checklist_description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_selected BOOLEAN DEFAULT FALSE
 );
 
 -- 3) Set sequence ownership to column
 ALTER SEQUENCE checklist_checklist_id_seq OWNED BY checklist.checklist_id;
-
 -- 4) Create foreign key constraint to account table (if needed)
 -- ALTER TABLE checklist ADD CONSTRAINT fk_checklist_user_id 
 -- FOREIGN KEY (user_id) REFERENCES account(user_id) ON DELETE CASCADE;

@@ -1,0 +1,209 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{{ group.group_name }}</h2>
+        <div>
+            {% if membership.role == 'teacher' or membership.role == 'owner' %}
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#inviteModal">
+                メンバー招待
+            </button>
+            {% endif %}
+            {% if membership.role != 'owner' %}
+            <form action="{% url 'codemon:group_leave' group_id=group.group_id %}" method="post" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger" onclick="return confirm('このグループから脱退してもよろしいですか？');">
+                    グループを脱退
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if group.description %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <h6 class="card-subtitle mb-2 text-muted">グループ説明</h6>
+            <p class="card-text">{{ group.description }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- メンバー一覧 -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">メンバー一覧</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush" id="membersList">
+                        {% for member in members %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center" data-member-id="{{ member.member.user_id }}">
+                            <div>
+                                {% if member.member.avatar %}
+                                    <img src="{{ member.member.avatar.url }}" class="rounded-circle me-2" style="width: 32px; height: 32px;">
+                                {% endif %}
+                                {{ member.member.user_name }}
+                                <span class="badge bg-primary">{{ member.get_role_display }}</span>
+                            </div>
+                            {% if membership.role == 'teacher' or membership.role == 'owner' %}
+                                {% if member.role != 'owner' %}
+                                <button class="btn btn-sm btn-outline-danger" onclick="removeMember({{ group.group_id }}, {{ member.member.user_id }})">
+                                    削除
+                                </button>
+                                {% endif %}
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- スレッド一覧 -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">スレッド一覧</h5>
+                </div>
+                <div class="card-body">
+                    {% if threads %}
+                    <div class="list-group">
+                        {% for thread in threads %}
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ thread.title }}</h6>
+                                <small class="text-muted">{{ thread.created_at|date:"Y/m/d H:i" }}</small>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">スレッドはまだありません。</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- メンバー招待モーダル -->
+<div class="modal fade" id="inviteModal" tabindex="-1" aria-labelledby="inviteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="inviteModalLabel">メンバー招待</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="inviteForm">
+                    <div class="mb-3">
+                        <label for="identifier" class="form-label">メールアドレスまたはユーザーID</label>
+                        <input type="text" class="form-control" id="identifier" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="role" class="form-label">権限</label>
+                        <select class="form-select" id="role">
+                            <option value="student">学生</option>
+                            {% if membership.role == 'owner' %}
+                            <option value="teacher">教師</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-primary" onclick="inviteMember({{ group.group_id }})">招待する</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function inviteMember(groupId) {
+    const identifier = document.getElementById('identifier').value;
+    const role = document.getElementById('role').value;
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    fetch(`/codemon/groups/${groupId}/invite/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': csrftoken
+        },
+        body: `identifier=${encodeURIComponent(identifier)}&role=${encodeURIComponent(role)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+        } else {
+            // メンバーリストに追加
+            const membersList = document.getElementById('membersList');
+            const li = document.createElement('li');
+            li.className = 'list-group-item d-flex justify-content-between align-items-center';
+            li.dataset.memberId = data.member.id;
+            li.innerHTML = `
+                <div>
+                    ${data.member.name}
+                    <span class="badge bg-primary">${role === 'teacher' ? '教師' : '学生'}</span>
+                </div>
+                <button class="btn btn-sm btn-outline-danger" onclick="removeMember(${groupId}, ${data.member.id})">
+                    削除
+                </button>
+            `;
+            membersList.appendChild(li);
+
+            // モーダルを閉じる
+            const modal = bootstrap.Modal.getInstance(document.getElementById('inviteModal'));
+            modal.hide();
+            document.getElementById('identifier').value = '';
+            alert(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('エラーが発生しました');
+    });
+}
+
+function removeMember(groupId, memberId) {
+    if (!confirm('このメンバーをグループから削除してもよろしいですか？')) {
+        return;
+    }
+
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    fetch(`/codemon/groups/${groupId}/members/${memberId}/remove/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+        } else {
+            // メンバーをリストから削除
+            const memberElement = document.querySelector(`[data-member-id="${memberId}"]`);
+            if (memberElement) {
+                memberElement.remove();
+            }
+            alert(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('エラーが発生しました');
+    });
+}
+</script>
+{% endblock %}
