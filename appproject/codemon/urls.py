@@ -65,6 +65,9 @@ urlpatterns = [
     path('chat/search/', views.search_messages, name='search_messages'),
     path('', views.index, name='index'),
     path('chat/upload_attachment/', views.upload_attachments, name='upload_attachments'),
+    # AI Chat API
+    path('api/ai/chat', views.ai_chat_api, name='ai_chat_api'),
+    path('api/ai/history', views.ai_history_api, name='ai_history_api'),
 ]
 
 # 開発環境での静的ファイル配信設定

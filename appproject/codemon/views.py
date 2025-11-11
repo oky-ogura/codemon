@@ -1,4 +1,5 @@
 import os
+import json
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db import models
 from django.contrib import messages
@@ -12,7 +13,7 @@ from channels.layers import get_channel_layer
 from .permissions import teacher_required, can_access_thread, can_modify_message
 from .models import (
     Checklist, ChecklistItem, ChatThread, ChatScore, ChatMessage, ChatAttachment,
-    Group, GroupMember
+    Group, GroupMember, AIConversation, AIMessage
 )
 from accounts.models import Account
 from django.utils import timezone
@@ -971,3 +972,118 @@ def search_messages(request):
     })
 def index(request):
     return render(request, 'codemon/index.html')
+
+
+# ====== AI Chat API ======
+def account_or_login_required(view_func):
+    """
+    Custom decorator that checks both Django auth and custom session auth
+    """
+    def wrapper(request, *args, **kwargs):
+        # Check Django standard authentication
+        if request.user.is_authenticated:
+            return view_func(request, *args, **kwargs)
+        # Check custom session authentication
+        if request.session.get('is_account_authenticated'):
+            return view_func(request, *args, **kwargs)
+        # Not authenticated
+        return JsonResponse({"error": "authentication required"}, status=401)
+    return wrapper
+
+
+@account_or_login_required
+@require_POST
+def ai_chat_api(request):
+    try:
+        body = json.loads(request.body.decode("utf-8"))
+    except Exception:
+        return JsonResponse({"error": "invalid json"}, status=400)
+
+    message = (body.get("message") or "").strip()
+    character = body.get("character") or "usagi"
+    conv_id = body.get("conversation_id")
+
+    if not message:
+        return JsonResponse({"error": "message required"}, status=400)
+    
+    # Get Account instance for custom session auth
+    from accounts.models import Account
+    if request.user.is_authenticated:
+        # Try to find Account linked to Django User
+        try:
+            account = Account.objects.get(user=request.user)
+        except Account.DoesNotExist:
+            return JsonResponse({"error": "account not found for user"}, status=404)
+    else:
+        # Custom session authentication
+        account_user_id = request.session.get('account_user_id')
+        if not account_user_id:
+            return JsonResponse({"error": "user identification failed"}, status=401)
+        try:
+            account = Account.objects.get(user_id=account_user_id)
+        except Account.DoesNotExist:
+            return JsonResponse({"error": "account not found"}, status=404)
+
+    if conv_id:
+        try:
+            conv = AIConversation.objects.get(id=conv_id, user=account)
+        except AIConversation.DoesNotExist:
+            return JsonResponse({"error": "conversation not found"}, status=404)
+    else:
+        conv = AIConversation.objects.create(
+            user=account,
+            character_id=character,
+            title=f"{character}-{timezone.now():%Y%m%d%H%M}",
+        )
+
+    recent = list(conv.messages.order_by("-created_at")[:20])
+    pairs = [(m.role, m.content) for m in reversed(recent)]
+
+    AIMessage.objects.create(conversation=conv, role="user", content=message)
+
+    from .services import chat_gemini
+    reply = chat_gemini(message, pairs, character_id=character)
+
+    AIMessage.objects.create(conversation=conv, role="assistant", content=reply)
+
+    return JsonResponse({
+        "conversation_id": conv.id,
+        "reply": reply,
+    })
+
+
+@account_or_login_required
+def ai_history_api(request):
+    conv_id = request.GET.get("conversation_id")
+    if not conv_id:
+        return JsonResponse({"error": "conversation_id required"}, status=400)
+    
+    # Get Account instance (same logic as ai_chat_api)
+    from accounts.models import Account
+    if request.user.is_authenticated:
+        try:
+            account = Account.objects.get(user=request.user)
+        except Account.DoesNotExist:
+            return JsonResponse({"error": "account not found for user"}, status=404)
+    else:
+        account_user_id = request.session.get('account_user_id')
+        if not account_user_id:
+            return JsonResponse({"error": "user identification failed"}, status=401)
+        try:
+            account = Account.objects.get(user_id=account_user_id)
+        except Account.DoesNotExist:
+            return JsonResponse({"error": "account not found"}, status=404)
+    
+    try:
+        conv = AIConversation.objects.get(id=conv_id, user=account)
+    except AIConversation.DoesNotExist:
+        return JsonResponse({"error": "not found"}, status=404)
+
+    return JsonResponse({
+        "conversation_id": conv.id,
+        "character_id": conv.character_id,
+        "messages": [
+            {"role": m.role, "content": m.content, "created": m.created_at.isoformat()}
+            for m in conv.messages.order_by("created_at")
+        ],
+    })
