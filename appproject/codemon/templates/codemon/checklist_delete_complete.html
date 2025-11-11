@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="navigation-tabs">
+  <a href="{% url 'codemon:systems_list' %}" class="tab">システム</a>
+  <a href="{% url 'codemon:algorithms_list' %}" class="tab">アルゴリズム</a>
+  <a href="{% url 'codemon:checklist_selection' %}" class="tab active">チェックリスト</a>
+  <a href="{% url 'accounts:account_entry' %}" class="tab" id="account-tab">アカウント</a>
+</div>
+
+<div class="chat-ai-bubble">
+  <a href="{% url 'codemon:chat' %}" class="chat-button">
+    <i class="fas fa-comments"></i>
+    AIチャット
+  </a>
+</div>
+
+<div class="delete-complete">
+  <div class="message">
+    <div class="icon-circle">
+      <i class="fas fa-check"></i>
+    </div>
+    <h2>チェックリストの削除が完了しました</h2>
+    <p class="sub-message">
+      「{{ deleted_name }}」と含まれる{{ deleted_items_count }}個の項目が
+      正常に削除されました。
+    </p>
+    {% if messages %}
+    <div class="messages">
+      {% for message in messages %}
+        <div class="message {{ message.tags }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="actions">  
+    <a href="{% url 'codemon:checklist_list' %}" class="btn-primary">
+      <i class="fas fa-list"></i>
+      チェックリスト一覧へ戻る
+    </a>
+  </div>
+</div>
+
+<style>
+.navigation-tabs {
+  display: flex;
+  margin-bottom: 20px;
+  justify-content: center; /* 中央寄せ */
+}
+
+.tab {
+  padding: 10px 30px;
+  margin-right: 20px;
+  text-decoration: none;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.chat-ai-bubble {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+}
+
+.chat-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 15px;
+  background-color: #007bff;
+  color: white;
+  text-decoration: none;
+  border-radius: 20px;
+}
+
+.delete-complete {
+  max-width: 600px;
+  margin: 40px auto;
+  text-align: center;
+  padding: 30px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.message {
+  margin-bottom: 40px;
+}
+
+.icon-circle {
+  width: 80px;
+  height: 80px;
+  background-color: #28a745;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+}
+
+.icon-circle i {
+  font-size: 40px;
+  color: white;
+}
+
+.message h2 {
+  color: #28a745;
+  margin-bottom: 15px;
+}
+
+.sub-message {
+  color: #666;
+  font-size: 1.1em;
+  margin-bottom: 30px;
+}
+
+.actions {
+  margin-top: 30px;
+}
+
+.btn-primary {
+  padding: 12px 24px;
+  background-color: #007bff;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.1em;
+  transition: background-color 0.3s;
+}
+
+.btn-primary:hover {
+  background-color: #0056b3;
+}
+
+.btn-primary i {
+  font-size: 1.2em;
+}
+
+.tab {
+  position: relative;
+  transition: all 0.3s;
+}
+
+.tab.active {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.tab:hover {
+  background-color: #f8f9fa;
+}
+
+.tab.active:hover {
+  background-color: #0056b3;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const accountTab = document.getElementById('account-tab');
+  
+  // アカウントタブのリンクをユーザーロールに基づいて更新
+  {% if request.user.role == 'teacher' %}
+    accountTab.href = "{% url 'accounts:teacher_home' %}";
+  {% endif %}
+});
+</script>
+{% endblock %}

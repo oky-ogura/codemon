@@ -31,7 +31,7 @@
                 <div style="margin-top:8px;color:#333">さっき決めたAIのイラスト</div>
             </div>
             <div class="right">
-                <form method="post" action="{% url 'ai_initial_confirm' %}">
+                <form method="post" action="{% url 'accounts:ai_initial_confirm' %}">
                     {% csrf_token %}
                     <div class="form-row">
                         <div class="label">名前</div>
@@ -55,7 +55,7 @@
                     <input type="hidden" name="appearance" value="{{ config.appearance }}">
 
                     <div class="controls">
-                        <a href="{% url 'ai_appearance' %}" class="btn secondary" style="text-decoration:none;display:inline-block;padding:10px 18px">戻る</a>
+                        <a href="{% url 'accounts:ai_appearance' %}" class="btn secondary" style="text-decoration:none;display:inline-block;padding:10px 18px">戻る</a>
                         <button type="submit" class="btn primary">決定</button>
                     </div>
                 </form>

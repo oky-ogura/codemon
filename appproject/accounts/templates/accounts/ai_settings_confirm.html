@@ -45,9 +45,8 @@
                 <div class="label">(未ログイン — 登録・ログインするとここに表示されます)</div>
             {% endif %}
             <!-- 「あなたの情報を変更」は新規登録画面へ移動するためリンクに変更 -->
-            <a href="{% url 'student_signup' %}" class="btn secondary" style="text-decoration:none;display:inline-block;padding:10px 22px">あなたの情報を変更</a>
+            <a href="{% url 'accounts:student_signup' %}" class="btn secondary" style="text-decoration:none;display:inline-block;padding:10px 22px">あなたの情報を変更</a>
         </div>
-
         <div class="col center">
             <h3>CodeMonの情報</h3>
             <img class="ai-illustration" id="ai_ill" src="" alt="AIのイラスト">
@@ -55,14 +54,14 @@
             <div class="label">性格: {{ ai_personality }}</div>
             <div class="label">語尾: {{ ai_speech }}</div>
             <!-- OK を押して確認画面へ（GET で表示） -->
-            <form method="post" action="{% url 'ai_initial_save' %}">
+            <form method="post" action="{% url 'accounts:ai_initial_save' %}">
                 {% csrf_token %}
                 <input type="hidden" name="ai_name" value="{{ ai_name }}">
                 <input type="hidden" name="ai_personality" value="{{ ai_personality }}">
                 <input type="hidden" name="ai_speech" value="{{ ai_speech }}">
                 <input type="hidden" name="appearance" value="{{ appearance }}">
                 <div class="button-row">
-                    <a href="{% url 'ai_appearance' %}" class="btn secondary" style="text-decoration:none;display:inline-block;padding:10px 22px">外見を変更</a>
+                    <a href="{% url 'accounts:ai_appearance' %}" class="btn secondary" style="text-decoration:none;display:inline-block;padding:10px 22px">外見を変更</a>
                     <button type="submit" class="btn">OK！</button>
                 </div>
             </form>
