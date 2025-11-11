@@ -1,5 +1,7 @@
 from django.db import models
 from accounts.models import Account
+from django.conf import settings
+from django.utils import timezone
 
 
 class System(models.Model):
@@ -206,3 +208,40 @@ class ChatScore(models.Model):
     def __str__(self):
         target = f"message {self.message.message_id}" if self.message else f"thread {self.thread.thread_id}"
         return f"Score {self.score} by {self.scorer} for {target}"
+
+
+# --- AI 会話履歴 ---
+class AIConversation(models.Model):
+    user = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        related_name="ai_conversations",
+    )
+    character_id = models.CharField(max_length=32, default="usagi")
+    title = models.CharField(max_length=128, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user_id}:{self.character_id}:{self.created_at:%Y%m%d}"
+
+
+class AIMessage(models.Model):
+    ROLE_CHOICES = (("user", "User"), ("assistant", "Assistant"), ("system", "System"))
+    conversation = models.ForeignKey(
+        AIConversation,
+        on_delete=models.CASCADE,
+        related_name="messages",
+    )
+    role = models.CharField(max_length=16, choices=ROLE_CHOICES)
+    content = models.TextField()
+    tokens = models.IntegerField(default=0)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"{self.role}@{self.created_at:%H:%M:%S}"

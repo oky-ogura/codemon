@@ -180,7 +180,7 @@ LOGOUT_REDIRECT_URL = 'accounts:student_login'  # ログアウト後のリダイ
 
 # Development helper: when True, views under codemon allow anonymous access for
 # manual verification. MUST be False in production.
-ALLOW_ANONYMOUS_VIEWS = True
+ALLOW_ANONYMOUS_VIEWS = False
 
 # Channels configuration - using in-memory layer for development
 CHANNEL_LAYERS = {
