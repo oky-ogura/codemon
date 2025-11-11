@@ -34,7 +34,7 @@
       <div class="tab">システムタブ</div>
       <div class="tab">アルゴリズムタブ</div>
       <div class="tab">進捗管理タブ</div>
-      <div class="tab">アカウント</div>
+      <div class="tab"><a href="{% url 'accounts:account_entry' %}">アカウント</a></div>
     </div>
 
     <div class="profile">
@@ -59,7 +59,7 @@
             
 
             <!-- ログアウト: POSTフォーム + 確認モーダル起動ボタン -->
-            <form id="logout-form" method="post" action="{% url 'logout' %}" style="display:inline">
+            <form id="logout-form" method="post" action="{% url 'accounts:logout' %}" style="display:inline">
               {% csrf_token %}
               <button type="button" id="logout-btn" class="btn-logout">ログアウトボタン</button>
             </form>

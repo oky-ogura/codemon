@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container my-4">
+    <h2>グループ編集</h2>
+
+    <form method="post" class="needs-validation" novalidate>
+        {% csrf_token %}
+        
+        <div class="mb-3">
+            <label for="group_name" class="form-label">グループ名 *</label>
+            <input type="text" class="form-control" id="group_name" name="group_name" required
+                   maxlength="50" value="{{ group.group_name }}" placeholder="グループの名前を入力">
+            <div class="invalid-feedback">
+                グループ名は必須です
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="description" class="form-label">説明</label>
+            <textarea class="form-control" id="description" name="description" rows="3"
+                      placeholder="グループの説明を入力（任意）">{{ group.description }}</textarea>
+        </div>
+
+        <div class="mb-3">
+            <button type="submit" class="btn btn-primary">保存</button>
+            <a href="{% url 'codemon:group_detail' group_id=group.group_id %}" class="btn btn-secondary">キャンセル</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
