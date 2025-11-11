@@ -43,16 +43,16 @@
       </div>
 
       <div class="info">
-        <div class="row"><span class="label">ID</span> <span>11111111</span></div>
-        <div class="row"><span class="label">名前</span> <strong>admin</strong></div>
-        <div class="row"><span class="label">年齢</span> <span>8歳</span></div>
+        <div class="row"><span class="label">ID</span> <span>{{ account.user_id }}</span></div>
+        <div class="row"><span class="label">名前</span> <strong>{{ account.user_name }}</strong></div>
+        <div class="row"><span class="label">年齢</span> <span>{{ account.age }}歳</span></div>
 
         <div class="meta">
           <div class="stick">
             <div class="figure">⚪︎</div>
-            <div class="small">名前 codemon</div>
-            <div class="small">初めて会った日 2025/9/26</div>
-            <div class="small">累計日数 3日</div>
+            <div class="small">名前 {{ ai_config.ai_name|default:"codemon" }}</div>
+            <div class="small">性格 {{ ai_config.ai_personality|default:"元気" }}</div>
+            <div class="small">語尾 {{ ai_config.ai_speech|default:"です" }}</div>
           </div>
 
           <div>

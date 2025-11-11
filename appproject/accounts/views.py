@@ -705,6 +705,14 @@ def account_entry(request):
     except Exception:
         groups = []
 
+    # AI設定情報を取得
+    ai_config = None
+    try:
+        from .models import AiConfig
+        if current_user_id is not None:
+            ai_config = AiConfig.objects.filter(user_id=current_user_id).first()
+    except Exception:
+        ai_config = None
 
     context = {
         'account': account,
@@ -713,6 +721,7 @@ def account_entry(request):
         'total_days': total_days_str,
         'groups': groups,
         'current_user_id': current_user_id,
+        'ai_config': ai_config,
     }
 
     if account.get('account_type') == 'teacher':
