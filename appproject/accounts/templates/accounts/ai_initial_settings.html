@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>AI初期設定</title>
+    <style>
+        body{margin:0;font-family:Meiryo, 'Hiragino Kaku Gothic ProN',sans-serif;background:#f8fafc}
+        .wrap{max-width:980px;margin:28px auto;padding:16px;border:2px solid #111;background:#fff}
+        h1{text-align:center;margin-top:8px}
+        .content{display:flex;gap:24px;align-items:flex-start}
+        .left{flex:0 0 320px;text-align:center}
+        .illustration{width:220px;height:240px;border:none;background:transparent;object-fit:contain}
+        .right{flex:1}
+        .form-row{display:flex;align-items:center;margin:14px 0}
+        .label{width:120px;text-align:right;padding-right:12px}
+        .input{flex:1}
+        .controls{display:flex;justify-content:flex-end;gap:12px;margin-top:18px}
+        .btn{padding:10px 18px;border-radius:10px;border:2px solid #d6d6d6;cursor:pointer}
+        .btn.primary{background:#ddeeff;border-color:#9fb8e8}
+        .btn.secondary{background:#f9dddd;border-color:#e3a3a3}
+    </style>
+</head>
+<body>
+    {% load static %}
+    <div class="wrap">
+        <h1>AI初期設定</h1>
+        <div class="content">
+            <div class="left">
+                <img id="illustration" class="illustration" src="" alt="さっき決めたAIのイラスト">
+                <div style="margin-top:8px;color:#333">さっき決めたAIのイラスト</div>
+            </div>
+            <div class="right">
+                <form method="post" action="{% url 'accounts:ai_initial_confirm' %}">
+                    {% csrf_token %}
+                    <div class="form-row">
+                        <div class="label">名前</div>
+                        <div class="input"><input type="text" name="ai_name" value="{{ config.ai_name|default:'' }}" style="width:100%"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="label">性格</div>
+                        <div class="input">
+                            <select name="ai_personality" style="width:100%">
+                                {% for p in personalities %}
+                                    <option value="{{ p }}" {% if p == config.ai_personality %}selected{% endif %}>{{ p }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="label">語尾</div>
+                        <div class="input"><input type="text" name="ai_speech" value="{{ config.ai_speech|default:'' }}" style="width:100%"></div>
+                    </div>
+                    <!-- 選択済みの外見を確認画面へ渡す -->
+                    <input type="hidden" name="appearance" value="{{ config.appearance }}">
+
+                    <div class="controls">
+                        <a href="{% url 'accounts:ai_appearance' %}" class="btn secondary" style="text-decoration:none;display:inline-block;padding:10px 18px">戻る</a>
+                        <button type="submit" class="btn primary">決定</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const baseStatic = "{% static 'accounts/' %}";
+        const appearance = "{{ config.appearance|escapejs }}" || '';
+
+        function filenameFor(a){
+            if(!a) return '';
+            if(typeof a === 'string' && a.match(/\.(png|jpg|jpeg|gif)$/i)) return a;
+            const map = { 'triangle':'dog.png','round':'panda.png','robot':'rabitto.png' };
+            if(map[a]) return map[a];
+            return a + '.png';
+        }
+
+        const ill = document.getElementById('illustration');
+        const filename = filenameFor(appearance);
+        if(filename){ ill.src = baseStatic + encodeURIComponent(filename); ill.alt = filename; }
+    </script>
+</body>
+</html>

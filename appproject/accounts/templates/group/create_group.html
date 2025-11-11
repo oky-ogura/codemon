@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<!-- ...existing code... -->
+</head>
+<body>
+  <div class="container">
+    <!-- ...existing code... -->
+
+      <div class="form-row" style="align-items:flex-start">
+        <div class="label">メンバー</div>
+          <form method="post" action="{% url 'group_create' %}">
+            {% csrf_token %}
+            <div class="form-row" style="align-items:flex-start">
+              <div class="label">グループ情報</div>
+              <div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <input type="text" name="group_name" id="group_name" placeholder="グループ名" style="width:240px;padding:8px;border:1px solid #999;border-radius:4px" required>
+                  <input type="password" name="group_password" id="group_password" placeholder="パスワード" style="width:160px;padding:8px;border:1px solid #999;border-radius:4px">
+                  <button type="submit" class="add-btn">グループを作成</button>
+                </div>
+              </div>
+            </div>
+          </form>  
+      </div>
+
+    <!-- ...existing code (members list, hiddenMembers, controls) ... -->
+  </div>
+
+<script>
+(function(){
+  const membersList = document.getElementById('membersList');
+  const hiddenContainer = document.getElementById('hiddenMembers');
+  let idx = 0;
+
+  function createChip(id, name, index){
+    const chip = document.createElement('div');
+    chip.className = 'member-chip';
+    chip.textContent = id + '　' + name;
+    chip.dataset.index = index;
+    chip.title = 'クリックで削除';
+    chip.style.cursor = 'pointer';
+    chip.addEventListener('click', function(){
+      const i = this.dataset.index;
+      const hidden = document.getElementById('member-hidden-' + i);
+      if(hidden) hidden.remove();
+      this.remove();
+    });
+    return chip;
+  }
+
+  // 外部（ページロード時）から呼べる関数を公開しておく
+  window.addMemberFromParams = function(id, name){
+    const chip = createChip(id, name, idx);
+    membersList.appendChild(chip);
+    const hidden = document.createElement('input');
+    hidden.type = 'hidden';
+    hidden.name = 'members';
+    hidden.id = 'member-hidden-' + idx;
+    hidden.value = id + '|' + name;
+    hiddenContainer.appendChild(hidden);
+    idx++;
+  };
+})();
+</script>
+
+<script>
+// ページロード時にクエリパラメータに id と name があれば自動で追加する
+(function(){
+  const params = new URLSearchParams(location.search);
+  const id = params.get('id');
+  const name = params.get('name');
+  if(id && name && window.addMemberFromParams){
+    try{
+      window.addMemberFromParams(id, name);
+      // クエリを消しておく（ブラウザ履歴を汚さないため）
+      const url = new URL(window.location);
+      url.search = '';
+      history.replaceState(null, '', url.toString());
+    }catch(e){
+      // 無視
+    }
+  }
+})();
+</script>
+
+</body>
+</html>

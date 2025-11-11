@@ -236,12 +236,13 @@ const visual = document.getElementById("visual-area");
 
           // システムタブ
           if(tab.id === 'tab-system'){
-            window.location.href = 'http://127.0.0.1:8000/accounts/system/';
+            // system_choice.html へ遷移
+            window.location.href = '/accounts/system/choice/';
             return;
           }
-          // アルゴリズムタブ
+          // 変更: アルゴリズムタブ押下で block/choiceへ遷移
           if(tab.id === 'tab-algorithm'){
-            window.location.href = 'http://127.0.0.1:8000/accounts/block/';
+            window.location.href = '/accounts/block/choice';
             return;
           }
           // 他タブは現状見た目のみ（遷移未実装）
@@ -538,7 +539,7 @@ document.getElementById('redoBtn').addEventListener('click', function() {
 // 保存ボタン（画面は未実装だが遷移できるようにする）
 document.getElementById('saveBtn').addEventListener('click', function() {
   // 保存画面のURL（未実装）へ遷移
-  window.location.href = 'http://127.0.0.1:8000/accounts/block/save/';
+  window.location.href = '/accounts/block/save/';
 });
 
 // ショートカットキー（Ctrl+Z, Ctrl+Y）

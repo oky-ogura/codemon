@@ -1,0 +1,86 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>設定確認</title>
+    <style>
+        body{margin:0;font-family:Meiryo, 'Hiragino Kaku Gothic ProN',sans-serif;background:#f8fafc}
+        .wrap{max-width:980px;margin:28px auto;padding:16px;border:2px solid #111;background:#fff}
+        h1{text-align:center;margin-top:8px}
+        .cols{display:flex;gap:24px;align-items:flex-start}
+        .col{flex:1;padding:8px}
+        .left{text-align:left}
+        .center{text-align:center}
+        .label{color:#444;margin:8px 0}
+        .ai-illustration{width:180px;height:200px;object-fit:contain}
+        .button-row{display:flex;justify-content:center;margin-top:18px}
+        .btn{padding:10px 22px;border-radius:8px;border:2px solid #9fb8e8;background:#ddeeff;cursor:pointer;margin:0 8px}
+        .btn.secondary{background:#f9dddd;border-color:#e3a3a3}
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <h1>設定確認</h1>
+    <p style="text-align:center;font-size:18px;margin:6px 0">これで大丈夫？</p>
+    <div class="cols">
+        <div class="col left">
+            <h3>あなたの情報</h3>
+            {% if request.user.is_authenticated %}
+                <div class="label">名前: {{ request.user.user_name|default:request.user.get_full_name|default:request.user.username }}</div>
+                <div class="label">メールアドレス: {{ request.user.email }}</div>
+            {% elif 'pending_account_name' in request.session or 'account_user_name' in request.session %}
+                {% if 'pending_account_name' in request.session %}
+                    <div class="label">名前: {{ request.session.pending_account_name }}</div>
+                {% else %}
+                    <div class="label">名前: {{ request.session.account_user_name }}</div>
+                {% endif %}
+                {% if 'pending_account_email' in request.session %}
+                    <div class="label">メールアドレス: {{ request.session.pending_account_email }}</div>
+                {% else %}
+                    <div class="label">メールアドレス: {{ request.session.account_email }}</div>
+                {% endif %}
+            {% else %}
+                <div class="label">(未ログイン — 登録・ログインするとここに表示されます)</div>
+            {% endif %}
+            <!-- 「あなたの情報を変更」は新規登録画面へ移動するためリンクに変更 -->
+            <a href="{% url 'accounts:student_signup' %}" class="btn secondary" style="text-decoration:none;display:inline-block;padding:10px 22px">あなたの情報を変更</a>
+        </div>
+        <div class="col center">
+            <h3>CodeMonの情報</h3>
+            <img class="ai-illustration" id="ai_ill" src="" alt="AIのイラスト">
+            <div class="label">名前: <strong>{{ ai_name }}</strong></div>
+            <div class="label">性格: {{ ai_personality }}</div>
+            <div class="label">語尾: {{ ai_speech }}</div>
+            <!-- OK を押して確認画面へ（GET で表示） -->
+            <form method="post" action="{% url 'accounts:ai_initial_save' %}">
+                {% csrf_token %}
+                <input type="hidden" name="ai_name" value="{{ ai_name }}">
+                <input type="hidden" name="ai_personality" value="{{ ai_personality }}">
+                <input type="hidden" name="ai_speech" value="{{ ai_speech }}">
+                <input type="hidden" name="appearance" value="{{ appearance }}">
+                <div class="button-row">
+                    <a href="{% url 'accounts:ai_appearance' %}" class="btn secondary" style="text-decoration:none;display:inline-block;padding:10px 22px">外見を変更</a>
+                    <button type="submit" class="btn">OK！</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const baseStatic = "{% static 'accounts/' %}";
+    const appearance = "{{ appearance|default:''|escapejs }}";
+    function filenameFor(a){
+        if(!a) return '';
+        const map = { 'triangle':'dog.png','round':'panda.png','robot':'rabitto.png' };
+        if(map[a]) return map[a];
+        return a;
+    }
+    const ill = document.getElementById('ai_ill');
+    const filename = filenameFor(appearance);
+    if(filename){ ill.src = baseStatic + encodeURIComponent(filename); ill.alt = filename; }
+</script>
+</body>
+</html>

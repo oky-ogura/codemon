@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>アルゴリズム選択</title>
+<style>
+  /* ----- 上部ナビゲーション ----- */
+  :root { --nav-height:56px; --primary:#1976d2; --muted:#666; --bg:#f9f9fb; }
+    body {
+      font-family: -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "メイリオ", sans-serif;
+      margin: 20px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      min-height:100vh;
+      background:var(--bg);
+      color:#111;
+    }
+    .top-nav {
+      box-sizing:border-box;
+      width:100%;
+      max-width:980px;
+      height:var(--nav-height);
+      margin:16px auto 12px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:6px 12px;
+      background:linear-gradient(180deg,#fff,#fafafa);
+      border-radius:10px;
+      box-shadow:0 1px 3px rgba(0,0,0,0.06);
+      border:1px solid #e6e6e9;
+    }
+    .nav-brand { display:flex; align-items:center; gap:8px; padding-right:8px; border-right:1px solid #eee; }
+    .nav-brand .logo { width:36px; height:36px; border-radius:6px; background:var(--primary); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:18px; }
+    .nav-brand .title { font-size:15px; color:#111; font-weight:600; }
+    .nav-tabs {
+      display:flex;
+      justify-content: space-evenly;
+      width:100%;
+      align-items:center;
+      gap:0;
+      margin:0;
+    }
+    .nav-tab {
+      appearance:none; border:0; background:transparent; padding:8px 12px; border-radius:8px;
+      font-size:14px; cursor:pointer; color:var(--muted); transition: all .12s ease;
+    }
+    .nav-tab:hover { background:#f0f6ff; color:var(--primary); transform:translateY(-1px); }
+    .nav-tab.active { background:var(--primary); color:#fff; box-shadow:0 2px 6px rgba(25,118,210,0.18); }
+
+    main { width:100%; max-width:980px; margin:6px auto; box-sizing:border-box; }
+    h1 { margin:2px 0 12px 0; font-size:20px; text-align:center; }
+
+    /* 新規追加: アクションパネル（中央寄せに調整） */
+    .action-panel {
+      display:flex;
+      gap:24px;
+      align-items:flex-start;
+      margin-top:12px;
+      justify-content:center; /* ← 横方向に中央寄せ */
+    }
+    .action-column {
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+      width: 360px;
+    }
+    .action-btn {
+      display:block;
+      width:100%;
+      padding:20px 18px;
+      border-radius:12px;
+      background: linear-gradient(180deg,#e6f0ff,#cfe6ff);
+      color:#073763;
+      font-weight:700;
+      font-size:18px;
+      border:1px solid rgba(10,59,110,0.08);
+      box-shadow: 0 8px 18px rgba(10,59,110,0.06);
+      cursor:pointer;
+      text-align:center;
+      transition: transform .12s ease, box-shadow .12s ease, background .12s;
+    }
+    /* secondary を主ボタンと同じ見た目に統一 */
+    .action-btn.secondary {
+      background: linear-gradient(180deg,#e6f0ff,#cfe6ff);
+      color:#073763;
+      border-color: rgba(10,59,110,0.08);
+      box-shadow: 0 8px 18px rgba(10,59,110,0.06);
+    }
+    .action-btn:active { transform: translateY(1px); }
+    .action-btn.selected {
+      outline: 3px solid rgba(25,118,210,0.12);
+      box-shadow: 0 14px 30px rgba(25,118,210,0.10);
+      transform: translateY(-3px);
+    }
+
+    /* 右側の説明エリア（任意） */
+    .info {
+      flex:1;
+      min-height:120px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#444;
+      font-size:15px;
+      padding:12px;
+      background:#fff;
+      border-radius:10px;
+      border:1px solid #eef0f3;
+      box-shadow:0 6px 18px rgba(10,10,10,0.02);
+      max-width: 420px;
+    }
+
+    .helper { margin-top:8px; color:#777; font-size:13px; text-align:center; }
+    .note { margin-top:12px; color:#444; font-size:13px; text-align:center; }
+    @media (max-width:880px){
+      .action-panel { flex-direction:column; align-items:center; }
+      .info { width:100%; max-width:none; }
+    }
+</style>
+</head>
+<body>
+  <header class="top-nav" role="banner" aria-label="メインナビゲーション">
+
+    <nav class="nav-tabs" role="navigation" aria-label="タブメニュー">
+      <button type="button" class="nav-tab" id="tab-system" aria-pressed="false" title="システム">システム</button>
+      <button type="button" class="nav-tab active" id="tab-algorithm" aria-pressed="true" title="アルゴリズム">アルゴリズム</button>
+      <button type="button" class="nav-tab" id="tab-progress" aria-pressed="false" title="進捗確認">進捗確認</button>
+      <button type="button" class="nav-tab" id="tab-account" aria-pressed="false" title="アカウント">アカウント</button>
+    </nav>
+  </header>
+
+  <main class="page-wrap" role="main">
+    <div class="action-panel" role="region" aria-label="システム操作">
+      <div class="action-column" role="group" aria-label="システム操作ボタン群">
+        <button class="action-btn" id="btn-list">作成したアルゴリズム一覧を開く</button>
+        <button class="action-btn secondary" id="btn-new">新しいアルゴリズムを作成</button>
+      </div>
+    </div>
+  </main>
+
+<script>
+  (function(){
+  try{
+    const tabs = document.querySelectorAll('.nav-tab');
+    tabs.forEach(tab=>{
+      tab.addEventListener('click', (e)=>{
+        try{
+          // クリックで見た目を切替（押せるようにする）
+          tabs.forEach(t=>{
+            t.classList.remove('active');
+            t.setAttribute('aria-pressed','false');
+          });
+          tab.classList.add('active');
+          tab.setAttribute('aria-pressed','true');
+          if(typeof tab.blur === 'function') tab.blur();
+
+          // システムタブ
+          if(tab.id === 'tab-system'){
+            // system/choice へ遷移
+            window.location.href = '/accounts/system/choice/';
+            return;
+          }
+          // アルゴリズムタブ
+        }catch(err){
+          console.error('tab click handler error', err);
+        }
+      });
+    });
+  }catch(err){
+    console.error('tabs init error', err);
+  }
+})();
+
+    // 作成したアルゴリズム一覧ボタンは block_list へ遷移
+    const btnList = document.getElementById('btn-list');
+    if (btnList) {
+      btnList.addEventListener('click', function(e){
+        e.preventDefault();
+        window.location.href = '/accounts/block/list/';
+      });
+    }
+
+    // 新しいアルゴリズム作成ボタンは作成画面へ遷移
+    const btnNew = document.getElementById('btn-new');
+    if (btnNew) {
+      btnNew.addEventListener('click', function(e){
+        e.preventDefault();
+        window.location.href = '/accounts/block/create/';
+      });
+    }
+</script>
+</body>
+</html>

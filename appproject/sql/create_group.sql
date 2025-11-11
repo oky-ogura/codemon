@@ -1,8 +1,9 @@
+-- ...existing code...
 -- PostgreSQL: create_group.sql
--- Creates sequence and table `group` in the `codemon` database.
--- Group management table for organizing students into groups
+-- グループ管理テーブル定義（設計書に準拠）
+-- 主キーは先頭桁を7で固定（例: 7000001 から開始）
 
--- 1) Create sequence starting at 7000001 for group_id (最初の桁を7で固定)
+-- 1) シーケンス（group_id を 7000001 から開始）
 CREATE SEQUENCE IF NOT EXISTS group_group_id_seq
     START WITH 7000001
     INCREMENT BY 1
@@ -10,48 +11,44 @@ CREATE SEQUENCE IF NOT EXISTS group_group_id_seq
     NO MAXVALUE
     CACHE 1;
 
--- 2) Create group table
+-- 2) テーブル作成（カラム属性は設計書に準拠）
 CREATE TABLE IF NOT EXISTS "group" (
     group_id INTEGER NOT NULL PRIMARY KEY DEFAULT nextval('group_group_id_seq'),
     group_name VARCHAR(50) NOT NULL,
     user_id INTEGER NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- 3) Set sequence ownership to column
+-- 3) シーケンス所有者設定
 ALTER SEQUENCE group_group_id_seq OWNED BY "group".group_id;
 
--- 4) Create index for performance
+-- 4) インデックス（検索性能向上）
 CREATE INDEX IF NOT EXISTS idx_group_user_id ON "group"(user_id);
 CREATE INDEX IF NOT EXISTS idx_group_name ON "group"(group_name);
 
--- 5) Create foreign key constraint to account table
--- Note: Uncomment when account table is created
--- ALTER TABLE "group" ADD CONSTRAINT fk_group_user_id 
--- FOREIGN KEY (user_id) REFERENCES account(user_id) ON DELETE CASCADE;
 
--- 6) Create trigger for automatic updated_at timestamp
+-- 5) updated_at 自動更新トリガー
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = CURRENT_TIMESTAMP;
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$ LANGUAGE plpgsql;
 
-CREATE TRIGGER update_group_updated_at 
-    BEFORE UPDATE ON "group" 
+-- 既存トリガーがあれば削除してから作成
+DROP TRIGGER IF EXISTS update_group_updated_at ON "group";
+CREATE TRIGGER update_group_updated_at
+    BEFORE UPDATE ON "group"
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- 7) Insert sample data (optional)
--- INSERT INTO "group" (group_name, user_id) 
--- VALUES ('A班', 20000001);
-
--- 8) Comments for table and columns
+-- 7) コメント（設計書の説明を反映）
 COMMENT ON TABLE "group" IS 'グループ管理テーブル - 学生のグループ分けを管理';
 COMMENT ON COLUMN "group".group_id IS 'グループID - 主キー、7から始まる一意な識別子';
 COMMENT ON COLUMN "group".group_name IS 'グループ名 - 最大50文字';
-COMMENT ON COLUMN "group".user_id IS 'ユーザーID - アカウントテーブルを参照する外部キー';
+COMMENT ON COLUMN "group".user_id IS '作成者ID - account.user_id を参照する外部キー';
 COMMENT ON COLUMN "group".created_at IS '作成日時 - レコード作成時のタイムスタンプ';
 COMMENT ON COLUMN "group".updated_at IS '更新日時 - レコード更新時のタイムスタンプ（自動更新）';
+-- ...existing code...

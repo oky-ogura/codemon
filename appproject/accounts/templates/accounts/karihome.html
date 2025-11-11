@@ -1,0 +1,31 @@
+
+<header class="top-tabs">
+  <nav class="tabs">
+    <ul>
+      <li><a href="#">システムタブ</a></li>
+      <li><a href="#">アルゴリズムタブ</a></li>
+      <li><a href="{% url 'codemon:checklist_selection' %}">チェックリストタブ</a></li>
+      <li><a href="{% url 'accounts:account_entry' %}">アカウント</a>
+</li>
+    </ul>
+  </nav>
+</header>
+
+<style>
+/* 上部ナビタブの簡易スタイル（このブロックはテンプレート内の<head>に移しても良い） */
+.top-tabs { border: 2px solid #000; padding: 6px 8px; background: #fff; }
+.tabs ul { margin: 0; padding: 0; list-style: none; display: flex; gap: 8px; }
+.tabs li { flex: 1 1 0; text-align: center; }
+.tabs a {
+  display: inline-block;
+  width: 100%;
+  padding: 10px 6px;
+  border: 1px solid #000;
+  text-decoration: none;
+  color: #000;
+  background: #fff;
+  box-sizing: border-box;
+}
+.tabs a:hover { background: #f5f5f5; }
+</style>
+<!-- ...existing code... -->
