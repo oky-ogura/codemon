@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>システム作成</title>
+  <title>チュートリアル</title>
   <style>
     :root { --nav-height:56px; --primary:#1976d2; --bg:#f9f9fb; --muted:#666; }
     .top-nav {
@@ -420,7 +420,7 @@
       min-height: 24px;
       border: none;           /* 非選択時は枠を消す */
       background: transparent;
-      cursor: grab;           /* クリックしてドラッグ可能 */
+      cursor: grab;           /* クリックしてドラウド可能 */
       overflow: auto;
       /* コンテナ自体でリサイズさせる（内側の要素はリサイズ不可にする） */
       resize: both;
@@ -519,6 +519,43 @@
       overflow:auto;
     }
 
+    /* チュートリアル関連のスタイル（吹き出し対応） */
+    .tutorial-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.25); z-index: 10030; display:flex; align-items:flex-end; justify-content:center; pointer-events:none; }
+    .tutorial-box { width: 420px; max-width: calc(100% - 24px); margin: 24px; background: #fff; border-radius:10px; padding:16px; box-shadow:0 8px 30px rgba(0,0,0,0.28); font-family: sans-serif; color:#111; pointer-events:auto; }
+    .tutorial-title { font-weight:700; margin-bottom:8px; }
+    .tutorial-text { font-size:14px; color:#333; margin-bottom:12px; white-space:pre-wrap; }
+    .tutorial-nav { display:flex; gap:8px; justify-content:flex-end; }
+    .tutorial-btn { padding:6px 12px; border-radius:6px; border:1px solid #ccc; background:#f7f7f7; cursor:pointer; }
+    .tutorial-btn.primary { background:#1976d2; color:#fff; border-color:transparent; }
+    .tutorial-highlight { box-shadow: 0 0 0 4px rgba(25,118,210,0.18) !important; border-radius:6px !important; position: relative; z-index:10029; }
+    .tutorial-help { position: fixed; right: 18px; bottom: 18px; width:44px; height:44px; border-radius:50%; background:#1976d2; color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:10040; box-shadow:0 6px 18px rgba(0,0,0,0.18); font-weight:700; pointer-events:auto; }
+    .tutorial-toast { position: fixed; right: 18px; bottom: 72px; background: rgba(0,0,0,0.7); color:#fff; padding:8px 12px; border-radius:8px; font-size:13px; z-index:10040; pointer-events:auto; }
+
+    /* 吹き出し（バブル） */
+    .tutorial-bubble {
+      position: absolute;
+      max-width: 340px;
+      background: #fff;
+      color:#111;
+      padding: 10px 12px;
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+      z-index: 10050;
+      pointer-events: auto;
+      font-size:13px;
+    }
+    .tutorial-bubble .title { font-weight:700; margin-bottom:6px; }
+    .tutorial-bubble .text { white-space: normal; line-height:1.4; }
+    .tutorial-bubble .arrow {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      transform: rotate(45deg);
+      background: #fff;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+      z-index: -1;
+    }
+
     @media (max-width:980px){
       .button-bar, .shortcut-bar, #slideArea { width: 92%; max-width:860px; }
       #previewSlideArea { width: calc(100vw - 8px); height: calc(100vh - 72px); }
@@ -528,6 +565,7 @@
 </head>
 <body>
   <header class="top-nav" role="banner" aria-label="メインナビゲーション">
+    
     <nav class="nav-tabs" role="navigation" aria-label="タブメニュー">
       <button type="button" class="nav-tab active" id="tab-system" aria-pressed="true" title="システム">システム</button>
       <button type="button" class="nav-tab" id="tab-algorithm" aria-pressed="false" title="アルゴリズム">アルゴリズム</button>
@@ -536,7 +574,7 @@
     </nav>
   </header>
 
-  <h1>システム作成</h1>
+  <h1>チュートリアル</h1>
   <div class="button-bar">
     <!-- フォームボタン + プルダウン -->
     <div class="form-dropdown" id="formDropdownWrap">
@@ -572,7 +610,7 @@
 
     <div class="shortcut-btns" aria-hidden="false">
       <button id="executeBtn" aria-disabled="false">実行</button>
-      <button id="saveBtn" aria-disabled="false">保存</button>
+      <!-- 保存ボタンを削除 -->
     </div>
   </div>
 
@@ -591,15 +629,11 @@
             this.classList.add('active');
             this.setAttribute('aria-pressed','true');
 
-            // タブごとの遷移
-            // システムタブ押下で system/choiceに遷移
+            // タブごとの遷移（必要に応じて有効化）
             if (this.id === 'tab-system') {
-              // 必要なら相対パスを調整してください
-              window.location.href = '/accounts/system/choice';
-              // アルゴリズムタブ押下で block/choiceに遷移
+              // window.location.href = '/accounts/system/choice';
             } else if (this.id === 'tab-algorithm') {
-              // 必要なら相対パスを調整してください
-              window.location.href = '/accounts/block/choice';
+              // window.location.href = '/accounts/block/choice';
             }
           });
         });
@@ -624,7 +658,6 @@
 
     function saveHistory() {
       const slide = document.getElementById("slideArea");
-      // 保存前に不要な一時要素を取り除く（選択矩形など）
       const temp = slide.querySelectorAll('.textarea-selection');
       temp.forEach(t => t.remove());
       history = history.slice(0, historyIndex + 1);
@@ -724,7 +757,6 @@
       const confirmBtn = document.getElementById('createOptionsConfirm');
       const wrap = document.getElementById('formDropdownWrap');
 
-      // 作成タイプを保持（'checkbox' | 'radio' | null）
       let pendingType = null;
 
       function showOptionsPanel(type) {
@@ -785,15 +817,7 @@
       });
     })();
 
-    // 保存ボタン
-    const saveBtn = document.getElementById('saveBtn');
-    if (saveBtn) {
-      saveBtn.addEventListener('click', function(e){
-        e.preventDefault();
-        window.location.href = '/accounts/system/save/';
-      });
-    }
-    // 実行ボタン
+    // 実行ボタン（プレビュー）
     const executeBtn = document.getElementById('executeBtn');
     if (executeBtn) {
       executeBtn.addEventListener('click', function(e){
@@ -842,7 +866,6 @@
         ro.observe(el);
       } catch (err) { ro = null; }
 
-      // ゴミ箱要素（存在しない場合もある）
       const trash = document.getElementById('trash');
       let lastOverTrash = false;
 
@@ -898,7 +921,6 @@
         setGrabbing(false);
         el.style.zIndex = '';
         document.body.style.userSelect = '';
-        // ゴミ箱の視覚状態をクリア
         try { if (trash) trash.classList.remove('dragover'); lastOverTrash = false; } catch(e){}
       }
 
@@ -925,7 +947,6 @@
           y = Math.max(0, Math.min(y, parent.clientHeight - el.offsetHeight));
           el.style.left = x + 'px';
           el.style.top = y + 'px';
-          // ゴミ箱上判定（マウスポインタ位置）
           if (trash) {
             const over = pointInRect(ev.clientX, ev.clientY, trash.getBoundingClientRect());
             if (over && !lastOverTrash) { trash.classList.add('dragover'); lastOverTrash = true; }
@@ -935,7 +956,6 @@
         const onUpWhileDown = function(ev){
           document.removeEventListener('mousemove', onMoveWhileDown);
           document.removeEventListener('mouseup', onUpWhileDown);
-          // ドロップ判定：マウスがゴミ箱上にあれば削除
           let droppedOnTrash = false;
           try {
             if (trash) {
@@ -943,7 +963,6 @@
             }
           } catch(e){}
           if (droppedOnTrash) {
-            // 削除
             try { el.remove(); } catch(e){ if (el.parentElement) el.parentElement.removeChild(el); }
             try { trash.classList.remove('dragover'); } catch(e){}
             stopDrag();
@@ -985,7 +1004,6 @@
           y = Math.max(0, Math.min(y, parent.clientHeight - el.offsetHeight));
           el.style.left = x + 'px';
           el.style.top = y + 'px';
-          // ゴミ箱上判定（タッチ座標）
           if (trash) {
             const over = pointInRect(t.clientX, t.clientY, trash.getBoundingClientRect());
             if (over && !lastOverTrash) { trash.classList.add('dragover'); lastOverTrash = true; }
@@ -996,7 +1014,6 @@
         const onTouchEnd = function(ev){
           document.removeEventListener('touchmove', onTouchMove);
           document.removeEventListener('touchend', onTouchEnd);
-          // タッチ終了時の座標は取得しにくいので、ゴミ箱との重なりは要素中心で判定する
           let droppedOnTrash = false;
           try {
             if (trash) {
@@ -1227,7 +1244,6 @@
       const group = document.createElement('div');
       group.className = 'radio-group';
 
-      // ラジオの name をユニーク化してグループ内のみ排他にする
       const uniqueName = 'radio_group_' + Date.now() + '_' + Math.floor(Math.random()*1000);
 
       for (let i = 0; i < count; i++) {
@@ -1401,6 +1417,250 @@
       });
       saveHistory();
     };
+  </script>
+
+  <!-- クイズ作成チュートリアル（吹き出し表示＋操作可能） -->
+  <script>
+  (function(){
+    const steps = [
+      {
+        title: 'クイズ作成チュートリアルへようこそ',
+        text: 'このチュートリアルではスライド上に問題（テキスト／選択肢）を配置し、プレビューで確認します。\n右下の「?」を押すか Ctrl+Shift+T で開始してください。',
+        target: null,
+        action: null
+      },
+      {
+        title: 'フォームを開く',
+        text: '「フォーム ▾」を開き、入力コントロールを追加します。自動で開きます。',
+        target: '#formBtn',
+        action: () => { const b = document.getElementById('formBtn'); if (b) b.click(); }
+      },
+      {
+        title: 'テキスト（問題文）を追加',
+        text: '「あいう」を選ぶとテキスト入力が追加されます。ボタンを自動で押します。',
+        target: '#addTextBtn',
+        action: () => { const b = document.getElementById('addTextBtn'); if (b) b.click(); }
+      },
+      {
+        title: '選択肢（ラジオ）を追加',
+        text: 'ラジオボタンを追加します。個数を指定して作成します（自動で3つを作成）。',
+        target: '#addRadioBtn',
+        action: async () => {
+          const b = document.getElementById('addRadioBtn'); if (b) b.click();
+          await new Promise(r => setTimeout(r, 220));
+          const cnt = document.getElementById('optionsCount');
+          if (cnt) { cnt.value = 3; cnt.dispatchEvent(new Event('input', {bubbles:true})); }
+          const conf = document.getElementById('createOptionsConfirm');
+          if (conf) conf.click();
+        }
+      },
+      {
+        title: 'ラベル編集',
+        text: '追加されたラジオのラベルはダブルクリックで編集できます。要素をドラッグして位置を調整してください。',
+        target: '.radio-group:last-of-type',
+        action: null
+      },
+      {
+        title: 'プレビューで確認',
+        text: '「実行」ボタンでプレビューを開き、動作を確認します。自動でプレビューを開きます。',
+        target: '#executeBtn',
+        action: () => { const b = document.getElementById('executeBtn'); if (b) b.click(); }
+      },
+      {
+        title: 'チュートリアル終了',
+        text: '完了です。もう一度開始する場合は右下の ? をクリックしてください。',
+        target: null,
+        action: null
+      }
+    ];
+
+    // スタイルは既に追加済み。以下はオーバーレイとバブルの実装。
+    const helpBtn = document.createElement('button');
+    helpBtn.className = 'tutorial-help';
+    helpBtn.title = 'クイズチュートリアルを開始（Ctrl+Shift+T）';
+    helpBtn.textContent = '?';
+    document.body.appendChild(helpBtn);
+
+    let toastTimer = null;
+    function showToast(msg, time = 3000) {
+      let t = document.querySelector('.tutorial-toast');
+      if (!t) { t = document.createElement('div'); t.className = 'tutorial-toast'; document.body.appendChild(t); }
+      t.textContent = msg;
+      clearTimeout(toastTimer); toastTimer = setTimeout(()=>{ if (t) t.remove(); }, time);
+    }
+    showToast('クイズチュートリアル：右下 ? または Ctrl+Shift+T で開始');
+
+    let overlay = null;
+    let bubble = null;
+    let current = 0;
+    let lastHighlight = null;
+
+    function highlightSelector(sel) {
+      removeHighlight();
+      if (!sel) return;
+      let el = null;
+      try { el = document.querySelector(sel); } catch(e){ el = null; }
+      if (!el) {
+        if (sel && sel.endsWith(':last-of-type')) {
+          try {
+            const base = sel.replace(/:last-of-type$/, '');
+            const list = document.querySelectorAll(base);
+            if (list.length) el = list[list.length-1];
+          } catch(e){}
+        }
+      }
+      if (!el) return;
+      el.classList.add('tutorial-highlight');
+      lastHighlight = el;
+      try { el.scrollIntoView({behavior:'smooth', block:'center', inline:'center'}); } catch(e){}
+    }
+
+    function removeHighlight() {
+      if (lastHighlight) {
+        lastHighlight.classList.remove('tutorial-highlight');
+        lastHighlight = null;
+      }
+    }
+
+    function ensureOverlay() {
+      if (overlay) return;
+      overlay = document.createElement('div');
+      overlay.className = 'tutorial-overlay';
+      overlay.setAttribute('role','dialog');
+      overlay.setAttribute('aria-modal','true');
+      document.body.appendChild(overlay);
+    }
+
+    function createBubble() {
+      if (bubble) return bubble;
+      bubble = document.createElement('div');
+      bubble.className = 'tutorial-bubble';
+      const t = document.createElement('div'); t.className = 'title';
+      const txt = document.createElement('div'); txt.className = 'text';
+      const nav = document.createElement('div'); nav.style.textAlign = 'right'; nav.style.marginTop = '8px';
+      const prev = document.createElement('button'); prev.className='tutorial-btn'; prev.textContent='戻る';
+      const next = document.createElement('button'); next.className='tutorial-btn primary'; next.textContent='次へ';
+      prev.addEventListener('click', ()=>{ goto(current-1); });
+      next.addEventListener('click', ()=>{ goto(current+1); });
+      nav.appendChild(prev); nav.appendChild(next);
+      bubble.appendChild(t); bubble.appendChild(txt); bubble.appendChild(nav);
+      document.body.appendChild(bubble);
+      return bubble;
+    }
+
+    function positionBubbleNear(targetEl) {
+      const b = createBubble();
+      if (!targetEl) {
+        // 画面下中央
+        b.style.left = (window.innerWidth/2 - 180) + 'px';
+        b.style.top = (window.innerHeight - 120) + 'px';
+        return;
+      }
+      const r = targetEl.getBoundingClientRect();
+      const bw = Math.min(340, window.innerWidth - 32);
+      // 上に置けるか
+      const canAbove = (r.top - 12) > 140;
+      if (canAbove) {
+        b.style.top = (window.scrollY + r.top - 12 - b.offsetHeight) + 'px';
+        b.style.left = Math.max(8, Math.min(window.innerWidth - bw - 8, window.scrollX + r.left + (r.width - bw)/2)) + 'px';
+      } else {
+        b.style.top = Math.max(8, window.scrollY + r.bottom + 12) + 'px';
+        b.style.left = Math.max(8, Math.min(window.innerWidth - bw - 8, window.scrollX + r.left + (r.width - bw)/2)) + 'px';
+      }
+    }
+
+    function showStepBubble(step, targetEl) {
+      ensureOverlay();
+      createBubble();
+      bubble.querySelector('.title').textContent = step.title || '';
+      bubble.querySelector('.text').textContent = step.text || '';
+      bubble.style.display = 'block';
+      // allow interactions with page elements: overlay has pointer-events:none; bubble pointer-events:auto
+      if (targetEl) {
+        positionBubbleNear(targetEl);
+      } else {
+        // fixed bottom-right-ish position
+        bubble.style.left = (window.innerWidth - 380) + 'px';
+        bubble.style.top = (window.innerHeight - 140) + 'px';
+      }
+    }
+
+    function hideBubble() {
+      if (bubble) bubble.style.display = 'none';
+    }
+
+    function goto(idx) {
+      if (idx < 0) idx = 0;
+      if (idx >= steps.length) { endTutorial(); return; }
+      current = idx;
+      ensureOverlay();
+      const step = steps[current];
+      // highlight target if any
+      let targetEl = null;
+      if (step && step.target) {
+        highlightSelector(step.target);
+        try { targetEl = document.querySelector(step.target); } catch(e){ targetEl = null; }
+        // handle :last-of-type fallback
+        if (!targetEl && step.target.endsWith(':last-of-type')) {
+          try {
+            const base = step.target.replace(/:last-of-type$/, '');
+            const list = document.querySelectorAll(base);
+            if (list.length) targetEl = list[list.length-1];
+          } catch(e){}
+        }
+      } else {
+        removeHighlight();
+      }
+
+      // show bubble near target or bottom
+      showStepBubble(step, targetEl);
+
+      // run optional action (e.g., open dropdown / auto-click)
+      if (step && typeof step.action === 'function') {
+        try {
+          setTimeout(() => { try { step.action(); } catch(e){ console.error(e); } }, 300);
+        } catch(e){ console.error(e); }
+      }
+    }
+
+    function endTutorial() {
+      if (overlay) { overlay.remove(); overlay = null; }
+      if (bubble) { bubble.remove(); bubble = null; }
+      removeHighlight();
+    }
+
+    helpBtn.addEventListener('click', ()=>{ if (overlay) { endTutorial(); } else { goto(0); } });
+
+    document.addEventListener('keydown', function(e){
+      if (e.key.toLowerCase() === 't' && e.ctrlKey && e.shiftKey) { e.preventDefault(); goto(0); }
+      if (overlay && bubble) {
+        // Esc closes
+        if (e.key === 'Escape') { endTutorial(); }
+        // Left/Right navigation
+        if (e.key === 'ArrowRight') goto(current+1);
+        if (e.key === 'ArrowLeft') goto(current-1);
+      }
+    });
+
+    // keep bubble positioned on resize/scroll
+    window.addEventListener('resize', function(){
+      if (!bubble) return;
+      const step = steps[current];
+      if (step && step.target) {
+        let targetEl = null;
+        try { targetEl = document.querySelector(step.target); } catch(e){ targetEl = null; }
+        positionBubbleNear(targetEl);
+      } else {
+        bubble.style.left = (window.innerWidth - 380) + 'px';
+        bubble.style.top = (window.innerHeight - 140) + 'px';
+      }
+    });
+
+    window.addEventListener('beforeunload', ()=>{ endTutorial(); });
+
+    window.__quizTutorial = { start: () => goto(0), end: endTutorial, goto };
+
+  })();
   </script>
 
   <!-- ここから追加: PowerPoint風に選択範囲でテキスト入力できる機能 -->

@@ -403,6 +403,11 @@ def system_list(request):
 def system_details(request):
     return render(request, 'system/system_details.html')
 
+# システムチュートリアル画面
+def system_tutorial(request):
+
+    return render(request, 'system/system_tutorial.html')
+
 
 # アルゴリズム選択画面
 def block_choice(request):

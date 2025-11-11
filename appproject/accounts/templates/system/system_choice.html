@@ -137,6 +137,8 @@
       <div class="action-column" role="group" aria-label="システム操作ボタン群">
         <button class="action-btn" id="btn-list">作成したシステム一覧を開く</button>
         <button class="action-btn secondary" id="btn-new">新しいシステムを作成</button>
+        <!-- チュートリアルボタンを追加 -->
+        <button class="action-btn secondary" id="btn-tutorial" aria-label="チュートリアル">チュートリアル</button>
       </div>
 
     </div>
@@ -190,6 +192,16 @@
       btnNew.addEventListener('click', function(e){
         e.preventDefault();
         window.location.href = '/accounts/system/create/';
+      });
+    }
+
+    // 追加: チュートリアルボタンはチュートリアルページへ遷移
+    const btnTutorial = document.getElementById('btn-tutorial');
+    if (btnTutorial) {
+      btnTutorial.addEventListener('click', function(e){
+        e.preventDefault();
+        // チュートリアルページのURLは必要に応じて調整してください
+        window.location.href = '/accounts/system/tutorial/';
       });
     }
   </script>

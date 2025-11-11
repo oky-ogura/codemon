@@ -62,4 +62,5 @@ urlpatterns = [
     path('block/create/', views.block_create, name='block_create'),
     path('block/details/', views.block_details, name='block_details'),
     path('block/list/', views.block_list, name='block_list'),
+    path('system/tutorial/', views.system_tutorial, name='system_tutorial'),
 ]
