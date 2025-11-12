@@ -236,6 +236,11 @@ def student_login(request):
             messages.error(request, 'ユーザー名またはパスワードが間違っています')
     return render(request, 'accounts/s_login.html')
 
+
+def karihome(request):
+    """簡易ビュー: accounts/karihome.html を表示する。テンプレートは既にあるため GET で表示するだけ。"""
+    return render(request, 'accounts/karihome.html')
+
 def user_logout(request):
     # セッション内のアカウント情報を削除してログアウト扱いにする
     for k in ['is_account_authenticated', 'account_user_id', 'account_email', 'account_user_name']:
