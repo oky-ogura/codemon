@@ -555,7 +555,7 @@ def s_account_view(request):
         joined_group = None
 
     # Render template with gathered context (fall back to template defaults if account missing)
-    return render(request, 'accounts/s_account.html', {
+    return render(request, 'accounts/karihome.html', {
         'account': account,
         'first_met': first_met,
         'total_days': total_days_str,
