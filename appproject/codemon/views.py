@@ -29,42 +29,60 @@ else:
 
 
 def _get_write_owner(request):
-	"""Return an Account instance for writes.
-	If user is authenticated, return that Account-like object. If anonymous and
-	ALLOW_ANONYMOUS_VIEWS is True, return or create a dev Account.
-	Otherwise return None.
-	"""
-	if getattr(request, 'user', None) and getattr(request.user, 'is_authenticated', False):
-		return request.user
-	if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
-		acct, _ = Account.objects.get_or_create(
-			email='dev_anonymous@local',
-            # Provide values for non-null DB columns (age may be non-null in DB schema)
+    """Return an Account instance for writes.
+    If user is authenticated, return that Account-like object. If anonymous and
+    ALLOW_ANONYMOUS_VIEWS is True, return or create a dev Account.
+    Otherwise return None.
+    """
+    # If Django auth is present, try to return the linked Account
+    if getattr(request, 'user', None) and getattr(request.user, 'is_authenticated', False):
+        try:
+            acct = Account.objects.get(user=request.user)
+            return acct
+        except Account.DoesNotExist:
+            # fall back to Django user object
+            return request.user
+
+    # Support custom session auth used elsewhere in this project
+    if request.session.get('is_account_authenticated'):
+        _account_user_id = request.session.get('account_user_id')
+        if _account_user_id:
+            try:
+                acct = Account.objects.get(user_id=_account_user_id)
+                return acct
+            except Account.DoesNotExist:
+                return None
+
+    # Dev convenience: return or create a dev anonymous Account
+    if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
+        acct, _ = Account.objects.get_or_create(
+            email='dev_anonymous@local',
             defaults={
                 'user_name': '開発用匿名',
                 'password': 'dev',
                 'account_type': 'dev',
                 'age': 0,
             }
-		)
-		return acct
-	return None
+        )
+        return acct
+
+    return None
 
 
 def systems_list(request):
-	# placeholder: list systems belonging to user
-	systems = []
-	return render(request, 'codemon/systems_list.html', {'systems': systems})
+    # placeholder: list systems belonging to user
+    systems = []
+    return render(request, 'codemon/systems_list.html', {'systems': systems})
 
 
 def algorithms_list(request):
-	algorithms = []
-	return render(request, 'codemon/algorithms_list.html', {'algorithms': algorithms})
+    algorithms = []
+    return render(request, 'codemon/algorithms_list.html', {'algorithms': algorithms})
 
 
 def chat_view(request):
-	# Placeholder chat page; AI integration can be added later
-	return render(request, 'codemon/chat.html')
+    # Placeholder chat page; AI integration can be added later
+    return render(request, 'codemon/chat.html')
 
 
 def thread_list(request):
@@ -354,7 +372,13 @@ def checklist_selection(request):
         # 匿名ユーザーでも動作させる
         checklists = Checklist.objects.all()
     else:
-        checklists = Checklist.objects.filter(user=request.user)
+        owner = _get_write_owner(request)
+        if owner is None:
+            login_url = reverse('accounts:student_login') + '?next=' + request.path
+            messages.error(request, 'チェックリストの閲覧にはログインが必要です')
+            return redirect(login_url)
+        checklists = Checklist.objects.filter(user=owner)
+
     return render(request, 'codemon/checklist_selection.html', {'checklists': checklists})
 
 def checklist_list(request):
@@ -362,7 +386,12 @@ def checklist_list(request):
     if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
         checklists = Checklist.objects.all().order_by('-updated_at')
     else:
-        checklists = Checklist.objects.filter(user=request.user).order_by('-updated_at')
+        owner = _get_write_owner(request)
+        if owner is None:
+            login_url = reverse('accounts:student_login') + '?next=' + request.path
+            messages.error(request, 'チェックリストの閲覧にはログインが必要です')
+            return redirect(login_url)
+        checklists = Checklist.objects.filter(user=owner).order_by('-updated_at')
     return render(request, 'codemon/checklist_list.html', {'checklists': checklists})
 
 def checklist_create(request):
@@ -399,7 +428,12 @@ def checklist_detail(request, pk):
 	if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
 		cl = get_object_or_404(Checklist, checklist_id=pk)
 	else:
-		cl = get_object_or_404(Checklist, checklist_id=pk, user=request.user)
+		owner = _get_write_owner(request)
+		if owner is None:
+			login_url = reverse('accounts:student_login') + '?next=' + request.path
+			messages.error(request, 'チェックリストの閲覧にはログインが必要です')
+			return redirect(login_url)
+		cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
 	if request.method == 'POST':
 		# new item
 		text = request.POST.get('item_text')
@@ -415,7 +449,12 @@ def checklist_toggle_item(request, pk, item_id):
 	if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
 		cl = get_object_or_404(Checklist, checklist_id=pk)
 	else:
-		cl = get_object_or_404(Checklist, checklist_id=pk, user=request.user)
+		owner = _get_write_owner(request)
+		if owner is None:
+			login_url = reverse('accounts:student_login') + '?next=' + request.path
+			messages.error(request, 'チェックリストの操作にはログインが必要です')
+			return redirect(login_url)
+		cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
 	item = get_object_or_404(ChecklistItem, checklist=cl, checklist_item_id=item_id)
 	item.is_done = not item.is_done
 	item.save()
@@ -423,11 +462,16 @@ def checklist_toggle_item(request, pk, item_id):
 
 
 def checklist_edit(request, pk):
-    if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
-        cl = get_object_or_404(Checklist, checklist_id=pk)
-    else:
-        cl = get_object_or_404(Checklist, checklist_id=pk, user=request.user)
-    return render(request, 'codemon/checklist_edit.html', {'checklist': cl})
+	if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
+		cl = get_object_or_404(Checklist, checklist_id=pk)
+	else:
+		owner = _get_write_owner(request)
+		if owner is None:
+			login_url = reverse('accounts:student_login') + '?next=' + request.path
+			messages.error(request, 'チェックリストの編集にはログインが必要です')
+			return redirect(login_url)
+		cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
+	return render(request, 'codemon/checklist_edit.html', {'checklist': cl})
 
 def checklist_save(request, pk):
     checklist = get_object_or_404(Checklist, checklist_id=pk)
@@ -477,26 +521,36 @@ def checklist_delete_confirm(request, pk):
 	if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
 		cl = get_object_or_404(Checklist, checklist_id=pk)
 	else:
-		cl = get_object_or_404(Checklist, checklist_id=pk, user=request.user)
+		owner = _get_write_owner(request)
+		if owner is None:
+			login_url = reverse('accounts:student_login') + '?next=' + request.path
+			messages.error(request, 'チェックリストの削除にはログインが必要です')
+			return redirect(login_url)
+		cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
 	return render(request, 'codemon/checklist_delete_confirm.html', {'checklist': cl})
 
 
 def checklist_delete(request, pk):
-    if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
-        cl = get_object_or_404(Checklist, checklist_id=pk)
-    else:
-        cl = get_object_or_404(Checklist, checklist_id=pk, user=request.user)
+	if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
+		cl = get_object_or_404(Checklist, checklist_id=pk)
+	else:
+		owner = _get_write_owner(request)
+		if owner is None:
+			login_url = reverse('accounts:student_login') + '?next=' + request.path
+			messages.error(request, 'チェックリストの削除にはログインが必要です')
+			return redirect(login_url)
+		cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
 
-    if request.method == 'POST':
-        checklist_name = cl.checklist_name
-        items_count = cl.items.count()
-        cl.delete()
-        messages.success(request,
-            f'チェックリスト「{checklist_name}」と{items_count}個の項目が削除されました。')
-        return render(request, 'codemon/checklist_delete_complete.html',
-            {'deleted_name': checklist_name, 'deleted_items_count': items_count})
+	if request.method == 'POST':
+		checklist_name = cl.checklist_name
+		items_count = cl.items.count()
+		cl.delete()
+		messages.success(request,
+			f'チェックリスト「{checklist_name}」と{items_count}個の項目が削除されました。')
+		return render(request, 'codemon/checklist_delete_complete.html',
+			{'deleted_name': checklist_name, 'deleted_items_count': items_count})
 
-    return redirect('codemon:checklist_delete_confirm', pk=pk)
+	return redirect('codemon:checklist_delete_confirm', pk=pk)
 
 
 @require_POST
@@ -909,7 +963,7 @@ if not getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
     # caused import-time NameError in some environments.
     _to_wrap = [
         'systems_list', 'algorithms_list', 'chat_view',
-        'checklist_selection', 'checklist_create', 'checklist_detail',
+        'checklist_create', 'checklist_detail',
         'checklist_toggle_item', 'checklist_save', 'checklist_delete_confirm',
         'checklist_delete', 'score_thread', 'get_thread_readers',
         # group management related
