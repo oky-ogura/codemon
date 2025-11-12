@@ -61,6 +61,7 @@ urlpatterns = [
     path('groups/menu/', views.group_menu, name='group_menu'),
     path('s_account/', views.s_account_view, name='s_account'),
     path('account_entry/', views.account_entry, name='account_entry'),
+     path('karihome/', views.karihome, name='karihome'),
     path('block/choice/', views.block_choice, name='block_choice'),
     path('block/create/', views.block_create, name='block_create'),
     path('block/details/', views.block_details, name='block_details'),
