@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.forms import SetPasswordForm
 from django.contrib.auth.hashers import check_password
-from .models import Account
+from .models import Account, Group, GroupMember
 from django.conf import settings
 from django import forms
 from django.shortcuts import get_object_or_404
@@ -18,7 +18,23 @@ from django.core import signing
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from django.contrib.auth.hashers import make_password
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, FileResponse, HttpResponseForbidden
+# helper from codemon app to resolve the effective Account-like owner for write operations
+try:
+    from codemon.views import _get_write_owner
+except Exception:
+    # If import fails (circular import in some contexts), define a fallback that mimics codemon._get_write_owner
+    def _get_write_owner(request):
+        # Prefer session-based Account, fall back to request.user if authenticated, else None
+        try:
+            uid = request.session.get('account_user_id')
+            if uid:
+                return Account.objects.filter(user_id=uid).first()
+        except Exception:
+            pass
+        if getattr(request, 'user', None) and getattr(request.user, 'is_authenticated', False):
+            return request.user
+        return None
 
 from django.db import connection
 from django.utils import timezone
@@ -37,9 +53,9 @@ class MyPasswordResetView(auth_views.PasswordResetView):
         context = super().get_context_data(**kwargs)
         referer = self.request.META.get('HTTP_REFERER', '')
         if 'teacher_login' in referer:
-            back = reverse('teacher_login')
+            back = reverse('accounts:teacher_login')
         else:
-            back = reverse('student_login')
+            back = reverse('accounts:student_login')
         context['back_url'] = back
         return context
 
@@ -301,7 +317,7 @@ def ai_initial_settings(request):
 def ai_initial_confirm(request):
     """受け取ったフォーム入力を保存せずに確認表示するビュー"""
     if request.method != 'POST':
-        return redirect('ai_initial')
+        return redirect('accounts:ai_initial')
 
     ai_name = request.POST.get('ai_name', '')
     ai_personality = request.POST.get('ai_personality', '')
@@ -441,9 +457,15 @@ def account_view(request):
     try:
         acc = get_logged_account(request)
         if acc:
-            if acc.account_type == 'teacher':
-                return render(request, 'accounts/t_account.html', {'account': acc})
-            return render(request, 'accounts/s_account.html', {'account': acc})
+            # Delegate to account_entry which builds full context (groups, dates, etc.)
+            # so that templates receive the same data structure and groups are shown.
+            try:
+                return account_entry(request)
+            except Exception:
+                # Fallback to rendering minimal templates if delegation fails
+                if acc.account_type == 'teacher':
+                    return render(request, 'accounts/t_account.html', {'account': acc})
+                return render(request, 'accounts/s_account.html', {'account': acc})
     except Exception:
         pass
 
@@ -453,7 +475,92 @@ def account_view(request):
 
 def s_account_view(request):
     """生徒アカウント専用ビュー（テンプレートが存在するため簡易に実装）"""
-    return render(request, 'accounts/s_account.html')
+    # Try to resolve the account for the current session/user
+    account = None
+    user_id = request.session.get('account_user_id')
+    email = request.session.get('account_email') or (getattr(request.user, 'email', None) if getattr(request.user, 'is_authenticated', False) else None)
+
+    try:
+        with connection.cursor() as cursor:
+            if user_id:
+                cursor.execute(
+                    "SELECT user_id, user_name, email, account_type, age, group_id, created_at "
+                    "FROM account WHERE user_id = %s",
+                    [user_id]
+                )
+            elif email:
+                cursor.execute(
+                    "SELECT user_id, user_name, email, account_type, age, group_id, created_at "
+                    "FROM account WHERE email = %s",
+                    [email]
+                )
+            else:
+                cursor = None
+
+            if cursor:
+                row = cursor.fetchone()
+                if row:
+                    account = {
+                        'user_id': row[0],
+                        'user_name': row[1],
+                        'email': row[2],
+                        'account_type': row[3],
+                        'age': row[4],
+                        'group_id': row[5],
+                        'created_at': row[6],
+                    }
+    except Exception:
+        account = None
+
+    # Prepare fallback display values
+    first_met = None
+    total_days_str = '0日'
+    if account and account.get('created_at'):
+        try:
+            now = timezone.now()
+            delta = now - account.get('created_at')
+            days = max(delta.days, 0)
+            first_met = account.get('created_at')
+            total_days_str = f"{days}日"
+        except Exception:
+            first_met = account.get('created_at')
+            total_days_str = '0日'
+
+    # Get joined group info if available
+    joined_group = None
+    try:
+        gid = account.get('group_id') if account else None
+        if gid:
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT group_id, group_name, user_id FROM "group" WHERE group_id = %s', [gid])
+                g = cursor.fetchone()
+                if g:
+                    creator_name = ''
+                    try:
+                        with connection.cursor() as c2:
+                            c2.execute('SELECT user_name FROM account WHERE user_id = %s', [g[2]])
+                            r = c2.fetchone()
+                            if r:
+                                creator_name = r[0]
+                    except Exception:
+                        creator_name = ''
+                    # Try to build a URL to codemon:group_detail if that URL name exists
+                    detail_url = None
+                    try:
+                        detail_url = reverse('codemon:group_detail', args=[g[0]])
+                    except Exception:
+                        detail_url = None
+                    joined_group = {'group_id': g[0], 'group_name': g[1], 'creator_name': creator_name, 'detail_url': detail_url}
+    except Exception:
+        joined_group = None
+
+    # Render template with gathered context (fall back to template defaults if account missing)
+    return render(request, 'accounts/s_account.html', {
+        'account': account,
+        'first_met': first_met,
+        'total_days': total_days_str,
+        'joined_group': joined_group,
+    })
 
 
 def group_create(request):
@@ -469,11 +576,11 @@ def group_create(request):
 
         if not group_name:
             messages.error(request, 'グループ名を入力してください。')
-            return redirect('group_create')
+            return redirect('accounts:group_create')
 
         if not user_id:
             messages.error(request, 'ユーザーが特定できません。ログインしてください。')
-            return redirect('student_login')
+            return redirect('accounts:student_login')
 
         # パスワードはハッシュ化して保存（空可）
         hashed = make_password(group_password) if group_password else ''
@@ -500,14 +607,16 @@ def group_create(request):
 
         except Exception as e:
             messages.error(request, f'グループ作成に失敗しました: {e}')
-            return redirect('group_create')
+            return redirect('accounts:group_create')
 
         messages.success(request, 'グループを作成しました。')
         # 存在すれば group_detail に飛ばす（なければアカウントページへ）
         try:
-            return redirect('group_detail', group_id=group_id)
+            # Try to redirect to codemon's group_detail if it exists
+            return redirect('codemon:group_detail', group_id=group_id)
         except Exception:
-            return redirect('account_entry')
+            # Fallback to accounts' account_entry
+            return redirect('accounts:account_entry')
 
     # GET の場合は作成ページを表示
     return render(request, 'group/create_group.html', {})
@@ -544,16 +653,112 @@ def group_join_confirm(request):
             return render(request, 'accounts/karihome.html', {})
         else:
             # 未ログイン等は生徒ログインへ誘導
-            return redirect('student_login')
+            return redirect('accounts:student_login')
 
     # POST 処理（join/cancel）
     action = request.POST.get('action')
     if action == 'join':
-        # ここで実際に group_member に追加する処理を入れてください。
-        # 簡易的にグループメニューを表示します。
-        return render(request, 'group/group_menu.html', {})
-    else:
-        return redirect('account_entry')
+        # 「はい」ボタン → グループ選択（検索）ページへ遷移
+        return render(request, 'group/group_select.html', {})
+
+    if action == 'search':
+        # グループ検索フォームからの POST を受け取る（簡易実装）
+        group_name = (request.POST.get('group_name') or '').strip()
+        group_password = (request.POST.get('group_password') or '').strip()
+        if not group_name:
+            messages.error(request, 'グループ名を入力してください。')
+            return render(request, 'group/group_select.html', {})
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT group_id, password, user_id FROM "group" WHERE group_name = %s', [group_name])
+                row = cursor.fetchone()
+                if not row:
+                    messages.error(request, '該当するグループが見つかりません。')
+                    return render(request, 'group/group_select.html', {})
+
+                found_group_id, stored_hashed, creator_user_id = row[0], row[1] or '', row[2]
+                # パスワードの照合:
+                # - stored_hashed が空文字の場合は入力パスワードも空であることを要求する
+                # - stored_hashed がある場合は check_password で検証する
+                if not stored_hashed:
+                    if group_password != '':
+                        messages.error(request, 'パスワードが違います。')
+                        return render(request, 'group/group_select.html', {})
+                else:
+                    if not check_password(group_password, stored_hashed):
+                        messages.error(request, 'パスワードが違います。')
+                        return render(request, 'group/group_select.html', {})
+
+                # 検索成功 → 確認ページへ遷移して内容を表示（ここでまだ group_member には入れない）
+                creator_name = ''
+                try:
+                    with connection.cursor() as c2:
+                        c2.execute('SELECT user_name FROM account WHERE user_id = %s', [creator_user_id])
+                        r2 = c2.fetchone()
+                        if r2:
+                            creator_name = r2[0]
+                except Exception:
+                    creator_name = ''
+
+                return render(request, 'group/group_check.html', {
+                    'group_id': found_group_id,
+                    'group_name': group_name,
+                    'creator_name': creator_name,
+                })
+
+        except Exception as e:
+            messages.error(request, f'グループ検索でエラーが発生しました: {e}')
+            return render(request, 'group/group_select.html', {})
+
+    if action == 'back':
+        # 確認画面の戻る → 検索画面へ
+        return render(request, 'group/group_select.html', {})
+
+    if action == 'confirm_join':
+        # 確認画面で加入を押した場合に実際に group_member に登録する
+        try:
+            found_group_id = int(request.POST.get('group_id'))
+        except Exception:
+            messages.error(request, 'グループ情報が不正です。')
+            return redirect('accounts:account_entry')
+
+        user_id = request.session.get('account_user_id') or (request.user.id if getattr(request.user, 'is_authenticated', False) else None)
+        if user_id is None:
+            messages.error(request, 'ログイン情報がありません。')
+            return redirect('accounts:student_login')
+
+        try:
+            with connection.cursor() as cursor:
+                # 重複チェックして挿入
+                cursor.execute('SELECT 1 FROM group_member WHERE group_id=%s AND member_user_id=%s', [found_group_id, user_id])
+                if not cursor.fetchone():
+                    cursor.execute('INSERT INTO group_member (group_id, member_user_id, role) VALUES (%s, %s, %s)', [found_group_id, user_id, 'member'])
+                # account テーブルの group_id を更新する
+                try:
+                    cursor.execute('UPDATE account SET group_id = %s WHERE user_id = %s', [found_group_id, user_id])
+                except Exception:
+                    # 更新失敗でも続行
+                    pass
+        except Exception:
+            # 挿入失敗でも続行
+            pass
+
+        # セッション側に group_id を入れておく（UI で参照するケースに備えて）
+        try:
+            request.session['account_group_id'] = found_group_id
+            request.session.modified = True
+        except Exception:
+            pass
+
+        messages.success(request, 'グループに参加しました。')
+        try:
+            return redirect('accounts:group_detail', group_id=found_group_id)
+        except Exception:
+            return redirect('accounts:account_entry')
+
+    # デフォルト: キャンセル等はアカウント画面へ
+    return redirect('accounts:account_entry')
 
 
 # ...existing code...
@@ -663,7 +868,7 @@ def account_entry(request):
     email = request.session.get('account_email') or (getattr(request.user, 'email', None) if getattr(request.user, 'is_authenticated', False) else None)
 
     if not user_id and not email:
-        return redirect('student_login')
+        return redirect('accounts:student_login')
 
     with connection.cursor() as cursor:
         if user_id:
@@ -768,7 +973,66 @@ def account_entry(request):
         'current_user_id': current_user_id,
     }
 
+    # 参加グループ情報を account.group_id から取得して context に含める
+    joined_group = None
+    try:
+        gid = account.get('group_id')
+        if gid:
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT group_id, group_name, user_id FROM "group" WHERE group_id = %s', [gid])
+                g = cursor.fetchone()
+                if g:
+                    creator_name = ''
+                    try:
+                        with connection.cursor() as c2:
+                            c2.execute('SELECT user_name FROM account WHERE user_id = %s', [g[2]])
+                            r = c2.fetchone()
+                            if r:
+                                creator_name = r[0]
+                    except Exception:
+                        creator_name = ''
+                    joined_group = {'group_id': g[0], 'group_name': g[1], 'creator_name': creator_name}
+    except Exception:
+        joined_group = None
+
+    context['joined_group'] = joined_group
+
     if account.get('account_type') == 'teacher':
         return render(request, 'accounts/t_account.html', context)
     else:
         return render(request, 'accounts/s_account.html', context)
+    
+def group_detail(request, group_id):
+    """グループ詳細。メンバー一覧、スレッド一覧を表示。"""
+    owner = _get_write_owner(request)
+    if owner is None:
+        messages.error(request, 'ログインが必要です')
+        return redirect('accounts:student_login')
+
+    # グループと権限のチェック
+    group = get_object_or_404(Group, group_id=group_id, is_active=True)
+    try:
+        membership = GroupMember.objects.get(
+            group=group,
+            member=owner,
+            is_active=True
+        )
+    except GroupMember.DoesNotExist:
+        return HttpResponseForbidden('このグループにアクセスする権限がありません')
+
+    # グループメンバー一覧を取得
+    members = GroupMember.objects.filter(
+        group=group,
+        is_active=True
+    ).select_related('member')
+
+    # グループに関連するスレッドを取得（後で実装）
+    threads = []  # ChatThread.objects.filter(group=group).order_by('-created_at')
+
+    return render(request, 'codemon/group_detail.html', {
+        'group': group,
+        'membership': membership,
+        'members': members,
+        'threads': threads,
+        'is_teacher': owner.type == 'teacher'
+    })

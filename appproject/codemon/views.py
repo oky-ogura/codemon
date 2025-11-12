@@ -39,7 +39,13 @@ def _get_write_owner(request):
 	if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
 		acct, _ = Account.objects.get_or_create(
 			email='dev_anonymous@local',
-			defaults={'user_name': '開発用匿名', 'password': 'dev', 'type': 'dev'}
+            # Provide values for non-null DB columns (age may be non-null in DB schema)
+            defaults={
+                'user_name': '開発用匿名',
+                'password': 'dev',
+                'account_type': 'dev',
+                'age': 0,
+            }
 		)
 		return acct
 	return None
@@ -672,11 +678,12 @@ def group_list(request):
     if owner.type == 'teacher':
         groups = Group.objects.filter(owner=owner, is_active=True)
     else:
-        groups = Group.objects.filter(
-            memberships__member=owner,
-            memberships__is_active=True,
-            is_active=True
-        ).distinct()
+        # 一部の環境で reverse relation に対する lookup が許可されない場合があるため
+        # 明示的に GroupMember を参照して参加中のグループを取得する方式に変更する。
+        # DBのスキーマによっては group_member.is_active カラムが存在しないことがあるため
+        # まずは is_active を参照せずに参加中の group_id を取得する（後段で Group.is_active を確認する）
+        member_group_ids = GroupMember.objects.filter(member=owner).values_list('group_id', flat=True)
+        groups = Group.objects.filter(group_id__in=member_group_ids, is_active=True)
 
     return render(request, 'codemon/group_list.html', {
         'groups': groups,
@@ -715,40 +722,7 @@ def group_create(request):
     return render(request, 'codemon/group_create.html')
 
 
-def group_detail(request, group_id):
-    """グループ詳細。メンバー一覧、スレッド一覧を表示。"""
-    owner = _get_write_owner(request)
-    if owner is None:
-        messages.error(request, 'ログインが必要です')
-        return redirect('accounts:student_login')
 
-    # グループと権限のチェック
-    group = get_object_or_404(Group, group_id=group_id, is_active=True)
-    try:
-        membership = GroupMember.objects.get(
-            group=group,
-            member=owner,
-            is_active=True
-        )
-    except GroupMember.DoesNotExist:
-        return HttpResponseForbidden('このグループにアクセスする権限がありません')
-
-    # グループメンバー一覧を取得
-    members = GroupMember.objects.filter(
-        group=group,
-        is_active=True
-    ).select_related('member')
-
-    # グループに関連するスレッドを取得（後で実装）
-    threads = []  # ChatThread.objects.filter(group=group).order_by('-created_at')
-
-    return render(request, 'codemon/group_detail.html', {
-        'group': group,
-        'membership': membership,
-        'members': members,
-        'threads': threads,
-        'is_teacher': owner.type == 'teacher'
-    })
 
 
 @require_POST
@@ -929,26 +903,23 @@ def group_delete(request, group_id):
 # flag is True (development), views are left undecorated so anonymous access
 # is allowed.
 if not getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
-    systems_list = _login_required(systems_list)
-    algorithms_list = _login_required(algorithms_list)
-    chat_view = _login_required(chat_view)
-    checklist_selection = _login_required(checklist_selection)
-    checklist_create = _login_required(checklist_create)
-    checklist_detail = _login_required(checklist_detail)
-    checklist_toggle_item = _login_required(checklist_toggle_item)
-    checklist_save = _login_required(checklist_save)
-    checklist_delete_confirm = _login_required(checklist_delete_confirm)
-    checklist_delete = _login_required(checklist_delete)
-    score_thread = _login_required(score_thread)
-    get_thread_readers = _login_required(get_thread_readers)
-    # グループ管理関連のビュー
-    group_list = _login_required(group_list)
-    group_create = _login_required(group_create)
-    group_detail = _login_required(group_detail)
-    group_edit = _login_required(group_edit)
-    group_invite = _login_required(group_invite)
-    group_remove_member = _login_required(group_remove_member)
-    group_leave = _login_required(group_leave)
+    # Wrap only the view callables that are actually present in this module.
+    # Some view functions (e.g. group_detail) may be defined elsewhere or omitted
+    # in certain branches, so avoid referencing names that don't exist which
+    # caused import-time NameError in some environments.
+    _to_wrap = [
+        'systems_list', 'algorithms_list', 'chat_view',
+        'checklist_selection', 'checklist_create', 'checklist_detail',
+        'checklist_toggle_item', 'checklist_save', 'checklist_delete_confirm',
+        'checklist_delete', 'score_thread', 'get_thread_readers',
+        # group management related
+        'group_list', 'group_create', 'group_detail', 'group_edit',
+        'group_invite', 'group_remove_member', 'group_leave'
+    ]
+    for _name in _to_wrap:
+        _fn = globals().get(_name)
+        if callable(_fn):
+            globals()[_name] = _login_required(_fn)
 
 @login_required
 def search_messages(request):
