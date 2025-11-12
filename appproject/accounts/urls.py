@@ -2,10 +2,11 @@ from django.urls import path
 from django.views.generic import RedirectView
 from . import views
 from django.contrib.auth import views as auth_views
-
+app_name = 'accounts'  # アプリケーション名前空間を追加 
 urlpatterns = [
     # Redirect the accounts root to the student login page
     path('', RedirectView.as_view(url='student_login/', permanent=False), name='accounts_root'),
+    
     path('teacher_login/', views.teacher_login, name='teacher_login'),
     path('teacher_signup/', views.teacher_signup, name='teacher_signup'),
     path('student_login/', views.student_login, name='student_login'),
@@ -15,6 +16,8 @@ urlpatterns = [
     path('ai_initial/confirm/', views.ai_initial_confirm, name='ai_initial_confirm'),
     path('ai_initial/save/', views.ai_initial_save, name='ai_initial_save'),
     path('logout/', views.user_logout, name='logout'),
+    
+
 
     # Password reset (send email) - use Django's built-in class-based view
     path('password_reset/',
@@ -63,4 +66,6 @@ urlpatterns = [
     path('block/details/', views.block_details, name='block_details'),
     path('block/list/', views.block_list, name='block_list'),
     path('system/tutorial/', views.system_tutorial, name='system_tutorial'),
+    
 ]
+

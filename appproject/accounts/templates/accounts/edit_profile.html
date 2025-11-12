@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="mb-0">プロフィール編集</h2>
+        </div>
+        <div class="card-body">
+          <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="form-group mb-4">
+              {{ form.user_name.label_tag }}
+              {{ form.user_name|addclass:'form-control' }}
+              {% if form.user_name.errors %}
+              <div class="alert alert-danger mt-2">
+                {{ form.user_name.errors }}
+              </div>
+              {% endif %}
+            </div>
+
+            <div class="form-group mb-4">
+              <label class="d-block">アバター画像</label>
+              
+              <div class="avatar-section mb-3">
+                {% if user.avatar %}
+                <div class="current-avatar text-center p-3">
+                  <div class="avatar-preview mb-2">
+                    <img src="{{ user.avatar.url }}" 
+                         alt="{{ user.user_name }}のアバター" 
+                         class="rounded-circle shadow"
+                         style="width: 150px; height: 150px; object-fit: cover;">
+                  </div>
+                  <button type="button" 
+                          class="btn btn-outline-danger btn-sm"
+                          onclick="document.getElementById('delete-avatar').value = 'true';">
+                    アバターを削除
+                  </button>
+                  <input type="hidden" name="delete_avatar" id="delete-avatar" value="false">
+                </div>
+                {% else %}
+                <div class="text-center p-3">
+                  <div class="avatar-placeholder mb-2 mx-auto"
+                       style="width: 150px; height: 150px; background: #f8f9fa; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                    <span style="font-size: 48px; color: #adb5bd;">{{ user.user_name|first|upper }}</span>
+                  </div>
+                </div>
+                {% endif %}
+
+                <div class="custom-file">
+                  {{ form.avatar }}
+                  <label class="custom-file-label" for="{{ form.avatar.id_for_label }}">
+                    画像を選択...
+                  </label>
+                </div>
+
+                <div id="preview-container" class="mt-3" style="display: none;">
+                  <h6>プレビュー</h6>
+                  <div class="text-center">
+                    <img id="avatar-preview" 
+                         class="rounded-circle shadow"
+                         style="width: 150px; height: 150px; object-fit: cover;">
+                  </div>
+                  <div class="alert alert-danger mt-2" id="preview-error" style="display: none;">
+                  </div>
+                </div>
+                
+                {% if form.avatar.errors %}
+                <div class="alert alert-danger mt-2">
+                  {{ form.avatar.errors }}
+                </div>
+                {% endif %}
+                
+                <small class="form-text text-muted">
+                  推奨: JPG, PNG形式、1MB以下、正方形の画像
+                </small>
+              </div>
+            </div>
+
+            <div class="form-group text-center">
+              <button type="submit" class="btn btn-primary px-4">更新</button>
+              <a href="{% url 'codemon:chat' %}" class="btn btn-secondary px-4 ml-2">キャンセル</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.custom-file-label::after {
+  content: "参照";
+}
+</style>
+
+<script>
+// ファイル選択時の処理
+document.querySelector('input[type="file"]').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  const fileName = file?.name || '画像を選択...';
+  document.querySelector('.custom-file-label').textContent = fileName;
+  
+  // プレビューの処理
+  if (file) {
+    const previewContainer = document.getElementById('preview-container');
+    const preview = document.getElementById('avatar-preview');
+    const errorDiv = document.getElementById('preview-error');
+    
+    // ファイルサイズチェック
+    if (file.size > 1024 * 1024) {
+      errorDiv.textContent = '画像サイズは1MB以下にしてください';
+      errorDiv.style.display = 'block';
+      previewContainer.style.display = 'block';
+      preview.style.display = 'none';
+      return;
+    }
+    
+    // 画像フォーマットチェック
+    if (!file.type.match(/^image\/(jpeg|png)$/)) {
+      errorDiv.textContent = 'JPEGまたはPNG形式の画像をアップロードしてください';
+      errorDiv.style.display = 'block';
+      previewContainer.style.display = 'block';
+      preview.style.display = 'none';
+      return;
+    }
+    
+    // プレビュー表示
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      preview.src = e.target.result;
+      preview.style.display = 'block';
+      errorDiv.style.display = 'none';
+      previewContainer.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  } else {
+    document.getElementById('preview-container').style.display = 'none';
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container my-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>投函ボックス（スレッド）一覧</h2>
+    {% if is_teacher %}
+      <a class="btn btn-primary" href="{% url 'codemon:thread_create' %}">新規作成</a>
+    {% endif %}
+  </div>
+
+  {% if threads %}
+    <div class="list-group">
+      {% for t in threads %}
+        <a href="{% url 'codemon:thread_detail' thread_id=t.thread_id %}" class="list-group-item list-group-item-action">
+          <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1">{{ t.title }}</h5>
+            <small class="text-muted">{{ t.created_at|date:"Y/m/d H:i" }}</small>
+          </div>
+          {% if t.description %}
+            <p class="mb-1 text-muted">{{ t.description|truncatechars:120 }}</p>
+          {% endif %}
+          {% if t.group %}
+            <small>グループ: {{ t.group.group_name }}</small>
+          {% endif %}
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-muted">スレッドはまだありません。</p>
+  {% endif %}
+</div>
+{% endblock %}
