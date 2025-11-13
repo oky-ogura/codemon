@@ -140,7 +140,7 @@ def thread_detail(request, thread_id):
     # アクセス権: 教師は作成者、学生はグループメンバーであること
     if getattr(owner, 'type', '') != 'teacher':
         if thread.group:
-            if not GroupMember.objects.filter(group=thread.group, member=owner, is_active=True).exists():
+            if not GroupMember.objects.filter(group=thread.group, member=owner).exists():
                 return HttpResponseForbidden('このスレッドにアクセスする権限がありません')
 
     messages_qs = thread.messages.filter(is_deleted=False).select_related('sender').order_by('created_at')
@@ -680,7 +680,7 @@ def download_attachment(request, attachment_id):
 
     if thread.group:
         # グループに所属している必要がある
-        if not GroupMember.objects.filter(group=thread.group, member=owner, is_active=True).exists():
+        if not GroupMember.objects.filter(group=thread.group, member=owner).exists():
             return HttpResponseForbidden('このファイルにアクセスする権限がありません')
     elif owner.type != 'teacher' and thread.created_by != owner:
         # グループなしの場合、教師か作成者のみアクセス可能
@@ -780,105 +780,6 @@ def group_create(request):
 
 
 @require_POST
-def group_invite(request, group_id):
-    """グループにメンバーを招待（教師のみ）"""
-    owner = _get_write_owner(request)
-    if owner is None or owner.type != 'teacher':
-        return HttpResponseForbidden('教師権限が必要です')
-
-    group = get_object_or_404(Group, group_id=group_id, is_active=True)
-    if group.owner != owner:
-        return HttpResponseForbidden('グループのオーナーのみメンバーを招待できます')
-
-    # メールアドレスまたはユーザーIDで招待
-    identifier = request.POST.get('identifier', '').strip()
-    role = request.POST.get('role', 'student')
-    
-    if not identifier:
-        return JsonResponse({'error': 'メールアドレスまたはユーザーIDを入力してください'}, status=400)
-
-    try:
-        # メールアドレスかユーザーIDで検索
-        if '@' in identifier:
-            member = Account.objects.get(email=identifier)
-        else:
-            member = Account.objects.get(user_id=identifier)
-
-        # 既存メンバーシップの確認
-        membership, created = GroupMember.objects.get_or_create(
-            group=group,
-            member=member,
-            defaults={'role': role, 'is_active': True}
-        )
-
-        if not created and not membership.is_active:
-            # 非アクティブなメンバーシップを再アクティブ化
-            membership.is_active = True
-            membership.role = role
-            membership.save()
-            return JsonResponse({
-                'status': 'ok',
-                'message': f'{member.user_name}をグループに再招待しました'
-            })
-        elif not created:
-            return JsonResponse({
-                'error': f'{member.user_name}は既にグループのメンバーです'
-            }, status=400)
-
-        return JsonResponse({
-            'status': 'ok',
-            'message': f'{member.user_name}をグループに招待しました',
-            'member': {
-                'id': member.user_id,
-                'name': member.user_name,
-                'role': role
-            }
-        })
-
-    except Account.DoesNotExist:
-        return JsonResponse({
-            'error': '指定されたユーザーが見つかりません'
-        }, status=404)
-
-
-@require_POST
-def group_remove_member(request, group_id, member_id):
-    """グループからメンバーを削除（教師のみ）"""
-    owner = _get_write_owner(request)
-    if owner is None or owner.type != 'teacher':
-        return HttpResponseForbidden('教師権限が必要です')
-
-    group = get_object_or_404(Group, group_id=group_id, is_active=True)
-    if group.owner != owner:
-        return HttpResponseForbidden('グループのオーナーのみメンバーを削除できます')
-
-    try:
-        membership = GroupMember.objects.get(
-            group=group,
-            member_id=member_id,
-            is_active=True
-        )
-        if membership.member == group.owner:
-            return JsonResponse({
-                'error': 'グループのオーナーは削除できません'
-            }, status=400)
-
-        # 論理削除
-        membership.is_active = False
-        membership.save()
-
-        return JsonResponse({
-            'status': 'ok',
-            'message': f'{membership.member.user_name}をグループから削除しました'
-        })
-
-    except GroupMember.DoesNotExist:
-        return JsonResponse({
-            'error': '指定されたメンバーが見つかりません'
-        }, status=404)
-
-
-@require_POST
 def group_leave(request, group_id):
     """グループから脱退（オーナー以外）"""
     owner = _get_write_owner(request)
@@ -890,14 +791,9 @@ def group_leave(request, group_id):
         return HttpResponseForbidden('グループのオーナーは脱退できません')
 
     try:
-        membership = GroupMember.objects.get(
-            group=group,
-            member=owner,
-            is_active=True
-        )
-        # 論理削除
-        membership.is_active = False
-        membership.save()
+        membership = GroupMember.objects.get(group=group, member=owner)
+        # 実運用上は is_active カラムが存在しない環境もあるため、削除して対応
+        membership.delete()
 
         messages.success(request, f'グループ「{group.group_name}」から脱退しました')
         return redirect('codemon:group_list')
@@ -945,8 +841,8 @@ def group_delete(request, group_id):
     group.is_active = False
     group.save()
 
-    # メンバーシップも非アクティブ化
-    GroupMember.objects.filter(group=group).update(is_active=False)
+    # メンバーシップも削除（is_active カラムがない環境に対応）
+    GroupMember.objects.filter(group=group).delete()
 
     messages.success(request, f'グループ「{group.group_name}」を削除しました')
     return redirect('codemon:group_list')

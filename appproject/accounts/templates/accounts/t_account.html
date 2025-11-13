@@ -78,7 +78,7 @@
                     <div class="logout-area">
                         <form id="logout-form" method="post" action="{% url 'accounts:logout' %}">
                             {% csrf_token %}
-                            <button type="submit" class="btn logout">ログアウト</button>
+                            <button type="button" id="logout-btn" class="btn logout">ログアウト</button>
                         </form>
                     </div>
                 </div>
@@ -98,17 +98,20 @@
                 </table>
 
                 <div class="groups">
-                    <div style="font-weight:700; color:#444;">グループ</div>
-
+                    <div class="groups-header" style="display:flex; align-items:center; justify-content:space-between;">
+                        <div style="font-weight:700; color:#444;">グループ</div>
+                        <div class="groups-actions" style="margin-left:12px;">
+                            <a class="btn" href="{% url 'accounts:group_create' %}">新規作成</a>
+                        </div>
+                    </div>
                         {% if groups %}
                             {% for g in groups %}
                                 <div class="group-row">
                                     <div class="group-name">{{ g.name }}</div>
                                     <div class="group-meta">{{ g.member_count }}人</div>
-                                    <a class="btn detail" href="{% url 'group_detail' g.group_id %}">詳細ボタン</a>
-                                    <form method="post" action="{% url 'group_delete' g.group_id %}" style="display:inline">
-                                        {% csrf_token %}
-                                        <button class="btn del">削除ボタン</button>
+                                    <a class="btn detail" href="{% url 'accounts:group_menu' g.group_id %}">詳細</a>
+                                    <form method="get" action="{% url 'accounts:group_delete_confirm' g.group_id %}" style="display:inline">
+                                        <button type="submit" class="btn del">削除</button>
                                     </form>
                                 </div>
                             {% endfor %}
@@ -116,15 +119,39 @@
                             <div style="padding:10px 6px; color:#666;">グループはありません</div>
                         {% endif %}
 
-                        <div style="margin-top:8px;">
-                            <a class="btn" href="{% url 'accounts:group_create' %}">新規作成</a>
-                        </div>
+                        
                         
                     </div>
 
                 </div>
 
             </div>
+    </div>
+
+  <!-- 確認モーダル（s_account と同じ構成） -->
+  <div id="confirm-modal" aria-hidden="true" style="display:none; position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.4);align-items:center;justify-content:center">
+    <div class="box" role="dialog" aria-modal="true" aria-labelledby="confirm-title" style="background:#fff;padding:20px;border-radius:8px;min-width:320px;text-align:center">
+      <div id="confirm-title">ログアウトしますか？</div>
+      <div class="buttons" style="margin-top:16px;display:flex;gap:12px;justify-content:center">
+        <button class="btn yes" id="confirm-yes" style="padding:8px 14px;border-radius:6px;border:none;background:#f46b6b;color:#fff">はい</button>
+        <button class="btn no" id="confirm-no" style="padding:8px 14px;border-radius:6px;border:none;background:#e0e6ef">いいえ</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    var logoutBtn = document.getElementById('logout-btn');
+    var logoutForm = document.getElementById('logout-form');
+    var modal = document.getElementById('confirm-modal');
+    var yes = document.getElementById('confirm-yes');
+    var no = document.getElementById('confirm-no');
+    if(logoutBtn){ logoutBtn.addEventListener('click', function(){ modal.style.display = 'flex'; }); }
+    if(no){ no.addEventListener('click', function(){ modal.style.display = 'none'; }); }
+    if(yes){ yes.addEventListener('click', function(){ if(logoutForm) logoutForm.submit(); }); }
+  })();
+  </script>
+
         </div>
     </div>
 </body>
