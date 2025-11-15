@@ -66,5 +66,8 @@ urlpatterns = [
     path('block/create/', views.block_create, name='block_create'),
     path('block/details/', views.block_details, name='block_details'),
     path('block/list/', views.block_list, name='block_list'),
+    # プロフィール編集（アイコン設定）
+    path('profile/edit/', views.edit_profile, name='edit_profile'),
+    path('groups/<int:group_id>/', views.group_detail, name='group_detail'),
 ]
 

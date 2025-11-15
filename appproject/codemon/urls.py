@@ -59,6 +59,10 @@ urlpatterns = [
     # AI Chat API
     path('api/ai/chat', views.ai_chat_api, name='ai_chat_api'),
     path('api/ai/history', views.ai_history_api, name='ai_history_api'),
+    # グループ管理
+    path('groups/<int:group_id>/', views.group_list, name='group_detail'),
+    path('groups/<int:group_id>/invite/', views.group_invite, name='group_invite'),
+    path('groups/<int:group_id>/members/<int:member_id>/remove/', views.group_remove_member, name='group_remove_member'),
 ]
 
 # 開発環境での静的ファイル配信設定

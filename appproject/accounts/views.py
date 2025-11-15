@@ -3,7 +3,8 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login, authenticate, logout
 from django.contrib import messages
  # password ハッシュ化はフォーム側で行うように変更しました
-from .forms import TeacherSignupForm, StudentSignupForm
+from .forms import TeacherSignupForm, StudentSignupForm, ProfileEditForm
+from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.forms import SetPasswordForm
@@ -1040,4 +1041,33 @@ def group_detail(request, group_id):
         'members': members,
         'threads': threads,
         'is_teacher': owner.type == 'teacher'
+    })
+
+
+def edit_profile(request):
+    """プロフィール編集（アイコン設定を含む）"""
+    owner = _get_write_owner(request)
+    if owner is None:
+        messages.error(request, 'ログインが必要です')
+        return redirect('accounts:student_login')
+    
+    # Accountインスタンスを取得
+    try:
+        account = Account.objects.get(user_id=owner.user_id)
+    except Account.DoesNotExist:
+        messages.error(request, 'アカウント情報が見つかりません')
+        return redirect('accounts:account_entry')
+    
+    if request.method == 'POST':
+        form = ProfileEditForm(request.POST, request.FILES, instance=account)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'プロフィールを更新しました')
+            return redirect('accounts:account_entry')
+    else:
+        form = ProfileEditForm(instance=account)
+    
+    return render(request, 'accounts/edit_profile.html', {
+        'form': form,
+        'user': account
     })

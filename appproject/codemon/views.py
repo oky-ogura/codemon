@@ -745,6 +745,42 @@ def group_list(request):
     })
 
 
+def group_detail(request, group_id):
+    """グループ詳細。メンバー一覧、スレッド一覧を表示。"""
+    owner = _get_write_owner(request)
+    if owner is None:
+        messages.error(request, 'ログインが必要です')
+        return redirect('accounts:student_login')
+
+    # グループと権限のチェック
+    group = get_object_or_404(Group, group_id=group_id, is_active=True)
+    try:
+        membership = GroupMember.objects.get(
+            group=group,
+            member=owner,
+            is_active=True
+        )
+    except GroupMember.DoesNotExist:
+        return HttpResponseForbidden('このグループにアクセスする権限がありません')
+
+    # グループメンバー一覧を取得
+    members = GroupMember.objects.filter(
+        group=group,
+        is_active=True
+    ).select_related('member')
+
+    # グループに関連するスレッドを取得
+    threads = ChatThread.objects.filter(group=group, is_active=True).order_by('-created_at')
+
+    return render(request, 'codemon/group_detail.html', {
+        'group': group,
+        'membership': membership,
+        'members': members,
+        'threads': threads,
+        'is_teacher': owner.type == 'teacher'
+    })
+
+
 def group_create(request):
     """グループ新規作成（教師のみ）"""
     owner = _get_write_owner(request)
