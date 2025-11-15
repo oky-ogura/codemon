@@ -1195,3 +1195,84 @@ def edit_profile(request):
         'form': form,
         'user': account
     })
+
+
+def group_invite(request, group_id):
+    """グループにメンバーを招待（教師のみ）"""
+    owner = _get_write_owner(request)
+    if owner is None or owner.type != 'teacher':
+        return HttpResponseForbidden('教師権限が必要です')
+
+    group = get_object_or_404(Group, group_id=group_id, is_active=True)
+    if group.owner != owner:
+        return HttpResponseForbidden('グループのオーナーのみメンバーを招待できます')
+
+    if request.method == 'GET':
+        # メンバー追加フォームを表示
+        return render(request, 'group/add_group.html', {'group_id': group_id})
+
+    # POST処理 - メンバー追加
+    identifier = request.POST.get('identifier', '').strip()
+    role = request.POST.get('role', 'student')
+    
+    if not identifier:
+        messages.error(request, 'メールアドレスまたはユーザーIDを入力してください')
+        return redirect('accounts:group_menu', group_id=group_id)
+
+    try:
+        # メールアドレスかユーザーIDで検索
+        if '@' in identifier:
+            member = Account.objects.get(email=identifier)
+        else:
+            member = Account.objects.get(user_id=identifier)
+
+        # 既存メンバーシップの確認
+        if GroupMember.objects.filter(group=group, member=member).exists():
+            messages.error(request, f'{member.user_name}は既にグループのメンバーです')
+        else:
+            GroupMember.objects.create(
+                group=group,
+                member=member,
+                role=role
+            )
+            messages.success(request, f'{member.user_name}をグループに招待しました')
+
+        return redirect('accounts:group_menu', group_id=group_id)
+
+    except Account.DoesNotExist:
+        messages.error(request, '指定されたユーザーが見つかりません')
+        return redirect('accounts:group_menu', group_id=group_id)
+
+
+def group_remove_member(request, group_id):
+    """グループからメンバーを削除（教師のみ）"""
+    owner = _get_write_owner(request)
+    if owner is None or owner.type != 'teacher':
+        return HttpResponseForbidden('教師権限が必要です')
+
+    group = get_object_or_404(Group, group_id=group_id, is_active=True)
+    if group.owner != owner:
+        return HttpResponseForbidden('グループのオーナーのみメンバーを削除できます')
+
+    member_id = request.POST.get('member_id')
+    if not member_id:
+        messages.error(request, 'メンバーIDが指定されていません')
+        return redirect('accounts:group_menu', group_id=group_id)
+
+    try:
+        membership = GroupMember.objects.get(
+            group=group,
+            member_id=member_id
+        )
+        if membership.member == group.owner:
+            messages.error(request, 'グループのオーナーは削除できません')
+        else:
+            member_name = membership.member.user_name
+            membership.delete()
+            messages.success(request, f'{member_name}をグループから削除しました')
+
+        return redirect('accounts:group_menu', group_id=group_id)
+
+    except GroupMember.DoesNotExist:
+        messages.error(request, '指定されたメンバーが見つかりません')
+        return redirect('accounts:group_menu', group_id=group_id)
