@@ -19,7 +19,7 @@ from django.core import signing
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from django.contrib.auth.hashers import make_password
-from django.http import HttpResponseRedirect, FileResponse, HttpResponseForbidden
+from django.http import HttpResponseRedirect, FileResponse, HttpResponseForbidden, JsonResponse
 # helper from codemon app to resolve the effective Account-like owner for write operations
 try:
     from codemon.views import _get_write_owner
@@ -37,8 +37,9 @@ except Exception:
             return request.user
         return None
 
-from django.db import connection
+from django.db import connection, transaction
 from django.utils import timezone
+import logging
 from django.contrib.auth.hashers import make_password
 
 
@@ -254,8 +255,11 @@ def user_logout(request):
         logout(request)
     except Exception:
         pass
-    # 修正: 'home' が未定義のため accounts のルートへリダイレクト
-    return redirect('accounts:accounts_root')
+    # ログアウト後はログイン選択ページへ遷移させる（teacher / student を選ぶ画面）
+    try:
+        return redirect('accounts:login_choice')
+    except Exception:
+        return redirect('/')
 
 def ai_appearance(request):
     """AI外見設定ページ（簡易版）。POSTで選択を受け取り、ログイン済みなら保存します。"""
@@ -336,6 +340,12 @@ def ai_initial_confirm(request):
         'ai_speech': ai_speech,
         'appearance': appearance,
     })
+
+
+def login_choice(request):
+    """ログイン種別の選択ページ（教師 or 生徒）を表示する簡易ビュー"""
+    # 単純な選択ページを表示するだけ。テンプレート内でそれぞれのログインページへ遷移する。
+    return render(request, 'accounts/login_choice.html')
 
 
 def ai_initial_save(request):
@@ -592,36 +602,61 @@ def group_create(request):
         hashed = make_password(group_password) if group_password else ''
 
         try:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    'INSERT INTO "group" (group_name, user_id, password) VALUES (%s, %s, %s) RETURNING group_id',
-                    [group_name, user_id, hashed]
-                )
-                row = cursor.fetchone()
-                group_id = row[0] if row else None
+            # まず Account インスタンスを解決
+            account_owner = Account.objects.filter(user_id=user_id).first()
 
-                # 追加: 作成者を group_member テーブルに owner として挿入
-                if group_id is not None:
-                    try:
-                        cursor.execute(
-                            'INSERT INTO group_member (group_id, member_user_id, role) VALUES (%s, %s, %s)',
-                            [group_id, user_id, 'owner']
-                        )
-                    except Exception:
-                        # メンバー登録失敗でもグループ作成自体は成功させる
-                        pass
+            # トランザクション内でグループ作成とメンバー登録を行い、途中で失敗したらロールバックする
+            with transaction.atomic():
+                # 多くの既存 DB スキーマでは group.password が NOT NULL の場合があるため
+                # raw SQL で確実に挿入する
+                with connection.cursor() as cursor:
+                    cursor.execute('INSERT INTO "group" (group_name, user_id, password, is_active, created_at, updated_at) VALUES (%s, %s, %s, %s, now(), now())', [group_name, user_id, hashed or '', True])
+                    # 挿入した行を取得（group_name と user_id の組で最新のものを選ぶ）
+                    cursor.execute('SELECT group_id FROM "group" WHERE group_name = %s AND user_id = %s ORDER BY group_id DESC LIMIT 1', [group_name, user_id])
+                    row = cursor.fetchone()
+                    group_id = row[0] if row else None
+
+                if group_id is None:
+                    raise Exception('グループ作成後に group_id を取得できませんでした')
+
+                # ORM オブジェクトとして利用可能なら取得しておく（proxy を使っているため models の互換性に注意）
+                group = Group.objects.filter(group_id=group_id).first()
+
+                # DB スキーマに member_id が存在して NOT NULL 制約がある環境があるため
+                # 安全策として raw SQL で member_user_id と member_id の両方を明示して挿入する。
+                with connection.cursor() as cursor:
+                    # 重複防止: 既に同じ member_user_id が登録されていないか確認
+                    cursor.execute('SELECT 1 FROM group_member WHERE group_id = %s AND member_user_id = %s', [group_id, user_id])
+                    if not cursor.fetchone():
+                        try:
+                            cursor.execute('INSERT INTO group_member (group_id, member_user_id, member_id, role, created_at) VALUES (%s, %s, %s, %s, now())', [group_id, user_id, user_id, 'teacher'])
+                        except Exception:
+                            # まれにカラム名/制約が違うスキーマが混在する可能性があるのでフォールバックで別カラム順を試す
+                            try:
+                                cursor.execute('INSERT INTO group_member (group_id, member_user_id, role, created_at) VALUES (%s, %s, %s, now())', [group_id, user_id, 'teacher'])
+                            except Exception:
+                                # ここまで失敗したら例外を再送出して transaction.atomic に任せる
+                                raise
+
+        except Exception as e:
+            # ログに完全なトレースを残す（開発用）
+            logging.exception('group_create failed')
+            # ユーザ向けのメッセージを表示して作成ページへ戻す
+            messages.error(request, f'グループ作成に失敗しました: {e}')
+            return redirect('accounts:group_create')
 
         except Exception as e:
             messages.error(request, f'グループ作成に失敗しました: {e}')
             return redirect('accounts:group_create')
 
         messages.success(request, 'グループを作成しました。')
-        # 存在すれば group_detail に飛ばす（なければアカウントページへ）
+        # 要求: 作成後は教員アカウント用テンプレート `t_account.html` に戻す
+        # URLconf では t_account ページは name='account_dashboard' にマッピングされているため
+        # ここではその名前へリダイレクトする
         try:
-            # Try to redirect to codemon's group_detail if it exists
-            return redirect('codemon:group_detail', group_id=group_id)
+            return redirect('accounts:account_dashboard')
         except Exception:
-            # Fallback to accounts' account_entry
+            # 万一リダイレクトに失敗したらアカウントトップへフォールバック
             return redirect('accounts:account_entry')
 
     # GET の場合は作成ページを表示
@@ -634,17 +669,74 @@ def add_member_popup(request):
     return render(request, 'group/add_group.html')
 
 
-def group_menu(request):
-    """グループメニュー画面を表示"""
-    return render(request, 'group/group_menu.html')
+def group_menu(request, group_id):
+    """グループメニュー画面を表示（group_id 必須）"""
+    # 最低限のコンテキストをテンプレートへ渡す（必要なら詳細情報を増やす）
+    try:
+        group = get_object_or_404(Group, group_id=group_id, is_active=True)
+        # group_member テーブルに is_active カラムがない環境もあるため、存在に依らず単純に取得する
+        members_qs = GroupMember.objects.filter(group=group).select_related('member')
+        member_count = members_qs.count()
+        members = list(members_qs)
+    except Exception:
+        group = None
+        members = []
+        member_count = 0
+
+    return render(request, 'group/group_menu.html', {
+        'group': group,
+        'members': members,
+        'member_count': member_count,
+        'group_id': group_id,
+    })
+
+
+def group_menu_redirect(request):
+    """互換性のためのフォールバック: 旧パス /groups/menu/ へのアクセスをアカウント画面へリダイレクトする。"""
+    # 既存のコードベースでは account_entry がアカウントトップを返すため、そこへ誘導する
+    try:
+        return redirect('accounts:account_entry')
+    except Exception:
+        return redirect('/')
+
+
+def group_delete_confirm(request, group_id):
+    """グループ削除の確認画面を表示する（GET）。削除確定は POST で accounts:group_delete (codemon.views.group_delete) を呼ぶ。"""
+    owner = _get_write_owner(request)
+    if owner is None:
+        return redirect('accounts:student_login')
+
+    try:
+        group = Group.objects.get(group_id=group_id, is_active=True)
+    except Group.DoesNotExist:
+        messages.error(request, '指定されたグループが見つかりません')
+        return redirect('accounts:account_entry')
+
+    # 所有者以外は削除できない
+    if getattr(owner, 'type', '') != 'teacher' or getattr(group, 'owner_id', None) != getattr(owner, 'user_id', None):
+        messages.error(request, 'グループの削除権限がありません')
+        return redirect('accounts:account_entry')
+
+    # メンバー数を数える（GroupMember テーブルを利用）
+    try:
+        member_count = GroupMember.objects.filter(group=group).count()
+    except Exception:
+        member_count = 0
+
+    return render(request, 'group/group_delete_confirm.html', {
+        'group': group,
+        'member_count': member_count,
+    })
 
 def group_join_confirm(request):
     """
     GET:
-      - 所属が生徒 (account.account_type == 'student') の場合 -> group/join_confirm.html を表示
-      - 教師 (account.account_type == 'teacher') の場合 -> accounts/karihome.html を表示
-      - ログインしていない場合は生徒ログイン画面へリダイレクト
-    POST:
+                    # group_member requires both member_user_id and member_id (both reference account.user_id)
+                    # set member_id = member_user_id so constraints are satisfied
+                    cursor.execute(
+                        'INSERT INTO group_member (group_id, member_user_id, member_id, role) VALUES (%s, %s, %s, %s)',
+                        [group_id, user_id, user_id, 'member']
+                    )
       - action=join -> （簡易実装）group メニューを表示
       - action=cancel またはその他 -> アカウントトップへリダイレクト
     """
@@ -663,6 +755,9 @@ def group_join_confirm(request):
 
     # POST 処理（join/cancel）
     action = request.POST.get('action')
+    if action == 'cancel':
+        # 確認画面で「しない！」を押した場合は仮ホームへ戻す
+        return redirect('accounts:karihome')
     if action == 'join':
         # 「はい」ボタン → グループ選択（検索）ページへ遷移
         return render(request, 'group/group_select.html', {})
@@ -679,21 +774,23 @@ def group_join_confirm(request):
             with connection.cursor() as cursor:
                 cursor.execute('SELECT group_id, password, user_id FROM "group" WHERE group_name = %s', [group_name])
                 row = cursor.fetchone()
+                # 一致するグループがあるか、かつパスワードが一致するかをまとめて検証します。
                 if not row:
-                    messages.error(request, '該当するグループが見つかりません。')
+                    # 見つからない／パスワード不一致は同じメッセージにする
+                    messages.error(request, 'グループ名かパスワードが間違っています')
                     return render(request, 'group/group_select.html', {})
 
                 found_group_id, stored_hashed, creator_user_id = row[0], row[1] or '', row[2]
-                # パスワードの照合:
-                # - stored_hashed が空文字の場合は入力パスワードも空であることを要求する
-                # - stored_hashed がある場合は check_password で検証する
+
+                # stored_hashed が空文字ならパスワード不要（入力も空であることが期待される）
                 if not stored_hashed:
                     if group_password != '':
-                        messages.error(request, 'パスワードが違います。')
+                        messages.error(request, 'グループ名かパスワードが間違っています')
                         return render(request, 'group/group_select.html', {})
                 else:
+                    # ハッシュがある場合は check_password で検証
                     if not check_password(group_password, stored_hashed):
-                        messages.error(request, 'パスワードが違います。')
+                        messages.error(request, 'グループ名かパスワードが間違っています')
                         return render(request, 'group/group_select.html', {})
 
                 # 検索成功 → 確認ページへ遷移して内容を表示（ここでまだ group_member には入れない）
@@ -735,20 +832,48 @@ def group_join_confirm(request):
             return redirect('accounts:student_login')
 
         try:
-            with connection.cursor() as cursor:
-                # 重複チェックして挿入
-                cursor.execute('SELECT 1 FROM group_member WHERE group_id=%s AND member_user_id=%s', [found_group_id, user_id])
-                if not cursor.fetchone():
-                    cursor.execute('INSERT INTO group_member (group_id, member_user_id, role) VALUES (%s, %s, %s)', [found_group_id, user_id, 'member'])
-                # account テーブルの group_id を更新する
-                try:
+            # Debug: show incoming ids for tracing
+            print(f"DEBUG group_join_confirm: attempting to join group_id={found_group_id} for user_id={user_id}")
+            messages.info(request, f'デバッグ: group_id={found_group_id}, user_id={user_id}')
+            # Use an explicit transaction to ensure both inserts/updates succeed together.
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    # 重複チェックして挿入
+                    cursor.execute('SELECT 1 FROM group_member WHERE group_id=%s AND member_user_id=%s', [found_group_id, user_id])
+                    if not cursor.fetchone():
+                        # DB schema requires both member_user_id and member_id (both reference account.user_id)
+                        # ensure member_id is set to the same value as member_user_id
+                        cursor.execute(
+                            'INSERT INTO group_member (group_id, member_user_id, member_id, role) VALUES (%s, %s, %s, %s)',
+                            [found_group_id, user_id, user_id, 'member']
+                        )
+
+                    # account テーブルの group_id を更新する
                     cursor.execute('UPDATE account SET group_id = %s WHERE user_id = %s', [found_group_id, user_id])
-                except Exception:
-                    # 更新失敗でも続行
-                    pass
-        except Exception:
-            # 挿入失敗でも続行
-            pass
+                    # rowcount が0だと更新されていない（user_id が存在しない等）
+                    if cursor.rowcount == 0:
+                        # ロールバックされる（transaction.atomic のため）
+                        messages.error(request, 'アカウントの更新に失敗しました（ユーザーが見つかりません）。')
+                        return redirect('accounts:account_entry')
+                    # Debug: 確認のため、挿入と更新の結果をその場で再取得して出力
+                    try:
+                        cursor.execute('SELECT id FROM group_member WHERE group_id=%s AND member_user_id=%s', [found_group_id, user_id])
+                        gm = cursor.fetchone()
+                        print(f"DEBUG group_join_confirm: group_member check for group_id={found_group_id}, user_id={user_id} -> {gm}")
+                        messages.info(request, f'デバッグ: group_member exists={bool(gm)}')
+                    except Exception as _:
+                        print('DEBUG group_join_confirm: failed to select group_member')
+                    try:
+                        cursor.execute('SELECT group_id FROM account WHERE user_id = %s', [user_id])
+                        acc_row = cursor.fetchone()
+                        print(f"DEBUG group_join_confirm: account.group_id for user_id={user_id} -> {acc_row}")
+                        messages.info(request, f'デバッグ: account.group_id={acc_row[0] if acc_row else None}')
+                    except Exception as _:
+                        print('DEBUG group_join_confirm: failed to select account')
+        except Exception as e:
+            # 何らかのエラーで失敗した場合はエラーメッセージを出す
+            messages.error(request, f'グループ参加に失敗しました: {e}')
+            return redirect('accounts:account_entry')
 
         # セッション側に group_id を入れておく（UI で参照するケースに備えて）
         try:
@@ -758,8 +883,9 @@ def group_join_confirm(request):
             pass
 
         messages.success(request, 'グループに参加しました。')
+        # 加入後は生徒向けアカウント画面へ戻す
         try:
-            return redirect('accounts:group_detail', group_id=found_group_id)
+            return redirect('accounts:s_account')
         except Exception:
             return redirect('accounts:account_entry')
 
@@ -952,7 +1078,7 @@ def account_entry(request):
             with connection.cursor() as cursor:
                 cursor.execute("""
                     SELECT g.group_id, g.user_id, g.group_name,
-                           COALESCE(g.size, (SELECT COUNT(*) FROM group_member gm WHERE gm.group_id = g.group_id), 0) AS member_count
+                           COALESCE((SELECT COUNT(*) FROM group_member gm WHERE gm.group_id = g.group_id), 0) AS member_count
                     FROM "group" g
                     WHERE g.user_id = %s
                     ORDER BY g.group_id
@@ -1020,8 +1146,7 @@ def group_detail(request, group_id):
     try:
         membership = GroupMember.objects.get(
             group=group,
-            member=owner,
-            is_active=True
+            member=owner
         )
     except GroupMember.DoesNotExist:
         return HttpResponseForbidden('このグループにアクセスする権限がありません')
@@ -1029,7 +1154,6 @@ def group_detail(request, group_id):
     # グループメンバー一覧を取得
     members = GroupMember.objects.filter(
         group=group,
-        is_active=True
     ).select_related('member')
 
     # グループに関連するスレッドを取得（後で実装）

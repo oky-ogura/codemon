@@ -18,15 +18,22 @@
 <body>
   <div class="box">
     <p>追加したいユーザーの情報を登録してください</p>
-    <form method="post" action="{% url 'group_add_member' %}">
+    {% if group_id %}
+    <form method="post" action="{% url 'accounts:group_add_member' group_id %}">
+    {% else %}
+    <form method="post" action="#">
+    {% endif %}
       {% csrf_token %}
       <div class="row">
-        <div class="label">ID</div>
-        <input type="text" name="member_id" required>
+        <div class="label">メールまたはユーザーID</div>
+        <input type="text" name="identifier" required placeholder="example@domain.com または ユーザーID">
       </div>
       <div class="row">
-        <div class="label">名前</div>
-        <input type="text" name="member_name" required>
+        <div class="label">役割</div>
+        <select name="role">
+          <option value="student">生徒 (student)</option>
+          <option value="teacher">教師 (teacher)</option>
+        </select>
       </div>
 
       <div class="controls">

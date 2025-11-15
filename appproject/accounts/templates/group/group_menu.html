@@ -31,10 +31,11 @@
 
     <div class="header-row">
       <div class="group-info">
-        <strong>3年A組</strong>　・　メンバー数 <strong>40人</strong>
+        <strong>{% if group %}{{ group.group_name }}{% else %}グループ{% endif %}</strong>
+       　・　メンバー数 <strong>{% if member_count is not None %}{{ member_count }}人{% else %}0人{% endif %}</strong>
       </div>
       <div>
-        <a href="{% url 'group_add_member' %}" class="add-member">メンバーを追加する</a>
+  <a href="{% url 'accounts:group_add_member_form' group_id %}" class="add-member">メンバーを追加する</a>
       </div>
     </div>
 
@@ -48,23 +49,24 @@
       </thead>
       <tbody>
         {% comment %} 実データがあれば for で回してください。下はサンプル行。 {% endcomment %}
-        <tr>
-          <td>11111111</td>
-          <td>田中 太郎</td>
-          <td style="text-align:right">
-            <div class="actions">
-              <a class="btn-check" href="#">チェックリスト閲覧</a>
-              <form method="post" action="#" style="display:inline" onsubmit="return confirm('本当に削除しますか？');">
-                {% csrf_token %}
-                <button type="submit" class="btn-delete">削除</button>
-              </form>
-            </div>
-          </td>
-        </tr>
-
-        {% comment %} データが無いときの表示例 {% endcomment %}
-        {% if members is not defined %}
-        <tr><td colspan="3" class="no-data">メンバーが登録されていません</td></tr>
+        {% if members %}
+          {% for m in members %}
+            <tr>
+              <td>{{ m.member.user_id }}</td>
+              <td>{{ m.member.user_name }}</td>
+              <td style="text-align:right">
+                <div class="actions">
+                  <a class="btn-check" href="#">チェックリスト閲覧</a>
+                  <form method="post" action="#" style="display:inline" onsubmit="return confirm('本当に削除しますか？');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-delete">削除</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="3" class="no-data">メンバーが登録されていません</td></tr>
         {% endif %}
       </tbody>
     </table>
