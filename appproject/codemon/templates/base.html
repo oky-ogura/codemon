@@ -3,14 +3,298 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Codemon</title>
+  <title>{% block title %}Codemon{% endblock %}</title>
+  
+  <!-- 共通スタイル -->
   <style>
-    body{font-family: "Yu Gothic UI", Meiryo, "Noto Sans JP", Arial, sans-serif; margin:20px}
-    nav{margin-bottom:20px}
-    nav a{margin-right:12px}
+    /* 基本スタイル */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: "Yu Gothic UI", Meiryo, "Noto Sans JP", Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f5f5;
+    }
+    
+    /* ナビゲーションタブのスタイル */
+    .top-tabs {
+      border-bottom: 2px solid #000;
+      padding: 10px 20px;
+      background: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .tabs ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .tabs li {
+      flex: 0 1 auto;
+    }
+    
+    .tabs a {
+      display: inline-block;
+      padding: 12px 24px;
+      border: 1px solid #000;
+      text-decoration: none;
+      color: #000;
+      background: #fff;
+      border-radius: 4px;
+      transition: all 0.3s;
+      font-weight: 500;
+    }
+    
+    .tabs a:hover {
+      background: #f0f0f0;
+      transform: translateY(-2px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .tabs a.active {
+      background: #667eea;
+      color: #fff;
+      border-color: #667eea;
+    }
+    
+    /* コンテンツエリア */
+    .content-wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #fff;
+      min-height: calc(100vh - 80px);
+    }
+    
+    /* メッセージ表示 */
+    .messages {
+      list-style: none;
+      margin: 20px auto;
+      padding: 0;
+      max-width: 1200px;
+    }
+    
+    .messages li {
+      padding: 12px 20px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      background: #d1ecf1;
+      border: 1px solid #bee5eb;
+      color: #0c5460;
+    }
+    
+    /* AI キャラクターウィジェット */
+    #character-widget {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 9999;
+    }
+    
+    #character-image {
+      width: 120px;
+      height: auto;
+      cursor: pointer;
+      transition: transform 0.2s;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+    }
+    
+    #character-image:hover {
+      transform: scale(1.05);
+    }
+    
+    #chat-bubble {
+      position: absolute;
+      bottom: 80px;
+      right: 80px;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+      padding: 0;
+      width: 0;
+      height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    #chat-bubble.minimized {
+      width: 280px;
+      height: 80px;
+      opacity: 1;
+      padding: 15px;
+    }
+    
+    #chat-bubble.expanded {
+      width: 380px;
+      height: 500px;
+      opacity: 1;
+      padding: 0;
+      display: flex !important;
+      flex-direction: column;
+    }
+    
+    #chat-bubble-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 15px;
+      border-bottom: 2px solid #f0f0f0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 20px 20px 0 0;
+      flex-shrink: 0;
+    }
+    
+    #chat-bubble-header strong {
+      font-size: 15px;
+    }
+    
+    #chat-bubble-controls {
+      display: flex;
+      gap: 8px;
+    }
+    
+    #chat-bubble-controls button {
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      cursor: pointer;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      transition: background 0.2s;
+    }
+    
+    #chat-bubble-controls button:hover {
+      background: rgba(255,255,255,0.3);
+    }
+    
+    #chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+      background: #fafafa;
+      min-height: 0;
+    }
+    
+    #chat-input-area {
+      display: flex;
+      gap: 8px;
+      padding: 12px 15px;
+      border-top: 2px solid #f0f0f0;
+      background: white;
+      border-radius: 0 0 20px 20px;
+      flex-shrink: 0;
+    }
+    
+    #chat-input {
+      flex: 1;
+      padding: 10px 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 20px;
+      font-size: 13px;
+      outline: none;
+    }
+    
+    #chat-input:focus {
+      border-color: #667eea;
+    }
+    
+    #chat-send {
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: bold;
+      transition: transform 0.2s;
+    }
+    
+    #chat-send:hover {
+      transform: scale(1.05);
+    }
+    
+    #chat-send:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: scale(1);
+    }
+    
+    .chat-message {
+      margin-bottom: 12px;
+      padding: 10px 14px;
+      border-radius: 15px;
+      line-height: 1.5;
+      font-size: 13px;
+    }
+    
+    .chat-message.user {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      margin-left: 40px;
+      text-align: right;
+    }
+    
+    .chat-message.assistant {
+      background: white;
+      border: 2px solid #e9ecef;
+      color: #333;
+      margin-right: 40px;
+    }
+    
+    .chat-message .role {
+      font-weight: bold;
+      margin-bottom: 4px;
+      font-size: 11px;
+      opacity: 0.8;
+    }
+    
+    .minimized-content {
+      text-align: center;
+    }
+    
+    .minimized-content p {
+      margin: 0;
+      font-size: 14px;
+      color: #667eea;
+      font-weight: bold;
+    }
+    
+    .minimized-content small {
+      font-size: 12px;
+      color: #999;
+    }
+    
+    {% block extra_css %}{% endblock %}
   </style>
 </head>
 <body>
+  <!-- ナビゲーションタブ -->
+  <header class="top-tabs">
+    <nav class="tabs">
+      <ul>
+        <li><a href="{% url 'codemon:systems_list' %}" id="tab-systems">システム</a></li>
+        <li><a href="{% url 'codemon:algorithms_list' %}" id="tab-algorithms">アルゴリズム</a></li>
+        <li><a href="{% url 'codemon:checklist_selection' %}" id="tab-checklist">チェックリスト（進捗確認）</a></li>
+        <li><a href="{% url 'accounts:account_entry' %}" id="tab-account">アカウント</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- メッセージ表示 -->
   {% if messages %}
   <ul class="messages">
     {% for message in messages %}
@@ -19,6 +303,231 @@
   </ul>
   {% endif %}
 
-  {% block content %}{% endblock %}
+  <!-- コンテンツエリア -->
+  <div class="content-wrapper">
+    {% block content %}{% endblock %}
+  </div>
+
+  <!-- AI キャラクターウィジェット -->
+  {% load static %}
+  <div id="character-widget">
+    <!-- キャラ画像 -->
+    <img id="character-image" 
+      src="{% static 'codemon/images/characters/inu.png' %}" 
+      alt="AI Character"
+      onerror="this.style.display='none'; console.error('画像が読み込めません');"
+      title="クリックしてチャット">
+    
+    <!-- チャット吹き出し -->
+    <div id="chat-bubble">
+      <!-- 最小化時の表示 -->
+      <div id="minimized-view" class="minimized-content">
+        <p id="initial-message">ねぇねぇ、何か聞きたいことある?わん!</p>
+        <small>クリックして話しかけてね!</small>
+      </div>
+      
+      <!-- 展開時の表示 -->
+      <div id="expanded-view" style="display:none; width:100%; height:100%;">
+        <div id="chat-bubble-header">
+          <strong>🐶 AI相棒チャット</strong>
+          <div id="chat-bubble-controls">
+            <button id="minimize-btn" title="最小化">−</button>
+            <button id="close-btn" title="閉じる">×</button>
+          </div>
+        </div>
+        <div id="chat-messages"></div>
+        <div id="chat-input-area">
+          <input id="chat-input" type="text" placeholder="メッセージを入力...">
+          <button id="chat-send">送信</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% csrf_token %}
+
+  <!-- 共通JavaScript -->
+  <script>
+  (function(){
+    // アクティブタブのハイライト
+    const currentPath = window.location.pathname;
+    const tabLinks = {
+      'tab-systems': ['/codemon/systems/', '/codemon/groups/', '/codemon/threads/'],
+      'tab-algorithms': ['/codemon/algorithms/', '/codemon/blocks/'],
+      'tab-checklist': ['/codemon/checklists/'],
+      'tab-account': ['/accounts/']
+    };
+    
+    for (const [tabId, paths] of Object.entries(tabLinks)) {
+      const matchesPath = paths.some(path => currentPath.startsWith(path));
+      if (matchesPath) {
+        document.getElementById(tabId)?.classList.add('active');
+        break;
+      }
+    }
+    
+    // AIキャラクターウィジェット
+    const widget = document.getElementById('character-widget');
+    const characterImg = document.getElementById('character-image');
+    const bubble = document.getElementById('chat-bubble');
+    const minimizedView = document.getElementById('minimized-view');
+    const expandedView = document.getElementById('expanded-view');
+    const messagesEl = document.getElementById('chat-messages');
+    const inputEl = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('chat-send');
+    const minimizeBtn = document.getElementById('minimize-btn');
+    const closeBtn = document.getElementById('close-btn');
+    
+    let conversationId = null;
+    let isExpanded = false;
+    let isMinimized = false;
+    
+    // キャラクター画像クリック → 最小化表示
+    characterImg.addEventListener('click', () => {
+      if (!isMinimized && !isExpanded) {
+        showMinimized();
+      }
+    });
+    
+    // 最小化表示クリック → 展開
+    minimizedView.addEventListener('click', () => {
+      if (isMinimized) {
+        showExpanded();
+      }
+    });
+    
+    // 最小化ボタン
+    minimizeBtn.addEventListener('click', () => {
+      showMinimized();
+    });
+    
+    // 閉じるボタン
+    closeBtn.addEventListener('click', () => {
+      hideBubble();
+    });
+    
+    function showMinimized() {
+      bubble.className = 'minimized';
+      minimizedView.style.display = 'block';
+      expandedView.style.display = 'none';
+      isMinimized = true;
+      isExpanded = false;
+    }
+    
+    function showExpanded() {
+      bubble.className = 'expanded';
+      minimizedView.style.display = 'none';
+      expandedView.style.display = 'flex';
+      expandedView.style.flexDirection = 'column';
+      isMinimized = false;
+      isExpanded = true;
+      inputEl.focus();
+      
+      // 初回展開時に初期メッセージを表示
+      if (messagesEl.children.length === 0) {
+        appendMessage('assistant', 'ねぇねぇ、何か聞きたいことある?わん!');
+      }
+      
+      // 最新メッセージ(一番下)にスクロール
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+    
+    function hideBubble() {
+      bubble.className = '';
+      isMinimized = false;
+      isExpanded = false;
+    }
+    
+    function appendMessage(role, text) {
+      const div = document.createElement('div');
+      div.className = `chat-message ${role}`;
+      const roleLabel = role === 'user' ? 'あなた' : 'AI';
+      div.innerHTML = `<div class="role">${roleLabel}</div>${escapeHtml(text)}`;
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+    
+    function escapeHtml(text) {
+      return text.replace(/</g, '&lt;')
+                 .replace(/>/g, '&gt;')
+                 .replace(/\n/g, '<br>');
+    }
+    
+    async function sendMessage() {
+      const msg = inputEl.value.trim();
+      if (!msg) return;
+      
+      appendMessage('user', msg);
+      inputEl.value = '';
+      sendBtn.disabled = true;
+      
+      try {
+        const resp = await fetch('/codemon/api/ai/chat', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrf()
+          },
+          body: JSON.stringify({
+            message: msg,
+            character: 'inu',
+            conversation_id: conversationId
+          })
+        });
+        
+        const data = await resp.json();
+        
+        if (data.error) {
+          appendMessage('assistant', '[エラー] ' + data.error);
+        } else {
+          conversationId = data.conversation_id;
+          appendMessage('assistant', data.reply);
+        }
+      } catch(e) {
+        appendMessage('assistant', '[通信失敗] ' + e.message);
+      } finally {
+        sendBtn.disabled = false;
+        inputEl.focus();
+      }
+    }
+    
+    function getCsrf() {
+      const name = 'csrftoken';
+      const cookies = document.cookie.split(';');
+      for (const c of cookies) {
+        const trimmed = c.trim();
+        if (trimmed.startsWith(name + '=')) {
+          return trimmed.slice(name.length + 1);
+        }
+      }
+      return '';
+    }
+    
+    sendBtn.addEventListener('click', sendMessage);
+    inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+
+    // ポップアップ以外をクリックしたらポップアップを閉じる
+    document.addEventListener('click', (e) => {
+      // まだ表示されていない(非表示状態)の場合は無視
+      if (!isMinimized && !isExpanded) return;
+
+      // ポップアップ内部をクリックした場合は閉じない
+      if (bubble.contains(e.target)) return;
+
+      // キャラクター画像をクリックした場合は閉じない(画像クリックで表示した直後に閉じてしまう問題を防止)
+      if (characterImg.contains(e.target)) return;
+
+      // それ以外の領域クリックで閉じる
+      hideBubble();
+    });
+  })();
+  </script>
+  
+  {% block extra_js %}{% endblock %}
 </body>
 </html>
