@@ -38,8 +38,33 @@ except Exception:
 
 from django.db import connection, transaction
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime, parse_date
+import datetime
 import logging
 from django.contrib.auth.hashers import make_password
+
+def format_timedelta(delta: datetime.timedelta) -> str:
+    """timedelta を受け取り日本語の経過時間表現を返す。"""
+    try:
+        seconds = int(delta.total_seconds())
+    except Exception:
+        return ''
+    if seconds <= 0:
+        return '0秒前'
+    days, rem = divmod(seconds, 86400)
+    hours, rem = divmod(rem, 3600)
+    minutes, sec = divmod(rem, 60)
+    if days > 0:
+        if hours > 0:
+            return f"{days}日{hours}時間前"
+        return f"{days}日前"
+    if hours > 0:
+        if minutes > 0:
+            return f"{hours}時間{minutes}分前"
+        return f"{hours}時間前"
+    if minutes > 0:
+        return f"{minutes}分{sec}秒前"
+    return f"{sec}秒前"
 
 
 
@@ -531,15 +556,45 @@ def s_account_view(request):
     first_met = None
     total_days_str = '0日'
     if account and account.get('created_at'):
+        created_at_val = account.get('created_at')
+        # created_at may come back as a string from some DB drivers; try to parse if so
         try:
-            now = timezone.now()
-            delta = now - account.get('created_at')
-            days = max(delta.days, 0)
-            first_met = account.get('created_at')
-            total_days_str = f"{days}日"
+            if isinstance(created_at_val, str):
+                dt = parse_datetime(created_at_val)
+                if dt is None:
+                    d = parse_date(created_at_val)
+                    if d:
+                        dt = datetime.datetime.combine(d, datetime.time.min)
+                created_at_val = dt
+
+            if created_at_val is not None and isinstance(created_at_val, datetime.datetime):
+                # make timezone-aware if needed
+                if timezone.is_naive(created_at_val):
+                    try:
+                        created_at_val = timezone.make_aware(created_at_val, timezone.get_current_timezone())
+                    except Exception:
+                        # fallback: assume naive is in UTC
+                        created_at_val = timezone.make_aware(created_at_val, datetime.timezone.utc)
+
+                now = timezone.now()
+                delta = now - created_at_val
+                days = max(getattr(delta, 'days', 0), 0)
+                first_met = created_at_val
+                total_days_str = f"{days}日"
+                # 人間可読の経過時間文字列
+                try:
+                    time_since_created = format_timedelta(delta)
+                except Exception:
+                    time_since_created = ''
+            else:
+                # could not parse datetime, keep fallback
+                first_met = account.get('created_at')
+                total_days_str = '0日'
+                time_since_created = ''
         except Exception:
             first_met = account.get('created_at')
             total_days_str = '0日'
+            time_since_created = ''
 
     # Get joined group info if available
     joined_group = None
@@ -570,12 +625,19 @@ def s_account_view(request):
         joined_group = None
 
     # Render template with gathered context (fall back to template defaults if account missing)
+    # Add debug info for created_at to help diagnose "累計日数が0のまま" issues
+    created_at_raw = account.get('created_at') if account else None
+    created_at_type = type(created_at_raw).__name__ if created_at_raw is not None else None
     return render(request, 'accounts/s_account.html', {
         'account': account,
         'first_met': first_met,
         'total_days': total_days_str,
         'joined_group': joined_group,
+        'created_at_raw': created_at_raw,
+        'created_at_type': created_at_type,
+        'time_since_created': time_since_created,
     })
+
 
 
 def group_create(request):
@@ -882,9 +944,9 @@ def group_join_confirm(request):
             pass
 
         messages.success(request, 'グループに参加しました。')
-        # 加入後は生徒向けアカウント画面へ戻す
+        # 加入後は karihome.html へ遷移させる（要求により変更）
         try:
-            return redirect('accounts:s_account')
+            return redirect('accounts:karihome')
         except Exception:
             return redirect('accounts:account_entry')
 
@@ -987,7 +1049,60 @@ def t_account(request):
                 'group_id': row[5],
                 'created_at': row[6],
             }
-    return render(request, 'accounts/t_account.html', {'account': account, 'user': request.user})
+    # created_at -> 初めて会った日（datetime）と累計日数・経過時間を計算してテンプレートに渡す
+    created_at = account.get('created_at') if account else None
+    first_met = None
+    total_days_str = '0日'
+    time_since_created = ''
+    created_at_raw = created_at
+    created_at_type = type(created_at_raw).__name__ if created_at_raw is not None else None
+    days = 0
+    if created_at:
+        try:
+            created_val = created_at
+            if isinstance(created_val, str):
+                dt = parse_datetime(created_val)
+                if dt is None:
+                    d = parse_date(created_val)
+                    if d:
+                        dt = datetime.datetime.combine(d, datetime.time.min)
+                created_val = dt
+
+            if created_val is not None and isinstance(created_val, datetime.datetime):
+                if timezone.is_naive(created_val):
+                    try:
+                        created_val = timezone.make_aware(created_val, timezone.get_current_timezone())
+                    except Exception:
+                        created_val = timezone.make_aware(created_val, datetime.timezone.utc)
+                now = timezone.now()
+                delta = now - created_val
+                days = max(getattr(delta, 'days', 0), 0)
+                first_met = created_val
+                total_days_str = f"{days}日"
+                try:
+                    time_since_created = format_timedelta(delta)
+                except Exception:
+                    time_since_created = ''
+            else:
+                first_met = created_at
+        except Exception:
+            first_met = created_at
+
+    # ログ出力（デバッグ）
+    try:
+        logging.debug('t_account: created_at_raw=%s type=%s days=%s time_since_created=%s', created_at_raw, created_at_type, days, time_since_created)
+    except Exception:
+        pass
+
+    return render(request, 'accounts/t_account.html', {
+        'account': account,
+        'user': request.user,
+        'first_met': first_met,
+        'total_days': total_days_str,
+        'time_since_created': time_since_created,
+        'created_at_raw': created_at_raw,
+        'created_at_type': created_at_type,
+    })
 
 def account_entry(request):
     """
@@ -1026,22 +1141,60 @@ def account_entry(request):
             'group_id': row[5],
             'created_at': row[6],
         }
+        # Debug: log the raw DB row and created_at type for diagnosis
+        try:
+            logging.debug('account_entry: raw row=%s', row)
+            logging.debug('account_entry: created_at raw=%s type=%s', row[6], type(row[6]).__name__ if row[6] is not None else None)
+        except Exception:
+            pass
+
 
     # created_at -> 初めて会った日（datetime）と累計日数（文字列）を計算
     created_at = account.get('created_at')
     first_met = None
     total_days_str = "0日"
-    
+    time_since_created = ''
     if created_at:
-        now = timezone.now()
         try:
-            # created_at は DB からの datetime オブジェクトのはず
-            delta = now - created_at
-            days = max(delta.days, 0)
+            created_val = created_at
+            # 文字列や date オブジェクトを datetime に変換する
+            if isinstance(created_val, str):
+                dt = parse_datetime(created_val)
+                if dt is None:
+                    d = parse_date(created_val)
+                    if d:
+                        dt = datetime.datetime.combine(d, datetime.time.min)
+                created_val = dt
+
+            # datetime.date（ただの日付）の場合は datetime に変換
+            if isinstance(created_val, datetime.date) and not isinstance(created_val, datetime.datetime):
+                created_val = datetime.datetime.combine(created_val, datetime.time.min)
+
+            if created_val is not None and isinstance(created_val, datetime.datetime):
+                # make timezone-aware if needed
+                if timezone.is_naive(created_val):
+                    try:
+                        created_val = timezone.make_aware(created_val, timezone.get_current_timezone())
+                    except Exception:
+                        created_val = timezone.make_aware(created_val, datetime.timezone.utc)
+
+                now = timezone.now()
+                delta = now - created_val
+                days = max(getattr(delta, 'days', 0), 0)
+                first_met = created_val
+                total_days_str = f"{days}日"
+                try:
+                    time_since_created = format_timedelta(delta)
+                except Exception:
+                    time_since_created = ''
+            else:
+                first_met = created_at
+                total_days_str = '0日'
+                time_since_created = ''
         except Exception:
-            days = 0
-        first_met = created_at
-        total_days_str = f"{days}日"
+            first_met = created_at
+            total_days_str = '0日'
+            time_since_created = ''
 
     # テンプレート参照を満たす安全な user オブジェクトを作る
     if getattr(request.user, 'is_authenticated', False):
@@ -1100,9 +1253,39 @@ def account_entry(request):
         'user': user_for_template,
         'first_met': first_met,
         'total_days': total_days_str,
+        'time_since_created': time_since_created,
         'groups': groups,
         'current_user_id': current_user_id,
     }
+    # include created_at raw/type for template debugging
+    try:
+        context['created_at_raw'] = account.get('created_at')
+        context['created_at_type'] = type(account.get('created_at')).__name__ if account.get('created_at') is not None else None
+    except Exception:
+        context['created_at_raw'] = None
+        context['created_at_type'] = None
+
+    # Cleanup: remove groups that have zero members.
+    # 要求: グループ一覧の表示時、メンバーが0人のグループは DB から削除して一覧に表示しない。
+    # 実装は安全に実行するためトランザクション内で行う。
+    try:
+        delete_ids = [g['group_id'] for g in groups if int(g.get('member_count', 0)) == 0]
+        if delete_ids:
+            from django.db import transaction as _transaction
+            with _transaction.atomic():
+                for gid in delete_ids:
+                    try:
+                        # 物理削除（member_count==0 のため外部キー制約は通常問題にならない想定）
+                        Group.objects.filter(group_id=gid).delete()
+                    except Exception:
+                        # 削除に失敗しても処理を継続する（ログは残しておく）
+                        logging.exception(f'failed to delete group {gid}')
+            # 削除したものを groups リストから除外して context を更新
+            groups = [g for g in groups if int(g.get('member_count', 0)) > 0]
+            context['groups'] = groups
+    except Exception:
+        # 削除ロジックで致命的エラーが起きてもビューの表示は継続させる
+        logging.exception('cleanup of zero-member groups failed')
 
     # 参加グループ情報を account.group_id から取得して context に含める
     joined_group = None
@@ -1228,25 +1411,75 @@ def group_remove_member(request, group_id, member_id):
     if group.owner != owner:
         return HttpResponseForbidden('グループのオーナーのみメンバーを削除できます')
 
+    # only accept POST for deletions
+    if request.method != 'POST':
+        return redirect('accounts:group_menu', group_id=group_id)
+
     try:
         membership = GroupMember.objects.get(
             group=group,
             member_id=member_id
         )
-        if membership.member == group.owner:
-            return JsonResponse({
-                'error': 'グループのオーナーは削除できません'
-            }, status=400)
+        # 比較はオブジェクト同士の比較が期待されるが、念のため user_id ベースでも確認する
+        try:
+            is_owner = (membership.member == group.owner) or (getattr(membership.member, 'user_id', None) == getattr(group, 'user_id', None))
+        except Exception:
+            is_owner = (membership.member == group.owner)
+
+        if is_owner:
+            # 非同期要求なら JSON、通常フォーム送信ならメッセージを出してリダイレクト
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'error': 'グループのオーナーは削除できません'}, status=400)
+            messages.error(request, 'グループのオーナーは削除できません')
+            return redirect('accounts:group_menu', group_id=group_id)
 
         # 物理削除して互換性を取る（既存スキーマに is_active がないため）
-        membership.delete()
+        member_name = getattr(membership.member, 'user_name', str(member_id))
+        # 連携用の値を退避してから削除
+        try:
+            joined_at_val = None
+            if hasattr(membership, 'joined_at') and membership.joined_at:
+                joined_at_val = membership.joined_at
+            elif hasattr(membership, 'created_at') and membership.created_at:
+                joined_at_val = membership.created_at
+            # メンバー削除（ORM）
+            membership.delete()
+        except Exception:
+            # 削除に失敗したらエラーハンドリング
+            logging.exception('failed to delete GroupMember')
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'error': 'メンバーの削除に失敗しました'}, status=500)
+            messages.error(request, 'メンバーの削除に失敗しました')
+            return redirect('accounts:group_menu', group_id=group_id)
 
-        return JsonResponse({
-            'status': 'ok',
-            'message': f'{membership.member.user_name}をグループから削除しました'
-        })
+        # 追加: account テーブルの該当ユーザーの group_id をクリアする（NULL にする）
+        try:
+            # まず ORM で試す
+            try:
+                Account.objects.filter(user_id=member_id).update(group_id=None)
+            except Exception:
+                # フォールバックで生 SQL を実行
+                with connection.cursor() as cursor:
+                    cursor.execute('UPDATE account SET group_id = NULL WHERE user_id = %s', [member_id])
+        except Exception:
+            logging.exception('failed to clear account.group_id for user %s', member_id)
+
+        # レスポンス: AJAX の場合は JSON を返し、通常はグループメニューへリダイレクト
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            # 日付を文字列に整形して返す（存在すれば）
+            joined_str = None
+            try:
+                if joined_at_val:
+                    joined_str = joined_at_val.strftime('%Y/%m/%d')
+            except Exception:
+                joined_str = None
+            return JsonResponse({'status': 'ok', 'message': f'{member_name}をグループから削除しました', 'member_id': member_id, 'member_name': member_name, 'joined_at': joined_str})
+
+        messages.success(request, f'{member_name}をグループから削除しました')
+        return redirect('accounts:group_menu', group_id=group_id)
 
     except GroupMember.DoesNotExist:
-        return JsonResponse({
-            'error': '指定されたメンバーが見つかりません'
-        }, status=404)
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'error': '指定されたメンバーが見つかりません'}, status=404)
+        messages.error(request, '指定されたメンバーが見つかりません')
+        return redirect('accounts:group_menu', group_id=group_id)

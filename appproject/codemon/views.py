@@ -844,6 +844,10 @@ def group_delete(request, group_id):
     # メンバーシップも削除（is_active カラムがない環境に対応）
     GroupMember.objects.filter(group=group).delete()
 
+    # If called via AJAX, return JSON so front-end can update without redirect
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({'status': 'ok', 'group_id': group_id, 'message': f'グループ「{group.group_name}」を削除しました'})
+
     messages.success(request, f'グループ「{group.group_name}」を削除しました')
     return redirect('codemon:group_list')
 

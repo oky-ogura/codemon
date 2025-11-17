@@ -52,10 +52,10 @@
 <body>
     <div class="top-tabs">
         <nav class="tabs">
-            <a href="#">システムタブ</a>
-            <a href="#">アルゴリズムタブ</a>
-            <a href="#">進捗管理タブ</a>
-            <a href="{% url 'accounts:karihome' %}">アカウント</a>
+            <a href="#">システム</a>
+            <a href="#">アルゴリズム</a>
+            <a href="#">進捗管理</a>
+            <a href="{% url 'accounts:karihome' %}">ホーム</a>
         </nav>
     </div>
 
@@ -70,6 +70,13 @@
                     {% endif %}
                 </div>
 
+                {% if user.is_authenticated %}
+                <form method="post" action="{% url 'accounts:avatar_upload' %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="file" name="avatar" accept="image/*" style="display:block;margin:8px auto;" />
+                    <div style="text-align:center;margin-top:6px;"><button type="submit" class="btn">アイコンを変更</button></div>
+                </form>
+                {% endif %}
                 <div class="meta">
                     <div>ID <strong>{{ account.user_id|default:user.id }}</strong></div>
                     <div>名前 <strong>{{ account.user_name|default:user.get_full_name|default:"codemon" }}</strong></div>
@@ -110,9 +117,8 @@
                                     <div class="group-name">{{ g.name }}</div>
                                     <div class="group-meta">{{ g.member_count }}人</div>
                                     <a class="btn detail" href="{% url 'accounts:group_menu' g.group_id %}">詳細</a>
-                                    <form method="get" action="{% url 'accounts:group_delete_confirm' g.group_id %}" style="display:inline">
-                                        <button type="submit" class="btn del">削除</button>
-                                    </form>
+                                    <!-- 削除はページ内確認モーダルを表示してから遷移します -->
+                                    <button type="button" class="btn del" data-delete-url="{% url 'accounts:group_delete' g.group_id %}">削除</button>
                                 </div>
                             {% endfor %}
                         {% else %}
@@ -151,6 +157,97 @@
     if(yes){ yes.addEventListener('click', function(){ if(logoutForm) logoutForm.submit(); }); }
   })();
   </script>
+
+    <!-- グループ削除用モーダル -->
+    <div id="group-delete-modal" aria-hidden="true" style="display:none; position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;z-index:1200;">
+        <div class="box" role="dialog" aria-modal="true" aria-labelledby="gdel-title" style="background:#fff;padding:20px;border-radius:8px;min-width:320px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+            <div id="gdel-title" style="font-weight:700; margin-bottom:10px;">本当にこのグループを削除しますか？</div>
+            <div style="color:#666; font-size:14px;">削除すると復元できません。よろしいですか？</div>
+            <div class="buttons" style="margin-top:18px;display:flex;gap:12px;justify-content:center">
+                <button class="btn" id="gdel-cancel" style="padding:8px 14px;border-radius:6px;border:none;background:#e0e6ef">戻る</button>
+                <button class="btn del" id="gdel-confirm" style="padding:8px 14px;border-radius:6px;border:none;background:#ff6b6b;color:#fff">削除する</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function(){
+        var deleteButtons = document.querySelectorAll('button.btn.del[data-delete-url]');
+        var modal = document.getElementById('group-delete-modal');
+        var cancel = document.getElementById('gdel-cancel');
+        var confirm = document.getElementById('gdel-confirm');
+        var targetUrl = null;
+
+        function openModal(url){
+            targetUrl = url;
+            modal.style.display = 'flex';
+            modal.setAttribute('aria-hidden','false');
+            // focus the cancel button for accessibility
+            cancel && cancel.focus();
+        }
+
+        function closeModal(){
+            targetUrl = null;
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden','true');
+        }
+
+        deleteButtons.forEach(function(btn){
+            btn.addEventListener('click', function(e){
+                var url = btn.getAttribute('data-delete-url');
+                if(!url) return;
+                openModal(url);
+            });
+        });
+
+        if(cancel){ cancel.addEventListener('click', closeModal); }
+
+    // CSRF helper: read cookie
+    function getCookie(name) {
+      var v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+      return v ? v.pop() : '';
+    }
+
+    if(confirm){ confirm.addEventListener('click', function(){
+        if(!targetUrl){ closeModal(); return; }
+        // send POST via fetch to delete endpoint
+        var csrf = getCookie('csrftoken') || getCookie('csrf');
+        fetch(targetUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrf,
+                'Accept': 'application/json'
+            }
+        }).then(function(resp){
+            if(!resp.ok){ return resp.json().then(function(j){ throw j; }); }
+            return resp.json();
+        }).then(function(json){
+            // Success: remove the group row element
+            try{
+                // find the button that opened the modal (nearest match by data-delete-url)
+                var opener = document.querySelector('button.btn.del[data-delete-url="' + targetUrl + '"]');
+                if(opener){
+                    var row = opener.closest('.group-row');
+                    if(row){ row.parentNode.removeChild(row); }
+                }
+            }catch(e){ /* ignore DOM errors */ }
+            closeModal();
+        }).catch(function(err){
+            // show an alert on error
+            try{
+                var msg = (err && err.error) ? err.error : '削除に失敗しました';
+                alert(msg);
+            }catch(e){ alert('削除に失敗しました'); }
+            closeModal();
+        });
+    }); }
+
+        // ESC で閉じる
+        document.addEventListener('keydown', function(ev){ if(ev.key === 'Escape' && modal && modal.style.display === 'flex'){ closeModal(); } });
+    })();
+    </script>
 
         </div>
     </div>
