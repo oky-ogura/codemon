@@ -64,7 +64,7 @@ urlpatterns = [
     path('groups/<int:group_id>/delete/', views.group_delete, name='group_delete'),
     path('groups/<int:group_id>/leave/', views.group_leave, name='group_leave'),
     path('groups/<int:group_id>/invite/', accounts_views.group_invite, name='group_invite'),
-    path('groups/<int:group_id>/remove_member/', accounts_views.group_remove_member, name='group_remove_member'),
+    path('groups/<int:group_id>/remove_member/<int:member_id>/', accounts_views.group_remove_member, name='group_remove_member'),
     path('', views.index, name='index'),
     path('chat/upload_attachment/', views.upload_attachments, name='upload_attachments'),
     # AI Chat API
