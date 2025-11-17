@@ -70,13 +70,6 @@
                     {% endif %}
                 </div>
 
-                {% if user.is_authenticated %}
-                <form method="post" action="{% url 'accounts:avatar_upload' %}" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    <input type="file" name="avatar" accept="image/*" style="display:block;margin:8px auto;" />
-                    <div style="text-align:center;margin-top:6px;"><button type="submit" class="btn">アイコンを変更</button></div>
-                </form>
-                {% endif %}
                 <div class="meta">
                     <div>ID <strong>{{ account.user_id|default:user.id }}</strong></div>
                     <div>名前 <strong>{{ account.user_name|default:user.get_full_name|default:"codemon" }}</strong></div>
