@@ -1,5 +1,6 @@
 import os
 import json
+from functools import wraps
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db import models
 from django.contrib import messages
@@ -13,11 +14,34 @@ from channels.layers import get_channel_layer
 from .permissions import teacher_required, can_access_thread, can_modify_message
 from .models import (
     Checklist, ChecklistItem, ChatThread, ChatScore, ChatMessage, ChatAttachment,
-    Group, GroupMember, AIConversation, AIMessage
+    Group, GroupMember, AIConversation, AIMessage, System, Algorithm
 )
 from accounts.models import Account
 from django.utils import timezone
 from django.db.models import Q
+
+# カスタムログイン必須デコレータ（セッションベース認証用）
+def session_login_required(view_func):
+	"""
+	セッションベースの認証をチェックするデコレータ。
+	request.session['is_account_authenticated'] が True でない場合、
+	ログインページにリダイレクトします。
+	"""
+	@wraps(view_func)
+	def _wrapped_view(request, *args, **kwargs):
+		# デバッグ出力
+		print(f"DEBUG decorator: session_key = {request.session.session_key}")
+		print(f"DEBUG decorator: session data = {dict(request.session)}")
+		print(f"DEBUG decorator: is_account_authenticated = {request.session.get('is_account_authenticated')}")
+		
+		if not request.session.get('is_account_authenticated'):
+			from django.urls import reverse
+			login_url = reverse('accounts:student_login')
+			next_url = request.get_full_path()
+			print(f"DEBUG decorator: Redirecting to {login_url}?next={next_url}")
+			return redirect(f'{login_url}?next={next_url}')
+		return view_func(request, *args, **kwargs)
+	return _wrapped_view
 
 # When ALLOW_ANONYMOUS_VIEWS is True (development convenience), make
 # login_required a no-op so pages can be opened without logging in.
@@ -25,35 +49,57 @@ if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
 	def login_required(fn):
 		return fn
 else:
-	login_required = _login_required
+	login_required = session_login_required  # カスタムデコレータを使用
 
 
 def _get_write_owner(request):
-	"""Return an Account instance for writes.
-	If user is authenticated, return that Account-like object. If anonymous and
-	ALLOW_ANONYMOUS_VIEWS is True, return or create a dev Account.
-	Otherwise return None.
-	"""
-	if getattr(request, 'user', None) and getattr(request.user, 'is_authenticated', False):
-		return request.user
-	if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
-		acct, _ = Account.objects.get_or_create(
-			email='dev_anonymous@local',
-			defaults={'user_name': '開発用匿名', 'password': 'dev', 'type': 'dev'}
-		)
-		return acct
-	return None
+    """Account を返すヘルパ。
+    優先順: セッションの account_user_id -> request.user.email で Account を検索。
+    匿名許可時は開発用アカウントを返す。
+    """
+    # 1) セッション優先
+    uid = request.session.get('account_user_id')
+    if uid:
+        try:
+            return Account.objects.get(user_id=uid)
+        except Account.DoesNotExist:
+            pass
+    # 2) Djangoユーザーからメールで対応するAccountを探す
+    if getattr(request, 'user', None) and getattr(request.user, 'is_authenticated', False):
+        email = getattr(request.user, 'email', None)
+        if email:
+            acc = Account.objects.filter(email=email).first()
+            if acc:
+                return acc
+    # 3) 匿名許可の開発用
+    if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
+        acct, _ = Account.objects.get_or_create(
+            email='dev_anonymous@local',
+            defaults={'user_name': '開発用匿名', 'password': 'dev', 'account_type': 'dev'}
+        )
+        return acct
+    return None
 
 
+@login_required
 def systems_list(request):
-	# placeholder: list systems belonging to user
-	systems = []
-	return render(request, 'codemon/systems_list.html', {'systems': systems})
+    owner = _get_write_owner(request)
+    if owner is None:
+        return redirect('accounts:student_login')
+    systems = System.objects.filter(user=owner).order_by('-updated_at')
+    # デバッグ: セッション情報をコンソールに出力
+    print(f"DEBUG systems_list: session keys = {list(request.session.keys())}")
+    print(f"DEBUG systems_list: is_account_authenticated = {request.session.get('is_account_authenticated')}")
+    return render(request, 'codemon/systems_list.html', {'systems': systems})
 
 
+@login_required
 def algorithms_list(request):
-	algorithms = []
-	return render(request, 'codemon/algorithms_list.html', {'algorithms': algorithms})
+    owner = _get_write_owner(request)
+    if owner is None:
+        return redirect('accounts:student_login')
+    algorithms = Algorithm.objects.filter(user=owner).order_by('-updated_at')
+    return render(request, 'codemon/algorithms_list.html', {'algorithms': algorithms})
 
 
 def chat_view(request):
@@ -348,7 +394,10 @@ def checklist_selection(request):
         # 匿名ユーザーでも動作させる
         checklists = Checklist.objects.all()
     else:
-        checklists = Checklist.objects.filter(user=request.user)
+        owner = _get_write_owner(request)
+        if owner is None:
+            return redirect('accounts:student_login')
+        checklists = Checklist.objects.filter(user=owner)
     return render(request, 'codemon/checklist_selection.html', {'checklists': checklists})
 
 def checklist_list(request):
@@ -356,7 +405,10 @@ def checklist_list(request):
     if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
         checklists = Checklist.objects.all().order_by('-updated_at')
     else:
-        checklists = Checklist.objects.filter(user=request.user).order_by('-updated_at')
+        owner = _get_write_owner(request)
+        if owner is None:
+            return redirect('accounts:student_login')
+        checklists = Checklist.objects.filter(user=owner).order_by('-updated_at')
     return render(request, 'codemon/checklist_list.html', {'checklists': checklists})
 
 def checklist_create(request):
@@ -393,7 +445,10 @@ def checklist_detail(request, pk):
 	if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
 		cl = get_object_or_404(Checklist, checklist_id=pk)
 	else:
-		cl = get_object_or_404(Checklist, checklist_id=pk, user=request.user)
+		owner = _get_write_owner(request)
+		if owner is None:
+			return redirect('accounts:student_login')
+		cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
 	if request.method == 'POST':
 		# new item
 		text = request.POST.get('item_text')
@@ -409,7 +464,10 @@ def checklist_toggle_item(request, pk, item_id):
 	if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
 		cl = get_object_or_404(Checklist, checklist_id=pk)
 	else:
-		cl = get_object_or_404(Checklist, checklist_id=pk, user=request.user)
+		owner = _get_write_owner(request)
+		if owner is None:
+			return redirect('accounts:student_login')
+		cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
 	item = get_object_or_404(ChecklistItem, checklist=cl, checklist_item_id=item_id)
 	item.is_done = not item.is_done
 	item.save()
@@ -420,7 +478,10 @@ def checklist_edit(request, pk):
     if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
         cl = get_object_or_404(Checklist, checklist_id=pk)
     else:
-        cl = get_object_or_404(Checklist, checklist_id=pk, user=request.user)
+        owner = _get_write_owner(request)
+        if owner is None:
+            return redirect('accounts:student_login')
+        cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
     return render(request, 'codemon/checklist_edit.html', {'checklist': cl})
 
 def checklist_save(request, pk):
@@ -471,7 +532,10 @@ def checklist_delete_confirm(request, pk):
 	if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
 		cl = get_object_or_404(Checklist, checklist_id=pk)
 	else:
-		cl = get_object_or_404(Checklist, checklist_id=pk, user=request.user)
+		owner = _get_write_owner(request)
+		if owner is None:
+			return redirect('accounts:student_login')
+		cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
 	return render(request, 'codemon/checklist_delete_confirm.html', {'checklist': cl})
 
 
@@ -479,7 +543,10 @@ def checklist_delete(request, pk):
     if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
         cl = get_object_or_404(Checklist, checklist_id=pk)
     else:
-        cl = get_object_or_404(Checklist, checklist_id=pk, user=request.user)
+        owner = _get_write_owner(request)
+        if owner is None:
+            return redirect('accounts:student_login')
+        cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
 
     if request.method == 'POST':
         checklist_name = cl.checklist_name
@@ -929,26 +996,27 @@ def group_delete(request, group_id):
 # flag is True (development), views are left undecorated so anonymous access
 # is allowed.
 if not getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
-    systems_list = _login_required(systems_list)
-    algorithms_list = _login_required(algorithms_list)
-    chat_view = _login_required(chat_view)
-    checklist_selection = _login_required(checklist_selection)
-    checklist_create = _login_required(checklist_create)
-    checklist_detail = _login_required(checklist_detail)
-    checklist_toggle_item = _login_required(checklist_toggle_item)
-    checklist_save = _login_required(checklist_save)
-    checklist_delete_confirm = _login_required(checklist_delete_confirm)
-    checklist_delete = _login_required(checklist_delete)
-    score_thread = _login_required(score_thread)
-    get_thread_readers = _login_required(get_thread_readers)
+    # Django標準の login_required ではなく、セッションベース認証も許可するカスタムを適用
+    systems_list = session_login_required(systems_list)
+    algorithms_list = session_login_required(algorithms_list)
+    chat_view = session_login_required(chat_view)
+    checklist_selection = session_login_required(checklist_selection)
+    checklist_create = session_login_required(checklist_create)
+    checklist_detail = session_login_required(checklist_detail)
+    checklist_toggle_item = session_login_required(checklist_toggle_item)
+    checklist_save = session_login_required(checklist_save)
+    checklist_delete_confirm = session_login_required(checklist_delete_confirm)
+    checklist_delete = session_login_required(checklist_delete)
+    score_thread = session_login_required(score_thread)
+    get_thread_readers = session_login_required(get_thread_readers)
     # グループ管理関連のビュー
-    group_list = _login_required(group_list)
-    group_create = _login_required(group_create)
-    group_detail = _login_required(group_detail)
-    group_edit = _login_required(group_edit)
-    group_invite = _login_required(group_invite)
-    group_remove_member = _login_required(group_remove_member)
-    group_leave = _login_required(group_leave)
+    group_list = session_login_required(group_list)
+    group_create = session_login_required(group_create)
+    group_detail = session_login_required(group_detail)
+    group_edit = session_login_required(group_edit)
+    group_invite = session_login_required(group_invite)
+    group_remove_member = session_login_required(group_remove_member)
+    group_leave = session_login_required(group_leave)
 
 @login_required
 def search_messages(request):
@@ -1009,10 +1077,14 @@ def ai_chat_api(request):
     # Get Account instance for custom session auth
     from accounts.models import Account
     if request.user.is_authenticated:
-        # Try to find Account linked to Django User
-        try:
-            account = Account.objects.get(user=request.user)
-        except Account.DoesNotExist:
+        # Djangoユーザーのメールから Account を解決
+        account = Account.objects.filter(email=getattr(request.user, 'email', None)).first()
+        if not account:
+            # セッションに user_id があればフォールバック
+            account_user_id = request.session.get('account_user_id')
+            if account_user_id:
+                account = Account.objects.filter(user_id=account_user_id).first()
+        if not account:
             return JsonResponse({"error": "account not found for user"}, status=404)
     else:
         # Custom session authentication
@@ -1061,9 +1133,12 @@ def ai_history_api(request):
     # Get Account instance (same logic as ai_chat_api)
     from accounts.models import Account
     if request.user.is_authenticated:
-        try:
-            account = Account.objects.get(user=request.user)
-        except Account.DoesNotExist:
+        account = Account.objects.filter(email=getattr(request.user, 'email', None)).first()
+        if not account:
+            account_user_id = request.session.get('account_user_id')
+            if account_user_id:
+                account = Account.objects.filter(user_id=account_user_id).first()
+        if not account:
             return JsonResponse({"error": "account not found for user"}, status=404)
     else:
         account_user_id = request.session.get('account_user_id')

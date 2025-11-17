@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth import get_user_model
 from django.contrib import messages
  # password ハッシュ化はフォーム側で行うように変更しました
 from .forms import TeacherSignupForm, StudentSignupForm
@@ -23,6 +24,7 @@ from django.http import HttpResponseRedirect
 from django.db import connection
 from django.utils import timezone
 from django.contrib.auth.hashers import make_password
+from django.contrib.messages import get_messages
 
 
 
@@ -189,8 +191,31 @@ def teacher_login(request):
             request.session['account_email'] = account_row[2]
             request.session['account_user_name'] = account_row[1]
             request.session.modified = True
-            # ログイン成功 → karihome.html を表示
-            return render(request, 'accounts/karihome.html')
+            try:
+                request.session.save()
+            except Exception:
+                pass
+            # --- Django標準ユーザーとのブリッジ（teacher 版） ---
+            try:
+                User = get_user_model()
+                django_user, created = User.objects.get_or_create(username=account_row[2], defaults={'email': account_row[2]})
+                if created or not django_user.password:
+                    django_user.set_password(password)
+                    django_user.save()
+                login(request, django_user)
+            except Exception as e:
+                print(f"DEBUG teacher_login bridge error: {e}")
+            # セッションID生成（存在しない場合）
+            if not request.session.session_key:
+                request.session.cycle_key()
+            print(f"DEBUG teacher_login: session_key={request.session.session_key} data={dict(request.session)}")
+            # 古いエラーメッセージをクリア
+            try:
+                list(get_messages(request))
+            except Exception:
+                pass
+            # リダイレクトで Set-Cookie を確実に反映
+            return redirect('accounts:karihome')
         else:
             messages.error(request, 'ユーザー名またはパスワードが違います')
 
@@ -214,8 +239,32 @@ def student_login(request):
                 request.session.save()
             except Exception:
                 pass
-            # ログイン成功後は仮ホーム（karihome.html）を表示する
-            return render(request, 'accounts/karihome.html')
+            # --- Django標準ユーザーとのブリッジ（login_required などの互換性確保） ---
+            try:
+                User = get_user_model()
+                # email を username に使う（既存ユーザーがあれば再利用）
+                django_user, created = User.objects.get_or_create(username=acc.email, defaults={'email': acc.email})
+                # パスワード未設定なら設定（ハッシュ済みを避けるため set_password 使用）
+                if created or not django_user.password:
+                    django_user.set_password(password)
+                    django_user.save()
+                # 認証後 login() で request.user を有効化
+                login(request, django_user)
+            except Exception as e:
+                print(f"DEBUG student_login bridge error: {e}")
+            # セッションID生成（存在しない場合）
+            if not request.session.session_key:
+                request.session.cycle_key()
+            # デバッグ: セッション情報を出力
+            print(f"DEBUG student_login: session_key = {request.session.session_key}")
+            print(f"DEBUG student_login: session data = {dict(request.session)}")
+            # 古いエラーメッセージをクリア
+            try:
+                list(get_messages(request))
+            except Exception:
+                pass
+            # リダイレクトにより Set-Cookie を確実に反映
+            return redirect('accounts:karihome')
         else:
             messages.error(request, 'ユーザー名またはパスワードが間違っています')
     return render(request, 'accounts/s_login.html')
@@ -234,6 +283,25 @@ def user_logout(request):
         pass
     # 修正: 'home' が未定義のため accounts のルートへリダイレクト
     return redirect('accounts:accounts_root')
+
+# --- セッションベース認証簡易デコレータ & karihome ビュー追加 ---
+from functools import wraps
+
+def account_session_required(view_func):
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        print(f"DEBUG account_session_required: session_key={request.session.session_key} data={dict(request.session)}")
+        if not request.session.get('is_account_authenticated'):
+            login_url = reverse('accounts:student_login')
+            next_url = request.get_full_path()
+            return redirect(f"{login_url}?next={next_url}")
+        return view_func(request, *args, **kwargs)
+    return _wrapped
+
+@account_session_required
+def karihome(request):
+    print(f"DEBUG karihome view: session_key={request.session.session_key} data={dict(request.session)}")
+    return render(request, 'accounts/karihome.html')
 
 def ai_appearance(request):
     """AI外見設定ページ（簡易版）。POSTで選択を受け取り、ログイン済みなら保存します。"""
@@ -553,7 +621,7 @@ def group_join_confirm(request):
         # 簡易的にグループメニューを表示します。
         return render(request, 'group/group_menu.html', {})
     else:
-        return redirect('account_entry')
+            return redirect('accounts:account_entry')
 
 
 # ...existing code...
@@ -660,7 +728,9 @@ def account_entry(request):
     """
     account = None
     user_id = request.session.get('account_user_id')
-    email = request.session.get('account_email') or (getattr(request.user, 'email', None) if getattr(request.user, 'is_authenticated', False) else None)
+    email = request.session.get('account_email') or (
+        getattr(request.user, 'email', None) if getattr(request.user, 'is_authenticated', False) else None
+    )
 
     if not user_id and not email:
         return redirect('student_login')
@@ -691,15 +761,12 @@ def account_entry(request):
             'created_at': row[6],
         }
 
-    # created_at -> 初めて会った日（datetime）と累計日数（文字列）を計算
     created_at = account.get('created_at')
     first_met = None
     total_days_str = "0日"
-    
     if created_at:
         now = timezone.now()
         try:
-            # created_at は DB からの datetime オブジェクトのはず
             delta = now - created_at
             days = max(delta.days, 0)
         except Exception:
@@ -707,7 +774,6 @@ def account_entry(request):
         first_met = created_at
         total_days_str = f"{days}日"
 
-    # テンプレート参照を満たす安全な user オブジェクトを作る
     if getattr(request.user, 'is_authenticated', False):
         user_for_template = request.user
     else:
@@ -724,28 +790,30 @@ def account_entry(request):
             id=account.get('user_id'),
             profile=profile
         )
-    # groups を DB から取得（現在ログインしているユーザー id を基準に取得）
+
     groups = []
-    # 現在ログインしているユーザーの id を決める（セッション優先）
-    current_user_id = account.get('user_id') or request.session.get('account_user_id') or (request.user.id if getattr(request.user, 'is_authenticated', False) else None)
+    current_user_id = account.get('user_id') or request.session.get('account_user_id') or (
+        request.user.id if getattr(request.user, 'is_authenticated', False) else None
+    )
     try:
-        # current_user_id が文字列で渡ってくる可能性を考慮して int に変換を試みる
         if current_user_id is not None:
             try:
                 current_user_id = int(current_user_id)
             except Exception:
-                # 変換できなければ無効扱いにする
                 current_user_id = None
 
         if current_user_id is not None:
             with connection.cursor() as cursor:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT g.group_id, g.user_id, g.group_name,
                            COALESCE(g.size, (SELECT COUNT(*) FROM group_member gm WHERE gm.group_id = g.group_id), 0) AS member_count
                     FROM "group" g
                     WHERE g.user_id = %s
                     ORDER BY g.group_id
-                """, [current_user_id])
+                    """,
+                    [current_user_id]
+                )
                 for row in cursor.fetchall():
                     groups.append({
                         'group_id': row[0],
@@ -758,7 +826,6 @@ def account_entry(request):
     except Exception:
         groups = []
 
-
     context = {
         'account': account,
         'user': user_for_template,
@@ -770,5 +837,4 @@ def account_entry(request):
 
     if account.get('account_type') == 'teacher':
         return render(request, 'accounts/t_account.html', context)
-    else:
-        return render(request, 'accounts/s_account.html', context)
+    return render(request, 'accounts/s_account.html', context)
