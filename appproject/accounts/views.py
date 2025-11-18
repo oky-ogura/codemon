@@ -19,12 +19,14 @@ from django.core import signing
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from django.contrib.auth.hashers import make_password
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponseForbidden
 
 from django.db import connection
 from django.utils import timezone
 from django.contrib.auth.hashers import make_password
 from django.contrib.messages import get_messages
+from django.utils.dateparse import parse_datetime, parse_date
+import datetime
 
 
 
@@ -480,6 +482,11 @@ def block_choice(request):
     """
     return render(request, 'block/block_choice.html')
 
+
+def login_choice(request):
+    """ログイン種別選択画面（教員 / 生徒）を表示するビュー"""
+    return render(request, 'accounts/login_choice.html')
+
 # 新規アルゴリズム作成画面
 def block_create(request):
     """
@@ -590,6 +597,175 @@ def add_member_popup(request):
 def group_menu(request):
     """グループメニュー画面を表示"""
     return render(request, 'group/group_menu.html')
+
+
+def group_menu_redirect(request):
+    """グループメニュー root への互換ハンドラ。
+
+    セッションやログインユーザーから所属する（または所有する）最初のグループを探し、
+    見つかればその `group_menu` へリダイレクトする。見つからなければグループ一覧/作成へ誘導する。
+    """
+    # 優先順: セッションの current group -> 自分が所有するグループの最初 -> アカウントページ
+    try:
+        gid = request.session.get('current_group_id')
+        if gid:
+            return redirect('accounts:group_menu', group_id=gid)
+
+        # 試しに現在のユーザー id を取得して所有グループを検索
+        current_user_id = request.session.get('account_user_id') or (request.user.id if getattr(request.user, 'is_authenticated', False) else None)
+        if current_user_id:
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT group_id FROM "group" WHERE user_id = %s ORDER BY group_id LIMIT 1', [current_user_id])
+                row = cursor.fetchone()
+                if row:
+                    return redirect('accounts:group_menu', group_id=row[0])
+    except Exception:
+        pass
+
+    # フォールバック: グループ作成ページへ誘導
+    return redirect('accounts:group_create')
+
+
+def group_detail(request, group_id):
+    """Proxy to show group detail using `codemon.views.group_detail` if available,
+    otherwise render a simple accounts template.
+    """
+    try:
+        from codemon import views as codemon_views
+        # Prefer codemon's implementation when present
+        if hasattr(codemon_views, 'group_detail'):
+            return codemon_views.group_detail(request, group_id)
+    except Exception:
+        pass
+
+    # Fallback: try to query minimal group info and render accounts template
+    group = None
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT group_id, group_name, user_id FROM "group" WHERE group_id = %s', [group_id])
+            row = cursor.fetchone()
+            if row:
+                group = {'group_id': row[0], 'group_name': row[1], 'owner_id': row[2]}
+    except Exception:
+        group = None
+
+    if group is None:
+        messages.error(request, '指定されたグループが見つかりません')
+        return redirect('accounts:account_entry')
+
+    return render(request, 'group/group_check.html', {'group': group})
+
+
+def group_delete_confirm(request, group_id):
+    """表示用の削除確認ページ。POST 実行は `codemon.views.group_delete` を使う想定。"""
+    group = None
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT group_id, group_name, user_id FROM "group" WHERE group_id = %s', [group_id])
+            row = cursor.fetchone()
+            if row:
+                group = {'group_id': row[0], 'group_name': row[1], 'owner_id': row[2]}
+    except Exception:
+        group = None
+
+    if group is None:
+        messages.error(request, '指定されたグループが見つかりません')
+        return redirect('accounts:account_entry')
+
+    return render(request, 'group/group_delete_confirm.html', {'group': group})
+
+
+def group_remove_member(request, group_id, member_id):
+    """グループからメンバーを削除するラッパー。
+
+    可能なら `codemon.views.group_remove_member` を呼び出し、なければ簡易に
+    `group_member` テーブルの `is_active` を False にして論理削除します。
+    """
+    try:
+        from codemon import views as codemon_views
+        if hasattr(codemon_views, 'group_remove_member'):
+            return codemon_views.group_remove_member(request, group_id, member_id)
+    except Exception:
+        pass
+
+    # フォールバック実装: セッションの権限チェックは簡易にしておく
+    try:
+        current_user_id = request.session.get('account_user_id') or (request.user.id if getattr(request.user, 'is_authenticated', False) else None)
+        # 簡易権限制御: current_user_id がグループの owner であるか、または自身を削除する場合のみ許可
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT user_id FROM "group" WHERE group_id = %s', [group_id])
+            row = cursor.fetchone()
+            owner_id = row[0] if row else None
+
+            if current_user_id is None:
+                messages.error(request, 'ログインが必要です')
+                return redirect('accounts:student_login')
+
+            if int(current_user_id) != int(owner_id) and int(current_user_id) != int(member_id):
+                return HttpResponseForbidden('この操作を行う権限がありません')
+
+            # 論理削除フラグがある場合は更新、なければ削除
+            try:
+                cursor.execute('UPDATE group_member SET is_active = FALSE WHERE group_id = %s AND member_user_id = %s', [group_id, member_id])
+            except Exception:
+                # fallback: attempt delete
+                try:
+                    cursor.execute('DELETE FROM group_member WHERE group_id = %s AND member_user_id = %s', [group_id, member_id])
+                except Exception as e:
+                    messages.error(request, f'メンバー削除に失敗しました: {e}')
+                    return redirect('accounts:group_detail', group_id=group_id)
+
+        messages.success(request, 'メンバーをグループから削除しました')
+        return redirect('accounts:group_detail', group_id=group_id)
+    except Exception as e:
+        messages.error(request, f'メンバー削除に失敗しました: {e}')
+        return redirect('accounts:group_detail', group_id=group_id)
+
+
+def group_invite(request, group_id):
+    """グループへメンバーを追加する処理（POST）またはフォーム表示（GET）を行う簡易ビュー。
+
+    - POST: `member_email` または `member_user_id` を受け取り `group_member` テーブルへ挿入する。
+    - GET: メンバー追加フォームへリダイレクトする。
+    """
+    if request.method != 'POST':
+        return redirect('accounts:group_add_member_form', group_id=group_id)
+
+    member_input = (request.POST.get('member_email') or request.POST.get('member_user_id') or '').strip()
+    role = request.POST.get('role', 'member')
+
+    if not member_input:
+        messages.error(request, '追加するメンバーの情報を指定してください。')
+        return redirect('accounts:group_add_member_form', group_id=group_id)
+
+    member_user_id = None
+    try:
+        # まず数値として解釈を試みる
+        try:
+            member_user_id = int(member_input)
+        except Exception:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT user_id FROM account WHERE email = %s OR user_name = %s", [member_input, member_input])
+                row = cursor.fetchone()
+                if row:
+                    member_user_id = row[0]
+
+        if not member_user_id:
+            messages.error(request, 'そのユーザーは見つかりませんでした。')
+            return redirect('accounts:group_add_member_form', group_id=group_id)
+
+        # 挿入（既存の重複チェックは簡易に任せる）
+        with connection.cursor() as cursor:
+            cursor.execute(
+                'INSERT INTO group_member (group_id, member_user_id, role) VALUES (%s, %s, %s)',
+                [group_id, member_user_id, role]
+            )
+
+        messages.success(request, 'メンバーを追加しました。')
+        return redirect('accounts:group_menu', group_id=group_id)
+    except Exception as e:
+        messages.error(request, f'メンバー追加に失敗しました: {e}')
+        return redirect('accounts:group_add_member_form', group_id=group_id)
 
 def group_join_confirm(request):
     """
@@ -838,3 +1014,26 @@ def account_entry(request):
     if account.get('account_type') == 'teacher':
         return render(request, 'accounts/t_account.html', context)
     return render(request, 'accounts/s_account.html', context)
+
+def format_timedelta(delta: datetime.timedelta) -> str:
+    """timedelta を受け取り日本語の経過時間表現を返す。"""
+    try:
+        seconds = int(delta.total_seconds())
+    except Exception:
+        return ''
+    if seconds <= 0:
+        return '0秒前'
+    days, rem = divmod(seconds, 86400)
+    hours, rem = divmod(rem, 3600)
+    minutes, sec = divmod(rem, 60)
+    if days > 0:
+        if hours > 0:
+            return f"{days}日{hours}時間前"
+        return f"{days}日前"
+    if hours > 0:
+        if minutes > 0:
+            return f"{hours}時間{minutes}分前"
+        return f"{hours}時間前"
+    if minutes > 0:
+        return f"{minutes}分{sec}秒前"
+    return f"{sec}秒前"
