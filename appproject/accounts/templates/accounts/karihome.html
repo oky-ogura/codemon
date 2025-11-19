@@ -3,14 +3,7 @@
 {% block title %}ホーム - Codemon{% endblock %}
 
 {% block content %}
-<!-- セッションデバッグ表示（タブ操作を邪魔しないように pointer-events: none） -->
-<div id="session-debug-panel" style="position:fixed;left:10px;top:70px;background:#ffe;border:1px solid #cc0;padding:6px 10px;font-size:12px;z-index:500;pointer-events:none;opacity:0.85;">
-  <strong style="pointer-events:auto;">Session Debug</strong><br>
-  <span style="pointer-events:auto;">is_account_authenticated = {{ request.session.is_account_authenticated }}</span><br>
-  <span style="pointer-events:auto;">account_user_id = {{ request.session.account_user_id }}</span><br>
-  <span style="pointer-events:auto;">session_key(len) = {% if request.session.session_key %}{{ request.session.session_key|length }}{% else %}None{% endif %}</span><br>
-  <button type="button" style="margin-top:4px;font-size:11px;pointer-events:auto;cursor:pointer;" onclick="document.getElementById('session-debug-panel').style.display='none'">閉じる</button>
-</div>
+
 
 <div style="text-align: center; padding: 60px 20px;">
   <h1 style="font-size: 36px; color: #667eea; margin-bottom: 20px;">Codemonへようこそ!</h1>

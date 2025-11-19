@@ -113,3 +113,118 @@ document.getElementById('confirm-yes').addEventListener('click', function(){ doc
 </script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>アカウント</title>
+<style>
+  body{font-family:"Segoe UI",sans-serif;background:#f7f7f7;margin:0;padding:24px}
+  .frame{width:920px;margin:12px auto;background:#fff;border:2px solid #000;padding:20px;box-sizing:border-box}
+  .tabs{display:flex;gap:8px;margin-bottom:18px}
+  .tab{padding:8px 18px;border:1px solid #000;background:#fff}
+  .profile{display:flex;gap:24px;align-items:flex-start}
+  .avatar{width:120px;height:120px;border-radius:50%;border:4px solid #ddd;background:#eee;display:flex;align-items:center;justify-content:center;font-size:14px;color:#666}
+  .info{flex:1}
+  .info .row{margin-bottom:8px}
+  .label{display:inline-block;width:80px;color:#333}
+  .meta{margin-top:18px;display:flex;gap:24px;align-items:flex-start}
+  .stick{width:120px;text-align:center;color:#444}
+  .stick .figure{font-size:48px;line-height:1}
+  .btn-logout{background:#cfe6ff;padding:12px 18px;border-radius:8px;border:none;text-decoration:none;color:#000;display:inline-block;margin-top:12px;cursor:pointer}
+  .small{color:#666;font-size:13px}
+
+/* モーダル */
+#confirm-modal{position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.4);display:none;align-items:center;justify-content:center}
+#confirm-modal .box{background:#fff;padding:20px;border-radius:8px;min-width:320px;text-align:center}
+#confirm-modal .buttons{margin-top:16px;display:flex;gap:12px;justify-content:center}
+#confirm-modal .btn{padding:8px 14px;border-radius:6px;border:none;cursor:pointer}
+#confirm-modal .yes{background:#f46b6b;color:#fff}
+#confirm-modal .no{background:#e0e6ef}
+</style>
+</head>
+<body>
+  <div class="frame">
+    <div class="tabs">
+      <div class="tab">システムタブ</div>
+      <div class="tab">アルゴリズムタブ</div>
+      <div class="tab"><a href="{% url 'codemon:checklist_selection' %}">進捗管理タブ</a></div>
+      <div class="tab"><a href="{% url 'accounts:account_entry' %}">アカウント</a></div>
+      
+    </div>
+
+    <div class="profile">
+      <div>
+        <div class="avatar">ユーザー<br>アイコン</div>
+      </div>
+
+      <div class="info">
+        <div class="row"><span class="label">ID</span>
+          <span>{% if account %}{{ account.user_id }}{% else %}---{% endif %}</span>
+        </div>
+        <div class="row"><span class="label">名前</span>
+          <strong>{% if account %}{{ account.user_name }}{% else %}ゲスト{% endif %}</strong>
+        </div>
+        <div class="row"><span class="label">年齢</span>
+          <span>{% if account and account.age is not None %}{{ account.age }}歳{% else %}--{% endif %}</span>
+        </div>
+        <div class="row"><span class="label">参加グループ</span>
+          <span>
+            {% if joined_group %}
+              {% if joined_group.detail_url %}
+                <a href="{{ joined_group.detail_url }}">{{ joined_group.group_name }}</a>
+              {% else %}
+                {{ joined_group.group_name }}
+              {% endif %}
+            {% else %}
+              未参加
+              <!-- 未参加時はグループ参加ボタンを表示 -->
+              <form method="get" action="{% url 'accounts:group_join_confirm' %}" style="display:inline;margin-left:12px">
+                <button type="submit" class="btn-logout">グループに参加</button>
+              </form>
+            {% endif %}
+          </span>
+        </div>
+
+
+        <div class="meta">
+          <div class="stick">
+            
+            
+            <div class="small">初めて会った日 {% if first_met %}{{ first_met|date:"Y/n/d" }}{% else %}--{% endif %}</div>
+            <div class="small">累計日数 {% if total_days %}{{ total_days }}{% else %}0日{% endif %}</div>
+          </div>
+
+          <div>
+            
+
+            <!-- ログアウト: POSTフォーム + 確認モーダル起動ボタン -->
+            <form id="logout-form" method="post" action="{% url 'accounts:logout' %}" style="display:inline">
+              {% csrf_token %}
+              <button type="button" id="logout-btn" class="btn-logout">ログアウトボタン</button>
+            </form>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 確認モーダル -->
+  <div id="confirm-modal" aria-hidden="true">
+    <div class="box" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+      <div id="confirm-title">ログアウトしますか？</div>
+      <div class="buttons">
+        <button class="btn yes" id="confirm-yes">はい</button>
+        <button class="btn no" id="confirm-no">いいえ</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+document.getElementById('logout-btn').addEventListener('click', function(){ document.getElementById('confirm-modal').style.display = 'flex'; });
+document.getElementById('confirm-no').addEventListener('click', function(){ document.getElementById('confirm-modal').style.display = 'none'; });
+document.getElementById('confirm-yes').addEventListener('click', function(){ document.getElementById('logout-form').submit(); });
+</script>
+</body>
+</html>
