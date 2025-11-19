@@ -55,10 +55,11 @@ urlpatterns = [
     path('chat/attachment/<int:attachment_id>/download/', views.download_attachment, name='download_attachment'),
     # メッセージ検索
     path('chat/search/', views.search_messages, name='search_messages'),
-    # グループ管理（codemon.views に定義された view を名前空間 codemon: に登録）
+    # グループ管理
+    # codemon 側には group_detail / group_invite / group_remove_member の実装が存在しないため
+    # これらは accounts.views へ委譲する。名称は維持してテンプレート等の既存参照（codemon:group_detail など）を壊さない。
     path('groups/', views.group_list, name='group_list'),
     path('groups/create/', views.group_create, name='group_create'),
-    # group_detail is defined in the accounts app; route it here for the codemon: namespace
     path('groups/<int:group_id>/', accounts_views.group_detail, name='group_detail'),
     path('groups/<int:group_id>/edit/', views.group_edit, name='group_edit'),
     path('groups/<int:group_id>/delete/', views.group_delete, name='group_delete'),
