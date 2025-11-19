@@ -286,8 +286,9 @@
   <header class="top-tabs">
     <nav class="tabs">
       <ul>
-        <li><a href="{% url 'codemon:systems_list' %}" id="tab-systems">システム</a></li>
-        <li><a href="{% url 'codemon:algorithms_list' %}" id="tab-algorithms">アルゴリズム</a></li>
+        <li><a href="{% url 'accounts:karihome' %}" id="tab-home">ホーム</a></li>
+  <li><a href="{% url 'accounts:system_choice' %}" id="tab-systems">システム</a></li>
+  <li><a href="{% url 'accounts:block_choice' %}" id="tab-algorithms">アルゴリズム</a></li>
         <li><a href="{% url 'codemon:checklist_selection' %}" id="tab-checklist">チェックリスト（進捗確認）</a></li>
         <li><a href="{% url 'accounts:account_entry' %}" id="tab-account">アカウント</a></li>
       </ul>
@@ -312,8 +313,9 @@
   {% load static %}
   <div id="character-widget">
     <!-- キャラ画像 -->
-    <img id="character-image" 
-      src="{% static 'codemon/images/characters/inu.png' %}" 
+    <img id="character-image"
+      src="{% static 'codemon/images/characters' %}/{{ request.session.ai_character|default:'inu' }}.png"
+      data-character="{{ request.session.ai_character|default:'inu' }}"
       alt="AI Character"
       onerror="this.style.display='none'; console.error('画像が読み込めません');"
       title="クリックしてチャット">
@@ -349,11 +351,33 @@
   <!-- 共通JavaScript -->
   <script>
   (function(){
+    // キャラごとの初期メッセージ定義（必要に応じて拡張可能）
+    const initialMessages = {
+      usagi: 'どうしたんですか？ぼ、ぼくにできることがあればいってください...！',
+      kitune: 'どうしたんだい？オレが助けてやろうか？',
+      inu: 'どうした? おれがちからになるぞ!',
+      panda: 'どうしたのぉ? なにかぼくがやることある～？',
+      risu: 'どうしたの？あたしがやったげるわ！',
+      fukurou: 'どうかしましたか？手助けしますよ。',
+      neko: '...どうしたの。ぼくにやることある？',
+      arupaka: 'なにかあったのかしら？わたくしに任せなさい。',
+      default: 'こんにちは、どう手伝おうか？'
+    };
+
     // アクティブタブのハイライト
     const currentPath = window.location.pathname;
     const tabLinks = {
-      'tab-systems': ['/codemon/systems/', '/codemon/groups/', '/codemon/threads/'],
-      'tab-algorithms': ['/codemon/algorithms/', '/codemon/blocks/'],
+      'tab-home': ['/accounts/karihome/'],
+      // システム: 新しい遷移先（system_choice）と既存の下層URLの両方をアクティブ対象に含める
+      'tab-systems': [
+        '/accounts/system/choice/',
+        '/codemon/systems/', '/codemon/groups/', '/codemon/threads/'
+      ],
+      // アルゴリズム: 新しい遷移先（block_choice）と既存の下層URLの両方をアクティブ対象に含める
+      'tab-algorithms': [
+        '/accounts/block/choice/',
+        '/codemon/algorithms/', '/codemon/blocks/'
+      ],
       'tab-checklist': ['/codemon/checklists/'],
       'tab-account': ['/accounts/']
     };
@@ -377,10 +401,19 @@
     const sendBtn = document.getElementById('chat-send');
     const minimizeBtn = document.getElementById('minimize-btn');
     const closeBtn = document.getElementById('close-btn');
+    const initialMessageEl = document.getElementById('initial-message');
     
     let conversationId = null;
     let isExpanded = false;
     let isMinimized = false;
+
+    // 現在のキャラコード（未設定時は inu）
+    const characterCode = (characterImg?.dataset?.character || 'inu').trim() || 'inu';
+
+    // 最小化ビューのテキストをキャラに応じて差し替え
+    if (initialMessageEl) {
+      initialMessageEl.textContent = initialMessages[characterCode] || initialMessages.default;
+    }
     
     // キャラクター画像クリック → 最小化表示
     characterImg.addEventListener('click', () => {
@@ -425,7 +458,7 @@
       
       // 初回展開時に初期メッセージを表示
       if (messagesEl.children.length === 0) {
-        appendMessage('assistant', 'ねぇねぇ、何か聞きたいことある?わん!');
+        appendMessage('assistant', initialMessages[characterCode] || initialMessages.default);
       }
       
       // 最新メッセージ(一番下)にスクロール
@@ -471,7 +504,7 @@
           },
           body: JSON.stringify({
             message: msg,
-            character: 'inu',
+            character: characterCode,
             conversation_id: conversationId
           })
         });
