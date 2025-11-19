@@ -6,7 +6,6 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        # 非存在の親参照を除去し、最新のマージにのみ依存
         ('codemon', '0004_merge_0002_add_group_description_0003_alter_aiconversation_user'),
     ]
 

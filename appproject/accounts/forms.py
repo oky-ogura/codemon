@@ -77,3 +77,30 @@ class StudentSignupForm(forms.ModelForm):
         if commit:
             instance.save()
         return instance
+
+
+class ProfileEditForm(forms.ModelForm):
+    """簡易プロフィール編集フォーム: 名前・メール・年齢を編集するための ModelForm。
+
+    編集時にメールアドレスの重複チェックを行い、同一インスタンスを除外します。
+    """
+    class Meta:
+        model = Account
+        fields = ['user_name', 'email', 'age']
+        labels = {
+            'user_name': '氏名',
+            'email': 'メールアドレス',
+            'age': '年齢',
+        }
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if not email:
+            return email
+        qs = Account.objects.filter(email=email)
+        # 編集時は自身のインスタンスを除外
+        if self.instance and getattr(self.instance, 'pk', None):
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise ValidationError('このメールアドレスは既に使用されています')
+        return email
