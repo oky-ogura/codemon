@@ -3,37 +3,6 @@
 {% block title %}ホーム - Codemon{% endblock %}
 
 {% block content %}
-<!-- セッションデバッグ表示（タブ操作を邪魔しないように pointer-events: none） -->
-<div id="session-debug-panel" style="position:fixed;left:10px;top:70px;background:#ffe;border:1px solid #cc0;padding:6px 10px;font-size:12px;z-index:500;pointer-events:none;opacity:0.85;">
-  <strong style="pointer-events:auto;">Session Debug</strong><br>
-  <span style="pointer-events:auto;">is_account_authenticated = {{ request.session.is_account_authenticated }}</span><br>
-  <span style="pointer-events:auto;">account_user_id = {{ request.session.account_user_id }}</span><br>
-  <span style="pointer-events:auto;">session_key(len) = {% if request.session.session_key %}{{ request.session.session_key|length }}{% else %}None{% endif %}</span><br>
-  <button type="button" style="margin-top:4px;font-size:11px;pointer-events:auto;cursor:pointer;" onclick="document.getElementById('session-debug-panel').style.display='none'">閉じる</button>
-</div>
-
-<div style="text-align: center; padding: 60px 20px;">
-  <h1 style="font-size: 36px; color: #667eea; margin-bottom: 20px;">Codemonへようこそ!</h1>
-  <p style="font-size: 18px; color: #666; margin-bottom: 40px;">上部のタブから各機能にアクセスできます</p>
-  
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; max-width: 900px; margin: 0 auto;">
-    <div style="padding: 30px; border: 2px solid #667eea; border-radius: 12px; background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);">
-      <h2 style="color: #667eea; margin-bottom: 15px;">📊 システム</h2>
-      <p style="color: #666;">システム情報を管理</p>
-      <a href="{% url 'codemon:systems_list' %}" style="display: inline-block; margin-top: 15px; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">開く</a>
-    </div>
-    
-    <div style="padding: 30px; border: 2px solid #28a745; border-radius: 12px; background: linear-gradient(135deg, #28a74515 0%, #218b3815 100%);">
-      <h2 style="color: #28a745; margin-bottom: 15px;">⚙️ アルゴリズム</h2>
-      <p style="color: #666;">アルゴリズムを確認</p>
-      <a href="{% url 'codemon:algorithms_list' %}" style="display: inline-block; margin-top: 15px; padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">開く</a>
-    </div>
-    
-    <div style="padding: 30px; border: 2px solid #ffc107; border-radius: 12px; background: linear-gradient(135deg, #ffc10715 0%, #ff980015 100%);">
-      <h2 style="color: #f39c12; margin-bottom: 15px;">✅ チェックリスト</h2>
-      <p style="color: #666;">進捗を管理</p>
-      <a href="{% url 'codemon:checklist_selection' %}" style="display: inline-block; margin-top: 15px; padding: 10px 20px; background: #ffc107; color: #333; text-decoration: none; border-radius: 6px; font-weight: bold;">開く</a>
-    </div>
-  </div>
-</div>
+{# karihome では上部タブとAIキャラクターのみ表示 #}
+<div style="min-height: 20px;"></div>
 {% endblock %}

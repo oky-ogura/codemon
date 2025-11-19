@@ -62,7 +62,7 @@ urlpatterns = [
     path('t_account/', views.account_view, name='account_dashboard'),
     path('groups/create/', views.group_create, name='group_create'),
      # Add member now accepts a group_id and uses the invite handler
-     path('groups/<int:group_id>/add_member/', views.group_invite, name='group_add_member'),
+     path('groups/<int:group_id>/add_member/', codemon_views.group_invite, name='group_add_member'),
      path('groups/join_confirm/', views.group_join_confirm, name='group_join_confirm'),
      # Group menu is per-group (accept group_id)
           path('groups/<int:group_id>/menu/', views.group_menu, name='group_menu'),
@@ -74,7 +74,7 @@ urlpatterns = [
     path('account_entry/', views.account_entry, name='account_entry'),
      # グループ詳細・削除はテンプレート側で名前のみ参照している箇所があるため
      # accounts の URLconf にもエイリアスを追加しておく。
-     path('groups/<int:group_id>/', views.group_detail, name='group_detail'),
+     path('groups/<int:group_id>/', codemon_views.group_detail, name='group_detail'),
      path('groups/<int:group_id>/delete/confirm/', views.group_delete_confirm, name='group_delete_confirm'),
      path('groups/<int:group_id>/delete/', codemon_views.group_delete, name='group_delete'),
      path('karihome/', views.karihome, name='karihome'),

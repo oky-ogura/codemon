@@ -222,6 +222,10 @@ def teacher_login(request):
     # GET または認証失敗時はログインフォームを表示
     return render(request, 'accounts/t_login.html')
 
+def login_choice(request):
+    """ログイン種別選択（暫定）。未実装のため生徒ログインへフォールバック。"""
+    return redirect('accounts:student_login')
+
 def student_login(request):
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -591,6 +595,10 @@ def group_menu(request):
     """グループメニュー画面を表示"""
     return render(request, 'group/group_menu.html')
 
+def group_menu_redirect(request):
+    """レガシー互換: /groups/menu/ へのアクセスに対応（単純描画）。"""
+    return render(request, 'group/group_menu.html')
+
 def group_join_confirm(request):
     """
     GET:
@@ -635,6 +643,10 @@ def preview_password_reset_confirm(request):
     """
     form = SetPasswordForm(user=None)
     return render(request, 'accounts/password_reset_custom.html', {'form': form})
+
+def group_delete_confirm(request, group_id):
+    """グループ削除確認（暫定）。必要に応じて確認テンプレートを実装。"""
+    return redirect('accounts:account_entry')
 
 
 # --- カスタムのパスワード再設定確認ビュー（Account を直接操作する） ---
