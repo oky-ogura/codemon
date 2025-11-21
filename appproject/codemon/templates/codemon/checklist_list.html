@@ -1,19 +1,79 @@
 {% extends 'base.html' %}
+
+{% block title %}チェックリスト一覧 - Codemon{% endblock %}
+
+{% block extra_css %}
+<style>
+/* チェックリストテーブル */
+.checklist-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.checklist-table th, .checklist-table td {
+  border-bottom: 1px solid #ddd;
+  padding: 15px;
+  text-align: left;
+}
+.checklist-table th {
+  background-color: #667eea;
+  color: white;
+  font-weight: bold;
+}
+.checklist-table tbody tr:hover {
+  background-color: #f5f5f5;
+}
+.checklist-table a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: bold;
+}
+.checklist-table a:hover {
+  text-decoration: underline;
+}
+.no-items {
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  padding: 40px !important;
+}
+
+/* 戻るボタン */
+.back-button-container {
+  text-align: center;
+  margin-top: 30px;
+}
+.btn-back {
+  display: inline-block;
+  padding: 12px 30px;
+  background-color: #6c757d;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1em;
+  transition: all 0.3s;
+}
+.btn-back:hover {
+  background-color: #5a6268;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+}
+
+@media (max-width: 600px) {
+  .checklist-table {
+    font-size: 14px;
+  }
+  .checklist-table th, .checklist-table td {
+    padding: 10px;
+  }
+}
+</style>
+{% endblock %}
+
 {% block content %}
-
-<div class="navigation-tabs">
-  <a href="{% url 'codemon:systems_list' %}" class="tab">システム</a>
-  <a href="{% url 'codemon:algorithms_list' %}" class="tab">アルゴリズム</a>
-  <a href="{% url 'codemon:checklist_selection' %}" class="tab active">進捗確認</a>
-  <a href="{% url 'accounts:account_entry' %}" class="tab" id="account-tab">アカウント</a>
-</div>
-
-<div class="chat-ai-bubble">
-  <a href="{% url 'codemon:chat' %}" class="chat-button">
-    <i class="fas fa-comments"></i>
-    AIチャット
-  </a>
-</div>
+<h1>チェックリスト一覧</h1>
 
 <table class="checklist-table">
   <thead>
@@ -40,111 +100,8 @@
   </tbody>
 </table>
 
-<!-- ✅ 戻るボタン -->
+<!-- 戻るボタン -->
 <div class="back-button-container">
   <a href="{% url 'codemon:checklist_selection' %}" class="btn-back">戻る</a>
 </div>
-
-<style>
-.navigation-tabs {
-  display: flex;
-  margin-bottom: 20px;
-  justify-content: center; /* 中央寄せ */
-}
-
-.tab {
-  padding: 10px 30px;
-  margin-right: 25px;
-  text-decoration: none;
-  color: #333;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-.tab.active {
-  background-color: #007bff;
-  color: white;
-}
-.chat-ai-bubble {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-}
-.chat-button {
-  display: inline-flex;
-  align-items: center;
-  padding: 10px 15px;
-  background-color: #007bff;
-  color: white;
-  text-decoration: none;
-  border-radius: 20px;
-}
-
-/* チェックリストテーブル */
-.checklist-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-}
-.checklist-table th, .checklist-table td {
-  border-bottom: 1px solid #ddd;
-  padding: 10px;
-  text-align: left;
-}
-.checklist-table th {
-  background-color: #f8f8f8;
-}
-.checklist-table a {
-  color: #007bff;
-  text-decoration: none;
-  font-weight: bold;
-}
-.checklist-table a:hover {
-  text-decoration: underline;
-}
-.no-items {
-  text-align: center;
-  color: #666;
-  font-style: italic;
-}
-
-/* 戻るボタン */
-.back-button-container {
-  text-align: center;
-  margin-top: 30px;
-}
-.btn-back {
-  padding: 10px 25px;
-  background-color: #6c757d;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1em;
-}
-.btn-back:hover {
-  background-color: #5a6268;
-}
-
-.create-new {
-  margin-top: 20px;
-}
-.btn-create {
-  padding: 10px 20px;
-  background-color: #28a745;
-  color: white;
-  text-decoration: none;
-  border-radius: 4px;
-}
-@media (max-width: 600px) {
-  .chat-ai-bubble {
-    bottom: 10px;
-    right: 10px;
-  }
-  .chat-button {
-    padding: 8px 12px;
-    font-size: 0.9em;
-  }
-}
-</style>
-
 {% endblock %}

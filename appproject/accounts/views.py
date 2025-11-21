@@ -1,9 +1,11 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth import get_user_model
 from django.contrib import messages
  # password ハッシュ化はフォーム側で行うように変更しました
-from .forms import TeacherSignupForm, StudentSignupForm
+from .forms import TeacherSignupForm, StudentSignupForm, ProfileEditForm
+from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.forms import SetPasswordForm
@@ -18,8 +20,15 @@ from django.core import signing
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from django.contrib.auth.hashers import make_password
-from django.http import HttpResponseRedirect, FileResponse, HttpResponseForbidden, JsonResponse
-# helper from codemon app to resolve the effective Account-like owner for write operations
+from django.http import HttpResponseRedirect, HttpResponseForbidden, FileResponse, JsonResponse
+
+from django.db import connection, transaction
+from django.utils import timezone
+from django.contrib.auth.hashers import make_password
+from django.contrib.messages import get_messages
+import logging
+from django.utils.dateparse import parse_datetime, parse_date
+import datetime
 try:
     from codemon.views import _get_write_owner
 except Exception:
@@ -35,13 +44,6 @@ except Exception:
         if getattr(request, 'user', None) and getattr(request.user, 'is_authenticated', False):
             return request.user
         return None
-
-from django.db import connection
-from django.utils import timezone
-from django.contrib.auth.hashers import make_password
-from codemon.models import System, Algorithm, SystemElement
-import json
-
 
 
 # カスタムのパスワード再設定ビュー
@@ -207,13 +209,40 @@ def teacher_login(request):
             request.session['account_email'] = account_row[2]
             request.session['account_user_name'] = account_row[1]
             request.session.modified = True
-            # ログイン成功 → karihome.html を表示
-            return render(request, 'accounts/karihome.html')
+            try:
+                request.session.save()
+            except Exception:
+                pass
+            # --- Django標準ユーザーとのブリッジ（teacher 版） ---
+            try:
+                User = get_user_model()
+                django_user, created = User.objects.get_or_create(username=account_row[2], defaults={'email': account_row[2]})
+                if created or not django_user.password:
+                    django_user.set_password(password)
+                    django_user.save()
+                login(request, django_user)
+            except Exception as e:
+                print(f"DEBUG teacher_login bridge error: {e}")
+            # セッションID生成（存在しない場合）
+            if not request.session.session_key:
+                request.session.cycle_key()
+            print(f"DEBUG teacher_login: session_key={request.session.session_key} data={dict(request.session)}")
+            # 古いエラーメッセージをクリア
+            try:
+                list(get_messages(request))
+            except Exception:
+                pass
+            # リダイレクトで Set-Cookie を確実に反映
+            return redirect('accounts:karihome')
         else:
             messages.error(request, 'ユーザー名またはパスワードが違います')
 
     # GET または認証失敗時はログインフォームを表示
     return render(request, 'accounts/t_login.html')
+
+def login_choice(request):
+    """ログイン種別選択（暫定）。未実装のため生徒ログインへフォールバック。"""
+    return redirect('accounts:student_login')
 
 def student_login(request):
     if request.method == 'POST':
@@ -232,11 +261,39 @@ def student_login(request):
                 request.session.save()
             except Exception:
                 pass
-            # ログイン成功後は仮ホーム（karihome.html）を表示する
-            return render(request, 'accounts/karihome.html')
+            # --- Django標準ユーザーとのブリッジ（login_required などの互換性確保） ---
+            try:
+                User = get_user_model()
+                # email を username に使う（既存ユーザーがあれば再利用）
+                django_user, created = User.objects.get_or_create(username=acc.email, defaults={'email': acc.email})
+                # パスワード未設定なら設定（ハッシュ済みを避けるため set_password 使用）
+                if created or not django_user.password:
+                    django_user.set_password(password)
+                    django_user.save()
+                # 認証後 login() で request.user を有効化
+                login(request, django_user)
+            except Exception as e:
+                print(f"DEBUG student_login bridge error: {e}")
+            # セッションID生成（存在しない場合）
+            if not request.session.session_key:
+                request.session.cycle_key()
+            # デバッグ: セッション情報を出力
+            print(f"DEBUG student_login: session_key = {request.session.session_key}")
+            print(f"DEBUG student_login: session data = {dict(request.session)}")
+            # 古いエラーメッセージをクリア
+            try:
+                list(get_messages(request))
+            except Exception:
+                pass
+            # リダイレクトにより Set-Cookie を確実に反映
+            return redirect('accounts:karihome')
         else:
             messages.error(request, 'ユーザー名またはパスワードが間違っています')
     return render(request, 'accounts/s_login.html')
+
+def karihome(request):
+    """簡易ビュー: accounts/karihome.html を表示する。テンプレートは既にあるため GET で表示するだけ。"""
+    return render(request, 'accounts/karihome.html')
 
 def user_logout(request):
     # セッション内のアカウント情報を削除してログアウト扱いにする
@@ -250,8 +307,35 @@ def user_logout(request):
         logout(request)
     except Exception:
         pass
-    # 修正: 'home' が未定義のため accounts のルートへリダイレクト
-    return redirect('accounts:accounts_root')
+    # ログアウト後はログイン選択ページへ遷移させる（teacher / student を選ぶ画面）
+    try:
+        return redirect('accounts:login_choice')
+    except Exception:
+        return redirect('/')
+
+# --- セッションベース認証簡易デコレータ & karihome ビュー追加 ---
+from functools import wraps
+
+def account_session_required(view_func):
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        print(f"DEBUG account_session_required: session_key={request.session.session_key} data={dict(request.session)}")
+        if not request.session.get('is_account_authenticated'):
+            login_url = reverse('accounts:student_login')
+            next_url = request.get_full_path()
+            return redirect(f"{login_url}?next={next_url}")
+        return view_func(request, *args, **kwargs)
+    return _wrapped
+
+@account_session_required
+def karihome(request):
+    print(f"DEBUG karihome view: session_key={request.session.session_key} data={dict(request.session)}")
+    return render(request, 'accounts/karihome.html')
+
+def login_choice(request):
+    """ログイン種別の選択ページ（教師 or 生徒）を表示する簡易ビュー"""
+    # 単純な選択ページを表示するだけ。テンプレート内でそれぞれのログインページへ遷移する。
+    return render(request, 'accounts/login_choice.html')
 
 def ai_appearance(request):
     """AI外見設定ページ（簡易版）。POSTで選択を受け取り、ログイン済みなら保存します。"""
@@ -391,131 +475,10 @@ def ai_initial_save(request):
     return redirect('accounts:accounts_root')
 
 def block_index(request):
-    """
-    アルゴリズム作成・編集画面
-    - URLパラメータ id があれば編集モード: 既存アルゴリズム情報を取得してテンプレートに渡す
-    - id がなければ新規作成モード
-    """
-    algorithm_id = request.GET.get('id')
-    context = {}
-    
-    if algorithm_id:
-        try:
-            algorithm = Algorithm.objects.get(algorithm_id=algorithm_id)
-            context = {
-                'algorithm_id': algorithm.algorithm_id,
-                'algorithm_name': algorithm.algorithm_name,
-                'algorithm_description': algorithm.algorithm_description or '',
-                'blockly_xml': algorithm.blockly_xml or '',
-            }
-        except Algorithm.DoesNotExist:
-            messages.error(request, '指定されたアルゴリズムが見つかりません。')
-    
-    return render(request, 'block/index.html', context)
+    return render(request, 'block/index.html')
 
 def system_index(request):
-    """
-    システム作成・編集画面
-    - URLパラメータ id があれば編集モード: 既存システム情報を取得してテンプレートに渡す
-    - id がなければ新規作成モード
-    """
-    system_id = request.GET.get('id')
-    context = {}
-    
-    # ログインユーザーの他のシステム一覧を取得
-    account = get_logged_account(request)
-    other_systems_json = '[]'
-    if account:
-        try:
-            other_systems_qs = System.objects.filter(user=account).order_by('-created_at')
-            # 編集モードの場合は、編集中のシステムを除外
-            if system_id:
-                other_systems_qs = other_systems_qs.exclude(system_id=system_id)
-            
-            # JSON形式に変換
-            other_systems_list = []
-            for sys in other_systems_qs:
-                other_systems_list.append({
-                    'system_id': sys.system_id,
-                    'system_name': sys.system_name
-                })
-            
-            other_systems_json = json.dumps(other_systems_list, ensure_ascii=False)
-        except Exception:
-            pass
-    
-    context['other_systems_json'] = other_systems_json
-    
-    if system_id:
-        try:
-            system = System.objects.get(system_id=system_id)
-            context['system_id'] = system.system_id
-            context['system_name'] = system.system_name
-            context['system_description'] = system.system_description or ''
-            
-            # システム要素を取得してJSON化
-            elements = SystemElement.objects.filter(system=system).order_by('sort_order', 'element_id')
-            elements_list = []
-            for elem in elements:
-                elements_list.append({
-                    'element_type': elem.element_type,
-                    'element_label': elem.element_label or '',
-                    'element_value': elem.element_value or '',
-                    'position_x': elem.position_x,
-                    'position_y': elem.position_y,
-                    'width': elem.width,
-                    'height': elem.height,
-                    'style_data': elem.style_data or {},
-                    'element_config': elem.element_config or {}
-                })
-            context['elements_json'] = json.dumps(elements_list, ensure_ascii=False)
-        except System.DoesNotExist:
-            messages.error(request, '指定されたシステムが見つかりません。')
-    
-    return render(request, 'system/index.html', context)
-
-# システム要素取得API
-def get_system_elements(request):
-    """
-    指定されたシステムの要素データをJSON形式で返すAPIエンドポイント
-    """
-    system_id = request.GET.get('system_id')
-    if not system_id:
-        return JsonResponse({'error': 'system_id is required'}, status=400)
-    
-    account = get_logged_account(request)
-    if not account:
-        return JsonResponse({'error': 'Not authenticated'}, status=401)
-    
-    try:
-        # システムの所有者確認
-        system = System.objects.get(system_id=system_id, user=account)
-        
-        # システム要素を取得
-        elements = SystemElement.objects.filter(system=system).order_by('sort_order', 'element_id')
-        elements_list = []
-        for elem in elements:
-            elements_list.append({
-                'element_type': elem.element_type,
-                'element_label': elem.element_label or '',
-                'element_value': elem.element_value or '',
-                'position_x': elem.position_x,
-                'position_y': elem.position_y,
-                'width': elem.width,
-                'height': elem.height,
-                'style_data': elem.style_data or {},
-                'element_config': elem.element_config or {}
-            })
-        
-        return JsonResponse({
-            'success': True,
-            'system_name': system.system_name,
-            'elements': elements_list
-        })
-    except System.DoesNotExist:
-        return JsonResponse({'error': 'System not found'}, status=404)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+    return render(request, 'system/index.html')
 
 # ブロック作成保存
 def block_save(request):
@@ -533,230 +496,15 @@ def system_choice(request):
 
 # システム新規作成画面（システム名、システムの詳細入力など）
 def system_create(request):
-    if request.method == 'POST':
-        # POSTデータを取得
-        system_name = request.POST.get('system_name', '').strip()
-        system_detail = request.POST.get('system_detail', '').strip()
-        created_at_str = request.POST.get('created_at', '')
-        system_id = request.POST.get('system_id', '').strip()  # 編集モードの場合にシステムIDが送信される
-        elements_json = request.POST.get('elements_data', '')  # 要素データ（JSON形式）
-        
-        # バリデーション
-        if not system_name or not system_detail:
-            messages.error(request, 'システム名とシステムの詳細は必須項目です。')
-            return render(request, 'system/system_create.html')
-        
-        # ログインユーザーを取得
-        account = get_logged_account(request)
-        if not account:
-            messages.error(request, 'ログインが必要です。')
-            return redirect('accounts:student_login')
-        
-        try:
-            if system_id:
-                # 編集モード: 既存システムを更新
-                system = System.objects.get(system_id=system_id, user=account)
-                system.system_name = system_name
-                system.system_description = system_detail
-                system.save()
-                # 既存の要素を削除
-                SystemElement.objects.filter(system=system).delete()
-                messages.success(request, f'システム「{system_name}」を更新しました。')
-            else:
-                # 新規作成モード: 新しいSystemオブジェクトを作成
-                system = System.objects.create(
-                    user=account,
-                    system_name=system_name,
-                    system_description=system_detail
-                )
-                messages.success(request, f'システム「{system_name}」を保存しました。')
-            
-            # 要素データを解析して保存
-            if elements_json:
-                try:
-                    elements_data = json.loads(elements_json)
-                    for idx, elem in enumerate(elements_data):
-                        SystemElement.objects.create(
-                            system=system,
-                            element_type=elem.get('element_type', ''),
-                            element_label=elem.get('element_label', ''),
-                            element_value=elem.get('element_value', ''),
-                            position_x=elem.get('position_x', 0),
-                            position_y=elem.get('position_y', 0),
-                            width=elem.get('width'),
-                            height=elem.get('height'),
-                            style_data=elem.get('style_data'),
-                            element_config=elem.get('element_config'),
-                            sort_order=idx
-                        )
-                except json.JSONDecodeError as e:
-                    messages.warning(request, f'要素データの解析に失敗しました: {str(e)}')
-                except Exception as e:
-                    messages.warning(request, f'要素の保存に失敗しました: {str(e)}')
-            
-            # 保存完了画面へリダイレクト
-            return redirect('accounts:system_save')
-        except System.DoesNotExist:
-            messages.error(request, '指定されたシステムが見つかりません。')
-            return render(request, 'system/system_create.html')
-        except Exception as e:
-            messages.error(request, f'システムの保存に失敗しました: {str(e)}')
-            return render(request, 'system/system_create.html')
-    
-    # GETリクエストの場合: 他のシステム一覧を取得してテンプレートに渡す
-    account = get_logged_account(request)
-    other_systems = []
-    if account:
-        try:
-            # ログインユーザーの全システムを取得（編集中のシステムは除外する必要があるが、ここでは全て取得）
-            other_systems = System.objects.filter(user=account).order_by('-created_at')
-        except Exception:
-            pass
-    
-    return render(request, 'system/system_create.html', {'other_systems': other_systems})
+    return render(request, 'system/system_create.html')
 
 # システム一覧画面
 def system_list(request):
-    # ログインしている Account に紐づくシステムを優先して表示
-    try:
-        account = get_logged_account(request)
-    except Exception:
-        account = None
-
-    if account:
-        # 更新日が新しい順、同じ場合は作成日が新しい順
-        systems = System.objects.filter(user=account).order_by('-updated_at', '-created_at')
-    else:
-        # ログイン情報が取れない場合は全件を上位表示（最大100件）
-        systems = System.objects.all().order_by('-updated_at', '-created_at')[:100]
-
-    return render(request, 'system/system_list.html', {'systems': systems})
-
-# システム一覧データ取得API（一覧更新ボタン用）
-def system_list_data(request):
-    try:
-        account = get_logged_account(request)
-    except Exception:
-        account = None
-
-    if account:
-        # 更新日が新しい順、同じ場合は作成日が新しい順
-        systems = System.objects.filter(user=account).order_by('-updated_at', '-created_at')
-    else:
-        systems = System.objects.all().order_by('-updated_at', '-created_at')[:100]
-
-    # システムデータをJSON形式に変換
-    systems_data = []
-    for s in systems:
-        # Windowsでも動作するよう、%-を使わない形式に変更
-        created_str = s.created_at.strftime('%Y年%m月%d日 %H:%M').replace('月0', '月').replace('日0', '日') if s.created_at else ''
-        updated_str = s.updated_at.strftime('%Y年%m月%d日 %H:%M').replace('月0', '月').replace('日0', '日') if s.updated_at else ''
-        
-        systems_data.append({
-            'system_id': s.system_id,
-            'system_name': s.system_name,
-            'system_description': s.system_description or '',
-            'created_at': created_str,
-            'updated_at': updated_str,
-        })
-
-    return JsonResponse({'systems': systems_data})
+    return render(request, 'system/system_list.html')
 
 # 該当システム詳細画面
 def system_details(request):
-    # URLパラメータからシステムIDを取得
-    system_id = request.GET.get('id')
-    
-    if not system_id:
-        messages.error(request, 'システムIDが指定されていません。')
-        return redirect('accounts:system_list')
-    
-    try:
-        # システムIDでデータベースから取得
-        system = System.objects.get(system_id=system_id)
-        
-        # ログインユーザーを取得
-        account = get_logged_account(request)
-        
-        # 自分のシステムかどうか確認（セキュリティ）
-        if account and system.user.user_id != account.user_id:
-            messages.error(request, 'このシステムにアクセスする権限がありません。')
-            return redirect('accounts:system_list')
-        
-        # システムに紐づく要素を取得
-        elements = SystemElement.objects.filter(system=system).order_by('sort_order', 'element_id')
-        
-        # テンプレートにシステム情報を渡す
-        context = {
-            'system': system,
-            'system_id': system.system_id,
-            'system_name': system.system_name,
-            'system_description': system.system_description,
-            'created_at': system.created_at,
-            'elements': elements,
-        }
-        return render(request, 'system/system_details.html', context)
-        
-    except System.DoesNotExist:
-        messages.error(request, '指定されたシステムが見つかりませんでした。')
-        return redirect('accounts:system_list')
-    except Exception as e:
-        messages.error(request, f'エラーが発生しました: {str(e)}')
-        return redirect('accounts:system_list')
-
-# システム削除確認画面
-def system_delete(request):
-    # URLパラメータからシステムIDを取得
-    system_id = request.GET.get('id')
-    
-    if not system_id:
-        messages.error(request, 'システムIDが指定されていません。')
-        return redirect('accounts:system_list')
-    
-    try:
-        # システムIDでデータベースから取得
-        system = System.objects.get(system_id=system_id)
-        
-        # ログインユーザーを取得
-        account = get_logged_account(request)
-        
-        # 自分のシステムかどうか確認（セキュリティ）
-        if account and system.user.user_id != account.user_id:
-            messages.error(request, 'このシステムを削除する権限がありません。')
-            return redirect('accounts:system_list')
-        
-        # POSTリクエストの場合は削除を実行
-        if request.method == 'POST':
-            system_name = system.system_name
-            system.delete()
-            messages.success(request, f'システム「{system_name}」を削除しました。')
-            return redirect('accounts:system_delete_success')
-        
-        # GETリクエストの場合は削除確認画面を表示
-        context = {
-            'system': system,
-            'system_id': system.system_id,
-            'system_name': system.system_name,
-            'system_description': system.system_description,
-            'created_at': system.created_at,
-        }
-        return render(request, 'system/system_delete.html', context)
-        
-    except System.DoesNotExist:
-        messages.error(request, '指定されたシステムが見つかりませんでした。')
-        return redirect('accounts:system_list')
-    except Exception as e:
-        messages.error(request, f'エラーが発生しました: {str(e)}')
-        return redirect('accounts:system_list')
-
-# システム削除完了画面
-def system_delete_success(request):
-    return render(request, 'system/system_delete_success.html')
-
-# システムチュートリアル画面
-def system_tutorial(request):
-
-    return render(request, 'system/system_tutorial.html')
+    return render(request, 'system/system_details.html')
 
 
 # アルゴリズム選択画面
@@ -766,227 +514,28 @@ def block_choice(request):
     """
     return render(request, 'block/block_choice.html')
 
+
+def login_choice(request):
+    """ログイン種別選択画面（教員 / 生徒）を表示するビュー"""
+    return render(request, 'accounts/login_choice.html')
+
 # 新規アルゴリズム作成画面
 def block_create(request):
     """
-    アルゴリズム名・概要を入力して保存する画面
-    - GETリクエスト: フォームを表示
-    - POSTリクエスト: データベースに保存または更新
+    block_create.html を表示（表示のみ、遷移先なし）
     """
-    if request.method == 'POST':
-        algorithm_name = request.POST.get('algorithm_name', '').strip()
-        algorithm_description = request.POST.get('algorithm_description', '').strip()
-        algorithm_id = request.POST.get('algorithm_id', '').strip()
-        blockly_xml = request.POST.get('blockly_xml', '').strip()
-        
-        # バリデーション
-        if not algorithm_name:
-            messages.error(request, 'アルゴリズム名は必須項目です。')
-            return render(request, 'block/block_create.html', {
-                'algorithm_name': algorithm_name,
-                'algorithm_description': algorithm_description,
-            })
-        
-        try:
-            # ログインユーザーを取得
-            account = get_logged_account(request)
-            
-            if algorithm_id:
-                # 既存のアルゴリズムを更新
-                algorithm = Algorithm.objects.get(algorithm_id=algorithm_id, user=account)
-                algorithm.algorithm_name = algorithm_name
-                algorithm.algorithm_description = algorithm_description
-                if blockly_xml:
-                    algorithm.blockly_xml = blockly_xml
-                algorithm.save()
-            else:
-                # 新規作成
-                Algorithm.objects.create(
-                    user=account,
-                    algorithm_name=algorithm_name,
-                    algorithm_description=algorithm_description,
-                    blockly_xml=blockly_xml if blockly_xml else None
-                )
-            
-            # 保存成功後はsave.htmlを表示
-            return render(request, 'block/save.html')
-            
-        except Algorithm.DoesNotExist:
-            messages.error(request, '指定されたアルゴリズムが見つかりません。')
-            return redirect('accounts:block_list')
-        except Exception as e:
-            messages.error(request, f'保存中にエラーが発生しました: {str(e)}')
-            return render(request, 'block/block_create.html', {
-                'algorithm_name': algorithm_name,
-                'algorithm_description': algorithm_description,
-            })
-    
-    # GETリクエスト: フォームを表示（編集モード対応）
-    algorithm_id = request.GET.get('id')
-    context = {}
-    
-    if algorithm_id:
-        try:
-            algorithm = Algorithm.objects.get(algorithm_id=algorithm_id)
-            context = {
-                'algorithm_id': algorithm.algorithm_id,
-                'algorithm_name': algorithm.algorithm_name,
-                'algorithm_description': algorithm.algorithm_description or '',
-                'blockly_xml': algorithm.blockly_xml or '',
-            }
-        except Algorithm.DoesNotExist:
-            messages.error(request, '指定されたアルゴリズムが見つかりません。')
-    
-    return render(request, 'block/block_create.html', context)
+    return render(request, 'block/block_create.html')
 
 
 # 該当アルゴリズム詳細画面
 def block_details(request):
-    # URLパラメータからアルゴリズムIDを取得
-    algorithm_id = request.GET.get('id')
     
-    if not algorithm_id:
-        messages.error(request, 'アルゴリズムIDが指定されていません。')
-        return redirect('accounts:block_list')
-    
-    try:
-        # アルゴリズムIDでデータベースから取得
-        algorithm = Algorithm.objects.get(algorithm_id=algorithm_id)
-        
-        # ログインユーザーを取得
-        account = get_logged_account(request)
-        
-        # POSTリクエストの場合は更新処理
-        if request.method == 'POST':
-            algorithm_name = request.POST.get('algorithm_name', '').strip()
-            algorithm_description = request.POST.get('algorithm_description', '').strip()
-            
-            # バリデーション
-            if not algorithm_name:
-                messages.error(request, 'アルゴリズム名は必須項目です。')
-                return render(request, 'block/block_details.html', {
-                    'algorithm': algorithm,
-                })
-            
-            # 所有者チェック（他のユーザーのアルゴリズムは編集不可）
-            if algorithm.user != account:
-                messages.error(request, '他のユーザーのアルゴリズムは編集できません。')
-                return redirect('accounts:block_list')
-            
-            # アルゴリズムを更新
-            algorithm.algorithm_name = algorithm_name
-            algorithm.algorithm_description = algorithm_description
-            algorithm.save()
-            
-            # 成功メッセージは表示せず、一覧画面にリダイレクト
-            return redirect('accounts:block_list')
-        
-        # GETリクエストの場合は詳細表示
-        context = {
-            'algorithm': algorithm,
-        }
-        
-        return render(request, 'block/block_details.html', context)
-        
-    except Algorithm.DoesNotExist:
-        messages.error(request, '指定されたアルゴリズムが見つかりません。')
-        return redirect('accounts:block_list')
-    except Exception as e:
-        messages.error(request, f'エラーが発生しました: {str(e)}')
-        return redirect('accounts:block_list')
+    return render(request, 'block/block_details.html')
 
 # アルゴリズム一覧画面
 def block_list(request):
-    # ログインしている Account に紐づくアルゴリズムを優先して表示
-    try:
-        account = get_logged_account(request)
-    except Exception:
-        account = None
 
-    if account:
-        # 更新日が新しい順、同じ場合は作成日が新しい順
-        algorithms = Algorithm.objects.filter(user=account).order_by('-updated_at', '-created_at')
-    else:
-        # ログイン情報が取れない場合は全件を上位表示（最大100件）
-        algorithms = Algorithm.objects.all().order_by('-updated_at', '-created_at')[:100]
-
-    return render(request, 'block/block_list.html', {'algorithms': algorithms})
-
-# アルゴリズム一覧データ取得API（一覧更新ボタン用）
-def block_list_data(request):
-    try:
-        account = get_logged_account(request)
-    except Exception:
-        account = None
-
-    if account:
-        # 更新日が新しい順、同じ場合は作成日が新しい順
-        algorithms = Algorithm.objects.filter(user=account).order_by('-updated_at', '-created_at')
-    else:
-        algorithms = Algorithm.objects.all().order_by('-updated_at', '-created_at')[:100]
-
-    # アルゴリズムデータをJSON形式に変換
-    algorithms_data = []
-    for a in algorithms:
-        # Windowsでも動作するよう、%-を使わない形式に変更
-        created_str = a.created_at.strftime('%Y年%m月%d日 %H:%M').replace('月0', '月').replace('日0', '日') if a.created_at else ''
-        updated_str = a.updated_at.strftime('%Y年%m月%d日 %H:%M').replace('月0', '月').replace('日0', '日') if a.updated_at else ''
-        
-        algorithms_data.append({
-            'algorithm_id': a.algorithm_id,
-            'algorithm_name': a.algorithm_name,
-            'algorithm_description': a.algorithm_description or '',
-            'created_at': created_str,
-            'updated_at': updated_str,
-        })
-
-    return JsonResponse({'algorithms': algorithms_data})
-
-
-# アルゴリズム削除確認・削除実行
-def block_delete(request):
-    # URLパラメータからアルゴリズムIDを取得
-    algorithm_id = request.GET.get('id')
-    
-    if not algorithm_id:
-        messages.error(request, 'アルゴリズムIDが指定されていません。')
-        return redirect('accounts:block_list')
-    
-    try:
-        # アルゴリズムIDでデータベースから取得
-        algorithm = Algorithm.objects.get(algorithm_id=algorithm_id)
-        
-        # ログインユーザーを取得
-        account = get_logged_account(request)
-        
-        # 自分のアルゴリズムかどうか確認（セキュリティ）
-        if account and algorithm.user.user_id != account.user_id:
-            messages.error(request, 'このアルゴリズムを削除する権限がありません。')
-            return redirect('accounts:block_list')
-        
-        # POSTリクエストの場合は削除を実行
-        if request.method == 'POST':
-            algorithm_name = algorithm.algorithm_name
-            algorithm.delete()
-            messages.success(request, f'アルゴリズム「{algorithm_name}」を削除しました。')
-            return redirect('accounts:block_delete_success')
-        
-        # GETリクエストの場合は削除確認画面を表示
-        context = {
-            'algorithm': algorithm,
-        }
-        return render(request, 'block/block_delete.html', context)
-        
-    except Algorithm.DoesNotExist:
-        messages.error(request, '指定されたアルゴリズムが見つかりませんでした。')
-        return redirect('accounts:block_list')
-    except Exception as e:
-        messages.error(request, f'エラーが発生しました: {str(e)}')
-        return redirect('accounts:block_list')
-
-# アルゴリズム削除完了画面
-def block_delete_success(request):
-    return render(request, 'block/block_delete_success.html')
+    return render(request, 'block/block_list.html')
 
 
 # アカウントダッシュボード（生徒/教員どちらでも動作する簡易版）
@@ -999,8 +548,6 @@ def account_view(request):
     try:
         acc = get_logged_account(request)
         if acc:
-            # Delegate to account_entry which builds full context (groups, dates, etc.)
-            # so that templates receive the same data structure and groups are shown.
             try:
                 return account_entry(request)
             except Exception:
@@ -1017,7 +564,6 @@ def account_view(request):
 
 def s_account_view(request):
     """生徒アカウント専用ビュー（テンプレートが存在するため簡易に実装）"""
-    # Try to resolve the account for the current session/user
     account = None
     user_id = request.session.get('account_user_id')
     email = request.session.get('account_email') or (getattr(request.user, 'email', None) if getattr(request.user, 'is_authenticated', False) else None)
@@ -1058,18 +604,48 @@ def s_account_view(request):
     first_met = None
     total_days_str = '0日'
     if account and account.get('created_at'):
+        created_at_val = account.get('created_at')
         try:
-            now = timezone.now()
-            delta = now - account.get('created_at')
-            days = max(delta.days, 0)
-            first_met = account.get('created_at')
-            total_days_str = f"{days}日"
+            if isinstance(created_at_val, str):
+                dt = parse_datetime(created_at_val)
+                if dt is None:
+                    d = parse_date(created_at_val)
+                    if d:
+                        dt = datetime.datetime.combine(d, datetime.time.min)
+                created_at_val = dt
+
+            if created_at_val is not None and isinstance(created_at_val, datetime.datetime):
+                # make timezone-aware if needed
+                if timezone.is_naive(created_at_val):
+                    try:
+                        created_at_val = timezone.make_aware(created_at_val, timezone.get_current_timezone())
+                    except Exception:
+                        # fallback: assume naive is in UTC
+                        created_at_val = timezone.make_aware(created_at_val, datetime.timezone.utc)
+
+                now = timezone.now()
+                delta = now - created_at_val
+                days = max(getattr(delta, 'days', 0), 0)
+                first_met = created_at_val
+                total_days_str = f"{days}日"
+                # 人間可読の経過時間文字列
+                try:
+                    time_since_created = format_timedelta(delta)
+                except Exception:
+                    time_since_created = ''
+            else:
+                # could not parse datetime, keep fallback
+                first_met = account.get('created_at')
+                total_days_str = '0日'
+                time_since_created = ''
         except Exception:
             first_met = account.get('created_at')
             total_days_str = '0日'
+            time_since_created = ''
 
     # Get joined group info if available
     joined_group = None
+    
     try:
         gid = account.get('group_id') if account else None
         if gid:
@@ -1096,12 +672,17 @@ def s_account_view(request):
     except Exception:
         joined_group = None
 
+    created_at_raw = account.get('created_at') if account else None
+    created_at_type = type(created_at_raw).__name__ if created_at_raw is not None else None
     # Render template with gathered context (fall back to template defaults if account missing)
-    return render(request, 'accounts/s_account.html', {
+    return render(request, 'accounts/karihome.html', {
         'account': account,
         'first_met': first_met,
         'total_days': total_days_str,
         'joined_group': joined_group,
+        'created_at_raw': created_at_raw,
+        'created_at_type': created_at_type,
+        'time_since_created': time_since_created,
     })
 
 
@@ -1123,41 +704,65 @@ def group_create(request):
         if not user_id:
             messages.error(request, 'ユーザーが特定できません。ログインしてください。')
             return redirect('accounts:student_login')
-
         # パスワードはハッシュ化して保存（空可）
         hashed = make_password(group_password) if group_password else ''
 
         try:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    'INSERT INTO "group" (group_name, user_id, password) VALUES (%s, %s, %s) RETURNING group_id',
-                    [group_name, user_id, hashed]
-                )
-                row = cursor.fetchone()
-                group_id = row[0] if row else None
+            # まず Account インスタンスを解決
+            account_owner = Account.objects.filter(user_id=user_id).first()
 
-                # 追加: 作成者を group_member テーブルに owner として挿入
-                if group_id is not None:
-                    try:
-                        cursor.execute(
-                            'INSERT INTO group_member (group_id, member_user_id, role) VALUES (%s, %s, %s)',
-                            [group_id, user_id, 'owner']
-                        )
-                    except Exception:
-                        # メンバー登録失敗でもグループ作成自体は成功させる
-                        pass
+            # トランザクション内でグループ作成とメンバー登録を行い、途中で失敗したらロールバックする
+            with transaction.atomic():
+                # 多くの既存 DB スキーマでは group.password が NOT NULL の場合があるため
+                # raw SQL で確実に挿入する
+                with connection.cursor() as cursor:
+                    cursor.execute('INSERT INTO "group" (group_name, user_id, password, is_active, created_at, updated_at) VALUES (%s, %s, %s, %s, now(), now())', [group_name, user_id, hashed or '', True])
+                    # 挿入した行を取得（group_name と user_id の組で最新のものを選ぶ）
+                    cursor.execute('SELECT group_id FROM "group" WHERE group_name = %s AND user_id = %s ORDER BY group_id DESC LIMIT 1', [group_name, user_id])
+                    row = cursor.fetchone()
+                    group_id = row[0] if row else None
+
+                if group_id is None:
+                    raise Exception('グループ作成後に group_id を取得できませんでした')
+
+                # ORM オブジェクトとして利用可能なら取得しておく（proxy を使っているため models の互換性に注意）
+                group = Group.objects.filter(group_id=group_id).first()
+
+                # DB スキーマに member_id が存在して NOT NULL 制約がある環境があるため
+                # 安全策として raw SQL で member_user_id と member_id の両方を明示して挿入する。
+                with connection.cursor() as cursor:
+                    # 重複防止: 既に同じ member_user_id が登録されていないか確認
+                    cursor.execute('SELECT 1 FROM group_member WHERE group_id = %s AND member_user_id = %s', [group_id, user_id])
+                    if not cursor.fetchone():
+                        try:
+                            cursor.execute('INSERT INTO group_member (group_id, member_user_id, member_id, role, created_at) VALUES (%s, %s, %s, %s, now())', [group_id, user_id, user_id, 'teacher'])
+                        except Exception:
+                            # まれにカラム名/制約が違うスキーマが混在する可能性があるのでフォールバックで別カラム順を試す
+                            try:
+                                cursor.execute('INSERT INTO group_member (group_id, member_user_id, role, created_at) VALUES (%s, %s, %s, now())', [group_id, user_id, 'teacher'])
+                            except Exception:
+                                # ここまで失敗したら例外を再送出して transaction.atomic に任せる
+                                raise
+
+        except Exception as e:
+            # ログに完全なトレースを残す（開発用）
+            logging.exception('group_create failed')
+            # ユーザ向けのメッセージを表示して作成ページへ戻す
+            messages.error(request, f'グループ作成に失敗しました: {e}')
+            return redirect('accounts:group_create')
 
         except Exception as e:
             messages.error(request, f'グループ作成に失敗しました: {e}')
             return redirect('accounts:group_create')
 
         messages.success(request, 'グループを作成しました。')
-        # 存在すれば group_detail に飛ばす（なければアカウントページへ）
+        # 要求: 作成後は教員アカウント用テンプレート `t_account.html` に戻す
+        # URLconf では t_account ページは name='account_dashboard' にマッピングされているため
+        # ここではその名前へリダイレクトする
         try:
-            # Try to redirect to codemon's group_detail if it exists
-            return redirect('codemon:group_detail', group_id=group_id)
+            return redirect('accounts:account_dashboard')
         except Exception:
-            # Fallback to accounts' account_entry
+            # 万一リダイレクトに失敗したらアカウントトップへフォールバック
             return redirect('accounts:account_entry')
 
     # GET の場合は作成ページを表示
@@ -1170,17 +775,247 @@ def add_member_popup(request):
     return render(request, 'group/add_group.html')
 
 
-def group_menu(request):
-    """グループメニュー画面を表示"""
+def group_menu(request, group_id):
+    """グループメニュー画面を表示（group_id 必須）"""
+    # 最低限のコンテキストをテンプレートへ渡す（必要なら詳細情報を増やす）
+    try:
+        group = get_object_or_404(Group, group_id=group_id, is_active=True)
+        # group_member テーブルに is_active カラムがない環境もあるため、存在に依らず単純に取得する
+        members_qs = GroupMember.objects.filter(group=group).select_related('member')
+        member_count = members_qs.count()
+        members = list(members_qs)
+    except Exception:
+        group = None
+        members = []
+        member_count = 0
+
+    return render(request, 'group/group_menu.html', {
+        'group': group,
+        'members': members,
+        'member_count': member_count,
+        'group_id': group_id,
+    })
+
+
+def group_menu_redirect(request):
+    """互換性のためのフォールバック: 旧パス /groups/menu/ へのアクセスをアカウント画面へリダイレクトする。"""
+    # 既存のコードベースでは account_entry がアカウントトップを返すため、そこへ誘導する
+    try:
+        return redirect('accounts:account_entry')
+    except Exception:
+        return redirect('/')
+
+
+def group_delete_confirm(request, group_id):
+    """グループ削除の確認画面を表示する（GET）。削除確定は POST で accounts:group_delete (codemon.views.group_delete) を呼ぶ。"""
+    owner = _get_write_owner(request)
+    if owner is None:
+        return redirect('accounts:student_login')
+
+    try:
+        group = Group.objects.get(group_id=group_id, is_active=True)
+    except Group.DoesNotExist:
+        messages.error(request, '指定されたグループが見つかりません')
+        return redirect('accounts:account_entry')
+
+    # 所有者以外は削除できない
+    if getattr(owner, 'type', '') != 'teacher' or getattr(group, 'owner_id', None) != getattr(owner, 'user_id', None):
+        messages.error(request, 'グループの削除権限がありません')
+        return redirect('accounts:account_entry')
+
+    # メンバー数を数える（GroupMember テーブルを利用）
+    try:
+        member_count = GroupMember.objects.filter(group=group).count()
+    except Exception:
+        member_count = 0
+
+    return render(request, 'group/group_delete_confirm.html', {
+        'group': group,
+        'member_count': member_count,
+    })
+
+
+def group_menu_redirect(request):
+    """グループメニュー root への互換ハンドラ。
+
+    セッションやログインユーザーから所属する（または所有する）最初のグループを探し、
+    見つかればその `group_menu` へリダイレクトする。見つからなければグループ一覧/作成へ誘導する。
+    """
+    # 優先順: セッションの current group -> 自分が所有するグループの最初 -> アカウントページ
+    try:
+        gid = request.session.get('current_group_id')
+        if gid:
+            return redirect('accounts:group_menu', group_id=gid)
+
+        # 試しに現在のユーザー id を取得して所有グループを検索
+        current_user_id = request.session.get('account_user_id') or (request.user.id if getattr(request.user, 'is_authenticated', False) else None)
+        if current_user_id:
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT group_id FROM "group" WHERE user_id = %s ORDER BY group_id LIMIT 1', [current_user_id])
+                row = cursor.fetchone()
+                if row:
+                    return redirect('accounts:group_menu', group_id=row[0])
+    except Exception:
+        pass
+
+    # フォールバック: グループ作成ページへ誘導
+    return redirect('accounts:group_create')
+
+
+def group_detail(request, group_id):
+    """Proxy to show group detail using `codemon.views.group_detail` if available,
+    otherwise render a simple accounts template.
+    """
+    try:
+        from codemon import views as codemon_views
+        # Prefer codemon's implementation when present
+        if hasattr(codemon_views, 'group_detail'):
+            return codemon_views.group_detail(request, group_id)
+    except Exception:
+        pass
+
+    # Fallback: try to query minimal group info and render accounts template
+    group = None
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT group_id, group_name, user_id FROM "group" WHERE group_id = %s', [group_id])
+            row = cursor.fetchone()
+            if row:
+                group = {'group_id': row[0], 'group_name': row[1], 'owner_id': row[2]}
+    except Exception:
+        group = None
+
+    if group is None:
+        messages.error(request, '指定されたグループが見つかりません')
+        return redirect('accounts:account_entry')
+
+    return render(request, 'group/group_check.html', {'group': group})
+
+
+def group_delete_confirm(request, group_id):
+    """表示用の削除確認ページ。POST 実行は `codemon.views.group_delete` を使う想定。"""
+    group = None
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT group_id, group_name, user_id FROM "group" WHERE group_id = %s', [group_id])
+            row = cursor.fetchone()
+            if row:
+                group = {'group_id': row[0], 'group_name': row[1], 'owner_id': row[2]}
+    except Exception:
+        group = None
+
+    if group is None:
+        messages.error(request, '指定されたグループが見つかりません')
+        return redirect('accounts:account_entry')
+
+    return render(request, 'group/group_delete_confirm.html', {'group': group})
+
+
+def group_remove_member(request, group_id, member_id):
+    """グループからメンバーを削除するラッパー。
+
+    可能なら `codemon.views.group_remove_member` を呼び出し、なければ簡易に
+    `group_member` テーブルの `is_active` を False にして論理削除します。
+    """
+    try:
+        from codemon import views as codemon_views
+        if hasattr(codemon_views, 'group_remove_member'):
+            return codemon_views.group_remove_member(request, group_id, member_id)
+    except Exception:
+        pass
+
+    # フォールバック実装: セッションの権限チェックは簡易にしておく
+    try:
+        current_user_id = request.session.get('account_user_id') or (request.user.id if getattr(request.user, 'is_authenticated', False) else None)
+        # 簡易権限制御: current_user_id がグループの owner であるか、または自身を削除する場合のみ許可
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT user_id FROM "group" WHERE group_id = %s', [group_id])
+            row = cursor.fetchone()
+            owner_id = row[0] if row else None
+
+            if current_user_id is None:
+                messages.error(request, 'ログインが必要です')
+                return redirect('accounts:student_login')
+
+            if int(current_user_id) != int(owner_id) and int(current_user_id) != int(member_id):
+                return HttpResponseForbidden('この操作を行う権限がありません')
+
+            # 論理削除フラグがある場合は更新、なければ削除
+            try:
+                cursor.execute('UPDATE group_member SET is_active = FALSE WHERE group_id = %s AND member_user_id = %s', [group_id, member_id])
+            except Exception:
+                # fallback: attempt delete
+                try:
+                    cursor.execute('DELETE FROM group_member WHERE group_id = %s AND member_user_id = %s', [group_id, member_id])
+                except Exception as e:
+                    messages.error(request, f'メンバー削除に失敗しました: {e}')
+                    return redirect('accounts:group_detail', group_id=group_id)
+
+        messages.success(request, 'メンバーをグループから削除しました')
+        return redirect('accounts:group_detail', group_id=group_id)
+    except Exception as e:
+        messages.error(request, f'メンバー削除に失敗しました: {e}')
+        return redirect('accounts:group_detail', group_id=group_id)
+
+
+def group_invite(request, group_id):
+    """グループへメンバーを追加する処理（POST）またはフォーム表示（GET）を行う簡易ビュー。
+
+    - POST: `member_email` または `member_user_id` を受け取り `group_member` テーブルへ挿入する。
+    - GET: メンバー追加フォームへリダイレクトする。
+    """
+    if request.method != 'POST':
+        return redirect('accounts:group_add_member_form', group_id=group_id)
+
+    member_input = (request.POST.get('member_email') or request.POST.get('member_user_id') or '').strip()
+    role = request.POST.get('role', 'member')
+
+    if not member_input:
+        messages.error(request, '追加するメンバーの情報を指定してください。')
+        return redirect('accounts:group_add_member_form', group_id=group_id)
+
+    member_user_id = None
+    try:
+        # まず数値として解釈を試みる
+        try:
+            member_user_id = int(member_input)
+        except Exception:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT user_id FROM account WHERE email = %s OR user_name = %s", [member_input, member_input])
+                row = cursor.fetchone()
+                if row:
+                    member_user_id = row[0]
+
+        if not member_user_id:
+            messages.error(request, 'そのユーザーは見つかりませんでした。')
+            return redirect('accounts:group_add_member_form', group_id=group_id)
+
+        # 挿入（既存の重複チェックは簡易に任せる）
+        with connection.cursor() as cursor:
+            cursor.execute(
+                'INSERT INTO group_member (group_id, member_user_id, role) VALUES (%s, %s, %s)',
+                [group_id, member_user_id, role]
+            )
+
+        messages.success(request, 'メンバーを追加しました。')
+        return redirect('accounts:group_menu', group_id=group_id)
+    except Exception as e:
+        messages.error(request, f'メンバー追加に失敗しました: {e}')
+        return redirect('accounts:group_add_member_form', group_id=group_id)
+
+def group_menu_redirect(request):
+    """レガシー互換: /groups/menu/ へのアクセスに対応（単純描画）。"""
     return render(request, 'group/group_menu.html')
 
 def group_join_confirm(request):
     """
     GET:
-      - 所属が生徒 (account.account_type == 'student') の場合 -> group/join_confirm.html を表示
-      - 教師 (account.account_type == 'teacher') の場合 -> accounts/karihome.html を表示
-      - ログインしていない場合は生徒ログイン画面へリダイレクト
-    POST:
+      # group_member requires both member_user_id and member_id (both reference account.user_id)
+                    # set member_id = member_user_id so constraints are satisfied
+                    cursor.execute(
+                        'INSERT INTO group_member (group_id, member_user_id, member_id, role) VALUES (%s, %s, %s, %s)',
+                        [group_id, user_id, user_id, 'member']
+                    )
       - action=join -> （簡易実装）group メニューを表示
       - action=cancel またはその他 -> アカウントトップへリダイレクト
     """
@@ -1199,6 +1034,9 @@ def group_join_confirm(request):
 
     # POST 処理（join/cancel）
     action = request.POST.get('action')
+    if action == 'cancel':
+        # 確認画面で「しない！」を押した場合は仮ホームへ戻す
+        return redirect('accounts:karihome')
     if action == 'join':
         # 「はい」ボタン → グループ選択（検索）ページへ遷移
         return render(request, 'group/group_select.html', {})
@@ -1216,20 +1054,19 @@ def group_join_confirm(request):
                 cursor.execute('SELECT group_id, password, user_id FROM "group" WHERE group_name = %s', [group_name])
                 row = cursor.fetchone()
                 if not row:
-                    messages.error(request, '該当するグループが見つかりません。')
+                    # 見つからない／パスワード不一致は同じメッセージにする
+                    messages.error(request, 'グループ名かパスワードが間違っています')
                     return render(request, 'group/group_select.html', {})
 
                 found_group_id, stored_hashed, creator_user_id = row[0], row[1] or '', row[2]
-                # パスワードの照合:
-                # - stored_hashed が空文字の場合は入力パスワードも空であることを要求する
-                # - stored_hashed がある場合は check_password で検証する
+                # stored_hashed が空文字ならパスワード不要（入力も空であることが期待される）
                 if not stored_hashed:
                     if group_password != '':
-                        messages.error(request, 'パスワードが違います。')
+                        messages.error(request, 'グループ名かパスワードが間違っています')
                         return render(request, 'group/group_select.html', {})
                 else:
                     if not check_password(group_password, stored_hashed):
-                        messages.error(request, 'パスワードが違います。')
+                        messages.error(request, 'グループ名かパスワードが間違っています')
                         return render(request, 'group/group_select.html', {})
 
                 # 検索成功 → 確認ページへ遷移して内容を表示（ここでまだ group_member には入れない）
@@ -1271,20 +1108,48 @@ def group_join_confirm(request):
             return redirect('accounts:student_login')
 
         try:
-            with connection.cursor() as cursor:
-                # 重複チェックして挿入
-                cursor.execute('SELECT 1 FROM group_member WHERE group_id=%s AND member_user_id=%s', [found_group_id, user_id])
-                if not cursor.fetchone():
-                    cursor.execute('INSERT INTO group_member (group_id, member_user_id, role) VALUES (%s, %s, %s)', [found_group_id, user_id, 'member'])
-                # account テーブルの group_id を更新する
-                try:
+            # Debug: show incoming ids for tracing
+            print(f"DEBUG group_join_confirm: attempting to join group_id={found_group_id} for user_id={user_id}")
+            messages.info(request, f'デバッグ: group_id={found_group_id}, user_id={user_id}')
+            # Use an explicit transaction to ensure both inserts/updates succeed together.
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    # 重複チェックして挿入
+                    cursor.execute('SELECT 1 FROM group_member WHERE group_id=%s AND member_user_id=%s', [found_group_id, user_id])
+                    if not cursor.fetchone():
+                        # DB schema requires both member_user_id and member_id (both reference account.user_id)
+                        # ensure member_id is set to the same value as member_user_id
+                        cursor.execute(
+                            'INSERT INTO group_member (group_id, member_user_id, member_id, role) VALUES (%s, %s, %s, %s)',
+                            [found_group_id, user_id, user_id, 'member']
+                        )
+
+                    # account テーブルの group_id を更新する
                     cursor.execute('UPDATE account SET group_id = %s WHERE user_id = %s', [found_group_id, user_id])
-                except Exception:
-                    # 更新失敗でも続行
-                    pass
-        except Exception:
-            # 挿入失敗でも続行
-            pass
+        # rowcount が0だと更新されていない（user_id が存在しない等）
+                    if cursor.rowcount == 0:
+                        # ロールバックされる（transaction.atomic のため）
+                        messages.error(request, 'アカウントの更新に失敗しました（ユーザーが見つかりません）。')
+                        return redirect('accounts:account_entry')
+                    # Debug: 確認のため、挿入と更新の結果をその場で再取得して出力
+                    try:
+                        cursor.execute('SELECT id FROM group_member WHERE group_id=%s AND member_user_id=%s', [found_group_id, user_id])
+                        gm = cursor.fetchone()
+                        print(f"DEBUG group_join_confirm: group_member check for group_id={found_group_id}, user_id={user_id} -> {gm}")
+                        messages.info(request, f'デバッグ: group_member exists={bool(gm)}')
+                    except Exception as _:
+                        print('DEBUG group_join_confirm: failed to select group_member')
+                    try:
+                        cursor.execute('SELECT group_id FROM account WHERE user_id = %s', [user_id])
+                        acc_row = cursor.fetchone()
+                        print(f"DEBUG group_join_confirm: account.group_id for user_id={user_id} -> {acc_row}")
+                        messages.info(request, f'デバッグ: account.group_id={acc_row[0] if acc_row else None}')
+                    except Exception as _:
+                        print('DEBUG group_join_confirm: failed to select account')
+        except Exception as e:
+            # 何らかのエラーで失敗した場合はエラーメッセージを出す
+            messages.error(request, f'グループ参加に失敗しました: {e}')
+            return redirect('accounts:account_entry')
 
         # セッション側に group_id を入れておく（UI で参照するケースに備えて）
         try:
@@ -1295,7 +1160,7 @@ def group_join_confirm(request):
 
         messages.success(request, 'グループに参加しました。')
         try:
-            return redirect('accounts:group_detail', group_id=found_group_id)
+            return redirect('accounts:karihome')
         except Exception:
             return redirect('accounts:account_entry')
 
@@ -1314,6 +1179,10 @@ def preview_password_reset_confirm(request):
     """
     form = SetPasswordForm(user=None)
     return render(request, 'accounts/password_reset_custom.html', {'form': form})
+
+def group_delete_confirm(request, group_id):
+    """グループ削除確認（暫定）。必要に応じて確認テンプレートを実装。"""
+    return redirect('accounts:account_entry')
 
 
 # --- カスタムのパスワード再設定確認ビュー（Account を直接操作する） ---
@@ -1398,8 +1267,61 @@ def t_account(request):
                 'group_id': row[5],
                 'created_at': row[6],
             }
-    return render(request, 'accounts/t_account.html', {'account': account, 'user': request.user})
+    # created_at -> 初めて会った日（datetime）と累計日数・経過時間を計算してテンプレートに渡す
+    created_at = account.get('created_at') if account else None
+    first_met = None
+    total_days_str = '0日'
+    time_since_created = ''
+    created_at_raw = created_at
+    created_at_type = type(created_at_raw).__name__ if created_at_raw is not None else None
+    days = 0
+    if created_at:
+        try:
+            created_val = created_at
+            if isinstance(created_val, str):
+                dt = parse_datetime(created_val)
+                if dt is None:
+                    d = parse_date(created_val)
+                    if d:
+                        dt = datetime.datetime.combine(d, datetime.time.min)
+                created_val = dt
 
+            if created_val is not None and isinstance(created_val, datetime.datetime):
+                if timezone.is_naive(created_val):
+                    try:
+                        created_val = timezone.make_aware(created_val, timezone.get_current_timezone())
+                    except Exception:
+                        created_val = timezone.make_aware(created_val, datetime.timezone.utc)
+                now = timezone.now()
+                delta = now - created_val
+                days = max(getattr(delta, 'days', 0), 0)
+                first_met = created_val
+                total_days_str = f"{days}日"
+                try:
+                    time_since_created = format_timedelta(delta)
+                except Exception:
+                    time_since_created = ''
+            else:
+                first_met = created_at
+        except Exception:
+            first_met = created_at
+
+    # ログ出力（デバッグ）
+    try:
+        logging.debug('t_account: created_at_raw=%s type=%s days=%s time_since_created=%s', created_at_raw, created_at_type, days, time_since_created)
+    except Exception:
+        pass
+
+    return render(request, 'accounts/t_account.html', {
+        'account': account,
+        'user': request.user,
+        'first_met': first_met,
+        'total_days': total_days_str,
+        'time_since_created': time_since_created,
+        'created_at_raw': created_at_raw,
+        'created_at_type': created_at_type,
+    })
+    
 def account_entry(request):
     """
     account を取得し account_type に応じてテンプレートを返す。
@@ -1407,7 +1329,9 @@ def account_entry(request):
     """
     account = None
     user_id = request.session.get('account_user_id')
-    email = request.session.get('account_email') or (getattr(request.user, 'email', None) if getattr(request.user, 'is_authenticated', False) else None)
+    email = request.session.get('account_email') or (
+        getattr(request.user, 'email', None) if getattr(request.user, 'is_authenticated', False) else None
+    )
 
     if not user_id and not email:
         return redirect('accounts:student_login')
@@ -1437,24 +1361,59 @@ def account_entry(request):
             'group_id': row[5],
             'created_at': row[6],
         }
-
-    # created_at -> 初めて会った日（datetime）と累計日数（文字列）を計算
+        # Debug: log the raw DB row and created_at type for diagnosis
+        try:
+            logging.debug('account_entry: raw row=%s', row)
+            logging.debug('account_entry: created_at raw=%s type=%s', row[6], type(row[6]).__name__ if row[6] is not None else None)
+        except Exception:
+            pass
+        
     created_at = account.get('created_at')
     first_met = None
     total_days_str = "0日"
-    
+    time_since_created = ''
     if created_at:
-        now = timezone.now()
         try:
-            # created_at は DB からの datetime オブジェクトのはず
-            delta = now - created_at
-            days = max(delta.days, 0)
-        except Exception:
-            days = 0
-        first_met = created_at
-        total_days_str = f"{days}日"
+            created_val = created_at
+            # 文字列や date オブジェクトを datetime に変換する
+            if isinstance(created_val, str):
+                dt = parse_datetime(created_val)
+                if dt is None:
+                    d = parse_date(created_val)
+                    if d:
+                        dt = datetime.datetime.combine(d, datetime.time.min)
+                created_val = dt
 
-    # テンプレート参照を満たす安全な user オブジェクトを作る
+            # datetime.date（ただの日付）の場合は datetime に変換
+            if isinstance(created_val, datetime.date) and not isinstance(created_val, datetime.datetime):
+                created_val = datetime.datetime.combine(created_val, datetime.time.min)
+
+            if created_val is not None and isinstance(created_val, datetime.datetime):
+                # make timezone-aware if needed
+                if timezone.is_naive(created_val):
+                    try:
+                        created_val = timezone.make_aware(created_val, timezone.get_current_timezone())
+                    except Exception:
+                        created_val = timezone.make_aware(created_val, datetime.timezone.utc)
+
+                now = timezone.now()
+                delta = now - created_val
+                days = max(getattr(delta, 'days', 0), 0)
+                first_met = created_val
+                total_days_str = f"{days}日"
+                try:
+                    time_since_created = format_timedelta(delta)
+                except Exception:
+                    time_since_created = ''
+            else:
+                first_met = created_at
+                total_days_str = '0日'
+                time_since_created = ''
+        except Exception:
+            first_met = created_at
+            total_days_str = '0日'
+            time_since_created = ''
+
     if getattr(request.user, 'is_authenticated', False):
         user_for_template = request.user
     else:
@@ -1471,28 +1430,30 @@ def account_entry(request):
             id=account.get('user_id'),
             profile=profile
         )
-    # groups を DB から取得（現在ログインしているユーザー id を基準に取得）
+
     groups = []
-    # 現在ログインしているユーザーの id を決める（セッション優先）
-    current_user_id = account.get('user_id') or request.session.get('account_user_id') or (request.user.id if getattr(request.user, 'is_authenticated', False) else None)
+    current_user_id = account.get('user_id') or request.session.get('account_user_id') or (
+        request.user.id if getattr(request.user, 'is_authenticated', False) else None
+    )
     try:
-        # current_user_id が文字列で渡ってくる可能性を考慮して int に変換を試みる
         if current_user_id is not None:
             try:
                 current_user_id = int(current_user_id)
             except Exception:
-                # 変換できなければ無効扱いにする
                 current_user_id = None
 
         if current_user_id is not None:
             with connection.cursor() as cursor:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT g.group_id, g.user_id, g.group_name,
-                           COALESCE(g.size, (SELECT COUNT(*) FROM group_member gm WHERE gm.group_id = g.group_id), 0) AS member_count
+                           COALESCE((SELECT COUNT(*) FROM group_member gm WHERE gm.group_id = g.group_id), 0) AS member_count
                     FROM "group" g
                     WHERE g.user_id = %s
                     ORDER BY g.group_id
-                """, [current_user_id])
+                    """,
+                    [current_user_id]
+                )
                 for row in cursor.fetchall():
                     groups.append({
                         'group_id': row[0],
@@ -1505,16 +1466,44 @@ def account_entry(request):
     except Exception:
         groups = []
 
-
     context = {
         'account': account,
         'user': user_for_template,
         'first_met': first_met,
         'total_days': total_days_str,
+        'time_since_created': time_since_created,
         'groups': groups,
         'current_user_id': current_user_id,
     }
+    # include created_at raw/type for template debugging
+    try:
+        context['created_at_raw'] = account.get('created_at')
+        context['created_at_type'] = type(account.get('created_at')).__name__ if account.get('created_at') is not None else None
+    except Exception:
+        context['created_at_raw'] = None
+        context['created_at_type'] = None
 
+    # Cleanup: remove groups that have zero members.
+    # 要求: グループ一覧の表示時、メンバーが0人のグループは DB から削除して一覧に表示しない。
+    # 実装は安全に実行するためトランザクション内で行う。
+    try:
+        delete_ids = [g['group_id'] for g in groups if int(g.get('member_count', 0)) == 0]
+        if delete_ids:
+            from django.db import transaction as _transaction
+            with _transaction.atomic():
+                for gid in delete_ids:
+                    try:
+                        # 物理削除（member_count==0 のため外部キー制約は通常問題にならない想定）
+                        Group.objects.filter(group_id=gid).delete()
+                    except Exception:
+                        # 削除に失敗しても処理を継続する（ログは残しておく）
+                        logging.exception(f'failed to delete group {gid}')
+            # 削除したものを groups リストから除外して context を更新
+            groups = [g for g in groups if int(g.get('member_count', 0)) > 0]
+            context['groups'] = groups
+    except Exception:
+        # 削除ロジックで致命的エラーが起きてもビューの表示は継続させる
+        logging.exception('cleanup of zero-member groups failed')
     # 参加グループ情報を account.group_id から取得して context に含める
     joined_group = None
     try:
@@ -1541,9 +1530,8 @@ def account_entry(request):
 
     if account.get('account_type') == 'teacher':
         return render(request, 'accounts/t_account.html', context)
-    else:
-        return render(request, 'accounts/s_account.html', context)
-    
+    return render(request, 'accounts/s_account.html', context)
+
 def group_detail(request, group_id):
     """グループ詳細。メンバー一覧、スレッド一覧を表示。"""
     owner = _get_write_owner(request)
@@ -1556,8 +1544,7 @@ def group_detail(request, group_id):
     try:
         membership = GroupMember.objects.get(
             group=group,
-            member=owner,
-            is_active=True
+            member=owner
         )
     except GroupMember.DoesNotExist:
         return HttpResponseForbidden('このグループにアクセスする権限がありません')
@@ -1578,3 +1565,160 @@ def group_detail(request, group_id):
         'threads': threads,
         'is_teacher': owner.type == 'teacher'
     })
+
+def group_invite(request, group_id):
+    """グループにメンバーを招待（教師のみ）"""
+    owner = _get_write_owner(request)
+    if owner is None or owner.type != 'teacher':
+        return HttpResponseForbidden('教師権限が必要です')
+
+    group = get_object_or_404(Group, group_id=group_id, is_active=True)
+    if group.owner != owner:
+        return HttpResponseForbidden('グループのオーナーのみメンバーを招待できます')
+
+    # メールアドレスまたはユーザーIDで招待
+    identifier = request.POST.get('identifier', '').strip()
+    role = request.POST.get('role', 'student')
+
+    if not identifier:
+        return JsonResponse({'error': 'メールアドレスまたはユーザーIDを入力してください'}, status=400)
+
+    try:
+        # メールアドレスかユーザーIDで検索
+        if '@' in identifier:
+            member = Account.objects.get(email=identifier)
+        else:
+            member = Account.objects.get(user_id=identifier)
+
+        # 既存メンバーシップの確認
+        membership, created = GroupMember.objects.get_or_create(
+            group=group,
+            member=member,
+            defaults={'role': role}
+        )
+
+        if not created:
+            # すでにメンバーであれば重複扱いとする
+            return JsonResponse({
+                'error': f'{member.user_name}は既にグループのメンバーです'
+            }, status=400)
+
+        return JsonResponse({
+            'status': 'ok',
+            'message': f'{member.user_name}をグループに招待しました',
+            'member': {
+                'id': member.user_id,
+                'name': member.user_name,
+                'role': role
+            }
+        })
+
+    except Account.DoesNotExist:
+        return JsonResponse({
+            'error': '指定されたユーザーが見つかりません'
+        }, status=404)
+
+def group_remove_member(request, group_id, member_id):
+    """グループからメンバーを削除（教師のみ）"""
+    owner = _get_write_owner(request)
+    if owner is None or owner.type != 'teacher':
+        return HttpResponseForbidden('教師権限が必要です')
+
+    group = get_object_or_404(Group, group_id=group_id, is_active=True)
+    if group.owner != owner:
+        return HttpResponseForbidden('グループのオーナーのみメンバーを削除できます')
+    
+    # only accept POST for deletions
+    if request.method != 'POST':
+        return redirect('accounts:group_menu', group_id=group_id)
+
+    try:
+        membership = GroupMember.objects.get(
+            group=group,
+            member_id=member_id
+        )
+        # 比較はオブジェクト同士の比較が期待されるが、念のため user_id ベースでも確認する
+        try:
+            is_owner = (membership.member == group.owner) or (getattr(membership.member, 'user_id', None) == getattr(group, 'user_id', None))
+        except Exception:
+            is_owner = (membership.member == group.owner)
+
+        if is_owner:
+            # 非同期要求なら JSON、通常フォーム送信ならメッセージを出してリダイレクト
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'error': 'グループのオーナーは削除できません'}, status=400)
+            messages.error(request, 'グループのオーナーは削除できません')
+            return redirect('accounts:group_menu', group_id=group_id)
+        # 物理削除して互換性を取る（既存スキーマに is_active がないため）
+        member_name = getattr(membership.member, 'user_name', str(member_id))
+        # 連携用の値を退避してから削除
+        try:
+            joined_at_val = None
+            if hasattr(membership, 'joined_at') and membership.joined_at:
+                joined_at_val = membership.joined_at
+            elif hasattr(membership, 'created_at') and membership.created_at:
+                joined_at_val = membership.created_at
+            # メンバー削除（ORM）
+            membership.delete()
+        except Exception:
+            # 削除に失敗したらエラーハンドリング
+            logging.exception('failed to delete GroupMember')
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'error': 'メンバーの削除に失敗しました'}, status=500)
+            messages.error(request, 'メンバーの削除に失敗しました')
+            return redirect('accounts:group_menu', group_id=group_id)
+
+        # 追加: account テーブルの該当ユーザーの group_id をクリアする（NULL にする）
+        try:
+            # まず ORM で試す
+            try:
+                Account.objects.filter(user_id=member_id).update(group_id=None)
+            except Exception:
+                # フォールバックで生 SQL を実行
+                with connection.cursor() as cursor:
+                    cursor.execute('UPDATE account SET group_id = NULL WHERE user_id = %s', [member_id])
+        except Exception:
+            logging.exception('failed to clear account.group_id for user %s', member_id)
+
+        # レスポンス: AJAX の場合は JSON を返し、通常はグループメニューへリダイレクト
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            # 日付を文字列に整形して返す（存在すれば）
+            joined_str = None
+            try:
+                if joined_at_val:
+                    joined_str = joined_at_val.strftime('%Y/%m/%d')
+            except Exception:
+                joined_str = None
+            return JsonResponse({'status': 'ok', 'message': f'{member_name}をグループから削除しました', 'member_id': member_id, 'member_name': member_name, 'joined_at': joined_str})
+
+        messages.success(request, f'{member_name}をグループから削除しました')
+        return redirect('accounts:group_menu', group_id=group_id)
+
+    except GroupMember.DoesNotExist:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'error': '指定されたメンバーが見つかりません'}, status=404)
+        messages.error(request, '指定されたメンバーが見つかりません')
+        return redirect('accounts:group_menu', group_id=group_id)
+
+def format_timedelta(delta: datetime.timedelta) -> str:
+    """timedelta を受け取り日本語の経過時間表現を返す。"""
+    try:
+        seconds = int(delta.total_seconds())
+    except Exception:
+        return ''
+    if seconds <= 0:
+        return '0秒前'
+    days, rem = divmod(seconds, 86400)
+    hours, rem = divmod(rem, 3600)
+    minutes, sec = divmod(rem, 60)
+    if days > 0:
+        if hours > 0:
+            return f"{days}日{hours}時間前"
+        return f"{days}日前"
+    if hours > 0:
+        if minutes > 0:
+            return f"{hours}時間{minutes}分前"
+        return f"{hours}時間前"
+    if minutes > 0:
+        return f"{minutes}分{sec}秒前"
+    return f"{sec}秒前"

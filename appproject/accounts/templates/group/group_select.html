@@ -22,7 +22,7 @@
     <h1>グループを検索して参加</h1>
     <p class="question">グループ名とパスワード（必要なら）を入力して検索してください</p>
 
-    <form method="post" action="" style="margin-top:18px">
+  <form method="post" action="{% url 'accounts:group_join_confirm' %}" style="margin-top:18px">
       {% csrf_token %}
       <input type="hidden" name="action" value="search">
       <div class="form-row">
