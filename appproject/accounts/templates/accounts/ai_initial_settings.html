@@ -4,58 +4,311 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>AI初期設定</title>
+    {% load static %}
     <style>
-        body{margin:0;font-family:Meiryo, 'Hiragino Kaku Gothic ProN',sans-serif;background:#f8fafc}
-        .wrap{max-width:980px;margin:28px auto;padding:16px;border:2px solid #111;background:#fff}
-        h1{text-align:center;margin-top:8px}
-        .content{display:flex;gap:24px;align-items:flex-start}
-        .left{flex:0 0 320px;text-align:center}
-        .illustration{width:220px;height:240px;border:none;background:transparent;object-fit:contain}
-        .right{flex:1}
-        .form-row{display:flex;align-items:center;margin:14px 0}
-        .label{width:120px;text-align:right;padding-right:12px}
-        .input{flex:1}
-        .controls{display:flex;justify-content:flex-end;gap:12px;margin-top:18px}
-        .btn{padding:10px 18px;border-radius:10px;border:2px solid #d6d6d6;cursor:pointer}
-        .btn.primary{background:#ddeeff;border-color:#9fb8e8}
-        .btn.secondary{background:#f9dddd;border-color:#e3a3a3}
+        body{
+            margin:0;
+            font-family:Meiryo, 'Hiragino Kaku Gothic ProN',sans-serif;
+            min-height:100vh;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            overflow:hidden;
+            position:relative;
+        }
+        body::before{
+            content:'';
+            position:absolute;
+            top:0;
+            left:0;
+            right:0;
+            bottom:0;
+            background-image:url("{% static 'accounts/unnamed.png' %}");
+            background-size:100% 100%;
+            background-position:center;
+            background-repeat:no-repeat;
+            z-index:1;
+        }
+        /* 装飾要素 */
+        .deco-shape{
+            position:absolute;
+            opacity:0.6;
+        }
+        .shape-hex1{
+            top:40px;
+            left:280px;
+            width:80px;
+            height:80px;
+            background:rgba(167, 139, 250, 0.4);
+            clip-path:polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        }
+        .shape-hex2{
+            top:20px;
+            right:340px;
+            width:60px;
+            height:60px;
+            background:rgba(139, 92, 246, 0.3);
+            clip-path:polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        }
+        .shape-triangle1{
+            top:140px;
+            left:450px;
+            width:0;
+            height:0;
+            border-left:40px solid transparent;
+            border-right:40px solid transparent;
+            border-bottom:70px solid rgba(134, 239, 172, 0.5);
+        }
+        .shape-triangle2{
+            top:60px;
+            right:140px;
+            width:0;
+            height:0;
+            border-left:50px solid transparent;
+            border-right:50px solid transparent;
+            border-bottom:85px solid rgba(134, 239, 172, 0.6);
+        }
+        .shape-pentagon{
+            top:100px;
+            right:250px;
+            width:100px;
+            height:100px;
+            background:rgba(134, 239, 172, 0.5);
+            clip-path:polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+        }
+        .shape-circle1{
+            top:170px;
+            left:500px;
+            width:50px;
+            height:50px;
+            border:6px solid rgba(236, 72, 153, 0.6);
+            border-radius:50%;
+        }
+        .shape-star1{
+            bottom:180px;
+            left:120px;
+            width:0;
+            height:0;
+            border-left:30px solid transparent;
+            border-right:30px solid transparent;
+            border-bottom:50px solid rgba(96, 165, 250, 0.5);
+        }
+        .shape-star2{
+            bottom:100px;
+            right:180px;
+            width:70px;
+            height:70px;
+            background:rgba(250, 204, 21, 0.6);
+            clip-path:polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+        }
+        .shape-dots{
+            bottom:240px;
+            left:90px;
+            display:grid;
+            grid-template-columns:repeat(6, 8px);
+            grid-template-rows:repeat(4, 8px);
+            gap:6px;
+        }
+        .shape-dots span{
+            width:8px;
+            height:8px;
+            background:rgba(56, 189, 248, 0.7);
+            border-radius:50%;
+        }
+        .shape-line1{
+            bottom:230px;
+            left:95px;
+            width:120px;
+            height:4px;
+            background:rgba(236, 72, 153, 0.6);
+            transform:rotate(45deg);
+        }
+        .shape-line2{
+            top:80px;
+            right:90px;
+            width:180px;
+            height:5px;
+            background:rgba(236, 72, 153, 0.7);
+            transform:rotate(-35deg);
+        }
+        .shape-curve1{
+            bottom:60px;
+            right:120px;
+            width:200px;
+            height:100px;
+            border:5px solid rgba(56, 189, 248, 0.6);
+            border-top:none;
+            border-left:none;
+            border-radius:0 0 200px 0;
+        }
+        .shape-cross{
+            bottom:180px;
+            right:260px;
+            width:50px;
+            height:50px;
+            position:relative;
+        }
+        .shape-cross::before,
+        .shape-cross::after{
+            content:'';
+            position:absolute;
+            background:rgba(236, 72, 153, 0.6);
+        }
+        .shape-cross::before{
+            width:6px;
+            height:50px;
+            left:22px;
+        }
+        .shape-cross::after{
+            width:50px;
+            height:6px;
+            top:22px;
+        }
+        .wrap{
+            max-width:1100px;
+            margin:40px auto;
+            padding:40px 50px;
+            border-radius:40px;
+            position:relative;
+            z-index:10;
+        }
+        h1{
+            text-align:center;
+            margin-top:0;
+            margin-bottom:30px;
+            font-size:28px;
+            color:#333;
+        }
+        .content{
+            display:flex;
+            gap:50px;
+            align-items:center;
+        }
+        .left{
+            flex:0 0 350px;
+            text-align:center;
+        }
+        .illustration{
+            width:280px;
+            height:300px;
+            border:none;
+            background:transparent;
+            object-fit:contain;
+            margin-bottom:12px;
+        }
+        .right{
+            flex:1;
+        }
+        .form-row{
+            display:flex;
+            align-items:center;
+            margin:20px 0;
+        }
+        .label{
+            width:100px;
+            text-align:right;
+            padding-right:20px;
+            font-size:18px;
+            font-weight:600;
+            color:#333;
+        }
+        .input{
+            flex:1;
+        }
+        .input input[type="text"],
+        .input select{
+            width:100%;
+            padding:14px 20px;
+            border:none;
+            border-radius:25px;
+            background:#7dd3fc;
+            color:#1e3a8a;
+            font-size:16px;
+            font-weight:600;
+            box-sizing:border-box;
+        }
+        .input input[type="text"]::placeholder{
+            color:rgba(30, 58, 138, 0.6);
+        }
+        .controls{
+            display:flex;
+            justify-content:flex-end;
+            gap:20px;
+            margin-top:35px;
+        }
+        .btn{
+            font-size:1rem;
+            color:#000000;
+            text-transform:uppercase;
+            padding:5px 10px;
+            border-radius:10px;
+            border-top:2px solid #ff8c00;
+            border-left:2px solid #ff8c00;
+            border-right:2px solid #fafafa;
+            border-bottom:2px solid #fafafa;
+            background:#ffffff;
+            box-shadow:5px 5px 0 #00bfff;
+            cursor:pointer;
+            margin:35px 0;
+            font-weight:600;
+            text-decoration:none;
+            display:inline-block;
+            transition:all 0.2s;
+        }
+        .btn:hover{
+            transform:translateY(-2px);
+            box-shadow:7px 7px 0 #00bfff;
+        }
+        .btn.primary{
+            background:#ffffff;
+        }
+        .btn.secondary{
+            background:#ffffff;
+        }
     </style>
 </head>
 <body>
     {% load static %}
+    <!-- 装飾要素 -->
+    <div class="deco-shape shape-hex1"></div>
+    <div class="deco-shape shape-hex2"></div>
+    <div class="deco-shape shape-triangle1"></div>
+    <div class="deco-shape shape-triangle2"></div>
+    <div class="deco-shape shape-pentagon"></div>
+    <div class="deco-shape shape-circle1"></div>
+    <div class="deco-shape shape-star1"></div>
+    <div class="deco-shape shape-star2"></div>
+    <div class="deco-shape shape-dots">
+        <span></span><span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div class="deco-shape shape-line1"></div>
+    <div class="deco-shape shape-line2"></div>
+    <div class="deco-shape shape-curve1"></div>
+    <div class="deco-shape shape-cross"></div>
+
     <div class="wrap">
-        <h1>AI初期設定</h1>
+        <h1>CodeMon の設定をしよう!</h1>
         <div class="content">
             <div class="left">
                 <img id="illustration" class="illustration" src="" alt="さっき決めたAIのイラスト">
-                <div style="margin-top:8px;color:#333">さっき決めたAIのイラスト</div>
             </div>
             <div class="right">
                 <form method="post" action="{% url 'accounts:ai_initial_confirm' %}">
                     {% csrf_token %}
                     <div class="form-row">
                         <div class="label">名前</div>
-                        <div class="input"><input type="text" name="ai_name" value="{{ config.ai_name|default:'' }}" style="width:100%"></div>
-                    </div>
-                    <div class="form-row">
-                        <div class="label">性格</div>
                         <div class="input">
-                            <select name="ai_personality" style="width:100%">
-                                {% for p in personalities %}
-                                    <option value="{{ p }}" {% if p == config.ai_personality %}selected{% endif %}>{{ p }}</option>
-                                {% endfor %}
-                            </select>
+                            <input type="text" name="ai_name" value="{{ config.ai_name|default:'CodeMon' }}" placeholder="CodeMon" style="text-align: center;">
                         </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="label">語尾</div>
-                        <div class="input"><input type="text" name="ai_speech" value="{{ config.ai_speech|default:'' }}" style="width:100%"></div>
                     </div>
                     <!-- 選択済みの外見を確認画面へ渡す -->
                     <input type="hidden" name="appearance" value="{{ config.appearance }}">
 
                     <div class="controls">
-                        <a href="{% url 'accounts:ai_appearance' %}" class="btn secondary" style="text-decoration:none;display:inline-block;padding:10px 18px">戻る</a>
+                        <a href="{% url 'accounts:ai_appearance' %}" class="btn secondary">戻る</a>
                         <button type="submit" class="btn primary">決定</button>
                     </div>
                 </form>
@@ -67,17 +320,39 @@
         const baseStatic = "{% static 'accounts/' %}";
         const appearance = "{{ config.appearance|escapejs }}" || '';
 
-        function filenameFor(a){
-            if(!a) return '';
-            if(typeof a === 'string' && a.match(/\.(png|jpg|jpeg|gif)$/i)) return a;
-            const map = { 'triangle':'dog.png','round':'panda.png','robot':'rabitto.png' };
-            if(map[a]) return map[a];
-            return a + '.png';
-        }
+        // 動物ごとの性格と語尾の設定
+        const animalSettings = {
+            'アルパカ.png': { personality: 'おとなしい', speech: 'だよ' },
+            'イヌ.png': { personality: '元気', speech: 'わん' },
+            'ウサギ.png': { personality: '優しい', speech: 'ぴょん' },
+            'キツネ.png': { personality: '冷静', speech: 'です' },
+            'ネコ.png': { personality: '無口', speech: 'にゃん' },
+            'パンダ.png': { personality: '元気', speech: 'だよ' },
+            'フクロウ.png': { personality: '冷静', speech: 'ですな' },
+            'リス.png': { personality: '元気', speech: 'なのだ' }
+        };
 
         const ill = document.getElementById('illustration');
-        const filename = filenameFor(appearance);
-        if(filename){ ill.src = baseStatic + encodeURIComponent(filename); ill.alt = filename; }
+        if(appearance){ 
+            ill.src = baseStatic + encodeURIComponent(appearance); 
+            ill.alt = appearance; 
+        }
+
+        // 動物に応じた初期設定を適用
+        const settings = animalSettings[appearance];
+        if(settings){ 
+            // 性格入力欄を設定（読み取り専用）
+            const personalityInput = document.querySelector('input[name="ai_personality"]');
+            if(personalityInput){
+                personalityInput.value = settings.personality;
+            }
+            
+            // 語尾入力欄を設定
+            const speechInput = document.querySelector('input[name="ai_speech"]');
+            if(speechInput){
+                speechInput.value = settings.speech;
+            }
+        }
     </script>
 </body>
 </html>

@@ -37,9 +37,9 @@ class MyPasswordResetView(auth_views.PasswordResetView):
         context = super().get_context_data(**kwargs)
         referer = self.request.META.get('HTTP_REFERER', '')
         if 'teacher_login' in referer:
-            back = reverse('teacher_login')
+            back = reverse('accounts:teacher_login')
         else:
-            back = reverse('student_login')
+            back = reverse('accounts:student_login')
         context['back_url'] = back
         return context
 
@@ -60,6 +60,7 @@ class MyPasswordResetView(auth_views.PasswordResetView):
                 'email': acc.email,
                 'domain': self.request.get_host(),
                 'site_name': getattr(settings, 'SITE_NAME', self.request.get_host()),
+                'uid': uidb64,  # テンプレートで uid として参照されるように変更
                 'uidb64': uidb64,
                 'token': token,
                 'protocol': protocol,
@@ -106,6 +107,7 @@ def teacher_signup(request):
             try:
                 request.session['pending_account_name'] = instance.user_name
                 request.session['pending_account_email'] = instance.email
+                request.session['pending_account_age'] = instance.age
             except Exception:
                 pass
             # サインアップ直後にセッションへアカウント情報を入れておくと
@@ -115,6 +117,7 @@ def teacher_signup(request):
                 request.session['account_user_id'] = instance.user_id
                 request.session['account_email'] = instance.email
                 request.session['account_user_name'] = instance.user_name
+                request.session['account_age'] = instance.age
                 request.session.modified = True
                 try:
                     request.session.save()
@@ -139,6 +142,7 @@ def student_signup(request):
             try:
                 request.session['pending_account_name'] = instance.user_name
                 request.session['pending_account_email'] = instance.email
+                request.session['pending_account_age'] = instance.age
             except Exception:
                 pass
             # session にアカウント情報をセットしておく（サインアップ直後の扱いを容易にする）
@@ -147,6 +151,7 @@ def student_signup(request):
                 request.session['account_user_id'] = instance.user_id
                 request.session['account_email'] = instance.email
                 request.session['account_user_name'] = instance.user_name
+                request.session['account_age'] = instance.age
                 request.session.modified = True
                 try:
                     request.session.save()
@@ -247,12 +252,15 @@ def ai_appearance(request):
                 if appearance:
                     cfg.appearance = appearance
                     cfg.save()
+            # セッションにも保存して次の画面で使えるようにする
+            request.session['selected_appearance'] = appearance
+            request.session.modified = True
         except Exception:
             pass
         # 外見選択後は初期設定画面へ遷移させる
         return redirect('accounts:ai_initial')
 
-    appearances = ['triangle', 'round', 'robot']
+    appearances = ['アルパカ.png', 'イヌ.png', 'ウサギ.png', 'キツネ.png', 'ネコ.png', 'パンダ.png', 'フクロウ.png', 'リス.png']
     return render(request, 'accounts/ai_appearance.html', {'appearances': appearances})
 
 
@@ -262,6 +270,18 @@ def ai_initial_settings(request):
 
     # デフォルトで利用する性格の候補
     personalities = ['元気', 'おとなしい', '優しい', '無口', '冷静']
+
+    # 動物ごとのデフォルト設定
+    animal_settings = {
+        'アルパカ.png': {'personality': 'おとなしい', 'speech': 'だよ'},
+        'イヌ.png': {'personality': '元気', 'speech': 'わん'},
+        'ウサギ.png': {'personality': '優しい', 'speech': 'ぴょん'},
+        'キツネ.png': {'personality': '冷静', 'speech': 'です'},
+        'ネコ.png': {'personality': '無口', 'speech': 'にゃん'},
+        'パンダ.png': {'personality': '元気', 'speech': 'だよ'},
+        'フクロウ.png': {'personality': '冷静', 'speech': 'ですな'},
+        'リス.png': {'personality': '元気', 'speech': 'なのだ'},
+    }
 
     # POST は基本的に確認画面へ遷移するためのデータ送信に使い、
     # 確定保存は別のエンドポイントで行う（two-step flow）。
@@ -277,7 +297,7 @@ def ai_initial_settings(request):
             'ai_name': ai_name or '',
             'ai_personality': ai_personality or '元気',
             'ai_speech': ai_speech or 'です',
-            'appearance': appearance or 'triangle'
+            'appearance': appearance or 'アルパカ.png'
         })()
 
         return render(request, 'accounts/ai_initial_settings.html', {'config': config, 'personalities': personalities})
@@ -291,9 +311,30 @@ def ai_initial_settings(request):
     except Exception:
         config = None
 
+    # セッションから選択された動物を取得
+    selected_appearance = request.session.get('selected_appearance', 'アルパカ.png')
+    
     if config is None:
         # テンプレートが期待するプロパティを持つダミーを用意
-        config = type('C', (), {'ai_name':'','ai_personality':'元気','ai_speech':'です','appearance':'triangle'})()
+        # 選択された動物のデフォルト設定を使用
+        default_settings = animal_settings.get(selected_appearance, {'personality': '元気', 'speech': 'です'})
+        config = type('C', (), {
+            'ai_name': '',
+            'ai_personality': default_settings['personality'],
+            'ai_speech': default_settings['speech'],
+            'appearance': selected_appearance
+        })()
+    else:
+        # 既存の設定がある場合でも、appearanceが新しく選択されていればそれを使用
+        if selected_appearance:
+            config.appearance = selected_appearance
+            # 動物が設定されていれば対応する性格・語尾を適用（既存値がない場合のみ）
+            if config.appearance in animal_settings:
+                settings = animal_settings[config.appearance]
+                if not config.ai_personality:
+                    config.ai_personality = settings['personality']
+                if not config.ai_speech:
+                    config.ai_speech = settings['speech']
 
     return render(request, 'accounts/ai_initial_settings.html', {'config': config, 'personalities': personalities})
 
@@ -473,7 +514,7 @@ def group_create(request):
 
         if not user_id:
             messages.error(request, 'ユーザーが特定できません。ログインしてください。')
-            return redirect('student_login')
+            return redirect('accounts:student_login')
 
         # パスワードはハッシュ化して保存（空可）
         hashed = make_password(group_password) if group_password else ''
@@ -544,7 +585,7 @@ def group_join_confirm(request):
             return render(request, 'accounts/karihome.html', {})
         else:
             # 未ログイン等は生徒ログインへ誘導
-            return redirect('student_login')
+            return redirect('accounts:student_login')
 
     # POST 処理（join/cancel）
     action = request.POST.get('action')
@@ -621,7 +662,7 @@ def password_reset_confirm(request, uidb64, token):
             new_pw = form.cleaned_data['new_password1']
             account.password = make_password(new_pw)
             account.save()
-            return HttpResponseRedirect(reverse('password_reset_complete'))
+            return HttpResponseRedirect(reverse('accounts:password_reset_complete'))
     else:
         form = _SetNewPasswordForm()
 
@@ -663,7 +704,7 @@ def account_entry(request):
     email = request.session.get('account_email') or (getattr(request.user, 'email', None) if getattr(request.user, 'is_authenticated', False) else None)
 
     if not user_id and not email:
-        return redirect('student_login')
+        return redirect('accounts:student_login')
 
     with connection.cursor() as cursor:
         if user_id:

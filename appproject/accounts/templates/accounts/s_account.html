@@ -43,16 +43,16 @@
       </div>
 
       <div class="info">
-        <div class="row"><span class="label">ID</span> <span>11111111</span></div>
-        <div class="row"><span class="label">名前</span> <strong>admin</strong></div>
-        <div class="row"><span class="label">年齢</span> <span>8歳</span></div>
+        <div class="row"><span class="label">ID</span> <span>{{ account.user_id|default:"未設定" }}</span></div>
+        <div class="row"><span class="label">名前</span> <strong>{{ account.user_name|default:"未設定" }}</strong></div>
+        <div class="row"><span class="label">年齢</span> <span>{{ account.age|default:"未設定" }}歳</span></div>
 
         <div class="meta">
           <div class="stick">
             <div class="figure">⚪︎</div>
             <div class="small">名前 codemon</div>
-            <div class="small">初めて会った日 2025/9/26</div>
-            <div class="small">累計日数 3日</div>
+            <div class="small">初めて会った日 {% if first_met %}{{ first_met|date:"Y/m/d" }}{% else %}未設定{% endif %}</div>
+            <div class="small">累計日数 {{ total_days|default:"0日" }}</div>
           </div>
 
           <div>
