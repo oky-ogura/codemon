@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 import psycopg2
+import subprocess
 # ...existing code...
 from dotenv import load_dotenv
 import os
@@ -76,6 +77,17 @@ ordered = [
     "create_group_member.sql", # group_member は group と account の後
     "create_chat_history.sql",
     "create_ai_learning.sql",
+    "align_schema_minimal.sql",
+    "counts.sql",
+    "create_ai_conversation_tables.sql",
+    "create_chat_tables.sql",
+    "inspect_schema.sql",
+    "create_checklist_item.sql",
+    # 基本データを先に投入してから既存テーブル拡張を行う
+    "seed_data.sql",
+    "extend_existing_tables.sql",
+    "seed_data_extended.sql",
+    "verify_complete_schema.sql",
 ]
 # ...existing code...
 
@@ -95,8 +107,38 @@ def apply_sql_files():
                         continue
                     print(f"Applying: {path.name} ...")
                     sql = read_sql(path)
-                    cur.execute(sql)
-                    print(f"Applied: {path.name}")
+                    # If the SQL file contains psql meta-commands (lines starting with a backslash),
+                    # prefer invoking the psql CLI because psycopg2 cannot execute those commands.
+                    if any(line.lstrip().startswith('\\') for line in sql.splitlines()):
+                        print(f"Detected psql meta-commands in {path.name}; attempting to run via psql CLI...")
+                        try:
+                            env = os.environ.copy()
+                            # Ensure PGPASSWORD is set for non-interactive auth
+                            if DB_PASS:
+                                env['PGPASSWORD'] = DB_PASS
+                            cmd = [
+                                'psql',
+                                '-h', DB_HOST,
+                                '-U', DB_USER,
+                                '-d', DB_NAME,
+                                '-f', str(path)
+                            ]
+                            subprocess.run(cmd, check=True, env=env)
+                            print(f"Applied via psql: {path.name}")
+                        except FileNotFoundError:
+                            # psql not found on PATH
+                            print("psql CLI not found on PATH. Falling back to sanitizing file and executing SQL via psycopg2.")
+                            sanitized = '\n'.join(line for line in sql.splitlines() if not line.lstrip().startswith('\\'))
+                            cur.execute(sanitized)
+                            print(f"Applied (sanitized): {path.name}")
+                        except subprocess.CalledProcessError as e:
+                            print(f"psql returned non-zero exit: {e}. Attempting sanitized execution via psycopg2 as fallback.")
+                            sanitized = '\n'.join(line for line in sql.splitlines() if not line.lstrip().startswith('\\'))
+                            cur.execute(sanitized)
+                            print(f"Applied (sanitized): {path.name}")
+                    else:
+                        cur.execute(sql)
+                        print(f"Applied: {path.name}")
     finally:
         conn.close()
 

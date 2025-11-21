@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0005_remove_account_avatar_remove_account_type'),
+        ('accounts', '0003_add_type'),
         ('codemon', '0002_aiconversation_aimessage'),
     ]
 

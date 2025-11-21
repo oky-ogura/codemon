@@ -234,6 +234,20 @@
       background: #1e7e34;
     }
 
+    /* 全削除ボタンのスタイル */
+    .shortcut-bar .shortcut-btns #clearAllBtn {
+      font-size: 18px;
+      margin-left: 8px;
+      background: #dc3545;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 16px;
+      cursor: pointer;
+    }
+    .shortcut-bar .shortcut-btns #clearAllBtn:hover {
+      background: #c82333;
+    }
 
     /* Run/実行 ボタンの見た目を統一 */
     .shortcut-bar .shortcut-btns #executeBtn {
@@ -465,6 +479,82 @@
       cursor: nwse-resize;
     }
 
+    /* タイマー要素のスタイル */
+    .timer-container {
+      position: absolute;
+      background: linear-gradient(180deg, #f0f9ff, #e0f2fe);
+      border: 2px solid #0284c7;
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      min-width: 200px;
+      cursor: grab;
+      box-sizing: border-box;
+    }
+    .timer-container.grabbing { cursor: grabbing; }
+    
+    .timer-settings-btn {
+      display: block;
+      margin: 0 auto 8px auto;
+      padding: 3px 10px;
+      font-size: 11px;
+      border: 1px solid #0284c7;
+      border-radius: 4px;
+      background: white;
+      color: #0284c7;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .timer-settings-btn:hover {
+      background: #e0f2fe;
+    }
+    
+    .timer-display {
+      font-size: 28px;
+      font-weight: 700;
+      color: #0c4a6e;
+      text-align: center;
+      font-family: 'Courier New', monospace;
+      margin-bottom: 6px;
+      user-select: none;
+    }
+    
+    .timer-controls {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+    }
+    .timer-btn {
+      padding: 5px 12px;
+      font-size: 13px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .timer-btn.start {
+      background: #22c55e;
+      color: white;
+    }
+    .timer-btn.start:hover {
+      background: #16a34a;
+    }
+    .timer-btn.pause {
+      background: #f97316;
+      color: white;
+    }
+    .timer-btn.pause:hover {
+      background: #ea580c;
+    }
+    .timer-btn.reset {
+      background: #ef4444;
+      color: white;
+    }
+    .timer-btn.reset:hover {
+      background: #dc2626;
+    }
+
     /* プレビュー用オーバーレイ（より画面全体に表示） */
     .preview-overlay {
       position: fixed;
@@ -563,6 +653,7 @@
     </div>
 
     <button id="addDatetimeBtn">日時</button>
+    <button id="addTimerBtn">タイマー</button>
     <button id="addButtonBtn">ボタン追加</button>
   </div>
 
@@ -571,6 +662,7 @@
     <button id="redoBtn" title="やり直し (Ctrl+Y)">→</button>
 
     <div class="shortcut-btns" aria-hidden="false">
+      <button id="clearAllBtn" aria-disabled="false">全削除</button>
       <button id="executeBtn" aria-disabled="false">実行</button>
       <button id="saveBtn" aria-disabled="false">保存</button>
     </div>
@@ -581,6 +673,16 @@
   </div>
 
   <script>
+    // 編集モードの場合、既存システム情報を保持
+    const existingSystemData = {
+      systemId: '{{ system_id|default:"" }}',
+      systemName: '{{ system_name|default:""|escapejs }}',
+      systemDescription: '{{ system_description|default:""|escapejs }}'
+    };
+    
+    // 編集モードの場合、既存要素データを保持
+    const existingElementsData = {{ elements_json|default:"[]"|safe }};
+    
     (function(){
       try{
         const tabs = document.querySelectorAll('.nav-tab');
@@ -594,11 +696,21 @@
             // タブごとの遷移
             // システムタブ押下で system/choiceに遷移
             if (this.id === 'tab-system') {
-              // 必要なら相対パスを調整してください
+              // タブ移動時はsessionStorageをクリア
+              sessionStorage.removeItem('systemDesignContent');
+              sessionStorage.removeItem('returnFromCreate');
+              sessionStorage.removeItem('systemId');
+              sessionStorage.removeItem('systemName');
+              sessionStorage.removeItem('systemDescription');
               window.location.href = '/accounts/system/choice';
               // アルゴリズムタブ押下で block/choiceに遷移
             } else if (this.id === 'tab-algorithm') {
-              // 必要なら相対パスを調整してください
+              // タブ移動時はsessionStorageをクリア
+              sessionStorage.removeItem('systemDesignContent');
+              sessionStorage.removeItem('returnFromCreate');
+              sessionStorage.removeItem('systemId');
+              sessionStorage.removeItem('systemName');
+              sessionStorage.removeItem('systemDescription');
               window.location.href = '/accounts/block/choice';
             }
           });
@@ -790,7 +902,29 @@
     if (saveBtn) {
       saveBtn.addEventListener('click', function(e){
         e.preventDefault();
-        window.location.href = '/accounts/system/save/';
+        // 現在のスライドエリアの内容を構造化データとして保存
+        const slide = document.getElementById('slideArea');
+        if (slide) {
+          // 要素データを収集して保存
+          const elementsData = collectCurrentElements();
+          sessionStorage.setItem('systemDesignContent', JSON.stringify(elementsData));
+          // 保存画面に遷移することを示すフラグを設定
+          sessionStorage.setItem('navigatingToCreate', 'true');
+          
+          // 編集モードの場合、既存システム情報も保存
+          if (existingSystemData.systemId) {
+            sessionStorage.setItem('systemId', existingSystemData.systemId);
+          }
+          if (existingSystemData.systemName) {
+            sessionStorage.setItem('systemName', existingSystemData.systemName);
+          }
+          if (existingSystemData.systemDescription) {
+            sessionStorage.setItem('systemDescription', existingSystemData.systemDescription);
+          }
+          
+          console.log('システム設計内容を保存しました');
+        }
+        window.location.href = '/accounts/system/create/';
       });
     }
     // 実行ボタン
@@ -799,6 +933,25 @@
       executeBtn.addEventListener('click', function(e){
         e.preventDefault();
         openPreview();
+      });
+    }
+
+    // 全削除ボタン
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    if (clearAllBtn) {
+      clearAllBtn.addEventListener('click', function(e){
+        e.preventDefault();
+        if (confirm('すべての要素を削除してもよろしいですか？\nこの操作は取り消せません。')) {
+          const slide = document.getElementById('slideArea');
+          if (slide) {
+            // ゴミ箱以外のすべての要素を削除
+            const trash = slide.querySelector('#trash');
+            const trashHTML = trash ? trash.outerHTML : '<div id="trash" title="ここにドラッグで削除">🗑️</div>';
+            slide.innerHTML = trashHTML;
+            saveHistory();
+            console.log('すべての要素を削除しました');
+          }
+        }
       });
     }
 
@@ -1087,11 +1240,17 @@
 
       clone.querySelectorAll('.drag-handle').forEach(h => h.remove());
 
+      // 実行画面ではタイマーの設定ボタンを非表示にする
+      clone.querySelectorAll('.timer-settings-btn').forEach(el => {
+        el.style.display = 'none';
+      });
+
       const previewStyle = document.createElement('style');
       previewStyle.textContent = `
         #previewSlideArea * { pointer-events: none !important; }
         #previewSlideArea button,
-        #previewSlideArea .draggable-btn { pointer-events: auto !important; }
+        #previewSlideArea .draggable-btn,
+        #previewSlideArea .timer-btn { pointer-events: auto !important; }
         #previewSlideArea input,
         #previewSlideArea textarea,
         #previewSlideArea .input-box { pointer-events: auto !important; }
@@ -1101,21 +1260,110 @@
         #previewSlideArea .draggable-btn,
         #previewSlideArea .text-input-container,
         #previewSlideArea .checkbox-group,
-        #previewSlideArea .radio-group { user-select: text !important; }
+        #previewSlideArea .radio-group,
+        #previewSlideArea .timer-container { user-select: text !important; }
         #previewSlideArea .input-label,
         #previewSlideArea .text-input,
         #previewSlideArea input,
         #previewSlideArea textarea { outline: none !important; box-shadow: none !important; }
         #previewSlideArea { -webkit-user-select: text !important; user-select: text !important; box-shadow: 0 6px 30px rgba(0,0,0,0.24); }
+        #previewSlideArea .timer-settings-btn { display: none !important; }
       `;
       overlay.appendChild(previewStyle);
 
       clone.querySelectorAll('button, .draggable-btn').forEach(btn => {
         try {
-          btn.addEventListener('click', function(e){
+          // タイマーボタンではない場合
+          if (!btn.classList.contains('timer-btn') && !btn.classList.contains('timer-mode-btn')) {
+            // 既存のイベントリスナーをクリア
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            
+            // 遷移先システムIDがある場合のイベントリスナーを設定
+            const targetSystemId = newBtn.getAttribute('data-target-system');
+            console.log('ボタン設定:', newBtn.textContent, 'システムID:', targetSystemId);
+            
+            if (targetSystemId) {
+              newBtn.addEventListener('click', function(e){
+                e.stopPropagation();
+                console.log('ボタンクリック - システムID:', targetSystemId);
+                loadSystemInPreview(targetSystemId);
+              });
+            } else {
+              newBtn.addEventListener('click', function(e){
+                e.stopPropagation();
+                console.log('ボタンクリック - 遷移先なし');
+              });
+            }
+          }
+        } catch(err) {
+          console.error('ボタンのイベント設定エラー:', err);
+        }
+      });
+
+      // タイマーボタンのイベントリスナーを再設定
+      clone.querySelectorAll('.timer-container').forEach(timer => {
+        const startBtn = timer.querySelector('.timer-btn.start');
+        const resetBtn = timer.querySelector('.timer-btn.reset');
+        const display = timer.querySelector('.timer-display');
+        
+        if (startBtn) {
+          startBtn.onclick = function(e) {
             e.stopPropagation();
-          });
-        } catch(err) {}
+            const running = timer.getAttribute('data-timer-running') === 'true';
+            const mode = timer.getAttribute('data-timer-mode');
+            
+            if (!running) {
+              if (mode === 'down') {
+                const target = parseInt(timer.getAttribute('data-timer-target') || '0');
+                if (target === 0) {
+                  alert('カウントダウンの時間を設定してください');
+                  return;
+                }
+              }
+              timer.setAttribute('data-timer-running', 'true');
+              startBtn.textContent = "停止";
+              startBtn.classList.remove('start');
+              startBtn.classList.add('pause');
+            } else {
+              timer.setAttribute('data-timer-running', 'false');
+              startBtn.textContent = "開始";
+              startBtn.classList.remove('pause');
+              startBtn.classList.add('start');
+            }
+          };
+        }
+        
+        if (resetBtn) {
+          resetBtn.onclick = function(e) {
+            e.stopPropagation();
+            const mode = timer.getAttribute('data-timer-mode');
+            timer.setAttribute('data-timer-running', 'false');
+            
+            if (mode === 'up') {
+              timer.setAttribute('data-timer-seconds', '0');
+              if (display) display.textContent = "00:00:00";
+            } else {
+              const target = parseInt(timer.getAttribute('data-timer-target') || '0');
+              timer.setAttribute('data-timer-seconds', target.toString());
+              if (display) {
+                const h = Math.floor(target / 3600);
+                const m = Math.floor((target % 3600) / 60);
+                const s = target % 60;
+                display.textContent = 
+                  String(h).padStart(2, '0') + ':' +
+                  String(m).padStart(2, '0') + ':' +
+                  String(s).padStart(2, '0');
+              }
+            }
+            
+            if (startBtn) {
+              startBtn.textContent = "開始";
+              startBtn.classList.remove('pause');
+              startBtn.classList.add('start');
+            }
+          };
+        }
       });
 
       areaWrap.appendChild(clone);
@@ -1140,6 +1388,515 @@
           document.removeEventListener('keydown', onEsc);
         }
       });
+    }
+
+    // 他のシステムを実行画面に読み込む関数
+    async function loadSystemInPreview(systemId) {
+      try {
+        const response = await fetch(`/accounts/system/elements/?system_id=${systemId}`);
+        if (!response.ok) {
+          throw new Error('システムデータの取得に失敗しました');
+        }
+        
+        const data = await response.json();
+        if (!data.success) {
+          throw new Error(data.error || 'システムデータの取得に失敗しました');
+        }
+        
+        // 現在の実行画面のプレビューエリアを取得
+        const previewArea = document.getElementById('previewSlideArea');
+        if (!previewArea) {
+          console.error('実行画面が見つかりません');
+          return;
+        }
+        
+        // プレビューエリアの内容をクリア（ゴミ箱以外）
+        const children = Array.from(previewArea.children);
+        children.forEach(child => {
+          if (child.id !== 'trash') {
+            child.remove();
+          }
+        });
+        
+        // 新しいシステムの要素を復元
+        restoreSystemElementsToPreview(data.elements, previewArea);
+        
+      } catch (error) {
+        console.error('システムの読み込みエラー:', error);
+        alert('システムの読み込みに失敗しました: ' + error.message);
+      }
+    }
+
+    // 実行画面に要素を復元する関数
+    function restoreSystemElementsToPreview(elementsData, targetArea) {
+      if (!targetArea) return;
+      
+      elementsData.forEach(elem => {
+        try {
+          let element = null;
+          
+          switch(elem.element_type) {
+            case 'text_input':
+              element = createPreviewTextInput(elem, false);
+              break;
+            case 'number_input':
+              element = createPreviewTextInput(elem, true);
+              break;
+            case 'datetime_input':
+              element = createPreviewDatetimeInput(elem);
+              break;
+            case 'checkbox_group':
+              element = createPreviewCheckboxGroup(elem);
+              break;
+            case 'radio_group':
+              element = createPreviewRadioGroup(elem);
+              break;
+            case 'button':
+              element = createPreviewButton(elem);
+              break;
+            case 'text_box':
+              element = createPreviewTextBox(elem);
+              break;
+            case 'timer':
+              element = createPreviewTimer(elem);
+              break;
+          }
+          
+          if (element) {
+            targetArea.appendChild(element);
+          }
+        } catch (error) {
+          console.error('要素の復元に失敗:', elem, error);
+        }
+      });
+    }
+
+    // 以下、実行画面用の要素作成関数
+    function createPreviewTextInput(elem, onlyNumber) {
+      const container = document.createElement("div");
+      container.classList.add("input-container");
+
+      const label = document.createElement("div");
+      label.classList.add("input-label");
+      label.textContent = elem.element_label || (onlyNumber ? "数字：" : "文字：");
+
+      const placeholder = elem.element_config?.placeholder || (onlyNumber ? "数字を入力" : "文字を入力（改行可）");
+      const actualValue = elem.element_value || ""; // 実際の入力値
+
+      if (onlyNumber) {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.inputMode = "numeric";
+        input.pattern = "\\d*";
+        input.classList.add("input-box");
+        input.placeholder = placeholder;
+        input.value = actualValue; // 実際の入力値のみ設定
+        input.setAttribute('data-only-number', 'true');
+        container.appendChild(label);
+        container.appendChild(input);
+        attachNumberFilter(input);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.classList.add("input-box");
+        textarea.placeholder = placeholder;
+        textarea.value = actualValue; // 実際の入力値のみ設定
+        container.appendChild(label);
+        container.appendChild(textarea);
+      }
+
+      container.style.left = elem.position_x + "px";
+      container.style.top = elem.position_y + "px";
+      if (elem.width) container.style.width = elem.width + "px";
+      if (elem.height) container.style.height = elem.height + "px";
+
+      return container;
+    }
+
+    function createPreviewDatetimeInput(elem) {
+      const container = document.createElement("div");
+      container.classList.add("input-container");
+
+      const label = document.createElement("div");
+      label.classList.add("input-label");
+      label.textContent = elem.element_label || "日時：";
+
+      const input = document.createElement("input");
+      input.type = "datetime-local";
+      input.style.minWidth = "180px";
+      input.style.minHeight = "36px";
+      input.style.fontSize = "16px";
+      input.style.padding = "4px 8px";
+      input.style.boxSizing = "border-box";
+      input.classList.add("input-box");
+      input.value = elem.element_value || "";
+
+      container.appendChild(label);
+      container.appendChild(input);
+
+      container.style.left = elem.position_x + "px";
+      container.style.top = elem.position_y + "px";
+      if (elem.width) container.style.width = elem.width + "px";
+      if (elem.height) container.style.height = elem.height + "px";
+
+      return container;
+    }
+
+    function createPreviewCheckboxGroup(elem) {
+      const group = document.createElement('div');
+      group.className = 'checkbox-group';
+
+      const options = elem.element_config?.options || [];
+      options.forEach((optText, i) => {
+        const row = document.createElement('div');
+        row.className = 'checkbox-row';
+
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.tabIndex = 0;
+
+        const lbl = document.createElement('div');
+        lbl.className = 'checkbox-label';
+        lbl.textContent = optText;
+
+        row.appendChild(cb);
+        row.appendChild(lbl);
+        group.appendChild(row);
+      });
+
+      group.style.left = elem.position_x + "px";
+      group.style.top = elem.position_y + "px";
+      if (elem.width) group.style.width = elem.width + "px";
+      if (elem.height) group.style.height = elem.height + "px";
+
+      return group;
+    }
+
+    function createPreviewRadioGroup(elem) {
+      const group = document.createElement('div');
+      group.className = 'radio-group';
+
+      const uniqueName = 'radio_group_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+      const options = elem.element_config?.options || [];
+      
+      options.forEach((optText, i) => {
+        const row = document.createElement('div');
+        row.className = 'radio-row';
+
+        const rb = document.createElement('input');
+        rb.type = 'radio';
+        rb.name = uniqueName;
+        rb.tabIndex = 0;
+
+        const lbl = document.createElement('div');
+        lbl.className = 'radio-label';
+        lbl.textContent = optText;
+
+        row.appendChild(rb);
+        row.appendChild(lbl);
+        group.appendChild(row);
+      });
+
+      group.style.left = elem.position_x + "px";
+      group.style.top = elem.position_y + "px";
+      if (elem.width) group.style.width = elem.width + "px";
+      if (elem.height) group.style.height = elem.height + "px";
+
+      return group;
+    }
+
+    function createPreviewButton(elem) {
+      const btn = document.createElement("button");
+      btn.classList.add("draggable-btn");
+      btn.textContent = elem.element_label || "ボタン";
+
+      const styleData = elem.style_data || {};
+      if (elem.width) btn.style.width = elem.width + "px";
+      if (elem.height) btn.style.height = elem.height + "px";
+      if (styleData.background) btn.style.background = styleData.background;
+      if (styleData.color) btn.style.color = styleData.color;
+
+      btn.style.left = elem.position_x + "px";
+      btn.style.top = elem.position_y + "px";
+
+      // 遷移先システムIDがある場合
+      const targetSystemId = elem.element_config?.target_system_id;
+      if (targetSystemId) {
+        btn.setAttribute('data-target-system', targetSystemId);
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          loadSystemInPreview(targetSystemId);
+        });
+      }
+
+      return btn;
+    }
+
+    function createPreviewTextBox(elem) {
+      const container = document.createElement("div");
+      container.classList.add("text-input-container");
+
+      const textDiv = document.createElement("div");
+      textDiv.classList.add("text-input");
+      textDiv.textContent = elem.element_value || "";
+
+      container.appendChild(textDiv);
+
+      container.style.left = elem.position_x + "px";
+      container.style.top = elem.position_y + "px";
+      if (elem.width) container.style.width = elem.width + "px";
+      if (elem.height) container.style.height = elem.height + "px";
+
+      return container;
+    }
+
+    function createPreviewTimer(elem) {
+      const container = document.createElement('div');
+      container.className = 'timer-container';
+      
+      const config = elem.element_config || {};
+      const mode = config.mode || 'countup';
+      const initialTime = config.initial_time || 0;
+      
+      container.setAttribute('data-timer-mode', mode);
+      container.setAttribute('data-timer-running', 'false');
+      container.setAttribute('data-timer-value', initialTime.toString());
+      container.setAttribute('data-initial-time', initialTime.toString());
+
+      const display = document.createElement('div');
+      display.className = 'timer-display';
+      display.textContent = formatTimerDisplay(initialTime);
+
+      const btnContainer = document.createElement('div');
+      btnContainer.className = 'timer-buttons';
+
+      const startBtn = document.createElement('button');
+      startBtn.className = 'timer-btn start';
+      startBtn.textContent = 'スタート';
+
+      const resetBtn = document.createElement('button');
+      resetBtn.className = 'timer-btn reset';
+      resetBtn.textContent = 'リセット';
+
+      btnContainer.appendChild(startBtn);
+      btnContainer.appendChild(resetBtn);
+
+      container.appendChild(display);
+      container.appendChild(btnContainer);
+
+      container.style.left = elem.position_x + "px";
+      container.style.top = elem.position_y + "px";
+      if (elem.width) container.style.width = elem.width + "px";
+      if (elem.height) container.style.height = elem.height + "px";
+
+      // タイマーイベントリスナーを設定
+      setupTimerEvents(container, startBtn, resetBtn, display, mode, initialTime);
+
+      return container;
+    }
+
+    function setupTimerEvents(container, startBtn, resetBtn, display, mode, initialTime) {
+      let intervalId = null;
+
+      startBtn.onclick = function(e) {
+        e.stopPropagation();
+        const running = container.getAttribute('data-timer-running') === 'true';
+        
+        if (running) {
+          // 停止
+          if (intervalId) clearInterval(intervalId);
+          container.setAttribute('data-timer-running', 'false');
+          startBtn.textContent = 'スタート';
+        } else {
+          // 開始
+          container.setAttribute('data-timer-running', 'true');
+          startBtn.textContent = 'ストップ';
+          
+          intervalId = setInterval(() => {
+            let currentValue = parseInt(container.getAttribute('data-timer-value')) || 0;
+            
+            if (mode === 'countdown') {
+              currentValue = Math.max(0, currentValue - 1);
+              container.setAttribute('data-timer-value', currentValue.toString());
+              display.textContent = formatTimerDisplay(currentValue);
+              
+              if (currentValue === 0) {
+                if (intervalId) clearInterval(intervalId);
+                container.setAttribute('data-timer-running', 'false');
+                startBtn.textContent = 'スタート';
+              }
+            } else {
+              // countup
+              currentValue += 1;
+              container.setAttribute('data-timer-value', currentValue.toString());
+              display.textContent = formatTimerDisplay(currentValue);
+            }
+          }, 1000);
+        }
+      };
+
+      resetBtn.onclick = function(e) {
+        e.stopPropagation();
+        if (intervalId) clearInterval(intervalId);
+        container.setAttribute('data-timer-running', 'false');
+        container.setAttribute('data-timer-value', initialTime.toString());
+        display.textContent = formatTimerDisplay(initialTime);
+        startBtn.textContent = 'スタート';
+      };
+    }
+
+    function formatTimerDisplay(seconds) {
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = seconds % 60;
+      return String(h).padStart(2, '0') + ':' + 
+             String(m).padStart(2, '0') + ':' + 
+             String(s).padStart(2, '0');
+    }
+
+    // 現在のスライドエリアの要素を収集する関数
+    function collectCurrentElements() {
+      const slide = document.getElementById('slideArea');
+      if (!slide) return [];
+      
+      const elements = [];
+      
+      // テキスト/数値/日時入力
+      slide.querySelectorAll('.input-container').forEach(container => {
+        const label = container.querySelector('.input-label');
+        const input = container.querySelector('.input-box');
+        const labelText = label ? label.textContent.trim() : '';
+        const inputValue = input ? input.value.trim() : ''; // 実際の入力値を取得
+        const placeholder = input ? input.placeholder : '';
+        const onlyNumber = input && input.getAttribute('data-only-number') === 'true';
+        const isDatetime = input && input.type === 'datetime-local';
+        
+        let elementType = 'text_input';
+        if (onlyNumber) elementType = 'number_input';
+        if (isDatetime) elementType = 'datetime_input';
+        
+        elements.push({
+          element_type: elementType,
+          element_label: labelText,
+          element_value: inputValue,
+          position_x: parseInt(container.style.left) || 0,
+          position_y: parseInt(container.style.top) || 0,
+          width: container.offsetWidth || null,
+          height: container.offsetHeight || null,
+          style_data: {},
+          element_config: {
+            placeholder: placeholder
+          }
+        });
+      });
+      
+      // チェックボックスグループ
+      slide.querySelectorAll('.checkbox-group').forEach(group => {
+        const rows = group.querySelectorAll('.checkbox-row');
+        const options = [];
+        rows.forEach(row => {
+          const label = row.querySelector('.checkbox-label');
+          if (label) options.push(label.textContent.trim());
+        });
+        
+        elements.push({
+          element_type: 'checkbox_group',
+          element_label: '',
+          element_value: '',
+          position_x: parseInt(group.style.left) || 0,
+          position_y: parseInt(group.style.top) || 0,
+          width: group.offsetWidth || null,
+          height: group.offsetHeight || null,
+          style_data: {},
+          element_config: { options: options }
+        });
+      });
+      
+      // ラジオボタングループ
+      slide.querySelectorAll('.radio-group').forEach(group => {
+        const rows = group.querySelectorAll('.radio-row');
+        const options = [];
+        rows.forEach(row => {
+          const label = row.querySelector('.radio-label');
+          if (label) options.push(label.textContent.trim());
+        });
+        
+        elements.push({
+          element_type: 'radio_group',
+          element_label: '',
+          element_value: '',
+          position_x: parseInt(group.style.left) || 0,
+          position_y: parseInt(group.style.top) || 0,
+          width: group.offsetWidth || null,
+          height: group.offsetHeight || null,
+          style_data: {},
+          element_config: { options: options }
+        });
+      });
+      
+      // ボタン
+      slide.querySelectorAll('.draggable-btn').forEach(btn => {
+        const targetSystemId = btn.getAttribute('data-target-system');
+        let buttonText = btn.textContent.trim();
+        buttonText = buttonText.replace(/≡/g, '').trim();
+        
+        elements.push({
+          element_type: 'button',
+          element_label: buttonText,
+          element_value: '',
+          position_x: parseInt(btn.style.left) || 0,
+          position_y: parseInt(btn.style.top) || 0,
+          width: parseInt(btn.style.width) || null,
+          height: parseInt(btn.style.height) || null,
+          style_data: {
+            background: btn.style.background || btn.style.backgroundColor,
+            color: btn.style.color
+          },
+          element_config: {
+            target_system_id: targetSystemId
+          }
+        });
+      });
+      
+      // テキストボックス
+      slide.querySelectorAll('.text-input-container').forEach(container => {
+        const textInput = container.querySelector('.text-input');
+        const content = textInput ? (textInput.value || textInput.textContent || '').trim() : '';
+        
+        elements.push({
+          element_type: 'text_box',
+          element_label: '',
+          element_value: content,
+          position_x: parseInt(container.style.left) || 0,
+          position_y: parseInt(container.style.top) || 0,
+          width: parseInt(container.style.width) || null,
+          height: parseInt(container.style.height) || null,
+          style_data: {},
+          element_config: {}
+        });
+      });
+      
+      // タイマー
+      slide.querySelectorAll('.timer-container').forEach(timer => {
+        const mode = timer.getAttribute('data-timer-mode') || 'countup';
+        const initialTime = parseInt(timer.getAttribute('data-initial-time')) || 0;
+        
+        elements.push({
+          element_type: 'timer',
+          element_label: '',
+          element_value: '',
+          position_x: parseInt(timer.style.left) || 0,
+          position_y: parseInt(timer.style.top) || 0,
+          width: parseInt(timer.style.width) || null,
+          height: parseInt(timer.style.height) || null,
+          style_data: {},
+          element_config: {
+            mode: mode,
+            initial_time: initialTime
+          }
+        });
+      });
+      
+      return elements;
     }
 
     function getRandomPosition(width=100, height=40) {
@@ -1328,7 +2085,231 @@
       saveHistory();
     }
 
-    function createButton(labelText, width, height, color, textColor) {
+    function createTimer() {
+      // タイマーのモード選択（1: カウントアップ、2: カウントダウン）
+      let mode = null;
+      while (mode === null) {
+        const modeInput = prompt("タイマーのモードを選択してください\n\n1: カウントアップ\n2: カウントダウン", "1");
+        
+        if (modeInput === null) {
+          // キャンセルされた場合は処理を中断
+          return;
+        }
+        
+        if (modeInput === '1') {
+          mode = 'up';
+        } else if (modeInput === '2') {
+          mode = 'down';
+        } else {
+          alert("1または2を入力してください");
+        }
+      }
+      
+      let targetSeconds = 0;
+      let displayText = "00:00:00";
+      
+      // カウントダウンの場合は時間設定
+      if (mode === 'down') {
+        const hours = parseInt(prompt("時間を入力してください (0-23)", "0")) || 0;
+        const minutes = parseInt(prompt("分を入力してください (0-59)", "1")) || 0;
+        const seconds = parseInt(prompt("秒を入力してください (0-59)", "0")) || 0;
+        
+        targetSeconds = Math.max(0, Math.min(hours, 23)) * 3600 + 
+                       Math.max(0, Math.min(minutes, 59)) * 60 + 
+                       Math.max(0, Math.min(seconds, 59));
+        
+        if (targetSeconds === 0) {
+          alert("時間が0秒です。最低1秒以上に設定してください。");
+          return;
+        }
+        
+        const h = Math.floor(targetSeconds / 3600);
+        const m = Math.floor((targetSeconds % 3600) / 60);
+        const s = targetSeconds % 60;
+        displayText = String(h).padStart(2, '0') + ':' +
+                     String(m).padStart(2, '0') + ':' +
+                     String(s).padStart(2, '0');
+      }
+      
+      // タイマーコンテナ作成
+      let container = document.createElement("div");
+      container.classList.add("timer-container");
+      container.setAttribute('data-timer-seconds', mode === 'down' ? targetSeconds.toString() : '0');
+      container.setAttribute('data-timer-running', 'false');
+      container.setAttribute('data-timer-mode', mode);
+      container.setAttribute('data-timer-target', targetSeconds.toString());
+
+      // タイマー設定ボタン(編集用)
+      let settingsBtn = document.createElement("button");
+      settingsBtn.classList.add("timer-settings-btn");
+      settingsBtn.textContent = "⚙ 設定";
+      settingsBtn.title = "タイマー設定を変更";
+
+      settingsBtn.textContent = "⚙ 設定";
+      settingsBtn.title = "タイマー設定を変更";
+      settingsBtn.onclick = function(e) {
+        e.stopPropagation();
+        openTimerSettings(container, display);
+      };
+
+      // 表示部分
+      let display = document.createElement("div");
+      display.classList.add("timer-display");
+      display.textContent = displayText;
+
+      // 操作ボタン
+      let controls = document.createElement("div");
+      controls.classList.add("timer-controls");
+
+      let startBtn = document.createElement("button");
+      startBtn.classList.add("timer-btn", "start");
+      startBtn.textContent = "開始";
+      startBtn.onclick = function(e) {
+        e.stopPropagation();
+        const running = container.getAttribute('data-timer-running') === 'true';
+        const timerMode = container.getAttribute('data-timer-mode');
+        
+        if (!running) {
+          if (timerMode === 'down') {
+            const target = parseInt(container.getAttribute('data-timer-target') || '0');
+            if (target === 0) {
+              alert('カウントダウンの時間を設定してください');
+              return;
+            }
+          }
+          container.setAttribute('data-timer-running', 'true');
+          startBtn.textContent = "停止";
+          startBtn.classList.remove('start');
+          startBtn.classList.add('pause');
+        } else {
+          container.setAttribute('data-timer-running', 'false');
+          startBtn.textContent = "開始";
+          startBtn.classList.remove('pause');
+          startBtn.classList.add('start');
+        }
+      };
+
+      let resetBtn = document.createElement("button");
+      resetBtn.classList.add("timer-btn", "reset");
+      resetBtn.textContent = "リセット";
+      resetBtn.onclick = function(e) {
+        e.stopPropagation();
+        const timerMode = container.getAttribute('data-timer-mode');
+        container.setAttribute('data-timer-running', 'false');
+        
+        if (timerMode === 'up') {
+          container.setAttribute('data-timer-seconds', '0');
+          display.textContent = "00:00:00";
+        } else {
+          const target = parseInt(container.getAttribute('data-timer-target') || '0');
+          container.setAttribute('data-timer-seconds', target.toString());
+          const h = Math.floor(target / 3600);
+          const m = Math.floor((target % 3600) / 60);
+          const s = target % 60;
+          display.textContent = 
+            String(h).padStart(2, '0') + ':' +
+            String(m).padStart(2, '0') + ':' +
+            String(s).padStart(2, '0');
+        }
+        
+        startBtn.textContent = "開始";
+        startBtn.classList.remove('pause');
+        startBtn.classList.add('start');
+      };
+
+      controls.appendChild(startBtn);
+      controls.appendChild(resetBtn);
+      
+      container.appendChild(settingsBtn);
+      container.appendChild(display);
+      container.appendChild(controls);
+
+      let pos = getRandomPosition(220, 120);
+      container.style.left = pos.x + "px";
+      container.style.top = pos.y + "px";
+      addDragHandleIfMissing(container);
+      makeDraggable(container);
+      document.getElementById("slideArea").appendChild(container);
+      saveHistory();
+    }
+
+    // タイマー設定変更ダイアログ
+    function openTimerSettings(container, display) {
+      const currentMode = container.getAttribute('data-timer-mode');
+      const currentTarget = parseInt(container.getAttribute('data-timer-target') || '0');
+      
+      // タイマーのモード選択（1: カウントアップ、2: カウントダウン）
+      let newMode = null;
+      while (newMode === null) {
+        const currentModeText = currentMode === 'up' ? 'カウントアップ' : 'カウントダウン';
+        const modeInput = prompt("タイマーのモードを選択してください\n\n現在: " + currentModeText + "\n\n1: カウントアップ\n2: カウントダウン", currentMode === 'up' ? '1' : '2');
+        
+        if (modeInput === null) {
+          // キャンセルされた場合は処理を中断
+          return;
+        }
+        
+        if (modeInput === '1') {
+          newMode = 'up';
+        } else if (modeInput === '2') {
+          newMode = 'down';
+        } else {
+          alert("1または2を入力してください");
+        }
+      }
+      
+      let newTarget = 0;
+      
+      if (newMode === 'down') {
+        const currentH = Math.floor(currentTarget / 3600);
+        const currentM = Math.floor((currentTarget % 3600) / 60);
+        const currentS = currentTarget % 60;
+        
+        const hours = parseInt(prompt("時間を入力してください (0-23)", currentH.toString())) || 0;
+        const minutes = parseInt(prompt("分を入力してください (0-59)", currentM.toString())) || 0;
+        const seconds = parseInt(prompt("秒を入力してください (0-59)", currentS.toString())) || 0;
+        
+        newTarget = Math.max(0, Math.min(hours, 23)) * 3600 + 
+                   Math.max(0, Math.min(minutes, 59)) * 60 + 
+                   Math.max(0, Math.min(seconds, 59));
+        
+        if (newTarget === 0) {
+          alert("時間が0秒です。設定を変更しませんでした。");
+          return;
+        }
+      }
+      
+      // 設定を更新
+      container.setAttribute('data-timer-mode', newMode);
+      container.setAttribute('data-timer-target', newTarget.toString());
+      container.setAttribute('data-timer-running', 'false');
+      
+      if (newMode === 'up') {
+        container.setAttribute('data-timer-seconds', '0');
+        display.textContent = "00:00:00";
+      } else {
+        container.setAttribute('data-timer-seconds', newTarget.toString());
+        const h = Math.floor(newTarget / 3600);
+        const m = Math.floor((newTarget % 3600) / 60);
+        const s = newTarget % 60;
+        display.textContent = 
+          String(h).padStart(2, '0') + ':' +
+          String(m).padStart(2, '0') + ':' +
+          String(s).padStart(2, '0');
+      }
+      
+      // ボタンのリセット
+      const startBtn = container.querySelector('.timer-btn.start, .timer-btn.pause');
+      if (startBtn) {
+        startBtn.textContent = "開始";
+        startBtn.classList.remove('pause');
+        startBtn.classList.add('start');
+      }
+      
+      saveHistory();
+    }
+
+    function createButton(labelText, width, height, color, textColor, targetSystemId) {
       let btn = document.createElement("button");
       btn.classList.add("draggable-btn");
       btn.textContent = labelText;
@@ -1338,8 +2319,20 @@
       btn.style.background = color;
       btn.style.color = textColor || "#fff";
 
+      // 遷移先システムIDを data 属性として保存
+      if (targetSystemId) {
+        btn.setAttribute('data-target-system', targetSystemId);
+      }
+
       btn.addEventListener('click', function(e) {
         e.stopPropagation();
+        
+        // 実行画面でのみシステムを表示
+        const isPreview = btn.closest('#previewSlideArea');
+        if (isPreview && targetSystemId) {
+          // 他のシステムの実行画面を表示
+          loadSystemInPreview(targetSystemId);
+        }
       });
 
       let pos = getRandomPosition(width, height);
@@ -1365,6 +2358,10 @@
       createDatetimeInput();
     });
 
+    document.getElementById("addTimerBtn").addEventListener("click", function() {
+      createTimer();
+    });
+
     document.getElementById("addButtonBtn").addEventListener("click", function() {
       let name = prompt("ボタンの名前を入力してください", "ボタン");
       if (!name) return;
@@ -1388,19 +2385,481 @@
         return;
       }
 
-      createButton(name, width, height, colorObj.value, colorObj.textColor);
+      // 他のシステム一覧を取得（Djangoテンプレートから）
+      const otherSystems = {{ other_systems_json|safe }};
+      
+      let targetSystemId = null;
+      if (otherSystems && otherSystems.length > 0) {
+        // 遷移先システムを選択するプロンプト
+        let systemList = otherSystems.map((sys, idx) => `${idx + 1}. ${sys.system_name}`).join('\n');
+        let selectMsg = "このボタンで遷移するシステムを選択してください（実行画面のみ表示されます）\n遷移しない場合は 0 を入力してください\n\n" + systemList;
+        let selectedNum = prompt(selectMsg, "1");
+        
+        if (selectedNum !== null && selectedNum !== "") {
+          let idx = parseInt(selectedNum) - 1;
+          if (idx >= 0 && idx < otherSystems.length) {
+            targetSystemId = otherSystems[idx].system_id;
+          }
+          // 0が入力された場合やそれ以外の無効な値の場合はtargetSystemIdはnullのまま
+        } else {
+          // キャンセルされた場合は処理を中断
+          return;
+        }
+      }
+
+      createButton(name, width, height, colorObj.value, colorObj.textColor, targetSystemId);
     });
 
     window.onload = function() {
-      Array.from(document.querySelectorAll('.input-container, .draggable-btn, .text-input_container, .text-input-container, .checkbox-group, .radio-group')).forEach(el=>{
+      const slide = document.getElementById('slideArea');
+      
+      // 編集モードで既存要素がある場合、それを復元
+      if (existingElementsData && existingElementsData.length > 0) {
+        console.log('既存システム要素を復元します:', existingElementsData);
+        restoreSystemElements(existingElementsData);
+      } else {
+        // 保存画面から戻ってきた場合のみ、sessionStorageから以前の編集内容を復元
+        const returnFromCreate = sessionStorage.getItem('returnFromCreate');
+        const savedContent = sessionStorage.getItem('systemDesignContent');
+        
+        if (returnFromCreate === 'true' && savedContent && slide) {
+          try {
+            // JSON形式のデータとして解析を試みる
+            const elementsData = JSON.parse(savedContent);
+            console.log('システム設計内容を復元します（JSON形式）:', elementsData);
+            restoreSystemElements(elementsData);
+          } catch (e) {
+            // JSON解析に失敗した場合は、従来のHTML形式として処理
+            console.log('システム設計内容を復元します（HTML形式）');
+            const trash = slide.querySelector('#trash');
+            const trashHTML = trash ? trash.outerHTML : '<div id="trash" title="ここにドラッグで削除">🗑️</div>';
+            slide.innerHTML = savedContent + trashHTML;
+          }
+        }
+      }
+      
+      // 復元後はフラグをクリア（次回の通常アクセス時に復元しないように）
+      sessionStorage.removeItem('returnFromCreate');
+      
+      // navigatingToCreateフラグもクリア（保存画面に遷移した後は不要）
+      sessionStorage.removeItem('navigatingToCreate');
+      
+      // すべてのドラッグ可能な要素にハンドルを追加
+      Array.from(document.querySelectorAll('.input-container, .draggable-btn, .text-input_container, .text-input-container, .checkbox-group, .radio-group, .timer-container')).forEach(el=>{
         addDragHandleIfMissing(el);
         makeDraggable(el);
       });
+      
+      // 数値入力フィルタを再適用
       document.querySelectorAll('input[data-only-number="true"]').forEach(inp => {
         try { attachNumberFilter(inp); } catch(e){ console.error(e); }
       });
+      
+      // タイマーの更新処理を開始
+      startTimerUpdates();
+      
       saveHistory();
     };
+
+    // タイマーの更新処理
+    function startTimerUpdates() {
+      setInterval(function() {
+        document.querySelectorAll('.timer-container').forEach(timer => {
+          const running = timer.getAttribute('data-timer-running') === 'true';
+          if (running) {
+            const mode = timer.getAttribute('data-timer-mode') || 'up';
+            let seconds = parseInt(timer.getAttribute('data-timer-seconds') || '0');
+            
+            if (mode === 'up') {
+              // カウントアップ
+              seconds++;
+              timer.setAttribute('data-timer-seconds', seconds.toString());
+            } else {
+              // カウントダウン
+              seconds--;
+              if (seconds < 0) seconds = 0;
+              timer.setAttribute('data-timer-seconds', seconds.toString());
+              
+              // カウントダウンが0になったら停止
+              if (seconds === 0) {
+                timer.setAttribute('data-timer-running', 'false');
+                const startBtn = timer.querySelector('.timer-btn.pause');
+                if (startBtn) {
+                  startBtn.textContent = "開始";
+                  startBtn.classList.remove('pause');
+                  startBtn.classList.add('start');
+                }
+                // 終了音を鳴らす（オプション）
+                try {
+                  const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBCZ+zPDTgjMGHm7A7+OZSA0PVKXi8bljHAU5j9nyzn0wBSd7y+/aizsIGGS36+mlUxIIRp/j8L5sIAQngM/u2Ig7Bxlqvezom1AQC1Kk4/C0YRsFN47X8s5+MwUneMnv24o5Bxdhu+znnFARC0yi5PC2ZB0FNI/Y8c9/NAYqd8rw2YU1BxhluezloFIRCkug5PC7aB8FNJDa8c+ANAUpfsvv24c4Bxdqu+vkn1ETCkif5/C8aiEFN5Ha8dB9MgUmecnv2og5BxdmuuvjoFQSDEqf5fC7Zh4FNZHa8c9+NAYne8rv3Ic4BxhpuuvhpFMSC0me5/C8aiAFOJLb8dB8MgUmeMjw2og4BxZlvOvhoFETC0qf5fC7aB8FNJDa8c9/NAYneMrv24g5Bxhpuuvho1MTDE2f5O++aR4FNpHb8c99MgUleMju2Yc5BxZkvOvhoFETCkud5e+8ah8FMZHY8c9+MwUneMrv24o4B');
+                  audio.play().catch(e => console.log('Audio play failed:', e));
+                } catch(e) {}
+              }
+            }
+            
+            const display = timer.querySelector('.timer-display');
+            if (display) {
+              const h = Math.floor(seconds / 3600);
+              const m = Math.floor((seconds % 3600) / 60);
+              const s = seconds % 60;
+              display.textContent = 
+                String(h).padStart(2, '0') + ':' +
+                String(m).padStart(2, '0') + ':' +
+                String(s).padStart(2, '0');
+            }
+          }
+        });
+      }, 1000);
+    }
+
+    // JSON形式の要素データからHTML要素を復元する関数
+    function restoreSystemElements(elementsData) {
+      const slide = document.getElementById('slideArea');
+      if (!slide) return;
+      
+      elementsData.forEach(elem => {
+        try {
+          switch(elem.element_type) {
+            case 'text_input':
+              restoreTextInput(elem, false);
+              break;
+            case 'number_input':
+              restoreTextInput(elem, true);
+              break;
+            case 'datetime_input':
+              restoreDatetimeInput(elem);
+              break;
+            case 'checkbox_group':
+              restoreCheckboxGroup(elem);
+              break;
+            case 'radio_group':
+              restoreRadioGroup(elem);
+              break;
+            case 'button':
+              restoreButton(elem);
+              break;
+            case 'text_box':
+              restoreTextBox(elem);
+              break;
+            case 'timer':
+              restoreTimer(elem);
+              break;
+          }
+        } catch (error) {
+          console.error('要素の復元に失敗:', elem, error);
+        }
+      });
+    }
+
+    function restoreTextInput(elem, onlyNumber) {
+      const container = document.createElement("div");
+      container.classList.add("input-container");
+
+      const label = document.createElement("div");
+      label.classList.add("input-label");
+      label.textContent = elem.element_label || (onlyNumber ? "数字：" : "文字：");
+      label.contentEditable = "true";
+
+      const placeholder = elem.element_config?.placeholder || (onlyNumber ? "数字を入力" : "文字を入力（改行可）");
+      const actualValue = elem.element_value || ""; // 実際の入力値（空の場合は空文字列）
+
+      if (onlyNumber) {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.inputMode = "numeric";
+        input.pattern = "\\d*";
+        input.classList.add("input-box");
+        input.placeholder = placeholder;
+        input.value = actualValue; // 実際の入力値のみ設定（プレースホルダーは設定しない）
+        input.setAttribute('data-only-number', 'true');
+        container.appendChild(label);
+        container.appendChild(input);
+        attachNumberFilter(input);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.classList.add("input-box");
+        textarea.placeholder = placeholder;
+        textarea.value = actualValue; // 実際の入力値のみ設定（プレースホルダーは設定しない）
+        container.appendChild(label);
+        container.appendChild(textarea);
+      }
+
+      container.style.left = elem.position_x + "px";
+      container.style.top = elem.position_y + "px";
+      if (elem.width) container.style.width = elem.width + "px";
+      if (elem.height) container.style.height = elem.height + "px";
+
+      addDragHandleIfMissing(container);
+      makeDraggable(container);
+      document.getElementById("slideArea").appendChild(container);
+    }
+
+    function restoreDatetimeInput(elem) {
+      const container = document.createElement("div");
+      container.classList.add("input-container");
+
+      const label = document.createElement("div");
+      label.classList.add("input-label");
+      label.textContent = elem.element_label || "日時：";
+      label.contentEditable = "true";
+
+      const input = document.createElement("input");
+      input.type = "datetime-local";
+      input.style.minWidth = "180px";
+      input.style.minHeight = "36px";
+      input.style.fontSize = "16px";
+      input.style.padding = "4px 8px";
+      input.style.boxSizing = "border-box";
+      input.classList.add("input-box");
+      input.value = elem.element_value || ""; // 日時の入力値を復元
+
+      container.appendChild(label);
+      container.appendChild(input);
+
+      container.style.left = elem.position_x + "px";
+      container.style.top = elem.position_y + "px";
+      if (elem.width) container.style.width = elem.width + "px";
+      if (elem.height) container.style.height = elem.height + "px";
+
+      addDragHandleIfMissing(container);
+      makeDraggable(container);
+      document.getElementById("slideArea").appendChild(container);
+    }
+
+    function restoreCheckboxGroup(elem) {
+      const group = document.createElement('div');
+      group.className = 'checkbox-group';
+
+      const options = elem.element_config?.options || [];
+      options.forEach((optText, i) => {
+        const row = document.createElement('div');
+        row.className = 'checkbox-row';
+
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.tabIndex = 0;
+
+        const lbl = document.createElement('div');
+        lbl.className = 'checkbox-label';
+        lbl.contentEditable = 'true';
+        lbl.textContent = optText || ('項目 ' + (i + 1));
+
+        row.appendChild(cb);
+        row.appendChild(lbl);
+        group.appendChild(row);
+      });
+
+      group.style.left = elem.position_x + 'px';
+      group.style.top = elem.position_y + 'px';
+      if (elem.width) group.style.width = elem.width + 'px';
+      if (elem.height) group.style.height = elem.height + 'px';
+
+      addDragHandleIfMissing(group);
+      makeDraggable(group);
+      document.getElementById('slideArea').appendChild(group);
+    }
+
+    function restoreRadioGroup(elem) {
+      const group = document.createElement('div');
+      group.className = 'radio-group';
+
+      const uniqueName = 'radio_group_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+      const options = elem.element_config?.options || [];
+      options.forEach((optText, i) => {
+        const row = document.createElement('div');
+        row.className = 'radio-row';
+
+        const rb = document.createElement('input');
+        rb.type = 'radio';
+        rb.name = uniqueName;
+        rb.tabIndex = 0;
+
+        const lbl = document.createElement('div');
+        lbl.className = 'radio-label';
+        lbl.contentEditable = 'true';
+        lbl.textContent = optText || ('項目 ' + (i + 1));
+
+        row.appendChild(rb);
+        row.appendChild(lbl);
+        group.appendChild(row);
+      });
+
+      group.style.left = elem.position_x + 'px';
+      group.style.top = elem.position_y + 'px';
+      if (elem.width) group.style.width = elem.width + 'px';
+      if (elem.height) group.style.height = elem.height + 'px';
+
+      addDragHandleIfMissing(group);
+      makeDraggable(group);
+      document.getElementById('slideArea').appendChild(group);
+    }
+
+    function restoreButton(elem) {
+      const btn = document.createElement("button");
+      btn.classList.add("draggable-btn");
+      btn.textContent = elem.element_label || "ボタン";
+
+      if (elem.width) btn.style.width = elem.width + "px";
+      if (elem.height) btn.style.height = elem.height + "px";
+      
+      if (elem.style_data?.background) btn.style.background = elem.style_data.background;
+      if (elem.style_data?.color) btn.style.color = elem.style_data.color;
+
+      const targetSystemId = elem.element_config?.target_system_id;
+      if (targetSystemId) {
+        btn.setAttribute('data-target-system', targetSystemId);
+      }
+
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const isPreview = btn.closest('#previewSlideArea');
+        if (isPreview && targetSystemId) {
+          // 他のシステムの実行画面を表示
+          loadSystemInPreview(targetSystemId);
+        }
+      });
+
+      btn.style.left = elem.position_x + "px";
+      btn.style.top = elem.position_y + "px";
+
+      addDragHandleIfMissing(btn);
+      makeDraggable(btn);
+      document.getElementById("slideArea").appendChild(btn);
+    }
+
+    function restoreTextBox(elem) {
+      const container = document.createElement('div');
+      container.className = 'text-input-container';
+      
+      container.style.left = elem.position_x + 'px';
+      container.style.top = elem.position_y + 'px';
+      if (elem.width) container.style.width = elem.width + 'px';
+      if (elem.height) container.style.height = elem.height + 'px';
+
+      const ta = document.createElement('textarea');
+      ta.className = 'text-input';
+      ta.value = elem.element_value || '';
+      ta.placeholder = 'テキストを入力';
+      ta.spellcheck = false;
+
+      container.appendChild(ta);
+      addDragHandleIfMissing(container);
+      makeDraggable(container);
+      document.getElementById('slideArea').appendChild(container);
+    }
+
+    function restoreTimer(elem) {
+      const container = document.createElement("div");
+      container.classList.add("timer-container");
+      
+      // element_configからモードと目標時間を取得
+      const mode = elem.element_config?.mode || 'up';
+      const targetSeconds = elem.element_config?.target || 0;
+      
+      container.setAttribute('data-timer-seconds', elem.element_value || '0');
+      container.setAttribute('data-timer-running', 'false');
+      container.setAttribute('data-timer-mode', mode);
+      container.setAttribute('data-timer-target', targetSeconds.toString());
+
+      // タイマー設定ボタン(編集用)
+      const settingsBtn = document.createElement("button");
+      settingsBtn.classList.add("timer-settings-btn");
+      settingsBtn.textContent = "⚙ 設定";
+      settingsBtn.title = "タイマー設定を変更";
+      settingsBtn.onclick = function(e) {
+        e.stopPropagation();
+        openTimerSettings(container, display);
+      };
+
+      // 表示部分
+      const display = document.createElement("div");
+      display.classList.add("timer-display");
+      
+      const seconds = parseInt(elem.element_value || '0');
+      const hDisp = Math.floor(seconds / 3600);
+      const mDisp = Math.floor((seconds % 3600) / 60);
+      const sDisp = seconds % 60;
+      display.textContent = 
+        String(hDisp).padStart(2, '0') + ':' +
+        String(mDisp).padStart(2, '0') + ':' +
+        String(sDisp).padStart(2, '0');
+
+      // 操作ボタン
+      const controls = document.createElement("div");
+      controls.classList.add("timer-controls");
+
+      const startBtn = document.createElement("button");
+      startBtn.classList.add("timer-btn", "start");
+      startBtn.textContent = "開始";
+      startBtn.onclick = function(e) {
+        e.stopPropagation();
+        const running = container.getAttribute('data-timer-running') === 'true';
+        const timerMode = container.getAttribute('data-timer-mode');
+        
+        if (!running) {
+          if (timerMode === 'down') {
+            const target = parseInt(container.getAttribute('data-timer-target') || '0');
+            if (target === 0) {
+              alert('カウントダウンの時間を設定してください');
+              return;
+            }
+          }
+          container.setAttribute('data-timer-running', 'true');
+          startBtn.textContent = "停止";
+          startBtn.classList.remove('start');
+          startBtn.classList.add('pause');
+        } else {
+          container.setAttribute('data-timer-running', 'false');
+          startBtn.textContent = "開始";
+          startBtn.classList.remove('pause');
+          startBtn.classList.add('start');
+        }
+      };
+
+      const resetBtn = document.createElement("button");
+      resetBtn.classList.add("timer-btn", "reset");
+      resetBtn.textContent = "リセット";
+      resetBtn.onclick = function(e) {
+        e.stopPropagation();
+        const timerMode = container.getAttribute('data-timer-mode');
+        container.setAttribute('data-timer-running', 'false');
+        
+        if (timerMode === 'up') {
+          container.setAttribute('data-timer-seconds', '0');
+          display.textContent = "00:00:00";
+        } else {
+          const target = parseInt(container.getAttribute('data-timer-target') || '0');
+          container.setAttribute('data-timer-seconds', target.toString());
+          const h = Math.floor(target / 3600);
+          const m = Math.floor((target % 3600) / 60);
+          const s = target % 60;
+          display.textContent = 
+            String(h).padStart(2, '0') + ':' +
+            String(m).padStart(2, '0') + ':' +
+            String(s).padStart(2, '0');
+        }
+        
+        startBtn.textContent = "開始";
+        startBtn.classList.remove('pause');
+        startBtn.classList.add('start');
+      };
+
+      controls.appendChild(startBtn);
+      controls.appendChild(resetBtn);
+      
+      container.appendChild(settingsBtn);
+      container.appendChild(display);
+      container.appendChild(controls);
+
+      container.style.left = elem.position_x + 'px';
+      container.style.top = elem.position_y + 'px';
+      if (elem.width) container.style.width = elem.width + 'px';
+      if (elem.height) container.style.height = elem.height + 'px';
+
+      addDragHandleIfMissing(container);
+      makeDraggable(container);
+      document.getElementById('slideArea').appendChild(container);
+    }
   </script>
 
   <!-- ここから追加: PowerPoint風に選択範囲でテキスト入力できる機能 -->

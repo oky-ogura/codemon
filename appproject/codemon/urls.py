@@ -30,16 +30,7 @@ urlpatterns = [
     # 項目の完了／未完了切り替え
     path('checklists/<int:pk>/items/<int:item_id>/toggle/', views.checklist_toggle_item, name='checklist_toggle_item'),
 
-    # グループ管理
-    path('groups/', views.group_list, name='group_list'),
-    path('groups/create/', views.group_create, name='group_create'),
-    path('groups/<int:group_id>/', views.group_detail, name='group_detail'),
-    path('groups/<int:group_id>/edit/', views.group_edit, name='group_edit'),
-    path('groups/<int:group_id>/delete/', views.group_delete, name='group_delete'),
-    path('groups/<int:group_id>/invite/', views.group_invite, name='group_invite'),
-    path('groups/<int:group_id>/members/<int:member_id>/remove/', 
-        views.group_remove_member, name='group_remove_member'),
-    path('groups/<int:group_id>/leave/', views.group_leave, name='group_leave'),
+    
 
     # その他
     path('systems/', views.systems_list, name='systems_list'),
