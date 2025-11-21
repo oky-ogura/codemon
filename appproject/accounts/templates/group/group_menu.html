@@ -18,6 +18,27 @@
   .btn-check{background:#d6eaff;padding:8px 12px;border-radius:8px;border:none}
   .btn-delete{background:#f5c6c6;padding:8px 12px;border-radius:8px;border:none}
   .no-data{padding:40px;text-align:center;color:#666}
+  /* モーダルスタイル */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.35);display:none;align-items:center;justify-content:center;z-index:9999}
+  .modal-box{background:#dfeef2;border-radius:18px;padding:28px 30px;max-width:520px;width:88%;box-shadow:0 6px 20px rgba(0,0,0,0.25);position:relative}
+  .modal-star{position:absolute;right:18px;top:-18px;width:34px;height:34px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.1);cursor:pointer;font-size:18px}
+  .modal-body{padding:6px 10px;color:#0b2130}
+  .modal-row{margin:10px 0;font-size:15px}
+  .modal-actions{display:flex;justify-content:space-between;margin-top:18px}
+  .modal-btn{background:transparent;border:none;padding:12px 18px;border-radius:8px;cursor:pointer}
+  .modal-btn.cancel{color:#0b2130}
+  .modal-btn.confirm{background:#0b78ff;color:#fff}
+  /* 成功モーダル */
+  .success-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.25);display:none;align-items:center;justify-content:center;z-index:10000}
+  .success-box{background:#cfe0e8;border-radius:18px;padding:28px 30px;max-width:520px;width:88%;box-shadow:0 6px 20px rgba(0,0,0,0.2);position:relative;color:#082029}
+  .success-close{position:absolute;left:12px;top:-16px;width:34px;height:34px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.08);cursor:pointer;font-size:20px}
+  .success-title{font-size:18px;font-weight:700;margin-bottom:8px}
+  .success-body{padding:6px 10px}
+  .success-row{margin:8px 0}
+  .success-actions{display:flex;justify-content:space-between;margin-top:16px}
+  .success-btn{padding:10px 16px;border-radius:8px;border:none;cursor:pointer}
+  .success-btn.left{background:transparent;color:#08323b}
+  .success-btn.right{background:#0b78ff;color:#fff}
 </style>
 </head>
 <body>
@@ -25,16 +46,17 @@
     <div class="tabs">
       <div class="tab">システムタブ</div>
       <div class="tab">アルゴリズムタブ</div>
-      <div class="tab">進捗管理タブ</div>
-      <div class="tab">アカウント</div>
+      <div class="tab"><a href="{% url 'codemon:checklist_selection' %}">進捗管理タブ</a></div>
+      <div class="tab"><a href="{% url 'accounts:account_entry' %}">アカウント</a></div>
     </div>
 
     <div class="header-row">
       <div class="group-info">
-        <strong>3年A組</strong>　・　メンバー数 <strong>40人</strong>
+        <strong>{% if group %}{{ group.group_name }}{% else %}グループ{% endif %}</strong>
+       　・　メンバー数 <strong>{% if member_count is not None %}{{ member_count }}人{% else %}0人{% endif %}</strong>
       </div>
-      <div>
-        <a href="{% url 'group_add_member' %}" class="add-member">メンバーを追加する</a>
+    <div>
+      <!-- 削除確認モーダル -->
       </div>
     </div>
 
@@ -48,26 +70,199 @@
       </thead>
       <tbody>
         {% comment %} 実データがあれば for で回してください。下はサンプル行。 {% endcomment %}
-        <tr>
-          <td>11111111</td>
-          <td>田中 太郎</td>
-          <td style="text-align:right">
-            <div class="actions">
-              <a class="btn-check" href="#">チェックリスト閲覧</a>
-              <form method="post" action="#" style="display:inline" onsubmit="return confirm('本当に削除しますか？');">
-                {% csrf_token %}
-                <button type="submit" class="btn-delete">削除</button>
-              </form>
-            </div>
-          </td>
-        </tr>
-
-        {% comment %} データが無いときの表示例 {% endcomment %}
-        {% if members is not defined %}
-        <tr><td colspan="3" class="no-data">メンバーが登録されていません</td></tr>
+        {% if members %}
+          {% for m in members %}
+            <tr>
+              <td>{{ m.member.user_id }}</td>
+              <td>{{ m.member.user_name }}</td>
+              <td style="text-align:right">
+                <div class="actions">
+                  <a class="btn-check" href="#">チェックリスト閲覧</a>
+                  {% comment %} 教員ロールのメンバーは削除ボタンを表示しない {% endcomment %}
+                  {% if m.role|default:'' != 'teacher' %}
+                      <form method="post" action="{% url 'codemon:group_remove_member' group_id m.member.user_id %}" class="delete-member-form" style="display:inline"
+                        data-member-id="{{ m.member.user_id }}"
+                        data-member-name="{{ m.member.user_name }}"
+                        data-member-start="{% if m.joined_at %}{{ m.joined_at|date:'Y/m/d' }}{% elif m.member.created_at %}{{ m.member.created_at|date:'Y/m/d' }}{% else %}{% endif %}">
+                      {% csrf_token %}
+                      <button type="submit" class="btn-delete">削除</button>
+                    </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="3" class="no-data">メンバーが登録されていません</td></tr>
         {% endif %}
       </tbody>
     </table>
+    <!-- 削除確認モーダル -->
+    <div id="modal-overlay" class="modal-overlay" role="dialog" aria-modal="true">
+      <div class="modal-box" id="modal-box">
+        <div class="modal-star" id="modal-close" role="button" tabindex="0" aria-label="閉じる" title="閉じる">✕</div>
+        <div class="modal-body">
+          <div style="font-size:16px;margin-bottom:8px">このユーザーを削除しますか？</div>
+          <div class="modal-row">ID　<span id="modal-member-id"></span></div>
+          <div class="modal-row">名前　<span id="modal-member-name"></span></div>
+          <div class="modal-row">開始日　<span id="modal-member-start"></span></div>
+          <div class="modal-actions">
+            <button type="button" class="modal-btn cancel" id="modal-cancel">いいえ</button>
+            <button type="button" class="modal-btn confirm" id="modal-confirm">はい</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 削除成功モーダル -->
+    <div id="success-overlay" class="success-overlay" role="dialog" aria-modal="true">
+      <div class="success-box" id="success-box">
+        <div class="success-close" id="success-close" role="button" tabindex="0" aria-label="閉じる">✕</div>
+        <div class="success-body">
+          <div class="success-title">このメンバーをグループから削除しました！</div>
+          <div class="success-row">ID　<span id="success-member-id"></span></div>
+          <div class="success-row">名前　<span id="success-member-name"></span></div>
+          <div class="success-row">開始日　<span id="success-member-start"></span></div>
+          <div class="success-actions">
+            <button type="button" class="success-btn left" id="success-to-account">アカウント画面へ</button>
+            <button type="button" class="success-btn right" id="success-continue">続ける</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+    // 削除ボタン押下でモーダルを表示し、確認で本来のフォームを送信する
+    (function(){
+      const overlay = document.getElementById('modal-overlay');
+      const mid = document.getElementById('modal-member-id');
+      const mname = document.getElementById('modal-member-name');
+      const mstart = document.getElementById('modal-member-start');
+      const btnCancel = document.getElementById('modal-cancel');
+      const btnConfirm = document.getElementById('modal-confirm');
+      let pendingForm = null;
+
+      function showModal(form){
+        const id = form.getAttribute('data-member-id') || '';
+        const name = form.getAttribute('data-member-name') || '';
+        const start = form.getAttribute('data-member-start') || '';
+        mid.textContent = id;
+        mname.textContent = name;
+        mstart.textContent = start;
+        pendingForm = form;
+        overlay.style.display = 'flex';
+      }
+
+      function hideModal(){
+        overlay.style.display = 'none';
+        pendingForm = null;
+      }
+
+      document.querySelectorAll('.delete-member-form').forEach(function(f){
+        f.addEventListener('submit', function(ev){
+          ev.preventDefault();
+          showModal(f);
+        });
+      });
+
+      if(btnCancel) btnCancel.addEventListener('click', function(){ hideModal(); });
+      if(btnConfirm) btnConfirm.addEventListener('click', function(){
+        if(!pendingForm) return hideModal();
+        // AJAX で削除を実行し、成功したら行を削除する
+        try{
+          const formData = new FormData(pendingForm);
+          fetch(pendingForm.action, {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin',
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest'
+            }
+          }).then(function(resp){
+            if(!resp.ok){
+              // JSON エラーメッセージを試しに取得して表示
+              return resp.json().then(function(j){ throw j; }).catch(function(){ throw new Error('削除に失敗しました'); });
+            }
+            return resp.json();
+          }).then(function(json){
+            // 成功: 行を削除して member_count を更新
+            try{
+              const tr = pendingForm.closest('tr');
+              if(tr) tr.remove();
+              // member_count 表示を更新（現在の値から1減らす）
+              const mcSpan = document.querySelector('.group-info strong:nth-of-type(2)') || null;
+              // 上のセレクタは環境によりマッチしないことがあるためフォールバック
+              const headerCount = document.querySelector('.group-info');
+              if(headerCount){
+                const strongs = headerCount.querySelectorAll('strong');
+                if(strongs.length >= 2){
+                  const text = strongs[1].textContent || '';
+                  const num = parseInt(text, 10);
+                  if(!isNaN(num)){
+                    strongs[1].textContent = (num - 1) + '人';
+                  }
+                }
+              }
+            }catch(e){/* ignore DOM update errors */}
+            // 確認モーダルを閉じて成功モーダルを表示
+            hideModal();
+            try{
+              const sid = (json && json.member_id) ? json.member_id : (pendingForm.getAttribute('data-member-id') || '');
+              const sname = (json && json.member_name) ? json.member_name : (pendingForm.getAttribute('data-member-name') || '');
+              const sstart = (json && json.joined_at) ? json.joined_at : (pendingForm.getAttribute('data-member-start') || '');
+              const so = document.getElementById('success-overlay');
+              console && console.log && console.log('showing success modal', {sid: sid, sname: sname, sstart: sstart, soExists: !!so, json: json});
+              if(so){
+                const idEl = document.getElementById('success-member-id');
+                const nameEl = document.getElementById('success-member-name');
+                const startEl = document.getElementById('success-member-start');
+                if(idEl) idEl.textContent = sid;
+                if(nameEl) nameEl.textContent = sname;
+                if(startEl) startEl.textContent = sstart;
+                // フォールバック強制表示: z-index と display を明示的に設定してからフォーカス
+                so.style.zIndex = '20000';
+                so.style.display = 'flex';
+                try{ so.tabIndex = -1; so.focus(); }catch(e){}
+              }else{
+                console && console.warn && console.warn('success-overlay element not found');
+              }
+            }catch(e){ console && console.error && console.error('error showing success modal', e); }
+          }).catch(function(err){
+            hideModal();
+            try{
+              const msg = (err && err.error) ? err.error : (err && err.message) ? err.message : '削除に失敗しました';
+              alert(msg);
+            }catch(e){ alert('削除に失敗しました'); }
+          });
+        }catch(e){
+          // フォールバック: 通常の送信
+          hideModal();
+          pendingForm.submit();
+        }
+      });
+
+      // モーダルの右上にある閉じるボタン
+      const modalClose = document.getElementById('modal-close');
+      if(modalClose){
+        modalClose.addEventListener('click', hideModal);
+        modalClose.addEventListener('keydown', function(e){ if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); hideModal(); } });
+      }
+
+      // ESC で閉じる
+      document.addEventListener('keydown', function(e){ if(e.key === 'Escape') hideModal(); });
+      // --- 成功モーダルの振る舞い ---
+      const successOverlay = document.getElementById('success-overlay');
+      const successClose = document.getElementById('success-close');
+      const successContinue = document.getElementById('success-continue');
+      const successToAccount = document.getElementById('success-to-account');
+      function hideSuccess(){ if(successOverlay) successOverlay.style.display = 'none'; }
+      if(successClose){ successClose.addEventListener('click', hideSuccess); successClose.addEventListener('keydown', function(e){ if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); hideSuccess(); } }); }
+      if(successContinue) successContinue.addEventListener('click', function(){ hideSuccess(); });
+      if(successToAccount) successToAccount.addEventListener('click', function(){
+        try{ window.location.href = "{% url 'accounts:account_entry' %}"; }catch(e){ /* fallback */ hideSuccess(); }
+      });
+      document.addEventListener('keydown', function(e){ if(e.key === 'Escape') hideSuccess(); });
+    })();
+    </script>
   </div>
 </body>
 </html>

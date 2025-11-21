@@ -205,21 +205,16 @@
   <main class="page-wrap" role="main">
     <div class="card">
       <h1>アルゴリズム保存</h1>
-      <div class="save-layout" aria-label="保存操作">
-        <div class="action-column" role="group" aria-label="保存ボタン群">
-          <!-- 矢印は文字で表示（クリックでアルゴリズム作成画面へ） -->
-          <div class="back-icon" id="arrowBack" title="アルゴリズム作成に戻る" aria-disabled="false" aria-hidden="false">
-            <span class="arrow-char" aria-hidden="true">←</span>
+      <div style="text-align: center; padding: 40px 20px;">
+        <p style="font-size: 20px; font-weight: 600; color: #28a745; margin-bottom: 30px;">
+          ✓ アルゴリズムの保存が完了しました
+        </p>
+        <div class="save-layout" aria-label="保存操作">
+          <div class="action-column" role="group" aria-label="ナビゲーション">
+            <button id="toListBtn" class="big-btn btn-back" aria-label="アルゴリズム一覧画面に戻る">アルゴリズム一覧画面に戻る</button>
           </div>
-
-          <button id="overwriteBtn" class="big-btn btn-save" aria-label="上書き保存">上書き保存</button>
-
-          <!-- アルゴリズム一覧へ戻るボタン（有効化） -->
-          <button id="toListBtn" class="big-btn btn-back" aria-label="アルゴリズム一覧画面に戻る" aria-disabled="false">アルゴリズム一覧画面に戻る</button>
         </div>
       </div>
-
-      <p class="note">上書き保存は未実装です。アルゴリズム一覧へ戻るボタンで一覧画面に戻ります。</p>
     </div>
   </main>
 
@@ -259,39 +254,14 @@
   }
 })();
 
-/* ---------------------- 保存画面用スクリプト ---------------------- */
+/* ---------------------- 保存完了画面用スクリプト ---------------------- */
 (function(){
-  // 矢印クリックでアルゴリズム作成画面に戻る
-  const arrow = document.getElementById('arrowBack');
-  if(arrow){
-    arrow.addEventListener('click', function(){
-      location.href = '/accounts/block/';
-    });
-  }
-
-  // 「アルゴリズム一覧画面に戻る」ボタンは一覧へ遷移させる（確認ダイアログを追加）
+  // 「アルゴリズム一覧画面に戻る」ボタン：直接遷移
   const toListBtn = document.getElementById('toListBtn');
   if(toListBtn){
-    toListBtn.setAttribute('aria-disabled','false');
     toListBtn.addEventListener('click', function(e){
       e.preventDefault();
-      const ok = window.confirm('変更が保存されていない場合は破棄されます。アルゴリズム一覧画面に戻りますか？');
-      if (ok) {
-        // 必要なら保存用のセッションデータを破棄
-        try {
-          sessionStorage.removeItem('algorithm_slide');
-          sessionStorage.removeItem('algorithm_id');
-        } catch(err) { /* ignore */ }
-        window.location.href = '/accounts/block/list/';
-      }
-    });
-  }
-
-  // 上書き保存（ダミー）
-  const overwriteBtn = document.getElementById('overwriteBtn');
-  if(overwriteBtn){
-    overwriteBtn.addEventListener('click', function(){
-      alert('上書き保存は未実装です（ダミー）。');
+      window.location.href = '/accounts/block/list/';
     });
   }
 })();

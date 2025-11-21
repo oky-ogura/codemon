@@ -526,6 +526,35 @@ const workspace = Blockly.inject('blocklyDiv', {
   toolbox: document.getElementById('toolbox')
 });
 
+// 編集モードの場合、既存のBlocklyデータを読み込む
+(function loadBlocklyData(){
+  const blocklyXml = '{{ blockly_xml|escapejs }}';
+  
+  // 戻るボタン経由で戻ってきた場合は、一時保存されたBlocklyデータを優先
+  const returnedFromCreate = sessionStorage.getItem('returned_from_create');
+  let xmlToLoad = blocklyXml;
+  
+  if (returnedFromCreate === 'true') {
+    const tempBlocklyXml = sessionStorage.getItem('temp_blockly_xml');
+    if (tempBlocklyXml) {
+      xmlToLoad = tempBlocklyXml;
+      console.log('戻るボタン経由: 一時保存されたBlocklyデータを復元しました');
+    }
+    // 一時保存データを削除
+    sessionStorage.removeItem('temp_blockly_xml');
+    sessionStorage.removeItem('returned_from_create');
+  }
+  
+  if (xmlToLoad && xmlToLoad.trim() !== '') {
+    try {
+      const xml = Blockly.utils.xml.textToDom(xmlToLoad);
+      Blockly.Xml.domToWorkspace(xml, workspace);
+    } catch(e) {
+      console.error('Blocklyデータの読み込みに失敗しました:', e);
+    }
+  }
+})();
+
 // Undoボタン
 document.getElementById('undoBtn').addEventListener('click', function() {
   workspace.undo(false);
@@ -536,10 +565,39 @@ document.getElementById('redoBtn').addEventListener('click', function() {
   workspace.undo(true);
 });
 
-// 保存ボタン（画面は未実装だが遷移できるようにする）
+// 保存ボタン(Blocklyワークスペースを保存して遷移)
 document.getElementById('saveBtn').addEventListener('click', function() {
-  // 保存画面のURL（未実装）へ遷移
-  window.location.href = '/accounts/block/save/';
+  // BlocklyのワークスペースをXMLに変換
+  const xml = Blockly.Xml.workspaceToDom(workspace);
+  const xmlText = Blockly.Xml.domToText(xml);
+  
+  // セッションストレージに保存
+  sessionStorage.setItem('blockly_xml', xmlText);
+  
+  // 一時保存されたアルゴリズム名と詳細を取得（戻るボタン経由で保存された内容）
+  const tempName = sessionStorage.getItem('temp_algorithm_name');
+  const tempDescription = sessionStorage.getItem('temp_algorithm_description');
+  const tempId = sessionStorage.getItem('temp_algorithm_id');
+  
+  // 編集モード対応: Django テンプレート変数からアルゴリズムIDを取得
+  const existingAlgorithmData = {
+    algorithmId: tempId || '{{ algorithm_id|default:"" }}',
+    algorithmName: tempName || '{{ algorithm_name|default:""|escapejs }}',
+    algorithmDescription: tempDescription || '{{ algorithm_description|default:""|escapejs }}'
+  };
+  
+  // 一時保存データを削除（使い終わったので）
+  sessionStorage.removeItem('temp_algorithm_name');
+  sessionStorage.removeItem('temp_algorithm_description');
+  sessionStorage.removeItem('temp_algorithm_id');
+  
+  // 編集モードの場合はIDをURLパラメータとして渡す
+  if (existingAlgorithmData.algorithmId) {
+    window.location.href = `/accounts/block/create/?id=${existingAlgorithmData.algorithmId}`;
+  } else {
+    // 新規作成の場合
+    window.location.href = '/accounts/block/create/';
+  }
 });
 
 // ショートカットキー（Ctrl+Z, Ctrl+Y）

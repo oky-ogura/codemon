@@ -1,0 +1,2171 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>チュートリアル</title>
+  <style>
+    :root { --nav-height:56px; --primary:#1976d2; --bg:#f9f9fb; --muted:#666; }
+    .top-nav {
+      box-sizing:border-box;
+      width:100%;
+      max-width:980px;
+      height:var(--nav-height);
+      margin:16px auto 8px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:6px 12px;
+      background:linear-gradient(180deg,#fff,#fafafa);
+      border-radius:10px;
+      box-shadow:0 1px 3px rgba(0,0,0,0.06);
+      border:1px solid #e6e6e9;
+    }
+    .nav-brand{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin-right:8px;
+      padding-right:8px;
+      border-right:1px solid #eee;
+    }
+    .nav-brand .logo{
+      width:36px;
+      height:36px;
+      border-radius:6px;
+      background:var(--primary);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      color:#fff;
+      font-weight:700;
+      font-size:18px;
+    }
+    .nav-brand .title{
+      font-size:15px;
+      color:#111;
+      font-weight:600;
+    }
+    .nav-tabs{
+      display:flex;
+      justify-content: space-evenly;
+      align-items:center;
+      width:100%;
+    }
+    .nav-tab{
+      appearance:none;
+      border:0;
+      background:transparent;
+      padding:8px 12px;
+      border-radius:8px;
+      font-size:14px;
+      cursor:pointer;
+      color:var(--muted);
+      transition: all .12s ease;
+    }
+    .nav-tab:hover{
+      background:#f0f6ff;
+      color:var(--primary);
+      transform:translateY(-1px);
+    }
+    .nav-tab.active{
+      background:var(--primary);
+      color:#fff;
+      box-shadow:0 2px 6px rgba(25,118,210,0.18);
+    }
+
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .button-bar {
+      width: 860px;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .button-bar button {
+      margin-right: 10px;
+      font-size: 16px;
+      padding: 6px 18px;
+      border-radius: 4px;
+      border: 1px solid #bbb;
+      background: #f5f5f5;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .button-bar button:hover {
+      background: #e0e0e0;
+    }
+
+    .button-bar button.active {
+      background:#1976d2;
+      color:#fff;
+      box-shadow:0 6px 16px rgba(25,118,210,0.12);
+    }
+
+    /* フォーム用ドロップダウン */
+    .form-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .form-dropdown .dropdown-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+      padding: 6px;
+      min-width: 180px;
+      z-index: 1200;
+      display: none;
+    }
+    .form-dropdown .dropdown-menu.show {
+      display: block;
+    }
+    .form-dropdown .dropdown-menu button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 8px 10px;
+      margin: 4px 0;
+      background: #fff;
+      border: 1px solid #eee;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .form-dropdown .dropdown-menu button:hover {
+      background: #f0f6ff;
+      color: var(--primary);
+    }
+
+    /* checkbox / radio create panel (共通レイアウト) */
+    .create-options-panel {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 190px;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      padding: 10px;
+      z-index: 1300;
+      min-width: 220px;
+      display: none;
+    }
+    .create-options-panel.show { display: block; }
+    .create-options-panel label { display:block; margin-bottom:6px; color:#333; font-size:13px; }
+    .create-options-panel input[type="number"] { width: 80px; padding:4px 6px; margin-right:8px; }
+    .create-options-panel .panel-actions { margin-top:8px; display:flex; gap:8px; justify-content:flex-end; }
+
+    .shortcut-bar {
+      width: 860px;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      margin-bottom: 16px;
+      margin-top: 0;
+    }
+    .shortcut-bar button {
+      margin-right: 10px;
+      font-size: 18px;
+      padding: 6px 18px;
+      border-radius: 4px;
+      border: 1px solid #bbb;
+      background: #f5f5f5;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .shortcut-bar button:hover {
+      background: #e0e0e0;
+    }
+    .shortcut-bar .shortcut-label {
+      font-size: 14px;
+      color: #555;
+      margin-right: 20px;
+    }
+
+    /* 既存の青い保存スタイル（参照用） */
+    .shortcut-save {
+      padding: 10px 18px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(10,59,110,0.08);
+      background: linear-gradient(180deg,#cfe7ff,#b6d9ff);
+      color: #0a3b6e;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(10,59,110,0.06);
+      margin-left: 6px;
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .shortcut-save:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(10,59,110,0.10);
+    }
+    .shortcut-save[aria-disabled="true"]{
+      opacity: 0.7;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    /* ご希望の緑スタイル（優先的に適用されるようセレクタを具体化） */
+    .shortcut-bar .shortcut-btns #saveBtn {
+      font-size: 18px;
+      margin-left: 8px;
+      background: #28a745;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 14px;
+      cursor: pointer;
+    }
+    .shortcut-bar .shortcut-btns #saveBtn:hover {
+      background: #1e7e34;
+    }
+
+
+    /* Run/実行 ボタンの見た目を統一 */
+    .shortcut-bar .shortcut-btns #executeBtn {
+      font-size: 18px;
+      margin-left: 10px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 16px;
+      cursor: pointer;
+    }
+    .shortcut-bar .shortcut-btns #executeBtn:hover {
+      background: #0056b3;
+    }
+
+    /* 全削除ボタンのスタイル */
+    .shortcut-bar .shortcut-btns #clearAllBtn {
+      font-size: 18px;
+      margin-left: 8px;
+      background: #dc3545;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 16px;
+      cursor: pointer;
+    }
+    .shortcut-bar .shortcut-btns #clearAllBtn:hover {
+      background: #c82333;
+    }
+
+    /* タイマーのスタイル */
+    .timer-container {
+      position: absolute;
+      background: linear-gradient(180deg, #f0f9ff, #e0f2fe);
+      border: 2px solid #0284c7;
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      min-width: 200px;
+      cursor: grab;
+      box-sizing: border-box;
+    }
+    .timer-container.grabbing { cursor: grabbing; }
+    
+    .timer-settings-btn {
+      display: block;
+      margin: 0 auto 8px auto;
+      padding: 3px 10px;
+      font-size: 11px;
+      border: 1px solid #0284c7;
+      border-radius: 4px;
+      background: white;
+      color: #0284c7;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .timer-settings-btn:hover {
+      background: #e0f2fe;
+    }
+    
+    .timer-display {
+      font-size: 28px;
+      font-weight: 700;
+      color: #0c4a6e;
+      text-align: center;
+      font-family: 'Courier New', monospace;
+      margin-bottom: 6px;
+      user-select: none;
+    }
+    
+    .timer-controls {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+    }
+    .timer-btn {
+      padding: 5px 12px;
+      font-size: 13px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .timer-btn.start {
+      background: #22c55e;
+      color: white;
+    }
+    .timer-btn.start:hover {
+      background: #16a34a;
+    }
+    .timer-btn.pause {
+      background: #f97316;
+      color: white;
+    }
+    .timer-btn.pause:hover {
+      background: #ea580c;
+    }
+    .timer-btn.reset {
+      background: #ef4444;
+      color: white;
+    }
+    .timer-btn.reset:hover {
+      background: #dc2626;
+    }
+
+    #slideArea {
+      width: 860px;
+      height: 440px;
+      border: 2px dashed #666;
+      position: relative;
+      background-color: #fdfdfd;
+      overflow: hidden;
+      margin: 0 auto;
+      display: block;
+    }
+
+    .input-container {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      min-width: 180px;
+      min-height: 40px;
+      cursor: grab;
+      box-sizing: border-box;
+      left: 0;
+      top: 0;
+    }
+
+    .input-container.grabbing { cursor: grabbing; }
+
+    .input-label {
+      margin-right: 5px;
+      white-space: nowrap;
+      padding: 2px 4px;
+      border: 1px dashed transparent;
+      min-width: 40px;
+    }
+    .input-label[contenteditable="true"]:focus {
+      outline: none;
+      border: 1px dashed #999;
+      background: #f0f0f0;
+    }
+
+    .input-box {
+      resize: like;
+      overflow: auto;
+      min-width: 120px;
+      min-height: 40px;
+      padding: 5px;
+      box-sizing: border-box;
+    }
+
+    /* checkbox / radio group: 背景・枠・影を完全に非表示 */
+    .checkbox-group,
+    .radio-group {
+      position: absolute;
+      min-width: 140px;
+      background: transparent !important; /* 背景を透明化 */
+      border: none !important;            /* 枠を非表示 */
+      box-shadow: none !important;        /* 影を消す */
+      padding: 0;                          /* 行間は個別に調整 */
+      border-radius: 0;                    /* 角丸を消す */
+      box-sizing: border-box;
+      cursor: grab;
+    }
+    .checkbox-group.grabbing, .radio-group.grabbing { cursor: grabbing; }
+    .checkbox-row, .radio-row {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:4px 0; /* 行間のみ残す */
+      background: transparent;
+    }
+    .checkbox-row input[type="checkbox"],
+    .radio-row input[type="radio"] {
+      width:18px;
+      height:18px;
+      background: transparent; /* ブラウザ既定の背景を邪魔しないように */
+      appearance: auto;
+    }
+    .checkbox-label, .radio-label {
+      flex:1;
+      padding: 0 6px;
+      border-radius:0;
+      background: transparent; /* ラベル背景も透明化 */
+    }
+    .checkbox-label[contenteditable="true"]:focus,
+    .radio-label[contenteditable="true"]:focus {
+      outline: none;
+      background: rgba(0,0,0,0.03);
+      border: none;
+    }
+
+    .draggable-btn {
+      position: absolute;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: grab;
+      min-width: 60px;
+      min-height: 30px;
+      box-sizing: border-box;
+    }
+    .draggable-btn.grabbing { cursor: grabbing; }
+    .draggable-btn:hover {
+      filter: brightness(0.9);
+    }
+    /* drag handle */
+    .drag-handle {
+      position: absolute;
+      left: -10px;
+      top: -10px;
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      background: rgba(0,0,0,0.06);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:12px;
+      color: rgba(0,0,0,0.6);
+      cursor: grab;
+      user-select: none;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      z-index: 1000;
+    }
+    .drag-handle:active { cursor: grabbing; }
+    .drag-handle.hidden { display:none; }
+
+    /* ゴミ箱をスライドの右上に配置 */
+    #slideArea #trash {
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      width: 52px;
+      height: 52px;
+      background: #eee;
+      border: 2px solid #888;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      color: #888;
+      z-index: 2000;
+      transition: background 0.2s, color 0.2s;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      user-select: none;
+    }
+    #slideArea #trash.dragover {
+      background: #ffdddd;
+      color: #d32f2f;
+      border-color: #d32f2f;
+    }
+
+    /* 追記用 CSS: 選択矩形とテキストボックス */
+    .textarea-selection {
+      position: absolute;
+      border: 2px dashed rgba(25,118,210,0.9);
+      background: rgba(25,118,210,0.07);
+      z-index: 1500;
+      pointer-events: none;
+      box-sizing:border-box;
+    }
+
+    /* 非選択時はコンテナ枠を非表示にする（要望） */
+    .text-input-container {
+      position: absolute;
+      box-sizing: border-box;
+      z-index: 1200;
+      display: block;
+      min-width: 40px;
+      min-height: 24px;
+      border: none;           /* 非選択時は枠を消す */
+      background: transparent;
+      cursor: grab;           /* クリックしてドラウド可能 */
+      overflow: auto;
+      /* コンテナ自体でリサイズさせる（内側の要素はリサイズ不可にする） */
+      resize: both;
+    }
+    .text-input-container.grabbing { cursor: grabbing; }
+
+    /* テキスト自体はコンテナに合わせて伸縮し、個別のリサイズハンドルは持たない */
+    .text-input {
+      width: 100%;
+      height: 100%;
+      padding: 6px 8px;
+      box-sizing: border-box;
+      /* 内側はリサイズを無効化して、コンテナのリサイズだけにする */
+      resize: none !important;
+      overflow: auto;
+      outline: none;
+      border: none;           /* 非選択時は枠を消す */
+      background: transparent; /* 背景を透明化（白をなくす） */
+      font-size: 14px;
+      line-height: 1.4;
+      min-height: 20px;
+      min-width: 20px;
+      display: block;
+    }
+
+    /* 編集（フォーカス）時にのみ枠／影を表示（セレクタ修正済み） */
+    .text-input-container:focus-within {
+      border: 1px dashed rgba(0,0,0,0.12);
+      background: transparent; /* フォーカス時も白背景を入れない */
+      box-shadow: 0 6px 18px rgba(25,118,210,0.04);
+      cursor: text;
+    }
+    .text-input-container:focus-within .text-input {
+      border: 1px solid rgba(0,0,0,0.12);
+      background: transparent; /* フォーカス時も白背景を入れない */
+    }
+
+    /* 表示用のリサイズ中クラス（視覚のヒント、任意） */
+    .text-input-container.resizing {
+      box-shadow: 0 0 0 2px rgba(25,118,210,0.06) inset;
+      pointer-events: auto;
+      cursor: nwse-resize;
+    }
+
+    /* プレビュー用オーバーレイ（より画面全体に表示） */
+    .preview-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      display: flex;
+      flex-direction: column;
+      z-index: 9999;
+      align-items: stretch;
+      justify-content: center;
+      padding: 8px;                 /* 少なめの余白でより全画面に見せる */
+      box-sizing:border-box;
+    }
+    .preview-header {
+      height: 48px;
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:8px;
+      z-index: 10010;
+    }
+    .preview-close {
+      background:#fff;
+      border:1px solid #ccc;
+      padding:6px 12px;
+      border-radius:6px;
+      cursor:pointer;
+      font-weight:600;
+    }
+    .preview-area {
+      flex:1;
+      background:transparent;
+      border-radius:6px;
+      overflow:hidden;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:4px;                  /* 軽い内側余白 */
+      box-sizing:border-box;
+    }
+    /* プレビューでほぼ全画面表示にする（max 制限を除去） */
+    #previewSlideArea {
+      width: calc(100vw - 16px);    /* 左右に小さな余白を残す */
+      height: calc(100vh - 72px);   /* ヘッダ分と上下に余白を残す */
+      max-width: none;
+      max-height: none;
+      border: 2px dashed #666;
+      position:relative;
+      background:#fff;
+      box-sizing:border-box;
+      border-radius:6px;
+      overflow:auto;
+    }
+
+    /* チュートリアル関連のスタイル（吹き出し対応） */
+    .tutorial-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.25); z-index: 10030; display:flex; align-items:flex-end; justify-content:center; pointer-events:none; }
+    .tutorial-box { width: 420px; max-width: calc(100% - 24px); margin: 24px; background: #fff; border-radius:10px; padding:16px; box-shadow:0 8px 30px rgba(0,0,0,0.28); font-family: sans-serif; color:#111; pointer-events:auto; }
+    .tutorial-title { font-weight:700; margin-bottom:8px; }
+    .tutorial-text { font-size:14px; color:#333; margin-bottom:12px; white-space:pre-wrap; }
+    .tutorial-nav { display:flex; gap:8px; justify-content:flex-end; }
+    .tutorial-btn { padding:6px 12px; border-radius:6px; border:1px solid #ccc; background:#f7f7f7; cursor:pointer; }
+    .tutorial-btn.primary { background:#1976d2; color:#fff; border-color:transparent; }
+    .tutorial-highlight { box-shadow: 0 0 0 4px rgba(25,118,210,0.18) !important; border-radius:6px !important; position: relative; z-index:10029; }
+    .tutorial-help { position: fixed; right: 18px; bottom: 18px; width:44px; height:44px; border-radius:50%; background:#1976d2; color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:10040; box-shadow:0 6px 18px rgba(0,0,0,0.18); font-weight:700; pointer-events:auto; }
+    .tutorial-toast { position: fixed; right: 18px; bottom: 72px; background: rgba(0,0,0,0.7); color:#fff; padding:8px 12px; border-radius:8px; font-size:13px; z-index:10040; pointer-events:auto; }
+
+    /* 吹き出し（バブル） */
+    .tutorial-bubble {
+      position: absolute;
+      max-width: 340px;
+      background: #fff;
+      color:#111;
+      padding: 10px 12px;
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+      z-index: 10050;
+      pointer-events: auto;
+      font-size:13px;
+    }
+    .tutorial-bubble .title { font-weight:700; margin-bottom:6px; }
+    .tutorial-bubble .text { white-space: normal; line-height:1.4; }
+    .tutorial-bubble .arrow {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      transform: rotate(45deg);
+      background: #fff;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+      z-index: -1;
+    }
+
+    @media (max-width:980px){
+      .button-bar, .shortcut-bar, #slideArea { width: 92%; max-width:860px; }
+      #previewSlideArea { width: calc(100vw - 8px); height: calc(100vh - 72px); }
+      .create-options-panel { left: 8px; top: auto; }
+    }
+  </style>
+</head>
+<body>
+  <header class="top-nav" role="banner" aria-label="メインナビゲーション">
+    
+    <nav class="nav-tabs" role="navigation" aria-label="タブメニュー">
+      <button type="button" class="nav-tab active" id="tab-system" aria-pressed="true" title="システム">システム</button>
+      <button type="button" class="nav-tab" id="tab-algorithm" aria-pressed="false" title="アルゴリズム">アルゴリズム</button>
+      <button type="button" class="nav-tab" id="tab-progress" aria-pressed="false" title="進捗確認">進捗確認</button>
+      <button type="button" class="nav-tab" id="tab-account" aria-pressed="false" title="アカウント">アカウント</button>
+    </nav>
+  </header>
+
+  <h1>チュートリアル</h1>
+  <div class="button-bar">
+    <!-- フォームボタン + プルダウン -->
+    <div class="form-dropdown" id="formDropdownWrap">
+      <button id="formBtn" aria-haspopup="true" aria-expanded="false">フォーム ▾</button>
+      <div class="dropdown-menu" id="formDropdown" role="menu" aria-hidden="true">
+        <button id="addTextBtn" role="menuitem">あいう</button>
+        <button id="addNumberBtn" role="menuitem">123</button>
+        <button id="addCheckboxBtn" role="menuitem">チェックボックス</button>
+        <button id="addRadioBtn" role="menuitem">ラジオボタン</button>
+      </div>
+
+      <!-- チェックボックス/ラジオ作成パネル（共通） -->
+      <div class="create-options-panel" id="createOptionsPanel" role="dialog" aria-hidden="true">
+        <label for="optionsCount">項目の数</label>
+        <div>
+          <input id="optionsCount" type="number" min="1" max="10" value="3" />
+          <span style="color:#666;font-size:13px;">個</span>
+        </div>
+        <div class="panel-actions">
+          <button id="createOptionsCancel">キャンセル</button>
+          <button id="createOptionsConfirm">作成</button>
+        </div>
+      </div>
+    </div>
+
+    <button id="addDatetimeBtn">日時</button>
+    <button id="addTimerBtn">タイマー</button>
+    <button id="addButtonBtn">ボタン追加</button>
+  </div>
+
+  <div class="shortcut-bar">
+    <button id="undoBtn" title="元に戻す (Ctrl+Z)">←</button>
+    <button id="redoBtn" title="やり直し (Ctrl+Y)">→</button>
+
+    <div class="shortcut-btns" aria-hidden="false">
+      <button id="clearAllBtn" aria-disabled="false">全削除</button>
+      <button id="executeBtn" aria-disabled="false">実行</button>
+      <!-- 保存ボタンを削除 -->
+    </div>
+  </div>
+
+  <div id="slideArea">
+    <div id="trash" title="ここにドラッグで削除">🗑️</div>
+  </div>
+
+  <script>
+    (function(){
+      try{
+        const tabs = document.querySelectorAll('.nav-tab');
+        tabs.forEach(tab=>{
+          tab.addEventListener('click', function(e){
+            // 見た目の切替
+            tabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-pressed','false'); });
+            this.classList.add('active');
+            this.setAttribute('aria-pressed','true');
+
+            // タブごとの遷移（必要に応じて有効化）
+            if (this.id === 'tab-system') {
+              window.location.href = '/accounts/system/choice/';
+            } else if (this.id === 'tab-algorithm') {
+              window.location.href = '/accounts/block/choice/';
+            }
+          });
+        });
+      }catch(err){
+        console.error('tabs init error', err);
+      }
+    })();
+
+    const colorOptions = [
+      { name: "あお", value: "#2196F3" },
+      { name: "あか", value: "#F44336" },
+      { name: "みどり", value: "#4CAF50" },
+      { name: "きいろ", value: "#FFEB3B", textColor: "#333" },
+      { name: "オレンジ", value: "#FF9800" },
+      { name: "むらさき", value: "#9C27B0" },
+      { name: "くろ", value: "#333" },
+      { name: "しろ", value: "#fff", textColor: "#333" }
+    ];
+
+    let history = [];
+    let historyIndex = -1;
+
+    function saveHistory() {
+      const slide = document.getElementById("slideArea");
+      const temp = slide.querySelectorAll('.textarea-selection');
+      temp.forEach(t => t.remove());
+      history = history.slice(0, historyIndex + 1);
+      history.push(slide.innerHTML);
+      historyIndex++;
+    }
+
+    function restoreHistory(index) {
+      const slide = document.getElementById("slideArea");
+      slide.innerHTML = history[index] || '';
+      Array.from(slide.children).forEach(el => {
+        if (el.classList && (el.classList.contains("input-container") || el.classList.contains("draggable-btn") || el.classList.contains("text-input-container") || el.classList.contains("checkbox-group") || el.classList.contains("radio-group"))) {
+          addDragHandleIfMissing(el);
+          makeDraggable(el);
+        }
+      });
+      slide.querySelectorAll('input[data-only-number="true"]').forEach(inp=>{
+        try { attachNumberFilter(inp); } catch(e){ console.error(e); }
+      });
+    }
+
+    function undo() {
+      if (historyIndex > 0) {
+        historyIndex--;
+        restoreHistory(historyIndex);
+      }
+    }
+
+    function redo() {
+      if (historyIndex < history.length - 1) {
+        historyIndex++;
+        restoreHistory(historyIndex);
+      }
+    }
+
+    document.getElementById("undoBtn").addEventListener("click", undo);
+    document.getElementById("redoBtn").addEventListener("click", redo);
+    document.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        undo();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        redo();
+      }
+    });
+
+    // ドロップダウン操作
+    (function(){
+      const formBtn = document.getElementById('formBtn');
+      const dropdown = document.getElementById('formDropdown');
+      const wrap = document.getElementById('formDropdownWrap');
+      if (!formBtn || !dropdown) return;
+
+      function openDropdown() {
+        dropdown.classList.add('show');
+        dropdown.setAttribute('aria-hidden','false');
+        formBtn.setAttribute('aria-expanded','true');
+      }
+      function closeDropdown() {
+        dropdown.classList.remove('show');
+        dropdown.setAttribute('aria-hidden','true');
+        formBtn.setAttribute('aria-expanded','false');
+      }
+      function toggleDropdown() {
+        if (dropdown.classList.contains('show')) closeDropdown(); else openDropdown();
+      }
+
+      formBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        toggleDropdown();
+      });
+
+      document.addEventListener('click', function(e){
+        if (!wrap.contains(e.target)) {
+          closeDropdown();
+          hideOptionsPanel();
+        }
+      });
+
+      document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape') {
+          closeDropdown();
+          hideOptionsPanel();
+        }
+      });
+    })();
+
+    // 共通作成パネル制御（チェックボックス / ラジオ）
+    (function(){
+      const addCheckboxBtn = document.getElementById('addCheckboxBtn');
+      const addRadioBtn = document.getElementById('addRadioBtn');
+      const panel = document.getElementById('createOptionsPanel');
+      const countInput = document.getElementById('optionsCount');
+      const cancelBtn = document.getElementById('createOptionsCancel');
+      const confirmBtn = document.getElementById('createOptionsConfirm');
+      const wrap = document.getElementById('formDropdownWrap');
+
+      let pendingType = null;
+
+      function showOptionsPanel(type) {
+        pendingType = type;
+        panel.classList.add('show');
+        panel.setAttribute('aria-hidden','false');
+        setTimeout(()=>{ countInput.focus(); countInput.select(); },10);
+      }
+      function hideOptionsPanel() {
+        pendingType = null;
+        panel.classList.remove('show');
+        panel.setAttribute('aria-hidden','true');
+      }
+
+      if (addCheckboxBtn) {
+        addCheckboxBtn.addEventListener('click', function(e){
+          e.stopPropagation();
+          if (panel.classList.contains('show') && pendingType === 'checkbox') hideOptionsPanel(); else showOptionsPanel('checkbox');
+        });
+      }
+      if (addRadioBtn) {
+        addRadioBtn.addEventListener('click', function(e){
+          e.stopPropagation();
+          if (panel.classList.contains('show') && pendingType === 'radio') hideOptionsPanel(); else showOptionsPanel('radio');
+        });
+      }
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', function(e){
+          e.preventDefault();
+          hideOptionsPanel();
+        });
+      }
+      if (confirmBtn) {
+        confirmBtn.addEventListener('click', function(e){
+          e.preventDefault();
+          const n = parseInt(countInput.value, 10) || 0;
+          if (n <= 0) {
+            alert('項目数は1以上を指定してください。');
+            return;
+          }
+          const capped = Math.min(n, 10);
+          if (n > 10) {
+            alert('項目数は最大10までです。10に設定します。');
+          }
+          if (pendingType === 'checkbox') {
+            createCheckboxGroup(capped);
+          } else if (pendingType === 'radio') {
+            createRadioGroup(capped);
+          }
+          hideOptionsPanel();
+          const dropdown = document.getElementById('formDropdown');
+          if (dropdown) { dropdown.classList.remove('show'); dropdown.setAttribute('aria-hidden','true'); }
+        });
+      }
+
+      document.addEventListener('click', function(e){
+        if (!wrap.contains(e.target)) hideOptionsPanel();
+      });
+    })();
+
+    // 実行ボタン（プレビュー）
+    const executeBtn = document.getElementById('executeBtn');
+    if (executeBtn) {
+      executeBtn.addEventListener('click', function(e){
+        e.preventDefault();
+        openPreview();
+      });
+    }
+
+    // 全削除ボタン
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    if (clearAllBtn) {
+      clearAllBtn.addEventListener('click', function(e){
+        e.preventDefault();
+        if (confirm('すべての要素を削除してもよろしいですか？\nこの操作は取り消せません。')) {
+          const slide = document.getElementById('slideArea');
+          if (slide) {
+            // ゴミ箱以外のすべての要素を削除
+            const trash = slide.querySelector('#trash');
+            const trashHTML = trash ? trash.outerHTML : '<div id="trash" title="ここにドラッグで削除">🗑️</div>';
+            slide.innerHTML = trashHTML;
+            saveHistory();
+            console.log('すべての要素を削除しました');
+          }
+        }
+      });
+    }
+
+    function addDragHandleIfMissing(container) {
+      if (!container || container.querySelector('.drag-handle')) return;
+      const handle = document.createElement('div');
+      handle.className = 'drag-handle';
+      handle.title = '移動';
+      handle.textContent = '≡';
+      container.appendChild(handle);
+    }
+
+    function makeDraggableForPreview(el, parent) {
+      return;
+    }
+
+    function makeDraggable(el) {
+      if (!el) return;
+      el.style.position = 'absolute';
+      addDragHandleIfMissing(el);
+
+      const handle = el.querySelector('.drag-handle');
+      let dragging = false;
+      let startX = 0, startY = 0;
+      let offsetX = 0, offsetY = 0;
+      let moved = false;
+      const threshold = 5;
+
+      let resizing = false;
+      let resizeTimer = null;
+      let initialWidth = el.offsetWidth;
+      let initialHeight = el.offsetHeight;
+
+      let ro = null;
+      try {
+        ro = new ResizeObserver(() => {
+          resizing = true;
+          if (resizeTimer) clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(() => { resizing = false; }, 120);
+        });
+        ro.observe(el);
+      } catch (err) { ro = null; }
+
+      const trash = document.getElementById('trash');
+      let lastOverTrash = false;
+
+      function pointInRect(clientX, clientY, rect) {
+        return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+      }
+
+      function setGrabbing(state){
+        if (state) {
+          el.classList.add('grabbing');
+          if (el.classList.contains('draggable-btn')) el.classList.add('grabbing');
+          if (el.classList.contains('checkbox-group')) el.classList.add('grabbing');
+          if (el.classList.contains('radio-group')) el.classList.add('grabbing');
+          try { window._currentDraggingEl = el; } catch(e){}
+        } else {
+          el.classList.remove('grabbing');
+          if (el.classList.contains('draggable-btn')) el.classList.remove('grabbing');
+          if (el.classList.contains('checkbox-group')) el.classList.remove('grabbing');
+          if (el.classList.contains('radio-group')) el.classList.remove('grabbing');
+          try { window._currentDraggingEl = null; } catch(e){}
+        }
+      }
+
+      function onDown(clientX, clientY, isHandle) {
+        const active = document.elementFromPoint(clientX, clientY);
+        if (active) {
+          const editable = active.closest('input,textarea,.text-input,.input-box') || active.isContentEditable;
+          if (editable && !isHandle) {
+            return false;
+          }
+        }
+        const elRect = el.getBoundingClientRect();
+        offsetX = clientX - elRect.left;
+        offsetY = clientY - elRect.top;
+        startX = clientX;
+        startY = clientY;
+        moved = false;
+        document.body.style.userSelect = 'none';
+        initialWidth = el.offsetWidth;
+        initialHeight = el.offsetHeight;
+        return true;
+      }
+
+      function startDrag() {
+        if (resizing) return;
+        dragging = true;
+        setGrabbing(true);
+        el.style.zIndex = 1000;
+      }
+
+      function stopDrag() {
+        if (dragging) dragging = false;
+        setGrabbing(false);
+        el.style.zIndex = '';
+        document.body.style.userSelect = '';
+        try { if (trash) trash.classList.remove('dragover'); lastOverTrash = false; } catch(e){}
+      }
+
+      function mousedownHandler(e) {
+        if (e.button !== 0) return;
+        const isHandle = handle && (e.target === handle || e.target.closest('.drag-handle'));
+        if (!onDown(e.clientX, e.clientY, isHandle)) return;
+
+        const parent = el.parentElement;
+        const parentRect = parent.getBoundingClientRect();
+
+        const onMoveWhileDown = function(ev){
+          const dx = ev.clientX - startX;
+          const dy = ev.clientY - startY;
+          if (!moved && Math.hypot(dx, dy) > threshold) {
+            startDrag();
+            moved = true;
+          }
+          if (!dragging) return;
+          if (resizing) return;
+          let x = ev.clientX - parentRect.left - offsetX;
+          let y = ev.clientY - parentRect.top - offsetY;
+          x = Math.max(0, Math.min(x, parent.clientWidth - el.offsetWidth));
+          y = Math.max(0, Math.min(y, parent.clientHeight - el.offsetHeight));
+          el.style.left = x + 'px';
+          el.style.top = y + 'px';
+          if (trash) {
+            const over = pointInRect(ev.clientX, ev.clientY, trash.getBoundingClientRect());
+            if (over && !lastOverTrash) { trash.classList.add('dragover'); lastOverTrash = true; }
+            if (!over && lastOverTrash) { trash.classList.remove('dragover'); lastOverTrash = false; }
+          }
+        };
+        const onUpWhileDown = function(ev){
+          document.removeEventListener('mousemove', onMoveWhileDown);
+          document.removeEventListener('mouseup', onUpWhileDown);
+          let droppedOnTrash = false;
+          try {
+            if (trash) {
+              droppedOnTrash = pointInRect(ev.clientX, ev.clientY, trash.getBoundingClientRect());
+            }
+          } catch(e){}
+          if (droppedOnTrash) {
+            try { el.remove(); } catch(e){ if (el.parentElement) el.parentElement.removeChild(el); }
+            try { trash.classList.remove('dragover'); } catch(e){}
+            stopDrag();
+            saveHistory();
+            return;
+          }
+          if (dragging) {
+            stopDrag();
+            saveHistory();
+          }
+        };
+        document.addEventListener('mousemove', onMoveWhileDown);
+        document.addEventListener('mouseup', onUpWhileDown);
+      }
+
+      function touchstartHandler(e) {
+        if (!e.touches || e.touches.length === 0) return;
+        const touch = e.touches[0];
+        const isHandle = handle && (e.target === handle || e.target.closest('.drag-handle'));
+        if (!onDown(touch.clientX, touch.clientY, isHandle)) return;
+
+        const parent = el.parentElement;
+        const parentRect = parent.getBoundingClientRect();
+
+        const onTouchMove = function(ev){
+          if (!ev.touches || ev.touches.length === 0) return;
+          const t = ev.touches[0];
+          const dx = t.clientX - startX;
+          const dy = t.clientY - startY;
+          if (!moved && Math.hypot(dx, dy) > threshold) {
+            startDrag();
+            moved = true;
+          }
+          if (!dragging) return;
+          if (resizing) return;
+          let x = t.clientX - parentRect.left - offsetX;
+          let y = t.clientY - parentRect.top - offsetY;
+          x = Math.max(0, Math.min(x, parent.clientWidth - el.offsetWidth));
+          y = Math.max(0, Math.min(y, parent.clientHeight - el.offsetHeight));
+          el.style.left = x + 'px';
+          el.style.top = y + 'px';
+          if (trash) {
+            const over = pointInRect(t.clientX, t.clientY, trash.getBoundingClientRect());
+            if (over && !lastOverTrash) { trash.classList.add('dragover'); lastOverTrash = true; }
+            if (!over && lastOverTrash) { trash.classList.remove('dragover'); lastOverTrash = false; }
+          }
+          ev.preventDefault();
+        };
+        const onTouchEnd = function(ev){
+          document.removeEventListener('touchmove', onTouchMove);
+          document.removeEventListener('touchend', onTouchEnd);
+          let droppedOnTrash = false;
+          try {
+            if (trash) {
+              const elRect = el.getBoundingClientRect();
+              const cx = elRect.left + elRect.width/2;
+              const cy = elRect.top + elRect.height/2;
+              droppedOnTrash = pointInRect(cx, cy, trash.getBoundingClientRect());
+            }
+          } catch(e){}
+          if (droppedOnTrash) {
+            try { el.remove(); } catch(e){ if (el.parentElement) el.parentElement.removeChild(el); }
+            try { trash.classList.remove('dragover'); } catch(e){}
+            stopDrag();
+            saveHistory();
+            return;
+          }
+          if (dragging) {
+            stopDrag();
+            saveHistory();
+          }
+        };
+        document.addEventListener('touchmove', onTouchMove, {passive:false});
+        document.addEventListener('touchend', onTouchEnd);
+      }
+
+      if (handle) {
+        handle.addEventListener('mousedown', mousedownHandler);
+        handle.addEventListener('touchstart', touchstartHandler, {passive:true});
+      }
+      el.addEventListener('mousedown', mousedownHandler);
+      el.addEventListener('touchstart', touchstartHandler, {passive:true});
+
+      const mo = new MutationObserver(mutations => {
+        if (!document.body.contains(el)) {
+          try { if (ro) ro.disconnect(); } catch(e){}
+          mo.disconnect();
+        }
+      });
+      mo.observe(document.body, {childList: true, subtree: true});
+    }
+
+    function openPreview(){
+      if (document.getElementById('previewOverlay')) return;
+      const original = document.getElementById('slideArea');
+      if (!original) return;
+
+      const overlay = document.createElement('div');
+      overlay.id = 'previewOverlay';
+      overlay.className = 'preview-overlay';
+      overlay.setAttribute('role','dialog');
+      overlay.setAttribute('aria-modal','true');
+
+      const header = document.createElement('div');
+      header.className = 'preview-header';
+
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'preview-close';
+      closeBtn.textContent = '閉じる (Esc)';
+      closeBtn.setAttribute('aria-label','閉じる');
+      header.appendChild(closeBtn);
+
+      const areaWrap = document.createElement('div');
+      areaWrap.className = 'preview-area';
+
+      const clone = original.cloneNode(true);
+      clone.id = 'previewSlideArea';
+      const trash = clone.querySelector('#trash');
+      if (trash) trash.remove();
+
+      clone.querySelectorAll('input,textarea').forEach(el => {
+        try {
+          el.style.resize = 'none';
+        } catch(e){}
+      });
+      clone.querySelectorAll('input[data-only-number="true"]').forEach(inp=>{
+        try { attachNumberFilter(inp); } catch(e){ console.error(e); }
+      });
+
+      clone.querySelectorAll('.text-input, [contenteditable]').forEach(el => {
+        try {
+          if (el.classList && el.classList.contains('text-input')) {
+            el.setAttribute('contenteditable','false');
+          } else {
+            el.setAttribute('contenteditable','false');
+          }
+        } catch(e){}
+      });
+
+      clone.querySelectorAll('.drag-handle').forEach(h => h.remove());
+
+      const previewStyle = document.createElement('style');
+      previewStyle.textContent = `
+        #previewSlideArea * { pointer-events: none !important; }
+        #previewSlideArea button,
+        #previewSlideArea .draggable-btn { pointer-events: auto !important; }
+        #previewSlideArea input,
+        #previewSlideArea textarea,
+        #previewSlideArea .input-box { pointer-events: auto !important; }
+        #previewSlideArea .text-input,
+        #previewSlideArea .text-input-container { pointer-events: none !important; }
+        #previewSlideArea .input-container,
+        #previewSlideArea .draggable-btn,
+        #previewSlideArea .text-input-container,
+        #previewSlideArea .checkbox-group,
+        #previewSlideArea .radio-group { user-select: text !important; }
+        #previewSlideArea .input-label,
+        #previewSlideArea .text-input,
+        #previewSlideArea input,
+        #previewSlideArea textarea { outline: none !important; box-shadow: none !important; }
+        #previewSlideArea { -webkit-user-select: text !important; user-select: text !important; box-shadow: 0 6px 30px rgba(0,0,0,0.24); }
+      `;
+      overlay.appendChild(previewStyle);
+
+      clone.querySelectorAll('button, .draggable-btn').forEach(btn => {
+        try {
+          btn.addEventListener('click', function(e){
+            e.stopPropagation();
+          });
+        } catch(err) {}
+      });
+
+      areaWrap.appendChild(clone);
+      overlay.appendChild(header);
+      overlay.appendChild(areaWrap);
+      document.body.appendChild(overlay);
+
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+
+      function closeOverlay(){
+        try{ overlay.remove(); }catch(err){}
+        document.body.style.overflow = prevOverflow || '';
+      }
+      closeBtn.addEventListener('click', closeOverlay);
+      overlay.addEventListener('click', function(evt){
+        if (evt.target === overlay) closeOverlay();
+      });
+      document.addEventListener('keydown', function onEsc(e){
+        if (e.key === 'Escape') {
+          closeOverlay();
+          document.removeEventListener('keydown', onEsc);
+        }
+      });
+    }
+
+    function getRandomPosition(width=100, height=40) {
+      const slide = document.getElementById("slideArea");
+      const x = Math.random() * Math.max(0, slide.clientWidth - width);
+      const y = Math.random() * Math.max(0, slide.clientHeight - height);
+      return {x, y};
+    }
+
+    function attachNumberFilter(input){
+      if(!input) return;
+      if (input._numberFilterAttached) return;
+      input._numberFilterAttached = true;
+      input.addEventListener('input', function(){
+        const prevPos = input.selectionStart;
+        const sanitized = input.value.replace(/[^\d\.\-]/g, '');
+        if (sanitized !== input.value) {
+          input.value = sanitized;
+          try { input.setSelectionRange(Math.max(0, prevPos - 1), Math.max(0, prevPos - 1)); } catch(e){}
+        }
+      });
+      input.addEventListener('keydown', function(e){
+        const allowedKeys = ['Backspace','Tab','Enter','ArrowLeft','ArrowRight','Delete','ArrowUp','ArrowDown','Home','End'];
+        if (allowedKeys.indexOf(e.key) !== -1) return;
+        if ((e.ctrlKey || e.metaKey) && ['a','c','v','x','z','y'].indexOf(e.key.toLowerCase()) !== -1) return;
+        if (!/^[0-9.\-]$/.test(e.key)) {
+          e.preventDefault();
+        }
+      });
+      input.addEventListener('paste', function(e){
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData('text') || '';
+        const sanitized = text.replace(/[^\d\.\-]/g, '');
+        const start = input.selectionStart || 0;
+        const end = input.selectionEnd || 0;
+        const newVal = input.value.slice(0,start) + sanitized + input.value.slice(end);
+        input.value = newVal;
+        const pos = start + sanitized.length;
+        try { input.setSelectionRange(pos, pos); } catch(e){}
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
+
+    // チェックボックスグループ作成
+    function createCheckboxGroup(count) {
+      count = Math.min(count || 0, 10);
+      const slide = document.getElementById('slideArea');
+      if (!slide) return;
+      const group = document.createElement('div');
+      group.className = 'checkbox-group';
+
+      for (let i = 0; i < count; i++) {
+        const row = document.createElement('div');
+        row.className = 'checkbox-row';
+
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.tabIndex = 0;
+
+        const lbl = document.createElement('div');
+        lbl.className = 'checkbox-label';
+        lbl.contentEditable = 'true';
+        lbl.textContent = '項目 ' + (i + 1);
+
+        row.appendChild(cb);
+        row.appendChild(lbl);
+        group.appendChild(row);
+      }
+
+      const pos = getRandomPosition(200, Math.max(80, count * 28));
+      group.style.left = pos.x + 'px';
+      group.style.top = pos.y + 'px';
+
+      addDragHandleIfMissing(group);
+      makeDraggable(group);
+      slide.appendChild(group);
+      saveHistory();
+    }
+
+    // ラジオボタングループ作成（同様の条件）
+    function createRadioGroup(count) {
+      count = Math.min(count || 0, 10);
+      const slide = document.getElementById('slideArea');
+      if (!slide) return;
+      const group = document.createElement('div');
+      group.className = 'radio-group';
+
+      const uniqueName = 'radio_group_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+
+      for (let i = 0; i < count; i++) {
+        const row = document.createElement('div');
+        row.className = 'radio-row';
+
+        const rb = document.createElement('input');
+        rb.type = 'radio';
+        rb.name = uniqueName;
+        rb.tabIndex = 0;
+
+        const lbl = document.createElement('div');
+        lbl.className = 'radio-label';
+        lbl.contentEditable = 'true';
+        lbl.textContent = '項目 ' + (i + 1);
+
+        row.appendChild(rb);
+        row.appendChild(lbl);
+        group.appendChild(row);
+      }
+
+      const pos = getRandomPosition(200, Math.max(80, count * 28));
+      group.style.left = pos.x + 'px';
+      group.style.top = pos.y + 'px';
+
+      addDragHandleIfMissing(group);
+      makeDraggable(group);
+      slide.appendChild(group);
+      saveHistory();
+    }
+
+    function createInput(defaultLabel, placeholder, onlyNumber=false) {
+      let container = document.createElement("div");
+      container.classList.add("input-container");
+
+      let label = document.createElement("div");
+      label.classList.add("input-label");
+      label.textContent = defaultLabel;
+      label.contentEditable = "true";
+
+      if (onlyNumber) {
+        let input = document.createElement("input");
+        input.type = "text";
+        input.inputMode = "numeric";
+        input.pattern = "\\d*";
+        input.classList.add("input-box");
+        input.placeholder = placeholder;
+        input.setAttribute('data-only-number', 'true');
+
+        container.appendChild(label);
+        container.appendChild(input);
+
+        attachNumberFilter(input);
+      } else {
+        let textarea = document.createElement("textarea");
+        textarea.classList.add("input-box");
+        textarea.placeholder = placeholder;
+        container.appendChild(label);
+        container.appendChild(textarea);
+      }
+
+      let pos = getRandomPosition();
+      container.style.left = pos.x + "px";
+      container.style.top = pos.y + "px";
+      addDragHandleIfMissing(container);
+      makeDraggable(container);
+      document.getElementById("slideArea").appendChild(container);
+      saveHistory();
+    }
+
+    function createDatetimeInput() {
+      let container = document.createElement("div");
+      container.classList.add("input-container");
+
+      let label = document.createElement("div");
+      label.classList.add("input-label");
+      label.textContent = "日時：";
+      label.contentEditable = "true";
+
+      let input = document.createElement("input");
+      input.type = "datetime-local";
+      input.style.minWidth = "180px";
+      input.style.minHeight = "36px";
+      input.style.fontSize = "16px";
+      input.style.padding = "4px 8px";
+      input.style.boxSizing = "border-box";
+      input.classList.add("input-box");
+
+      container.appendChild(label);
+      container.appendChild(input);
+
+      let pos = getRandomPosition(240, 40);
+      container.style.left = pos.x + "px";
+      container.style.top = pos.y + "px";
+      addDragHandleIfMissing(container);
+      makeDraggable(container);
+      document.getElementById("slideArea").appendChild(container);
+      saveHistory();
+    }
+
+    function createTimer() {
+      // タイマーのモード選択（1: カウントアップ、2: カウントダウン）
+      let mode = null;
+      while (mode === null) {
+        const modeInput = prompt("タイマーのモードを選択してください\n\n1: カウントアップ\n2: カウントダウン", "1");
+        
+        if (modeInput === null) {
+          // キャンセルされた場合は処理を中断
+          return;
+        }
+        
+        if (modeInput === '1') {
+          mode = 'up';
+        } else if (modeInput === '2') {
+          mode = 'down';
+        } else {
+          alert("1または2を入力してください");
+        }
+      }
+      
+      let targetSeconds = 0;
+      let displayText = "00:00:00";
+      
+      // カウントダウンの場合は時間設定
+      if (mode === 'down') {
+        const hours = parseInt(prompt("時間を入力してください (0-23)", "0")) || 0;
+        const minutes = parseInt(prompt("分を入力してください (0-59)", "1")) || 0;
+        const seconds = parseInt(prompt("秒を入力してください (0-59)", "0")) || 0;
+        
+        targetSeconds = Math.max(0, Math.min(hours, 23)) * 3600 + 
+                       Math.max(0, Math.min(minutes, 59)) * 60 + 
+                       Math.max(0, Math.min(seconds, 59));
+        
+        if (targetSeconds === 0) {
+          alert("時間が0秒です。最低1秒以上に設定してください。");
+          return;
+        }
+        
+        const h = Math.floor(targetSeconds / 3600);
+        const m = Math.floor((targetSeconds % 3600) / 60);
+        const s = targetSeconds % 60;
+        displayText = String(h).padStart(2, '0') + ':' +
+                     String(m).padStart(2, '0') + ':' +
+                     String(s).padStart(2, '0');
+      }
+      
+      // タイマーコンテナ作成
+      let container = document.createElement("div");
+      container.classList.add("timer-container");
+      container.setAttribute('data-timer-seconds', mode === 'down' ? targetSeconds.toString() : '0');
+      container.setAttribute('data-timer-running', 'false');
+      container.setAttribute('data-timer-mode', mode);
+      container.setAttribute('data-timer-target', targetSeconds.toString());
+
+      // タイマー設定ボタン(編集用)
+      let settingsBtn = document.createElement("button");
+      settingsBtn.classList.add("timer-settings-btn");
+      settingsBtn.textContent = "⚙ 設定";
+      settingsBtn.title = "タイマー設定を変更";
+      settingsBtn.onclick = function(e) {
+        e.stopPropagation();
+        openTimerSettings(container, display);
+      };
+
+      // 表示部分
+      let display = document.createElement("div");
+      display.classList.add("timer-display");
+      display.textContent = displayText;
+
+      // 操作ボタン
+      let controls = document.createElement("div");
+      controls.classList.add("timer-controls");
+
+      let startBtn = document.createElement("button");
+      startBtn.classList.add("timer-btn", "start");
+      startBtn.textContent = "開始";
+      startBtn.onclick = function(e) {
+        e.stopPropagation();
+        const running = container.getAttribute('data-timer-running') === 'true';
+        const timerMode = container.getAttribute('data-timer-mode');
+        
+        if (!running) {
+          if (timerMode === 'down') {
+            const target = parseInt(container.getAttribute('data-timer-target') || '0');
+            if (target === 0) {
+              alert('カウントダウンの時間を設定してください');
+              return;
+            }
+          }
+          container.setAttribute('data-timer-running', 'true');
+          startBtn.textContent = "停止";
+          startBtn.classList.remove('start');
+          startBtn.classList.add('pause');
+        } else {
+          container.setAttribute('data-timer-running', 'false');
+          startBtn.textContent = "開始";
+          startBtn.classList.remove('pause');
+          startBtn.classList.add('start');
+        }
+      };
+
+      let resetBtn = document.createElement("button");
+      resetBtn.classList.add("timer-btn", "reset");
+      resetBtn.textContent = "リセット";
+      resetBtn.onclick = function(e) {
+        e.stopPropagation();
+        const timerMode = container.getAttribute('data-timer-mode');
+        container.setAttribute('data-timer-running', 'false');
+        
+        if (timerMode === 'up') {
+          container.setAttribute('data-timer-seconds', '0');
+          display.textContent = "00:00:00";
+        } else {
+          const target = parseInt(container.getAttribute('data-timer-target') || '0');
+          container.setAttribute('data-timer-seconds', target.toString());
+          const h = Math.floor(target / 3600);
+          const m = Math.floor((target % 3600) / 60);
+          const s = target % 60;
+          display.textContent = 
+            String(h).padStart(2, '0') + ':' +
+            String(m).padStart(2, '0') + ':' +
+            String(s).padStart(2, '0');
+        }
+        
+        startBtn.textContent = "開始";
+        startBtn.classList.remove('pause');
+        startBtn.classList.add('start');
+      };
+
+      controls.appendChild(startBtn);
+      controls.appendChild(resetBtn);
+      
+      container.appendChild(settingsBtn);
+      container.appendChild(display);
+      container.appendChild(controls);
+
+      let pos = getRandomPosition(220, 120);
+      container.style.left = pos.x + "px";
+      container.style.top = pos.y + "px";
+      addDragHandleIfMissing(container);
+      makeDraggable(container);
+      document.getElementById("slideArea").appendChild(container);
+      saveHistory();
+    }
+
+    // タイマー設定変更ダイアログ
+    function openTimerSettings(container, display) {
+      const currentMode = container.getAttribute('data-timer-mode');
+      const currentTarget = parseInt(container.getAttribute('data-timer-target') || '0');
+      
+      // タイマーのモード選択（1: カウントアップ、2: カウントダウン）
+      let newMode = null;
+      while (newMode === null) {
+        const currentModeText = currentMode === 'up' ? 'カウントアップ' : 'カウントダウン';
+        const modeInput = prompt("タイマーのモードを選択してください\n\n現在: " + currentModeText + "\n\n1: カウントアップ\n2: カウントダウン", currentMode === 'up' ? '1' : '2');
+        
+        if (modeInput === null) {
+          return;
+        }
+        
+        if (modeInput === '1') {
+          newMode = 'up';
+        } else if (modeInput === '2') {
+          newMode = 'down';
+        } else {
+          alert("1または2を入力してください");
+        }
+      }
+      
+      let newTarget = 0;
+      
+      if (newMode === 'down') {
+        const currentH = Math.floor(currentTarget / 3600);
+        const currentM = Math.floor((currentTarget % 3600) / 60);
+        const currentS = currentTarget % 60;
+        
+        const hours = parseInt(prompt("時間を入力してください (0-23)", currentH.toString())) || 0;
+        const minutes = parseInt(prompt("分を入力してください (0-59)", currentM.toString())) || 0;
+        const seconds = parseInt(prompt("秒を入力してください (0-59)", currentS.toString())) || 0;
+        
+        newTarget = Math.max(0, Math.min(hours, 23)) * 3600 + 
+                   Math.max(0, Math.min(minutes, 59)) * 60 + 
+                   Math.max(0, Math.min(seconds, 59));
+        
+        if (newTarget === 0) {
+          alert("時間が0秒です。設定を変更しませんでした。");
+          return;
+        }
+      }
+      
+      // 設定を更新
+      container.setAttribute('data-timer-mode', newMode);
+      container.setAttribute('data-timer-target', newTarget.toString());
+      container.setAttribute('data-timer-running', 'false');
+      
+      if (newMode === 'up') {
+        container.setAttribute('data-timer-seconds', '0');
+        display.textContent = "00:00:00";
+      } else {
+        container.setAttribute('data-timer-seconds', newTarget.toString());
+        const h = Math.floor(newTarget / 3600);
+        const m = Math.floor((newTarget % 3600) / 60);
+        const s = newTarget % 60;
+        display.textContent = 
+          String(h).padStart(2, '0') + ':' +
+          String(m).padStart(2, '0') + ':' +
+          String(s).padStart(2, '0');
+      }
+      
+      // ボタンのリセット
+      const startBtn = container.querySelector('.timer-btn.start, .timer-btn.pause');
+      if (startBtn) {
+        startBtn.textContent = "開始";
+        startBtn.classList.remove('pause');
+        startBtn.classList.add('start');
+      }
+      
+      saveHistory();
+    }
+
+    function createButton(labelText, width, height, color, textColor) {
+      let btn = document.createElement("button");
+      btn.classList.add("draggable-btn");
+      btn.textContent = labelText;
+
+      btn.style.width = width + "px";
+      btn.style.height = height + "px";
+      btn.style.background = color;
+      btn.style.color = textColor || "#fff";
+
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+      });
+
+      let pos = getRandomPosition(width, height);
+      btn.style.left = pos.x + "px";
+      btn.style.top = pos.y + "px";
+      addDragHandleIfMissing(btn);
+      makeDraggable(btn);
+      document.getElementById("slideArea").appendChild(btn);
+      saveHistory();
+    }
+
+    document.getElementById("addTextBtn").addEventListener("click", function(e) {
+      e.stopPropagation();
+      createInput("文字：", "文字を入力（改行可）");
+    });
+
+    document.getElementById("addNumberBtn").addEventListener("click", function(e) {
+      e.stopPropagation();
+      createInput("数字：", "数字を入力", true);
+    });
+
+    document.getElementById("addDatetimeBtn").addEventListener("click", function() {
+      createDatetimeInput();
+    });
+
+    document.getElementById("addTimerBtn").addEventListener("click", function() {
+      createTimer();
+    });
+
+    document.getElementById("addButtonBtn").addEventListener("click", function() {
+      let name = prompt("ボタンの名前を入力してください", "ボタン");
+      if (!name) return;
+
+      let width = parseInt(prompt("ボタンの幅(px)", "100"));
+      let height = parseInt(prompt("ボタンの高さ(px)", "40"));
+      if (isNaN(width) || isNaN(height)) {
+        alert("数値を正しく入力してください");
+        return;
+      }
+
+      let colorNameList = colorOptions.map(opt => opt.name).join(" / ");
+      let colorName = prompt(
+        "ボタンの色を選んで入力してください：\n" + colorNameList,
+        colorOptions[0].name
+      );
+      if (!colorName) colorName = colorOptions[0].name;
+      let colorObj = colorOptions.find(opt => opt.name === colorName);
+      if (!colorObj) {
+        alert("色の名前は「" + colorNameList + "」から選んでください。");
+        return;
+      }
+
+      createButton(name, width, height, colorObj.value, colorObj.textColor);
+    });
+
+    window.onload = function() {
+      Array.from(document.querySelectorAll('.input-container, .draggable-btn, .text-input_container, .text-input-container, .checkbox-group, .radio-group, .timer-container')).forEach(el=>{
+        addDragHandleIfMissing(el);
+        makeDraggable(el);
+      });
+      document.querySelectorAll('input[data-only-number="true"]').forEach(inp => {
+        try { attachNumberFilter(inp); } catch(e){ console.error(e); }
+      });
+      
+      // タイマーの更新処理を開始
+      startTimerUpdates();
+      
+      saveHistory();
+    };
+
+    // タイマーの更新処理
+    function startTimerUpdates() {
+      setInterval(function() {
+        document.querySelectorAll('.timer-container').forEach(timer => {
+          const running = timer.getAttribute('data-timer-running') === 'true';
+          if (running) {
+            const mode = timer.getAttribute('data-timer-mode') || 'up';
+            let seconds = parseInt(timer.getAttribute('data-timer-seconds') || '0');
+            const target = parseInt(timer.getAttribute('data-timer-target') || '0');
+            const display = timer.querySelector('.timer-display');
+            
+            if (mode === 'up') {
+              seconds++;
+              timer.setAttribute('data-timer-seconds', seconds.toString());
+            } else {
+              seconds = Math.max(0, seconds - 1);
+              timer.setAttribute('data-timer-seconds', seconds.toString());
+              
+              if (seconds === 0) {
+                timer.setAttribute('data-timer-running', 'false');
+                const startBtn = timer.querySelector('.timer-btn.start, .timer-btn.pause');
+                if (startBtn) {
+                  startBtn.textContent = '開始';
+                  startBtn.classList.remove('pause');
+                  startBtn.classList.add('start');
+                }
+              }
+            }
+            
+            if (display) {
+              const h = Math.floor(seconds / 3600);
+              const m = Math.floor((seconds % 3600) / 60);
+              const s = seconds % 60;
+              display.textContent = 
+                String(h).padStart(2, '0') + ':' +
+                String(m).padStart(2, '0') + ':' +
+                String(s).padStart(2, '0');
+            }
+          }
+        });
+      }, 1000);
+    }
+  </script>
+
+  <!-- クイズ作成チュートリアル（吹き出し表示＋操作可能） -->
+  <script>
+  (function(){
+    const steps = [
+      {
+        title: 'クイズ作成チュートリアルへようこそ',
+        text: 'このチュートリアルではスライド上に問題（テキスト／選択肢）を配置し、プレビューで確認します。\n右下の「?」を押すか Ctrl+Shift+T で開始してください。',
+        target: null,
+        action: null
+      },
+      {
+        title: 'フォームを開く',
+        text: '「フォーム ▾」を開き、入力コントロールを追加します。自動で開きます。',
+        target: '#formBtn',
+        action: () => { const b = document.getElementById('formBtn'); if (b) b.click(); }
+      },
+      {
+        title: 'テキスト（問題文）を追加',
+        text: '「あいう」を選ぶとテキスト入力が追加されます。ボタンを自動で押します。',
+        target: '#addTextBtn',
+        action: () => { const b = document.getElementById('addTextBtn'); if (b) b.click(); }
+      },
+      {
+        title: '選択肢（ラジオ）を追加',
+        text: 'ラジオボタンを追加します。個数を指定して作成します（自動で3つを作成）。',
+        target: '#addRadioBtn',
+        action: async () => {
+          const b = document.getElementById('addRadioBtn'); if (b) b.click();
+          await new Promise(r => setTimeout(r, 220));
+          const cnt = document.getElementById('optionsCount');
+          if (cnt) { cnt.value = 3; cnt.dispatchEvent(new Event('input', {bubbles:true})); }
+          const conf = document.getElementById('createOptionsConfirm');
+          if (conf) conf.click();
+        }
+      },
+      {
+        title: 'ラベル編集',
+        text: '追加されたラジオのラベルはダブルクリックで編集できます。要素をドラッグして位置を調整してください。',
+        target: '.radio-group:last-of-type',
+        action: null
+      },
+      {
+        title: 'プレビューで確認',
+        text: '「実行」ボタンでプレビューを開き、動作を確認します。自動でプレビューを開きます。',
+        target: '#executeBtn',
+        action: () => { const b = document.getElementById('executeBtn'); if (b) b.click(); }
+      },
+      {
+        title: 'チュートリアル終了',
+        text: '完了です。もう一度開始する場合は右下の ? をクリックしてください。',
+        target: null,
+        action: null
+      }
+    ];
+
+    // スタイルは既に追加済み。以下はオーバーレイとバブルの実装。
+    const helpBtn = document.createElement('button');
+    helpBtn.className = 'tutorial-help';
+    helpBtn.title = 'クイズチュートリアルを開始（Ctrl+Shift+T）';
+    helpBtn.textContent = '?';
+    document.body.appendChild(helpBtn);
+
+    let toastTimer = null;
+    function showToast(msg, time = 3000) {
+      let t = document.querySelector('.tutorial-toast');
+      if (!t) { t = document.createElement('div'); t.className = 'tutorial-toast'; document.body.appendChild(t); }
+      t.textContent = msg;
+      clearTimeout(toastTimer); toastTimer = setTimeout(()=>{ if (t) t.remove(); }, time);
+    }
+    showToast('クイズチュートリアル：右下 ? または Ctrl+Shift+T で開始');
+
+    let overlay = null;
+    let bubble = null;
+    let current = 0;
+    let lastHighlight = null;
+
+    function highlightSelector(sel) {
+      removeHighlight();
+      if (!sel) return;
+      let el = null;
+      try { el = document.querySelector(sel); } catch(e){ el = null; }
+      if (!el) {
+        if (sel && sel.endsWith(':last-of-type')) {
+          try {
+            const base = sel.replace(/:last-of-type$/, '');
+            const list = document.querySelectorAll(base);
+            if (list.length) el = list[list.length-1];
+          } catch(e){}
+        }
+      }
+      if (!el) return;
+      el.classList.add('tutorial-highlight');
+      lastHighlight = el;
+      try { el.scrollIntoView({behavior:'smooth', block:'center', inline:'center'}); } catch(e){}
+    }
+
+    function removeHighlight() {
+      if (lastHighlight) {
+        lastHighlight.classList.remove('tutorial-highlight');
+        lastHighlight = null;
+      }
+    }
+
+    function ensureOverlay() {
+      if (overlay) return;
+      overlay = document.createElement('div');
+      overlay.className = 'tutorial-overlay';
+      overlay.setAttribute('role','dialog');
+      overlay.setAttribute('aria-modal','true');
+      document.body.appendChild(overlay);
+    }
+
+    function createBubble() {
+      if (bubble) return bubble;
+      bubble = document.createElement('div');
+      bubble.className = 'tutorial-bubble';
+      const t = document.createElement('div'); t.className = 'title';
+      const txt = document.createElement('div'); txt.className = 'text';
+      const nav = document.createElement('div'); nav.style.textAlign = 'right'; nav.style.marginTop = '8px';
+      const prev = document.createElement('button'); prev.className='tutorial-btn'; prev.textContent='戻る';
+      const next = document.createElement('button'); next.className='tutorial-btn primary'; next.textContent='次へ';
+      prev.addEventListener('click', ()=>{ goto(current-1); });
+      next.addEventListener('click', ()=>{ goto(current+1); });
+      nav.appendChild(prev); nav.appendChild(next);
+      bubble.appendChild(t); bubble.appendChild(txt); bubble.appendChild(nav);
+      document.body.appendChild(bubble);
+      return bubble;
+    }
+
+    function positionBubbleNear(targetEl) {
+      const b = createBubble();
+      if (!targetEl) {
+        // 画面下中央
+        b.style.left = (window.innerWidth/2 - 180) + 'px';
+        b.style.top = (window.innerHeight - 120) + 'px';
+        return;
+      }
+      const r = targetEl.getBoundingClientRect();
+      const bw = Math.min(340, window.innerWidth - 32);
+      // 上に置けるか
+      const canAbove = (r.top - 12) > 140;
+      if (canAbove) {
+        b.style.top = (window.scrollY + r.top - 12 - b.offsetHeight) + 'px';
+        b.style.left = Math.max(8, Math.min(window.innerWidth - bw - 8, window.scrollX + r.left + (r.width - bw)/2)) + 'px';
+      } else {
+        b.style.top = Math.max(8, window.scrollY + r.bottom + 12) + 'px';
+        b.style.left = Math.max(8, Math.min(window.innerWidth - bw - 8, window.scrollX + r.left + (r.width - bw)/2)) + 'px';
+      }
+    }
+
+    function showStepBubble(step, targetEl) {
+      ensureOverlay();
+      createBubble();
+      bubble.querySelector('.title').textContent = step.title || '';
+      bubble.querySelector('.text').textContent = step.text || '';
+      bubble.style.display = 'block';
+      // allow interactions with page elements: overlay has pointer-events:none; bubble pointer-events:auto
+      if (targetEl) {
+        positionBubbleNear(targetEl);
+      } else {
+        // fixed bottom-right-ish position
+        bubble.style.left = (window.innerWidth - 380) + 'px';
+        bubble.style.top = (window.innerHeight - 140) + 'px';
+      }
+    }
+
+    function hideBubble() {
+      if (bubble) bubble.style.display = 'none';
+    }
+
+    function goto(idx) {
+      if (idx < 0) idx = 0;
+      if (idx >= steps.length) { endTutorial(); return; }
+      current = idx;
+      ensureOverlay();
+      const step = steps[current];
+      // highlight target if any
+      let targetEl = null;
+      if (step && step.target) {
+        highlightSelector(step.target);
+        try { targetEl = document.querySelector(step.target); } catch(e){ targetEl = null; }
+        // handle :last-of-type fallback
+        if (!targetEl && step.target.endsWith(':last-of-type')) {
+          try {
+            const base = step.target.replace(/:last-of-type$/, '');
+            const list = document.querySelectorAll(base);
+            if (list.length) targetEl = list[list.length-1];
+          } catch(e){}
+        }
+      } else {
+        removeHighlight();
+      }
+
+      // show bubble near target or bottom
+      showStepBubble(step, targetEl);
+
+      // run optional action (e.g., open dropdown / auto-click)
+      if (step && typeof step.action === 'function') {
+        try {
+          setTimeout(() => { try { step.action(); } catch(e){ console.error(e); } }, 300);
+        } catch(e){ console.error(e); }
+      }
+    }
+
+    function endTutorial() {
+      if (overlay) { overlay.remove(); overlay = null; }
+      if (bubble) { bubble.remove(); bubble = null; }
+      removeHighlight();
+    }
+
+    helpBtn.addEventListener('click', ()=>{ if (overlay) { endTutorial(); } else { goto(0); } });
+
+    document.addEventListener('keydown', function(e){
+      if (e.key.toLowerCase() === 't' && e.ctrlKey && e.shiftKey) { e.preventDefault(); goto(0); }
+      if (overlay && bubble) {
+        // Esc closes
+        if (e.key === 'Escape') { endTutorial(); }
+        // Left/Right navigation
+        if (e.key === 'ArrowRight') goto(current+1);
+        if (e.key === 'ArrowLeft') goto(current-1);
+      }
+    });
+
+    // keep bubble positioned on resize/scroll
+    window.addEventListener('resize', function(){
+      if (!bubble) return;
+      const step = steps[current];
+      if (step && step.target) {
+        let targetEl = null;
+        try { targetEl = document.querySelector(step.target); } catch(e){ targetEl = null; }
+        positionBubbleNear(targetEl);
+      } else {
+        bubble.style.left = (window.innerWidth - 380) + 'px';
+        bubble.style.top = (window.innerHeight - 140) + 'px';
+      }
+    });
+
+    window.addEventListener('beforeunload', ()=>{ endTutorial(); });
+
+    window.__quizTutorial = { start: () => goto(0), end: endTutorial, goto };
+
+  })();
+  </script>
+
+  <!-- ここから追加: PowerPoint風に選択範囲でテキスト入力できる機能 -->
+  <script>
+    (function(){
+      const slide = document.getElementById('slideArea');
+      const buttonBar = document.querySelector('.button-bar');
+      if (!slide || !buttonBar) return;
+
+      const drawBtn = document.createElement('button');
+      drawBtn.id = 'drawTextBtn';
+      drawBtn.textContent = 'テキストボックス';
+      drawBtn.title = 'ドラッグで選択してテキストボックスを作成';
+      buttonBar.appendChild(drawBtn);
+
+      let drawing = false;
+      let startX = 0, startY = 0;
+      let selRect = null;
+
+      function toLocalCoords(clientX, clientY) {
+        const rect = slide.getBoundingClientRect();
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        return {x, y};
+      }
+
+      function startDrawing(e) {
+        if (!drawing) return;
+        if (e.button !== 0) return;
+        const coords = toLocalCoords(e.clientX, e.clientY);
+        startX = Math.max(0, Math.min(slide.clientWidth, coords.x));
+        startY = Math.max(0, Math.min(slide.clientHeight, coords.y));
+        selRect = document.createElement('div');
+        selRect.className = 'textarea-selection';
+        selRect.style.left = startX + 'px';
+        selRect.style.top = startY + 'px';
+        selRect.style.width = '0px';
+        selRect.style.height = '0px';
+        slide.appendChild(selRect);
+        document.addEventListener('mousemove', onMouseMoveDuringDraw);
+        document.addEventListener('mouseup', onMouseUpAfterDraw);
+      }
+
+      function onMouseMoveDuringDraw(e) {
+        if (!selRect) return;
+        const coords = toLocalCoords(e.clientX, e.clientY);
+        let curX = Math.max(0, Math.min(slide.clientWidth, coords.x));
+        let curY = Math.max(0, Math.min(slide.clientHeight, coords.y));
+        const left = Math.min(startX, curX);
+        const top = Math.min(startY, curY);
+        const w = Math.max(2, Math.abs(curX - startX));
+        const h = Math.max(2, Math.abs(curY - startY));
+        selRect.style.left = left + 'px';
+        selRect.style.top = top + 'px';
+        selRect.style.width = w + 'px';
+        selRect.style.height = h + 'px';
+      }
+
+      function onMouseUpAfterDraw(e) {
+        document.removeEventListener('mousemove', onMouseMoveDuringDraw);
+        document.removeEventListener('mouseup', onMouseUpAfterDraw);
+        if (!selRect) return;
+        const rect = selRect.getBoundingClientRect();
+        const slideRect = slide.getBoundingClientRect();
+        const left = rect.left - slideRect.left;
+        const top = rect.top - slideRect.top;
+        const width = rect.width;
+        const height = rect.height;
+        selRect.remove();
+        selRect = null;
+        if (width < 8 || height < 8) {
+          drawing = false;
+          drawBtn.classList.remove('active');
+          slide.style.cursor = '';
+          return;
+        }
+        const container = document.createElement('div');
+        container.className = 'text-input-container';
+        container.style.left = left + 'px';
+        container.style.top = top + 'px';
+        container.style.width = width + 'px';
+        container.style.height = height + 'px';
+        const ta = document.createElement('textarea');
+        ta.className = 'text-input';
+        ta.placeholder = 'テキストを入力';
+        ta.spellcheck = false;
+        container.appendChild(ta);
+        addDragHandleIfMissing(container);
+        makeDraggable(container);
+        slide.appendChild(container);
+        saveHistory();
+        drawing = false;
+        drawBtn.classList.remove('active');
+        slide.style.cursor = '';
+      }
+
+      drawBtn.addEventListener('click', function(){
+        drawing = !drawing;
+        drawBtn.classList.toggle('active', drawing);
+        slide.style.cursor = drawing ? 'crosshair' : '';
+      });
+
+      slide.addEventListener('mousedown', function(e){
+        startDrawing(e);
+      });
+
+      document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape' && drawing) {
+          if (selRect) { selRect.remove(); selRect = null; }
+          drawing = false;
+          drawBtn.classList.remove('active');
+          slide.style.cursor = '';
+        }
+      });
+
+      window.addEventListener('resize', function(){
+        if (selRect) { selRect.remove(); selRect = null; }
+      });
+
+    })();
+  </script>
+
+</body>
+</html>
