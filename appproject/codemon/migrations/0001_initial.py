@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("accounts", "0004_merge_0002_account_avatar_0003_add_type"),
+        ("accounts", "0003_add_type"),
     ]
 
     operations = [
