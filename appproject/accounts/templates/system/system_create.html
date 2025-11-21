@@ -103,34 +103,41 @@
   <main>
     <h1>システム概要</h1>
 
-    <div class="form-card" aria-labelledby="formTitle" role="form">
+    <form method="post" action="{% url 'accounts:system_create' %}" class="form-card" aria-labelledby="formTitle">
+      {% csrf_token %}
       <div id="formTitle" style="display:none">システム作成フォーム</div>
+
+      <!-- 編集モードの場合、システムIDを送信 -->
+      <input type="hidden" id="systemId" name="system_id" value="" />
+      
+      <!-- システム要素データをJSON形式で送信 -->
+      <input type="hidden" id="elementsData" name="elements_data" value="" />
 
       <div class="form-row">
         <label for="systemName">システム名 <span aria-hidden="true">※</span></label>
-        <input id="systemName" type="text" placeholder="例：顧客管理システム" maxlength="120" required aria-required="true" />
+        <input id="systemName" name="system_name" type="text" placeholder="例：顧客管理システム" maxlength="120" required aria-required="true" />
         <div class="hint" id="nameHint">最大120文字</div>
         <div class="error" id="nameError">このフィールドに入力してください</div>
       </div>
 
       <div class="form-row">
         <label for="systemDetail">システムの詳細 <span aria-hidden="true">※</span></label>
-        <textarea id="systemDetail" placeholder="システムの目的や概要、要件などを入力してください。" required aria-required="true"></textarea>
+        <textarea id="systemDetail" name="system_detail" placeholder="システムの目的や概要、要件などを入力してください。" required aria-required="true"></textarea>
         <div class="hint" id="detailHint">必須（改行可）</div>
         <div class="error" id="detailError">このフィールドに入力してください</div>
       </div>
 
       <div class="form-row">
         <label for="createdAt">作成日（自動入力のため編集不可）</label>
-        <input id="createdAt" type="date" readonly />
+        <input id="createdAt" name="created_at" type="date" readonly />
         <div class="hint" id="createdAtHint">今日の日付が自動入力</div>
       </div>
 
       <div class="controls">
         <button class="btn btn-ghost" id="cancelBtn" type="button">戻る</button>
-        <button class="btn btn-primary" id="saveBtn" type="button">作成</button>
+        <button class="btn btn-primary" id="saveBtn" type="submit">保存</button>
       </div>
-    </div>
+    </form>
   </main>
 
   <script>
@@ -141,10 +148,34 @@
     const nameInput = document.getElementById('systemName');
     const detailInput = document.getElementById('systemDetail');
     const createdAtInput = document.getElementById('createdAt');
+    const systemIdInput = document.getElementById('systemId');
     const saveBtn = document.getElementById('saveBtn');
     const cancelBtn = document.getElementById('cancelBtn');
     const nameError = document.getElementById('nameError');
     const detailError = document.getElementById('detailError');
+
+    // sessionStorageから既存システム情報を読み込み（編集モードの場合）
+    (function loadExistingSystemData(){
+      const savedSystemId = sessionStorage.getItem('systemId');
+      const savedSystemName = sessionStorage.getItem('systemName');
+      const savedSystemDescription = sessionStorage.getItem('systemDescription');
+      
+      // システムIDがある場合は編集モード
+      if (savedSystemId && systemIdInput) {
+        systemIdInput.value = savedSystemId;
+        console.log('編集モード: システムID =', savedSystemId);
+      }
+      
+      if (savedSystemName && nameInput) {
+        nameInput.value = savedSystemName;
+        console.log('システム名を復元しました:', savedSystemName);
+      }
+      
+      if (savedSystemDescription && detailInput) {
+        detailInput.value = savedSystemDescription;
+        console.log('システム詳細を復元しました');
+      }
+    })();
 
     // 作成日を YYYY-MM-DD 形式で自動入力（時間は不要）
     (function fillCreatedAt(){
@@ -195,6 +226,14 @@
           isDirty = false;
         }
 
+        // タブナビゲーション時もsessionStorageをクリア
+        sessionStorage.removeItem('systemDesignContent');
+        sessionStorage.removeItem('returnFromCreate');
+        sessionStorage.removeItem('navigatingToCreate');
+        sessionStorage.removeItem('systemId');
+        sessionStorage.removeItem('systemName');
+        sessionStorage.removeItem('systemDescription');
+
         window.location.href = targetUrl;
       });
     });
@@ -237,24 +276,183 @@
       return ok;
     }
 
-    // 作成ボタン: 必須チェックに合格したら遷移（保存処理は含めない）
+    // 保存ボタン: 必須チェックに合格したらフォームをサブミット
     saveBtn.addEventListener('click', function(e){
       e.preventDefault();
-      // 必須チェック。未入力があれば遷移しない。
+      // 必須チェック。未入力があればサブミットしない。
       if (!validate()) return;
-      // 未保存フラグ解除して次画面へ遷移（変更：ローカルホストのURL）
+      
+      // sessionStorageからシステム設計内容を取得してJSON化
+      const savedContent = sessionStorage.getItem('systemDesignContent');
+      if (savedContent) {
+        try {
+          let elementsData;
+          // すでにJSON形式かどうかを確認
+          try {
+            elementsData = JSON.parse(savedContent);
+            console.log('要素データを保存（JSON形式）:', elementsData);
+          } catch (e) {
+            // JSON解析に失敗した場合はHTML形式として処理
+            elementsData = parseSystemElements(savedContent);
+            console.log('要素データを保存（HTML形式）:', elementsData);
+          }
+          document.getElementById('elementsData').value = JSON.stringify(elementsData);
+        } catch (error) {
+          console.error('要素データの解析に失敗しました:', error);
+        }
+      }
+      
+      // 未保存フラグ解除してフォームをサブミット
       isDirty = false;
-      window.location.href = '/accounts/system/';
+      // 保存完了時はsessionStorageをすべてクリア（内容を保持しない）
+      sessionStorage.removeItem('systemDesignContent');
+      sessionStorage.removeItem('returnFromCreate');
+      sessionStorage.removeItem('navigatingToCreate');
+      sessionStorage.removeItem('systemId');
+      sessionStorage.removeItem('systemName');
+      sessionStorage.removeItem('systemDescription');
+      // フォームをサブミット（POSTリクエストを送信）
+      saveBtn.closest('form').submit();
     });
 
-    // 戻るボタン：確認ダイアログでOKなら入力破棄して system_choice へ遷移
+    // HTML要素をパースしてJSON形式に変換する関数
+    function parseSystemElements(htmlContent) {
+      const elements = [];
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = htmlContent;
+      
+      // テキスト/数値/日時入力
+      tempDiv.querySelectorAll('.input-container').forEach(container => {
+        const label = container.querySelector('.input-label');
+        const input = container.querySelector('.input-box');
+        const labelText = label ? label.textContent.trim() : '';
+        const inputValue = input ? input.value.trim() : ''; // 実際の入力値を取得
+        const placeholder = input ? input.placeholder : '';
+        const onlyNumber = input && input.getAttribute('data-only-number') === 'true';
+        const isDatetime = input && input.type === 'datetime-local';
+        
+        let elementType = 'text_input';
+        if (onlyNumber) elementType = 'number_input';
+        if (isDatetime) elementType = 'datetime_input';
+        
+        // 入力値が実際にある場合のみ保存、プレースホルダーは保存しない
+        elements.push({
+          element_type: elementType,
+          element_label: labelText,
+          element_value: inputValue, // 空の場合は空文字列として保存
+          position_x: parseInt(container.style.left) || 0,
+          position_y: parseInt(container.style.top) || 0,
+          width: container.offsetWidth || null,
+          height: container.offsetHeight || null,
+          style_data: {},
+          element_config: {
+            placeholder: placeholder // プレースホルダーは別に保存
+          }
+        });
+      });
+      
+      // チェックボックスグループ
+      tempDiv.querySelectorAll('.checkbox-group').forEach(group => {
+        const rows = group.querySelectorAll('.checkbox-row');
+        const options = [];
+        rows.forEach(row => {
+          const label = row.querySelector('.checkbox-label');
+          if (label) options.push(label.textContent.trim());
+        });
+        
+        elements.push({
+          element_type: 'checkbox_group',
+          element_label: '',
+          element_value: '',
+          position_x: parseInt(group.style.left) || 0,
+          position_y: parseInt(group.style.top) || 0,
+          width: group.offsetWidth || null,
+          height: group.offsetHeight || null,
+          style_data: {},
+          element_config: { options: options }
+        });
+      });
+      
+      // ラジオボタングループ
+      tempDiv.querySelectorAll('.radio-group').forEach(group => {
+        const rows = group.querySelectorAll('.radio-row');
+        const options = [];
+        rows.forEach(row => {
+          const label = row.querySelector('.radio-label');
+          if (label) options.push(label.textContent.trim());
+        });
+        
+        elements.push({
+          element_type: 'radio_group',
+          element_label: '',
+          element_value: '',
+          position_x: parseInt(group.style.left) || 0,
+          position_y: parseInt(group.style.top) || 0,
+          width: group.offsetWidth || null,
+          height: group.offsetHeight || null,
+          style_data: {},
+          element_config: { options: options }
+        });
+      });
+      
+      // ボタン
+      tempDiv.querySelectorAll('.draggable-btn').forEach(btn => {
+        const targetSystemId = btn.getAttribute('data-target-system');
+        
+        // ボタンのテキストから≡を除外
+        let buttonText = btn.textContent.trim();
+        // ドラッグハンドル(≡)を削除
+        buttonText = buttonText.replace(/≡/g, '').trim();
+        
+        elements.push({
+          element_type: 'button',
+          element_label: buttonText,
+          element_value: '',
+          position_x: parseInt(btn.style.left) || 0,
+          position_y: parseInt(btn.style.top) || 0,
+          width: parseInt(btn.style.width) || null,
+          height: parseInt(btn.style.height) || null,
+          style_data: {
+            background: btn.style.background || btn.style.backgroundColor,
+            color: btn.style.color
+          },
+          element_config: {
+            target_system_id: targetSystemId
+          }
+        });
+      });
+      
+      // テキストボックス
+      tempDiv.querySelectorAll('.text-input-container').forEach(container => {
+        const textInput = container.querySelector('.text-input');
+        const content = textInput ? textInput.textContent.trim() : '';
+        
+        elements.push({
+          element_type: 'text_box',
+          element_label: '',
+          element_value: content,
+          position_x: parseInt(container.style.left) || 0,
+          position_y: parseInt(container.style.top) || 0,
+          width: parseInt(container.style.width) || null,
+          height: parseInt(container.style.height) || null,
+          style_data: {},
+          element_config: {}
+        });
+      });
+      
+      return elements;
+    }
+
+    // 戻るボタン：確認ダイアログでOKなら入力破棄して index.html へ遷移
     cancelBtn.addEventListener('click', function(e){
       e.preventDefault();
       if (!isDirty) {
-        window.location.href = '/accounts/system/choice/';
+        // 保存画面から戻ることを示すフラグを設定
+        sessionStorage.setItem('returnFromCreate', 'true');
+        window.location.href = '/accounts/system/';
         return;
       }
-      const ok = confirm('入力を破棄してシステム選択画面に戻りますか？');
+      const ok = confirm('入力を破棄してシステム作成画面に戻りますか？');
       if (!ok) return;
       nameInput.value = '';
       detailInput.value = '';
@@ -264,7 +462,9 @@
       const pad = n => String(n).padStart(2,'0');
       if (createdAtInput) createdAtInput.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
       isDirty = false;
-      window.location.href = '/accounts/system/choice/';
+      // 保存画面から戻ることを示すフラグを設定
+      sessionStorage.setItem('returnFromCreate', 'true');
+      window.location.href = '/accounts/system/';
     });
 
     // 入力時にエラー表示を消す
