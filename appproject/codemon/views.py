@@ -1,5 +1,6 @@
 import os
 import json
+from functools import wraps
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db import models
 from django.contrib import messages
@@ -13,11 +14,34 @@ from channels.layers import get_channel_layer
 from .permissions import teacher_required, can_access_thread, can_modify_message
 from .models import (
     Checklist, ChecklistItem, ChatThread, ChatScore, ChatMessage, ChatAttachment,
-    Group, GroupMember, AIConversation, AIMessage
+    Group, GroupMember, AIConversation, AIMessage, System, Algorithm
 )
 from accounts.models import Account
 from django.utils import timezone
 from django.db.models import Q
+
+# カスタムログイン必須デコレータ（セッションベース認証用）
+def session_login_required(view_func):
+	"""
+	セッションベースの認証をチェックするデコレータ。
+	request.session['is_account_authenticated'] が True でない場合、
+	ログインページにリダイレクトします。
+	"""
+	@wraps(view_func)
+	def _wrapped_view(request, *args, **kwargs):
+		# デバッグ出力
+		print(f"DEBUG decorator: session_key = {request.session.session_key}")
+		print(f"DEBUG decorator: session data = {dict(request.session)}")
+		print(f"DEBUG decorator: is_account_authenticated = {request.session.get('is_account_authenticated')}")
+		
+		if not request.session.get('is_account_authenticated'):
+			from django.urls import reverse
+			login_url = reverse('accounts:student_login')
+			next_url = request.get_full_path()
+			print(f"DEBUG decorator: Redirecting to {login_url}?next={next_url}")
+			return redirect(f'{login_url}?next={next_url}')
+		return view_func(request, *args, **kwargs)
+	return _wrapped_view
 
 # When ALLOW_ANONYMOUS_VIEWS is True (development convenience), make
 # login_required a no-op so pages can be opened without logging in.
@@ -25,7 +49,7 @@ if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
 	def login_required(fn):
 		return fn
 else:
-	login_required = _login_required
+	login_required = session_login_required  # カスタムデコレータを使用
 
 
 def _get_write_owner(request):
@@ -69,20 +93,30 @@ def _get_write_owner(request):
     return None
 
 
+@login_required
 def systems_list(request):
-    # placeholder: list systems belonging to user
-    systems = []
+    owner = _get_write_owner(request)
+    if owner is None:
+        return redirect('accounts:student_login')
+    systems = System.objects.filter(user=owner).order_by('-updated_at')
+    # デバッグ: セッション情報をコンソールに出力
+    print(f"DEBUG systems_list: session keys = {list(request.session.keys())}")
+    print(f"DEBUG systems_list: is_account_authenticated = {request.session.get('is_account_authenticated')}")
     return render(request, 'codemon/systems_list.html', {'systems': systems})
 
 
+@login_required
 def algorithms_list(request):
-    algorithms = []
+    owner = _get_write_owner(request)
+    if owner is None:
+        return redirect('accounts:student_login')
+    algorithms = Algorithm.objects.filter(user=owner).order_by('-updated_at')
     return render(request, 'codemon/algorithms_list.html', {'algorithms': algorithms})
 
 
 def chat_view(request):
-    # Placeholder chat page; AI integration can be added later
-    return render(request, 'codemon/chat.html')
+	# Placeholder chat page; AI integration can be added later
+	return render(request, 'codemon/chat.html')
 
 
 def thread_list(request):
@@ -377,8 +411,6 @@ def checklist_selection(request):
             login_url = reverse('accounts:student_login') + '?next=' + request.path
             messages.error(request, 'チェックリストの閲覧にはログインが必要です')
             return redirect(login_url)
-        checklists = Checklist.objects.filter(user=owner)
-
     return render(request, 'codemon/checklist_selection.html', {'checklists': checklists})
 
 def checklist_list(request):
@@ -531,26 +563,24 @@ def checklist_delete_confirm(request, pk):
 
 
 def checklist_delete(request, pk):
-	if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
-		cl = get_object_or_404(Checklist, checklist_id=pk)
-	else:
-		owner = _get_write_owner(request)
-		if owner is None:
-			login_url = reverse('accounts:student_login') + '?next=' + request.path
-			messages.error(request, 'チェックリストの削除にはログインが必要です')
-			return redirect(login_url)
-		cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
-
-	if request.method == 'POST':
-		checklist_name = cl.checklist_name
-		items_count = cl.items.count()
-		cl.delete()
-		messages.success(request,
-			f'チェックリスト「{checklist_name}」と{items_count}個の項目が削除されました。')
-		return render(request, 'codemon/checklist_delete_complete.html',
-			{'deleted_name': checklist_name, 'deleted_items_count': items_count})
-
-	return redirect('codemon:checklist_delete_confirm', pk=pk)
+    if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
+        cl = get_object_or_404(Checklist, checklist_id=pk)
+    else:
+        owner = _get_write_owner(request)
+        if owner is None:
+            login_url = reverse('accounts:student_login') + '?next=' + request.path
+            messages.error(request, 'チェックリストの削除にはログインが必要です')
+            return redirect(login_url)
+        cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
+    if request.method == 'POST':
+        checklist_name = cl.checklist_name
+        items_count = cl.items.count()
+        cl.delete()
+        messages.success(request,
+            f'チェックリスト「{checklist_name}」と{items_count}個の項目が削除されました。')
+        return render(request, 'codemon/checklist_delete_complete.html',
+            {'deleted_name': checklist_name, 'deleted_items_count': items_count})
+    return redirect('codemon:checklist_delete_confirm', pk=pk)
 
 
 @require_POST
@@ -811,8 +841,41 @@ def group_create(request):
 
     return render(request, 'codemon/group_create.html')
 
+@require_POST
+def group_remove_member(request, group_id, member_id):
+    """グループからメンバーを削除（教師のみ）"""
+    owner = _get_write_owner(request)
+    if owner is None or owner.type != 'teacher':
+        return HttpResponseForbidden('教師権限が必要です')
 
+    group = get_object_or_404(Group, group_id=group_id, is_active=True)
+    if group.owner != owner:
+        return HttpResponseForbidden('グループのオーナーのみメンバーを削除できます')
 
+    try:
+        membership = GroupMember.objects.get(
+            group=group,
+            member_id=member_id,
+            is_active=True
+        )
+        if membership.member == group.owner:
+            return JsonResponse({
+                'error': 'グループのオーナーは削除できません'
+            }, status=400)
+
+        # 論理削除
+        membership.is_active = False
+        membership.save()
+
+        return JsonResponse({
+            'status': 'ok',
+            'message': f'{membership.member.user_name}をグループから削除しました'
+        })
+
+    except GroupMember.DoesNotExist:
+        return JsonResponse({
+            'error': '指定されたメンバーが見つかりません'
+        }, status=404)
 
 
 @require_POST
@@ -879,6 +942,11 @@ def group_delete(request, group_id):
 
     # メンバーシップも削除（is_active カラムがない環境に対応）
     GroupMember.objects.filter(group=group).delete()
+    
+
+    # If called via AJAX, return JSON so front-end can update without redirect
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({'status': 'ok', 'group_id': group_id, 'message': f'グループ「{group.group_name}」を削除しました'})
 
     messages.success(request, f'グループ「{group.group_name}」を削除しました')
     return redirect('codemon:group_list')
@@ -966,10 +1034,14 @@ def ai_chat_api(request):
     # Get Account instance for custom session auth
     from accounts.models import Account
     if request.user.is_authenticated:
-        # Try to find Account linked to Django User
-        try:
-            account = Account.objects.get(user=request.user)
-        except Account.DoesNotExist:
+        # Djangoユーザーのメールから Account を解決
+        account = Account.objects.filter(email=getattr(request.user, 'email', None)).first()
+        if not account:
+            # セッションに user_id があればフォールバック
+            account_user_id = request.session.get('account_user_id')
+            if account_user_id:
+                account = Account.objects.filter(user_id=account_user_id).first()
+        if not account:
             return JsonResponse({"error": "account not found for user"}, status=404)
     else:
         # Custom session authentication
@@ -1018,9 +1090,12 @@ def ai_history_api(request):
     # Get Account instance (same logic as ai_chat_api)
     from accounts.models import Account
     if request.user.is_authenticated:
-        try:
-            account = Account.objects.get(user=request.user)
-        except Account.DoesNotExist:
+        account = Account.objects.filter(email=getattr(request.user, 'email', None)).first()
+        if not account:
+            account_user_id = request.session.get('account_user_id')
+            if account_user_id:
+                account = Account.objects.filter(user_id=account_user_id).first()
+        if not account:
             return JsonResponse({"error": "account not found for user"}, status=404)
     else:
         account_user_id = request.session.get('account_user_id')

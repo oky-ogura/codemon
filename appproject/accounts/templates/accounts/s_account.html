@@ -33,8 +33,9 @@
     <div class="tabs">
       <div class="tab">システムタブ</div>
       <div class="tab">アルゴリズムタブ</div>
-  <div class="tab"><a href="{% url 'codemon:checklist_selection' %}">進捗管理タブ</a></div>
+      <div class="tab"><a href="{% url 'codemon:checklist_selection' %}">進捗管理タブ</a></div>
       <div class="tab"><a href="{% url 'accounts:account_entry' %}">アカウント</a></div>
+      
     </div>
 
     <div class="profile">
@@ -62,9 +63,14 @@
               {% endif %}
             {% else %}
               未参加
+              <!-- 未参加時はグループ参加ボタンを表示 -->
+              <form method="get" action="{% url 'accounts:group_join_confirm' %}" style="display:inline;margin-left:12px">
+                <button type="submit" class="btn-logout">グループに参加</button>
+              </form>
             {% endif %}
           </span>
         </div>
+
 
         <div class="meta">
           <div class="stick">
