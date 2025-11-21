@@ -1286,10 +1286,6 @@ def group_create(request):
         if not user_id:
             messages.error(request, 'ユーザーが特定できません。ログインしてください。')
             return redirect('accounts:student_login')
-<<<<<<< HEAD
-
-=======
->>>>>>> a15339030c06439f1499edcb6b97cb90723b111f
         # パスワードはハッシュ化して保存（空可）
         hashed = make_password(group_password) if group_password else ''
 

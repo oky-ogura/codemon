@@ -44,18 +44,6 @@
       </div>
 
       <div class="info">
-<<<<<<< HEAD
-        <div class="row"><span class="label">ID</span> <span>{{ account.user_id|default:"未設定" }}</span></div>
-        <div class="row"><span class="label">名前</span> <strong>{{ account.user_name|default:"未設定" }}</strong></div>
-        <div class="row"><span class="label">年齢</span> <span>{{ account.age|default:"未設定" }}歳</span></div>
-
-        <div class="meta">
-          <div class="stick">
-            <div class="figure">⚪︎</div>
-            <div class="small">名前 codemon</div>
-            <div class="small">初めて会った日 {% if first_met %}{{ first_met|date:"Y/m/d" }}{% else %}未設定{% endif %}</div>
-            <div class="small">累計日数 {{ total_days|default:"0日" }}</div>
-=======
         <div class="row"><span class="label">ID</span>
           <span>{% if account %}{{ account.user_id }}{% else %}---{% endif %}</span>
         </div>
@@ -90,7 +78,7 @@
             
             <div class="small">初めて会った日 {% if first_met %}{{ first_met|date:"Y/n/d" }}{% else %}--{% endif %}</div>
             <div class="small">累計日数 {% if total_days %}{{ total_days }}{% else %}0日{% endif %}</div>
->>>>>>> a15339030c06439f1499edcb6b97cb90723b111f
+
           </div>
 
           <div>
