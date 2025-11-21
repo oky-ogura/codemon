@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('codemon', '0002_remove_chatmessage_sender_remove_chatmessage_thread_and_more'),
+        ('codemon', '0002_aiconversation_aimessage'),
         ('codemon', '0004_merge_0002_add_group_description_0003_alter_aiconversation_user'),
     ]
 
