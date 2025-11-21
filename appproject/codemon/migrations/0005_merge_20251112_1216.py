@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
     dependencies = [
         (
             "codemon",
-            "0002_remove_chatmessage_sender_remove_chatmessage_thread_and_more",
+            "0002_aiconversation_aimessage",
         ),
         (
             "codemon",
