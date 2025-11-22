@@ -1,14 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<!-- 🔹 ナビゲーション -->
-<div class="navigation-tabs">
-  <a href="{% url 'codemon:systems_list' %}" class="tab">システム</a>
-  <a href="{% url 'codemon:algorithms_list' %}" class="tab">アルゴリズム</a>
-  <a href="{% url 'codemon:checklist_selection' %}" class="tab active">進捗確認</a>
-  <a href="{% url 'accounts:account_entry' %}" class="tab" id="account-tab">アカウント</a>
-</div>
-
 <!-- 🔹 AIチャットボタン -->
 <div class="chat-ai-bubble">
   <a href="{% url 'codemon:chat' %}" class="chat-button">
@@ -58,25 +50,6 @@
 
 <!-- 🔹 スタイル -->
 <style>
-/* ===== ナビゲーション ===== */
-.navigation-tabs {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 20px;
-}
-.tab {
-  padding: 10px 30px;
-  margin-right: 25px;
-  text-decoration: none;
-  color: #333;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-.tab.active {
-  background-color: #007bff;
-  color: white;
-}
-
 /* ===== AIチャットボタン ===== */
 .chat-ai-bubble {
   position: fixed;

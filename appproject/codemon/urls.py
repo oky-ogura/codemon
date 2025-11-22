@@ -41,6 +41,8 @@ urlpatterns = [
     path('chat/threads/', views.thread_list, name='thread_list'),
     path('chat/threads/create/', views.thread_create, name='thread_create'),
     path('chat/threads/<int:thread_id>/', views.thread_detail, name='thread_detail'),
+    # Thread messages API (JSON)
+    path('chat/threads/<int:thread_id>/messages/', views.thread_messages_api, name='thread_messages_api'),
     path('chat/threads/<int:thread_id>/edit/', views.thread_edit, name='thread_edit'),
     path('chat/threads/<int:thread_id>/delete/', views.thread_delete, name='thread_delete'),
     # Upload attachments for chat (AJAX POST)

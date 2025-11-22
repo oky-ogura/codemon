@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<!-- 💬 AIチャットボタン -->
+<div class="chat-ai-bubble">
+  <a href="{% url 'codemon:chat' %}" class="chat-button">
+    <i class="fas fa-comments"></i> AIチャット
+  </a>
+</div>
+
+<!-- 🧾 グループ確認・保存フォーム -->
+<div class="checklist-edit-container">
+  <h2>グループの内容確認</h2>
+
+  <div class="checklist-details">
+    <p><strong>グループ名：</strong> {{ group_name }}</p>
+    <p><strong>説明：</strong> {{ description|default:"(なし)" }}</p>
+  </div>
+
+  <h3>メンバー一覧</h3>
+  <ul class="checklist-items">
+    {% for m in members %}
+      <li>{{ m.member.user_name|default:m.member.email }}</li>
+    {% empty %}
+      <li>メンバーは登録されていません。</li>
+    {% endfor %}
+  </ul>
+
+  <form method="POST" action="{% url 'codemon:group_edit' group_id=group_id %}">
+    {% csrf_token %}
+    <input type="hidden" name="group_name" value="{{ group_name }}">
+    <input type="hidden" name="description" value="{{ description }}">
+    {% for m in members %}
+      <input type="hidden" name="member_{{ forloop.counter }}" value="{{ m.member.user_id }}">
+    {% endfor %}
+
+    <div class="form-actions">
+      <button type="submit" name="confirm_save" value="1" class="btn-save">確定保存</button>
+      <a href="{% url 'codemon:group_edit' group_id=group_id %}" class="btn-back">編集に戻る</a>
+    </div>
+  </form>
+</div>
+
+<!-- 🎨 スタイル -->
+<style>
+.chat-ai-bubble { position: fixed; bottom: 20px; right: 20px; }
+.chat-button { display: inline-flex; align-items: center; gap: 6px; padding: 10px 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 20px; box-shadow: 0 3px 6px rgba(0,0,0,0.2); }
+.chat-button:hover { background-color: #0056b3; }
+.checklist-edit-container { max-width: 800px; margin: 40px auto; padding: 30px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #fafafa; }
+.checklist-edit-container h2 { text-align: center; margin-bottom: 25px; }
+.checklist-details { background-color: #f8f9fa; border: 1px solid #ddd; padding: 15px 20px; border-radius: 6px; margin-bottom: 25px; }
+.checklist-details p { margin: 10px 0; font-size: 1rem; }
+.checklist-items { list-style: disc; margin-left: 20px; margin-bottom: 20px; }
+.checklist-items li { margin-bottom: 6px; }
+.form-actions { display: flex; gap: 15px; justify-content: center; margin-top: 20px; }
+.btn-save, .btn-back { padding: 10px 25px; border-radius: 5px; border: none; text-decoration: none; font-weight: bold; cursor: pointer; transition: background-color 0.2s ease; }
+.btn-save { background-color: #28a745; color: white; }
+.btn-save:hover { background-color: #218838; }
+.btn-back { background-color: #6c757d; color: white; }
+.btn-back:hover { background-color: #5a6268; }
+</style>
+
+<!-- ⚙️ スクリプト -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const accountTab = document.getElementById('account-tab');
+  {% if request.user.role == 'teacher' %}
+    accountTab.href = "{% url 'accounts:teacher_home' %}";
+  {% endif %}
+});
+</script>
+
+{% endblock %}

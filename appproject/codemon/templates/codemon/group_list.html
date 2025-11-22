@@ -1,57 +1,72 @@
 {% extends 'base.html' %}
-{% load static %}
+
+{% block title %}グループ一覧 - Codemon{% endblock %}
+
+{% block extra_css %}
+<style>
+/* テーブルレイアウト（チェックリスト一覧に合わせたスタイル） */
+.group-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.group-table th, .group-table td {
+    border-bottom: 1px solid #ddd;
+    padding: 15px;
+    text-align: left;
+}
+.group-table th {
+    background-color: #667eea;
+    color: white;
+    font-weight: bold;
+}
+.group-table tbody tr:hover { background-color: #f5f5f5; }
+.group-table a { color: #667eea; text-decoration: none; font-weight: bold; }
+.group-table a:hover { text-decoration: underline; }
+.no-items { text-align: center; color: #999; font-style: italic; padding: 40px !important; }
+
+.back-button-container { text-align: center; margin-top: 30px; }
+.btn-back { display: inline-block; padding: 12px 30px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 6px; cursor: pointer; font-size: 1em; transition: all 0.3s; }
+.btn-back:hover { background-color: #5a6268; transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+
+@media (max-width: 600px) {
+    .group-table { font-size: 14px; }
+    .group-table th, .group-table td { padding: 10px; }
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container my-4">
-    <h2>グループ管理</h2>
+<h1>グループ一覧</h1>
 
-    {% if is_teacher %}
-    <div class="mb-4">
-        <a href="{% url 'codemon:group_create' %}" class="btn btn-primary">
-            新規グループ作成
-        </a>
-    </div>
-    {% endif %}
+<table class="group-table">
+    <thead>
+        <tr>
+            <th>グループ名</th>
+            <th>オーナー</th>
+            <th>作成日</th>
+            <th>最終更新日</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for group in groups %}
+            <tr>
+                <td>
+                    <a href="{% url 'codemon:group_detail' group_id=group.group_id %}">{{ group.group_name }}</a>
+                </td>
+                <td>{{ group.owner.user_name }}</td>
+                <td>{{ group.created_at|date:"Y/m/d H:i" }}</td>
+                <td>{{ group.updated_at|date:"Y/m/d H:i" }}</td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="4" class="no-items">該当するグループはありません。</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
 
-    {% if groups %}
-        <div class="row">
-            {% for group in groups %}
-                <div class="col-md-6 mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">{{ group.group_name }}</h5>
-                            {% if group.description %}
-                                <p class="card-text text-muted">{{ group.description }}</p>
-                            {% endif %}
-                            <div class="mt-3">
-                                <a href="{% url 'codemon:group_detail' group_id=group.group_id %}" class="btn btn-outline-primary">
-                                    詳細
-                                </a>
-                                {% if is_teacher and group.owner == request.user %}
-                                    <a href="{% url 'codemon:group_edit' group_id=group.group_id %}" class="btn btn-outline-secondary">
-                                        編集
-                                    </a>
-                                    <form action="{% url 'codemon:group_delete' group_id=group.group_id %}" method="post" class="d-inline">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-outline-danger" onclick="return confirm('このグループを削除してもよろしいですか？');">
-                                            削除
-                                        </button>
-                                    </form>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <p class="text-muted">
-            {% if is_teacher %}
-                作成したグループはありません。
-            {% else %}
-                参加しているグループはありません。
-            {% endif %}
-        </p>
-    {% endif %}
+<div class="back-button-container">
+    <a href="{% url 'codemon:chat' %}" class="btn-back">戻る</a>
 </div>
+
 {% endblock %}
