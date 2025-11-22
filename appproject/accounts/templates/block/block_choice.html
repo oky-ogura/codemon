@@ -16,42 +16,124 @@
     flex-direction:column;
     gap:16px;
     width: 360px;
+    display: flex;
+      gap: 16px;
+      align-items: stretch;
+      margin-top: 40px;
+      justify-content: center;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
   }
   .action-btn {
     display:block;
     width:100%;
     padding:20px 18px;
     border-radius:12px;
+    flex: 1;
+      padding: 40px 24px;
+      border-radius: 12px;
     background: linear-gradient(180deg,#e6f0ff,#cfe6ff);
-    color:#073763;
-    font-weight:700;
-    font-size:18px;
-    border:1px solid rgba(10,59,110,0.08);
+    color: #073763;
+    font-weight: 700;
+    font-size: 18px;
+    border: 1px solid rgba(10,59,110,0.08);
     box-shadow: 0 8px 18px rgba(10,59,110,0.06);
-    text-align:center;
-    text-decoration:none;
-    transition: transform .12s ease, box-shadow .12s ease, background .12s;
+    cursor: pointer;
+    text-align: center;
+    transition: transform .12s ease, box-shadow .12s ease;
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  .action-btn.secondary {
-    background: linear-gradient(180deg,#e6f0ff,#cfe6ff);
-    color:#073763;
-    border-color: rgba(10,59,110,0.08);
-    box-shadow: 0 8px 18px rgba(10,59,110,0.06);
+  .action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(10,59,110,0.12);
   }
-  .action-btn:active { transform: translateY(1px); }
-  .action-btn.selected {
-    outline: 3px solid rgba(25,118,210,0.12);
-    box-shadow: 0 14px 30px rgba(25,118,210,0.10);
-    transform: translateY(-3px);
+  .action-btn:active {
+    transform: translateY(1px);
+  }
+  .action-btn.disabled {
+    opacity: 0.7;
+    cursor: default;
+    pointer-events: none;
+  }
+  .helper { margin-top:8px; color:#777; font-size:13px; text-align:center; }
+  .note { margin-top:12px; color:#444; font-size:13px; text-align:center; }
+  @media (max-width:880px){
+    .action-panel {
+      flex-direction: column;
+    }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-  <div class="action-panel" role="region" aria-label="アルゴリズム操作">
-    <div class="action-column" role="group" aria-label="アルゴリズム操作ボタン群">
-      <a class="action-btn" href="{% url 'accounts:block_list' %}">作成したアルゴリズム一覧を開く</a>
-      <a class="action-btn secondary" href="{% url 'accounts:block_create' %}">新しいアルゴリズムを作成</a>
+  <h1>アルゴリズム選択</h1>
+
+    <div class="action-panel" role="region" aria-label="アルゴリズム操作">
+      <button class="action-btn" id="btn-list">作成したアルゴリズム一覧を開く</button>
+      <button class="action-btn disabled" id="btn-main">メイン画面へ</button>
     </div>
+
+    <div class="action-panel" role="region" aria-label="アルゴリズム作成">
+      <button class="action-btn" id="btn-new">新しいアルゴリズムを作成</button>
   </div>
+
+
+<script>
+  (function(){
+  try{
+    const tabs = document.querySelectorAll('.nav-tab');
+    tabs.forEach(tab=>{
+      tab.addEventListener('click', (e)=>{
+        try{
+          // クリックで見た目を切替（押せるようにする）
+          tabs.forEach(t=>{
+            t.classList.remove('active');
+            t.setAttribute('aria-pressed','false');
+          });
+          tab.classList.add('active');
+          tab.setAttribute('aria-pressed','true');
+          if(typeof tab.blur === 'function') tab.blur();
+          // システムタブ
+          if(tab.id === 'tab-system'){
+            // system/choice へ遷移
+            window.location.href = '/accounts/system/choice/';
+            return;
+          }
+          // アルゴリズムタブ
+        }catch(err){
+          console.error('tab click handler error', err);
+        }
+      });
+    });
+  }catch(err){
+    console.error('tabs init error', err);
+  }
+})();
+    // 作成したアルゴリズム一覧ボタンは block_list へ遷移
+    const btnList = document.getElementById('btn-list');
+    if (btnList) {
+      btnList.addEventListener('click', function(e){
+        e.preventDefault();
+        window.location.href = '/accounts/block/list/';
+      });
+    }
+    // 新しいアルゴリズム作成ボタンは作成画面へ遷移
+    const btnNew = document.getElementById('btn-new');
+    if (btnNew) {
+      btnNew.addEventListener('click', function(e){
+        e.preventDefault();
+        window.location.href = '/accounts/block/';
+      });
+    }
+
+    // メイン画面へボタンは表示のみ（クリックイベントなし）
+    const btnMain = document.getElementById('btn-main');
+    // btnMainには何もイベントを付けない（表示のみ）
+</script>
+</body>
 {% endblock %}
+</html>

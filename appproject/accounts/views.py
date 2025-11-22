@@ -29,6 +29,8 @@ from django.contrib.messages import get_messages
 import logging
 from django.utils.dateparse import parse_datetime, parse_date
 import datetime
+from codemon.models import System, Algorithm, SystemElement
+import json
 try:
     from codemon.views import _get_write_owner
 except Exception:
@@ -80,6 +82,7 @@ class MyPasswordResetView(auth_views.PasswordResetView):
                 'email': acc.email,
                 'domain': self.request.get_host(),
                 'site_name': getattr(settings, 'SITE_NAME', self.request.get_host()),
+                'uid': uidb64,  # テンプレートで uid として参照されるように変更
                 'uidb64': uidb64,
                 'token': token,
                 'protocol': protocol,
@@ -126,6 +129,7 @@ def teacher_signup(request):
             try:
                 request.session['pending_account_name'] = instance.user_name
                 request.session['pending_account_email'] = instance.email
+                request.session['pending_account_age'] = instance.age
             except Exception:
                 pass
             # サインアップ直後にセッションへアカウント情報を入れておくと
@@ -135,6 +139,7 @@ def teacher_signup(request):
                 request.session['account_user_id'] = instance.user_id
                 request.session['account_email'] = instance.email
                 request.session['account_user_name'] = instance.user_name
+                request.session['account_age'] = instance.age
                 request.session.modified = True
                 try:
                     request.session.save()
@@ -159,6 +164,7 @@ def student_signup(request):
             try:
                 request.session['pending_account_name'] = instance.user_name
                 request.session['pending_account_email'] = instance.email
+                request.session['pending_account_age'] = instance.age
             except Exception:
                 pass
             # session にアカウント情報をセットしておく（サインアップ直後の扱いを容易にする）
@@ -167,6 +173,7 @@ def student_signup(request):
                 request.session['account_user_id'] = instance.user_id
                 request.session['account_email'] = instance.email
                 request.session['account_user_name'] = instance.user_name
+                request.session['account_age'] = instance.age
                 request.session.modified = True
                 try:
                     request.session.save()
@@ -349,12 +356,15 @@ def ai_appearance(request):
                 if appearance:
                     cfg.appearance = appearance
                     cfg.save()
+            # セッションにも保存して次の画面で使えるようにする
+            request.session['selected_appearance'] = appearance
+            request.session.modified = True
         except Exception:
             pass
         # 外見選択後は初期設定画面へ遷移させる
         return redirect('accounts:ai_initial')
 
-    appearances = ['triangle', 'round', 'robot']
+    appearances = ['アルパカ.png', 'イヌ.png', 'ウサギ.png', 'キツネ.png', 'ネコ.png', 'パンダ.png', 'フクロウ.png', 'リス.png']
     return render(request, 'accounts/ai_appearance.html', {'appearances': appearances})
 
 
@@ -364,6 +374,18 @@ def ai_initial_settings(request):
 
     # デフォルトで利用する性格の候補
     personalities = ['元気', 'おとなしい', '優しい', '無口', '冷静']
+
+    # 動物ごとのデフォルト設定
+    animal_settings = {
+        'アルパカ.png': {'personality': 'おとなしい', 'speech': 'だよ'},
+        'イヌ.png': {'personality': '元気', 'speech': 'わん'},
+        'ウサギ.png': {'personality': '優しい', 'speech': 'ぴょん'},
+        'キツネ.png': {'personality': '冷静', 'speech': 'です'},
+        'ネコ.png': {'personality': '無口', 'speech': 'にゃん'},
+        'パンダ.png': {'personality': '元気', 'speech': 'だよ'},
+        'フクロウ.png': {'personality': '冷静', 'speech': 'ですな'},
+        'リス.png': {'personality': '元気', 'speech': 'なのだ'},
+    }
 
     # POST は基本的に確認画面へ遷移するためのデータ送信に使い、
     # 確定保存は別のエンドポイントで行う（two-step flow）。
@@ -379,7 +401,7 @@ def ai_initial_settings(request):
             'ai_name': ai_name or '',
             'ai_personality': ai_personality or '元気',
             'ai_speech': ai_speech or 'です',
-            'appearance': appearance or 'triangle'
+            'appearance': appearance or 'アルパカ.png'
         })()
 
         return render(request, 'accounts/ai_initial_settings.html', {'config': config, 'personalities': personalities})
@@ -393,9 +415,30 @@ def ai_initial_settings(request):
     except Exception:
         config = None
 
+    # セッションから選択された動物を取得
+    selected_appearance = request.session.get('selected_appearance', 'アルパカ.png')
+    
     if config is None:
         # テンプレートが期待するプロパティを持つダミーを用意
-        config = type('C', (), {'ai_name':'','ai_personality':'元気','ai_speech':'です','appearance':'triangle'})()
+        # 選択された動物のデフォルト設定を使用
+        default_settings = animal_settings.get(selected_appearance, {'personality': '元気', 'speech': 'です'})
+        config = type('C', (), {
+            'ai_name': '',
+            'ai_personality': default_settings['personality'],
+            'ai_speech': default_settings['speech'],
+            'appearance': selected_appearance
+        })()
+    else:
+        # 既存の設定がある場合でも、appearanceが新しく選択されていればそれを使用
+        if selected_appearance:
+            config.appearance = selected_appearance
+            # 動物が設定されていれば対応する性格・語尾を適用（既存値がない場合のみ）
+            if config.appearance in animal_settings:
+                settings = animal_settings[config.appearance]
+                if not config.ai_personality:
+                    config.ai_personality = settings['personality']
+                if not config.ai_speech:
+                    config.ai_speech = settings['speech']
 
     return render(request, 'accounts/ai_initial_settings.html', {'config': config, 'personalities': personalities})
 
@@ -475,10 +518,130 @@ def ai_initial_save(request):
     return redirect('accounts:accounts_root')
 
 def block_index(request):
-    return render(request, 'block/index.html')
+    """
+    アルゴリズム作成・編集画面
+    - URLパラメータ id があれば編集モード: 既存アルゴリズム情報を取得してテンプレートに渡す
+    - id がなければ新規作成モード
+    """
+    algorithm_id = request.GET.get('id')
+    context = {}
+
+    if algorithm_id:
+        try:
+            algorithm = Algorithm.objects.get(algorithm_id=algorithm_id)
+            context = {
+                'algorithm_id': algorithm.algorithm_id,
+                'algorithm_name': algorithm.algorithm_name,
+                'algorithm_description': algorithm.algorithm_description or '',
+                'blockly_xml': algorithm.blockly_xml or '',
+            }
+        except Algorithm.DoesNotExist:
+            messages.error(request, '指定されたアルゴリズムが見つかりません。')
+    return render(request, 'block/index.html', context)
 
 def system_index(request):
-    return render(request, 'system/index.html')
+    """
+    システム作成・編集画面
+    - URLパラメータ id があれば編集モード: 既存システム情報を取得してテンプレートに渡す
+    - id がなければ新規作成モード
+    """
+    system_id = request.GET.get('id')
+    context = {}
+
+    # ログインユーザーの他のシステム一覧を取得
+    account = get_logged_account(request)
+    other_systems_json = '[]'
+    if account:
+        try:
+            other_systems_qs = System.objects.filter(user=account).order_by('-created_at')
+            # 編集モードの場合は、編集中のシステムを除外
+            if system_id:
+                other_systems_qs = other_systems_qs.exclude(system_id=system_id)
+
+            # JSON形式に変換
+            other_systems_list = []
+            for sys in other_systems_qs:
+                other_systems_list.append({
+                    'system_id': sys.system_id,
+                    'system_name': sys.system_name
+                })
+
+            other_systems_json = json.dumps(other_systems_list, ensure_ascii=False)
+        except Exception:
+            pass
+
+    context['other_systems_json'] = other_systems_json
+
+    if system_id:
+        try:
+            system = System.objects.get(system_id=system_id)
+            context['system_id'] = system.system_id
+            context['system_name'] = system.system_name
+            context['system_description'] = system.system_description or ''
+
+            # システム要素を取得してJSON化
+            elements = SystemElement.objects.filter(system=system).order_by('sort_order', 'element_id')
+            elements_list = []
+            for elem in elements:
+                elements_list.append({
+                    'element_type': elem.element_type,
+                    'element_label': elem.element_label or '',
+                    'element_value': elem.element_value or '',
+                    'position_x': elem.position_x,
+                    'position_y': elem.position_y,
+                    'width': elem.width,
+                    'height': elem.height,
+                    'style_data': elem.style_data or {},
+                    'element_config': elem.element_config or {}
+                })
+            context['elements_json'] = json.dumps(elements_list, ensure_ascii=False)
+        except System.DoesNotExist:
+            messages.error(request, '指定されたシステムが見つかりません。')
+
+    return render(request, 'system/index.html', context)
+
+# システム要素取得API
+def get_system_elements(request):
+    """
+    指定されたシステムの要素データをJSON形式で返すAPIエンドポイント
+    """
+    system_id = request.GET.get('system_id')
+    if not system_id:
+        return JsonResponse({'error': 'system_id is required'}, status=400)
+
+    account = get_logged_account(request)
+    if not account:
+        return JsonResponse({'error': 'Not authenticated'}, status=401)
+
+    try:
+        # システムの所有者確認
+        system = System.objects.get(system_id=system_id, user=account)
+
+        # システム要素を取得
+        elements = SystemElement.objects.filter(system=system).order_by('sort_order', 'element_id')
+        elements_list = []
+        for elem in elements:
+            elements_list.append({
+                'element_type': elem.element_type,
+                'element_label': elem.element_label or '',
+                'element_value': elem.element_value or '',
+                'position_x': elem.position_x,
+                'position_y': elem.position_y,
+                'width': elem.width,
+                'height': elem.height,
+                'style_data': elem.style_data or {},
+                'element_config': elem.element_config or {}
+            })
+
+        return JsonResponse({
+            'success': True,
+            'system_name': system.system_name,
+            'elements': elements_list
+        })
+    except System.DoesNotExist:
+        return JsonResponse({'error': 'System not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 # ブロック作成保存
 def block_save(request):
@@ -496,15 +659,230 @@ def system_choice(request):
 
 # システム新規作成画面（システム名、システムの詳細入力など）
 def system_create(request):
-    return render(request, 'system/system_create.html')
+    if request.method == 'POST':
+        # POSTデータを取得
+        system_name = request.POST.get('system_name', '').strip()
+        system_detail = request.POST.get('system_detail', '').strip()
+        created_at_str = request.POST.get('created_at', '')
+        system_id = request.POST.get('system_id', '').strip()  # 編集モードの場合にシステムIDが送信される
+        elements_json = request.POST.get('elements_data', '')  # 要素データ（JSON形式）
+
+        # バリデーション
+        if not system_name or not system_detail:
+            messages.error(request, 'システム名とシステムの詳細は必須項目です。')
+            return render(request, 'system/system_create.html')
+
+        # ログインユーザーを取得
+        account = get_logged_account(request)
+        if not account:
+            messages.error(request, 'ログインが必要です。')
+            return redirect('accounts:student_login')
+
+        try:
+            if system_id:
+                # 編集モード: 既存システムを更新
+                system = System.objects.get(system_id=system_id, user=account)
+                system.system_name = system_name
+                system.system_description = system_detail
+                system.save()
+                # 既存の要素を削除
+                SystemElement.objects.filter(system=system).delete()
+                messages.success(request, f'システム「{system_name}」を更新しました。')
+            else:
+                # 新規作成モード: 新しいSystemオブジェクトを作成
+                system = System.objects.create(
+                    user=account,
+                    system_name=system_name,
+                    system_description=system_detail
+                )
+                messages.success(request, f'システム「{system_name}」を保存しました。')
+
+            # 要素データを解析して保存
+            if elements_json:
+                try:
+                    elements_data = json.loads(elements_json)
+                    for idx, elem in enumerate(elements_data):
+                        SystemElement.objects.create(
+                            system=system,
+                            element_type=elem.get('element_type', ''),
+                            element_label=elem.get('element_label', ''),
+                            element_value=elem.get('element_value', ''),
+                            position_x=elem.get('position_x', 0),
+                            position_y=elem.get('position_y', 0),
+                            width=elem.get('width'),
+                            height=elem.get('height'),
+                            style_data=elem.get('style_data'),
+                            element_config=elem.get('element_config'),
+                            sort_order=idx
+                        )
+                except json.JSONDecodeError as e:
+                    messages.warning(request, f'要素データの解析に失敗しました: {str(e)}')
+                except Exception as e:
+                    messages.warning(request, f'要素の保存に失敗しました: {str(e)}')
+
+            # 保存完了画面へリダイレクト
+            return redirect('accounts:system_save')
+        except System.DoesNotExist:
+            messages.error(request, '指定されたシステムが見つかりません。')
+            return render(request, 'system/system_create.html')
+        except Exception as e:
+            messages.error(request, f'システムの保存に失敗しました: {str(e)}')
+            return render(request, 'system/system_create.html')
+
+    # GETリクエストの場合: 他のシステム一覧を取得してテンプレートに渡す
+    account = get_logged_account(request)
+    other_systems = []
+    if account:
+        try:
+            # ログインユーザーの全システムを取得（編集中のシステムは除外する必要があるが、ここでは全て取得）
+            other_systems = System.objects.filter(user=account).order_by('-created_at')
+        except Exception:
+            pass
+
+    return render(request, 'system/system_create.html', {'other_systems': other_systems})
 
 # システム一覧画面
 def system_list(request):
-    return render(request, 'system/system_list.html')
+     # ログインしている Account に紐づくシステムを優先して表示
+    try:
+        account = get_logged_account(request)
+    except Exception:
+        account = None
+
+    if account:
+        # 更新日が新しい順、同じ場合は作成日が新しい順
+        systems = System.objects.filter(user=account).order_by('-updated_at', '-created_at')
+    else:
+        # ログイン情報が取れない場合は全件を上位表示（最大100件）
+        systems = System.objects.all().order_by('-updated_at', '-created_at')[:100]
+
+    return render(request, 'system/system_list.html', {'systems': systems})
+
+# システム一覧データ取得API（一覧更新ボタン用）
+def system_list_data(request):
+    try:
+        account = get_logged_account(request)
+    except Exception:
+        account = None
+
+    if account:
+        # 更新日が新しい順、同じ場合は作成日が新しい順
+        systems = System.objects.filter(user=account).order_by('-updated_at', '-created_at')
+    else:
+        systems = System.objects.all().order_by('-updated_at', '-created_at')[:100]
+
+    # システムデータをJSON形式に変換
+    systems_data = []
+    for s in systems:
+        # Windowsでも動作するよう、%-を使わない形式に変更
+        created_str = s.created_at.strftime('%Y年%m月%d日 %H:%M').replace('月0', '月').replace('日0', '日') if s.created_at else ''
+        updated_str = s.updated_at.strftime('%Y年%m月%d日 %H:%M').replace('月0', '月').replace('日0', '日') if s.updated_at else ''
+
+        systems_data.append({
+            'system_id': s.system_id,
+            'system_name': s.system_name,
+            'system_description': s.system_description or '',
+            'created_at': created_str,
+            'updated_at': updated_str,
+        })
+
+    return JsonResponse({'systems': systems_data})
 
 # 該当システム詳細画面
 def system_details(request):
-    return render(request, 'system/system_details.html')
+     # URLパラメータからシステムIDを取得
+    system_id = request.GET.get('id')
+
+    if not system_id:
+        messages.error(request, 'システムIDが指定されていません。')
+        return redirect('accounts:system_list')
+
+    try:
+        # システムIDでデータベースから取得
+        system = System.objects.get(system_id=system_id)
+
+        # ログインユーザーを取得
+        account = get_logged_account(request)
+
+        # 自分のシステムかどうか確認（セキュリティ）
+        if account and system.user.user_id != account.user_id:
+            messages.error(request, 'このシステムにアクセスする権限がありません。')
+            return redirect('accounts:system_list')
+
+        # システムに紐づく要素を取得
+        elements = SystemElement.objects.filter(system=system).order_by('sort_order', 'element_id')
+
+        # テンプレートにシステム情報を渡す
+        context = {
+            'system': system,
+            'system_id': system.system_id,
+            'system_name': system.system_name,
+            'system_description': system.system_description,
+            'created_at': system.created_at,
+            'elements': elements,
+        }
+        return render(request, 'system/system_details.html', context)
+
+    except System.DoesNotExist:
+        messages.error(request, '指定されたシステムが見つかりませんでした。')
+        return redirect('accounts:system_list')
+    except Exception as e:
+        messages.error(request, f'エラーが発生しました: {str(e)}')
+        return redirect('accounts:system_list')
+
+# システム削除確認画面
+def system_delete(request):
+    # URLパラメータからシステムIDを取得
+    system_id = request.GET.get('id')
+
+    if not system_id:
+        messages.error(request, 'システムIDが指定されていません。')
+        return redirect('accounts:system_list')
+
+    try:
+        # システムIDでデータベースから取得
+        system = System.objects.get(system_id=system_id)
+
+        # ログインユーザーを取得
+        account = get_logged_account(request)
+
+        # 自分のシステムかどうか確認（セキュリティ）
+        if account and system.user.user_id != account.user_id:
+            messages.error(request, 'このシステムを削除する権限がありません。')
+            return redirect('accounts:system_list')
+
+        # POSTリクエストの場合は削除を実行
+        if request.method == 'POST':
+            system_name = system.system_name
+            system.delete()
+            messages.success(request, f'システム「{system_name}」を削除しました。')
+            return redirect('accounts:system_delete_success')
+
+        # GETリクエストの場合は削除確認画面を表示
+        context = {
+            'system': system,
+            'system_id': system.system_id,
+            'system_name': system.system_name,
+            'system_description': system.system_description,
+            'created_at': system.created_at,
+        }
+        return render(request, 'system/system_delete.html', context)
+
+    except System.DoesNotExist:
+        messages.error(request, '指定されたシステムが見つかりませんでした。')
+        return redirect('accounts:system_list')
+    except Exception as e:
+        messages.error(request, f'エラーが発生しました: {str(e)}')
+        return redirect('accounts:system_list')
+
+# システム削除完了画面
+def system_delete_success(request):
+    return render(request, 'system/system_delete_success.html')
+
+# システムチュートリアル画面
+def system_tutorial(request):
+
+    return render(request, 'system/system_tutorial.html')
 
 
 # アルゴリズム選択画面
@@ -522,20 +900,224 @@ def login_choice(request):
 # 新規アルゴリズム作成画面
 def block_create(request):
     """
-    block_create.html を表示（表示のみ、遷移先なし）
+    アルゴリズム名・概要を入力して保存する画面
+    - GETリクエスト: フォームを表示
+    - POSTリクエスト: データベースに保存または更新
     """
-    return render(request, 'block/block_create.html')
+    if request.method == 'POST':
+        algorithm_name = request.POST.get('algorithm_name', '').strip()
+        algorithm_description = request.POST.get('algorithm_description', '').strip()
+        algorithm_id = request.POST.get('algorithm_id', '').strip()
+        blockly_xml = request.POST.get('blockly_xml', '').strip()
+
+        # バリデーション
+        if not algorithm_name:
+            messages.error(request, 'アルゴリズム名は必須項目です。')
+            return render(request, 'block/block_create.html', {
+                'algorithm_name': algorithm_name,
+                'algorithm_description': algorithm_description,
+            })
+
+        try:
+            # ログインユーザーを取得
+            account = get_logged_account(request)
+
+            if algorithm_id:
+                # 既存のアルゴリズムを更新
+                algorithm = Algorithm.objects.get(algorithm_id=algorithm_id, user=account)
+                algorithm.algorithm_name = algorithm_name
+                algorithm.algorithm_description = algorithm_description
+                if blockly_xml:
+                    algorithm.blockly_xml = blockly_xml
+                algorithm.save()
+            else:
+                # 新規作成
+                Algorithm.objects.create(
+                    user=account,
+                    algorithm_name=algorithm_name,
+                    algorithm_description=algorithm_description,
+                    blockly_xml=blockly_xml if blockly_xml else None
+                )
+
+            # 保存成功後はsave.htmlを表示
+            return render(request, 'block/save.html')
+
+        except Algorithm.DoesNotExist:
+            messages.error(request, '指定されたアルゴリズムが見つかりません。')
+            return redirect('accounts:block_list')
+        except Exception as e:
+            messages.error(request, f'保存中にエラーが発生しました: {str(e)}')
+            return render(request, 'block/block_create.html', {
+                'algorithm_name': algorithm_name,
+                'algorithm_description': algorithm_description,
+            })
+
+    # GETリクエスト: フォームを表示（編集モード対応）
+    algorithm_id = request.GET.get('id')
+    context = {}
+
+    if algorithm_id:
+        try:
+            algorithm = Algorithm.objects.get(algorithm_id=algorithm_id)
+            context = {
+                'algorithm_id': algorithm.algorithm_id,
+                'algorithm_name': algorithm.algorithm_name,
+                'algorithm_description': algorithm.algorithm_description or '',
+                'blockly_xml': algorithm.blockly_xml or '',
+            }
+        except Algorithm.DoesNotExist:
+            messages.error(request, '指定されたアルゴリズムが見つかりません。')
+
+    return render(request, 'block/block_create.html', context)
 
 
 # 該当アルゴリズム詳細画面
 def block_details(request):
+    # URLパラメータからアルゴリズムIDを取得
+    algorithm_id = request.GET.get('id')
+
+    if not algorithm_id:
+        messages.error(request, 'アルゴリズムIDが指定されていません。')
+        return redirect('accounts:block_list')
     
-    return render(request, 'block/block_details.html')
+    try:
+        # アルゴリズムIDでデータベースから取得
+        algorithm = Algorithm.objects.get(algorithm_id=algorithm_id)
+
+        # ログインユーザーを取得
+        account = get_logged_account(request)
+
+        # POSTリクエストの場合は更新処理
+        if request.method == 'POST':
+            algorithm_name = request.POST.get('algorithm_name', '').strip()
+            algorithm_description = request.POST.get('algorithm_description', '').strip()
+
+            # バリデーション
+            if not algorithm_name:
+                messages.error(request, 'アルゴリズム名は必須項目です。')
+                return render(request, 'block/block_details.html', {
+                    'algorithm': algorithm,
+                })
+
+            # 所有者チェック（他のユーザーのアルゴリズムは編集不可）
+            if algorithm.user != account:
+                messages.error(request, '他のユーザーのアルゴリズムは編集できません。')
+                return redirect('accounts:block_list')
+
+            # アルゴリズムを更新
+            algorithm.algorithm_name = algorithm_name
+            algorithm.algorithm_description = algorithm_description
+            algorithm.save()
+
+            # 成功メッセージは表示せず、一覧画面にリダイレクト
+            return redirect('accounts:block_list')
+
+        # GETリクエストの場合は詳細表示
+        context = {
+            'algorithm': algorithm,
+        }
+
+        return render(request, 'block/block_details.html', context)
+
+    except Algorithm.DoesNotExist:
+        messages.error(request, '指定されたアルゴリズムが見つかりません。')
+        return redirect('accounts:block_list')
+    except Exception as e:
+        messages.error(request, f'エラーが発生しました: {str(e)}')
+        return redirect('accounts:block_list')
 
 # アルゴリズム一覧画面
 def block_list(request):
+    # ログインしている Account に紐づくアルゴリズムを優先して表示
+    try:
+        account = get_logged_account(request)
+    except Exception:
+        account = None
+        
+    if account:
+        # 更新日が新しい順、同じ場合は作成日が新しい順
+        algorithms = Algorithm.objects.filter(user=account).order_by('-updated_at', '-created_at')
+    else:
+        # ログイン情報が取れない場合は全件を上位表示（最大100件）
+        algorithms = Algorithm.objects.all().order_by('-updated_at', '-created_at')[:100]
 
-    return render(request, 'block/block_list.html')
+    return render(request, 'block/block_list.html', {'algorithms': algorithms})
+
+# アルゴリズム一覧データ取得API（一覧更新ボタン用）
+def block_list_data(request):
+    try:
+        account = get_logged_account(request)
+    except Exception:
+        account = None
+
+    if account:
+        # 更新日が新しい順、同じ場合は作成日が新しい順
+        algorithms = Algorithm.objects.filter(user=account).order_by('-updated_at', '-created_at')
+    else:
+        algorithms = Algorithm.objects.all().order_by('-updated_at', '-created_at')[:100]
+
+    # アルゴリズムデータをJSON形式に変換
+    algorithms_data = []
+    for a in algorithms:
+        # Windowsでも動作するよう、%-を使わない形式に変更
+        created_str = a.created_at.strftime('%Y年%m月%d日 %H:%M').replace('月0', '月').replace('日0', '日') if a.created_at else ''
+        updated_str = a.updated_at.strftime('%Y年%m月%d日 %H:%M').replace('月0', '月').replace('日0', '日') if a.updated_at else ''
+
+        algorithms_data.append({
+            'algorithm_id': a.algorithm_id,
+            'algorithm_name': a.algorithm_name,
+            'algorithm_description': a.algorithm_description or '',
+            'created_at': created_str,
+            'updated_at': updated_str,
+        })
+
+    return JsonResponse({'algorithms': algorithms_data})
+
+
+# アルゴリズム削除確認・削除実行
+def block_delete(request):
+    # URLパラメータからアルゴリズムIDを取得
+    algorithm_id = request.GET.get('id')
+
+    if not algorithm_id:
+        messages.error(request, 'アルゴリズムIDが指定されていません。')
+        return redirect('accounts:block_list')
+
+    try:
+        # アルゴリズムIDでデータベースから取得
+        algorithm = Algorithm.objects.get(algorithm_id=algorithm_id)
+
+        # ログインユーザーを取得
+        account = get_logged_account(request)
+
+        # 自分のアルゴリズムかどうか確認（セキュリティ）
+        if account and algorithm.user.user_id != account.user_id:
+            messages.error(request, 'このアルゴリズムを削除する権限がありません。')
+            return redirect('accounts:block_list')
+
+        # POSTリクエストの場合は削除を実行
+        if request.method == 'POST':
+            algorithm_name = algorithm.algorithm_name
+            algorithm.delete()
+            messages.success(request, f'アルゴリズム「{algorithm_name}」を削除しました。')
+            return redirect('accounts:block_delete_success')
+
+        # GETリクエストの場合は削除確認画面を表示
+        context = {
+            'algorithm': algorithm,
+        }
+        return render(request, 'block/block_delete.html', context)
+
+    except Algorithm.DoesNotExist:
+        messages.error(request, '指定されたアルゴリズムが見つかりませんでした。')
+        return redirect('accounts:block_list')
+    except Exception as e:
+        messages.error(request, f'エラーが発生しました: {str(e)}')
+        return redirect('accounts:block_list')
+
+# アルゴリズム削除完了画面
+def block_delete_success(request):
+    return render(request, 'block/block_delete_success.html')
 
 
 # アカウントダッシュボード（生徒/教員どちらでも動作する簡易版）
@@ -1237,7 +1819,7 @@ def password_reset_confirm(request, uidb64, token):
             new_pw = form.cleaned_data['new_password1']
             account.password = make_password(new_pw)
             account.save()
-            return HttpResponseRedirect(reverse('password_reset_complete'))
+            return HttpResponseRedirect(reverse('accounts:password_reset_complete'))
     else:
         form = _SetNewPasswordForm()
 

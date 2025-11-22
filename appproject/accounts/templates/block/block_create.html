@@ -107,34 +107,47 @@
     <div class="form-card" aria-labelledby="formTitle" role="form">
       <div id="formTitle" style="display:none">アルゴリズム作成フォーム</div>
 
-      <div class="form-row">
-        <label for="blockName">アルゴリズム名 <span aria-hidden="true">※</span></label>
-        <input id="blockName" type="text" placeholder="例：条件判定" maxlength="120" required aria-required="true" />
-        <div class="hint" id="nameHint">最大120文字</div>
-        <div class="error" id="nameError">このフィールドに入力してください</div>
-      </div>
+      <form method="post" id="algorithmForm">
+        {% csrf_token %}
+        <input type="hidden" id="algorithmId" name="algorithm_id" value="" />
+        <input type="hidden" id="blocklyXml" name="blockly_xml" value="" />
+        
+        <div class="form-row">
+          <label for="blockName">アルゴリズム名 <span aria-hidden="true">※</span></label>
+          <input id="blockName" name="algorithm_name" type="text" placeholder="例:条件判定" maxlength="120" required aria-required="true" value="{{ algorithm_name|default:'' }}" />
+          <div class="hint" id="nameHint">最大120文字</div>
+          <div class="error" id="nameError">このフィールドに入力してください</div>
+        </div>
 
-      <div class="form-row">
-        <label for="blockDetail">アルゴリズムの詳細 <span aria-hidden="true">※</span></label>
-        <textarea id="blockDetail" placeholder="アルゴリズムの概要、要件などを入力してください。" required aria-required="true"></textarea>
-        <div class="hint" id="detailHint">必須（改行可）</div>
-        <div class="error" id="detailError">このフィールドに入力してください</div>
-      </div>
+        <div class="form-row">
+          <label for="blockDetail">アルゴリズムの詳細 <span aria-hidden="true">※</span></label>
+          <textarea id="blockDetail" name="algorithm_description" placeholder="アルゴリズムの概要、要件などを入力してください。" required aria-required="true">{{ algorithm_description|default:'' }}</textarea>
+          <div class="hint" id="detailHint">必須（改行可）</div>
+          <div class="error" id="detailError">このフィールドに入力してください</div>
+        </div>
 
-      <div class="form-row">
-        <label for="createdAt">作成日（自動入力のため編集不可）</label>
-        <input id="createdAt" type="date" readonly />
-        <div class="hint" id="createdAtHint">今日の日付が自動入力</div>
-      </div>
+        <div class="form-row">
+          <label for="createdAt">作成日（自動入力のため編集不可）</label>
+          <input id="createdAt" type="date" readonly />
+          <div class="hint" id="createdAtHint">今日の日付が自動入力</div>
+        </div>
 
-      <div class="controls">
-        <button class="btn btn-ghost" id="cancelBtn" type="button">戻る</button>
-        <button class="btn btn-primary" id="saveBtn" type="button">作成</button>
-      </div>
+        <div class="controls">
+          <button class="btn btn-ghost" id="cancelBtn" type="button">戻る</button>
+          <button class="btn btn-primary" id="saveBtn" type="submit">保存</button>
+        </div>
+      </form>
     </div>
   </main>
 
   <script>
+    // 編集モード対応: Django テンプレート変数からアルゴリズムIDを取得
+    const existingAlgorithmData = {
+      algorithmId: '{{ algorithm_id|default:"" }}',
+      algorithmName: '{{ algorithm_name|default:""|escapejs }}',
+      algorithmDescription: '{{ algorithm_description|default:""|escapejs }}'
+    };
+
     // --- ナビタブ挙動 / ナビ遷移時の確認処理付き ---
     // isDirty = フォームが未保存の変更ありフラグ
     let isDirty = false;
@@ -146,6 +159,61 @@
     const cancelBtn = document.getElementById('cancelBtn');
     const nameError = document.getElementById('nameError');
     const detailError = document.getElementById('detailError');
+
+    // ページ読み込み時に編集モードのデータを設定
+    (function loadExistingData(){
+      // セッションストレージからBlocklyデータを取得
+      const blocklyXml = sessionStorage.getItem('blockly_xml');
+      if (blocklyXml) {
+        const blocklyXmlInput = document.getElementById('blocklyXml');
+        if (blocklyXmlInput) {
+          blocklyXmlInput.value = blocklyXml;
+        }
+        // データ取得後は削除（一度きり）
+        sessionStorage.removeItem('blockly_xml');
+      }
+      
+      // 一時保存データを取得（戻るボタン経由で保存された内容）
+      const tempName = sessionStorage.getItem('temp_algorithm_name');
+      const tempDescription = sessionStorage.getItem('temp_algorithm_description');
+      const tempId = sessionStorage.getItem('temp_algorithm_id');
+      
+      // 一時保存データがある場合は優先して使用
+      const algorithmId = tempId || existingAlgorithmData.algorithmId;
+      const algorithmName = tempName || existingAlgorithmData.algorithmName;
+      const algorithmDescription = tempDescription || existingAlgorithmData.algorithmDescription;
+      
+      if (algorithmId) {
+        // hidden fieldにアルゴリズムIDを設定
+        const algorithmIdInput = document.getElementById('algorithmId');
+        if (algorithmIdInput) {
+          algorithmIdInput.value = algorithmId;
+        }
+      }
+      
+      // アルゴリズム名を入力フィールドに設定
+      if (algorithmName && nameInput) {
+        nameInput.value = algorithmName;
+      }
+      
+      // アルゴリズム概要をテキストエリアに設定
+      if (algorithmDescription && detailInput) {
+        detailInput.value = algorithmDescription;
+      }
+      
+      // 一時保存データを削除（使い終わったので）
+      if (tempName) {
+        sessionStorage.removeItem('temp_algorithm_name');
+        console.log('一時保存されたアルゴリズム名を復元しました:', tempName);
+      }
+      if (tempDescription) {
+        sessionStorage.removeItem('temp_algorithm_description');
+        console.log('一時保存されたアルゴリズム詳細を復元しました');
+      }
+      if (tempId) {
+        sessionStorage.removeItem('temp_algorithm_id');
+      }
+    })();
 
     // 作成日を YYYY-MM-DD 形式で自動入力（時間は不要）
     (function fillCreatedAt(){
@@ -238,34 +306,70 @@
       return ok;
     }
 
-    // 作成ボタン: 必須チェックに合格したら遷移（保存処理は含めない）
+    // 保存ボタン: 必須チェックに合格したらフォームを送信
+    const algorithmForm = document.getElementById('algorithmForm');
+    if (algorithmForm) {
+      algorithmForm.addEventListener('submit', function(e){
+        e.preventDefault();
+        // 必須チェック。未入力があれば送信しない。
+        if (!validate()) return;
+        // 未保存フラグ解除してフォームを送信
+        isDirty = false;
+        this.submit();
+      });
+    }
+
+    // 保存ボタンのクリックイベント（フォームのsubmitイベントでも処理される）
     saveBtn.addEventListener('click', function(e){
-      e.preventDefault();
-      // 必須チェック。未入力があれば遷移しない。
-      if (!validate()) return;
-      // 未保存フラグ解除して次画面へ遷移（変更：ローカルホストのURL）
-      isDirty = false;
-      window.location.href = '/accounts/block/';
+      // フォームのsubmitイベントで処理されるため、ここでは何もしない
     });
 
-    // 戻るボタン：確認ダイアログでOKなら入力破棄して block_choice へ遷移
+    // 戻るボタン：入力内容を保持してアルゴリズム作成画面に戻る
     cancelBtn.addEventListener('click', function(e){
       e.preventDefault();
-      if (!isDirty) {
-        window.location.href = '/accounts/block/choice/';
-        return;
+      
+      // 現在の入力内容を取得
+      const algorithmName = nameInput ? nameInput.value.trim() : '';
+      const algorithmDescription = detailInput ? detailInput.value.trim() : '';
+      const algorithmId = document.getElementById('algorithmId') ? document.getElementById('algorithmId').value : '';
+      const blocklyXml = document.getElementById('blocklyXml') ? document.getElementById('blocklyXml').value : '';
+      
+      // 新規作成の場合で、かつ入力内容がある場合のみ確認ダイアログを表示
+      const isNewCreation = !algorithmId; // IDがない = 新規作成
+      const hasInput = algorithmName || algorithmDescription;
+      
+      if (isNewCreation && hasInput) {
+        const confirmDiscard = confirm('入力内容を破棄してアルゴリズム作成画面に戻りますか？');
+        if (!confirmDiscard) {
+          return; // キャンセルされたら何もしない
+        }
       }
-      const ok = confirm('入力を破棄してアルゴリズム選択画面に戻りますか？');
-      if (!ok) return;
-      nameInput.value = '';
-      detailInput.value = '';
-      if (nameError) nameError.style.display = 'none';
-      if (detailError) detailError.style.display = 'none';
-      const d = new Date();
-      const pad = n => String(n).padStart(2,'0');
-      if (createdAtInput) createdAtInput.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      
+      // 戻るボタン経由であることを示すフラグを設定
+      sessionStorage.setItem('returned_from_create', 'true');
+      
+      // 入力内容を保存（戻るボタン経由の場合のみ復元される）
+      if (algorithmName) {
+        sessionStorage.setItem('temp_algorithm_name', algorithmName);
+      }
+      if (algorithmDescription) {
+        sessionStorage.setItem('temp_algorithm_description', algorithmDescription);
+      }
+      if (algorithmId) {
+        sessionStorage.setItem('temp_algorithm_id', algorithmId);
+      }
+      if (blocklyXml) {
+        sessionStorage.setItem('temp_blockly_xml', blocklyXml);
+      }
+      
       isDirty = false;
-      window.location.href = '/accounts/block/choice/';
+      
+      // 編集モードの場合はIDをURLパラメータとして渡す
+      if (algorithmId) {
+        window.location.href = `/accounts/block/?id=${algorithmId}`;
+      } else {
+        window.location.href = '/accounts/block/';
+      }
     });
 
     // 入力時にエラー表示を消す
