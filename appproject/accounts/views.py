@@ -242,7 +242,24 @@ def teacher_login(request):
             # リダイレクトで Set-Cookie を確実に反映
             return redirect('accounts:karihome')
         else:
-            messages.error(request, 'ユーザー名またはパスワードが違います')
+            # 認証失敗の原因が "別の種別のアカウントで存在している" 可能性があるため確認する
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "SELECT user_id, user_name, email, password, account_type FROM account WHERE user_name = %s OR email = %s LIMIT 1",
+                        [username, username]
+                    )
+                    alt_row = cursor.fetchone()
+                if alt_row and check_password(password, alt_row[3]):
+                    acct_type = (alt_row[4] or '').lower() if len(alt_row) > 4 else ''
+                    if acct_type != 'teacher':
+                        messages.error(request, 'このアカウントはここではログインできません')
+                    else:
+                        messages.error(request, 'ユーザー名またはパスワードが違います')
+                else:
+                    messages.error(request, 'ユーザー名またはパスワードが違います')
+            except Exception:
+                messages.error(request, 'ユーザー名またはパスワードが違います')
 
     # GET または認証失敗時はログインフォームを表示
     return render(request, 'accounts/t_login.html')
@@ -258,6 +275,15 @@ def student_login(request):
         # Account テーブルを使って認証（auth_user を利用しない）
         acc = Account.objects.filter(email=username).first() or Account.objects.filter(user_name=username).first()
         if acc and check_password(password, acc.password):
+            # このログイン画面は生徒用。アカウント種別が student でない場合はログイン不可とする
+            try:
+                acct_type = getattr(acc, 'account_type', '') or ''
+            except Exception:
+                acct_type = ''
+            if acct_type.lower() != 'student':
+                messages.error(request, 'このアカウントはここではログインできません')
+                return render(request, 'accounts/s_login.html')
+
             request.session['is_account_authenticated'] = True
             request.session['account_user_id'] = acc.user_id
             request.session['account_email'] = acc.email
@@ -326,7 +352,6 @@ from functools import wraps
 def account_session_required(view_func):
     @wraps(view_func)
     def _wrapped(request, *args, **kwargs):
-        print(f"DEBUG account_session_required: session_key={request.session.session_key} data={dict(request.session)}")
         if not request.session.get('is_account_authenticated'):
             login_url = reverse('accounts:student_login')
             next_url = request.get_full_path()
@@ -336,7 +361,6 @@ def account_session_required(view_func):
 
 @account_session_required
 def karihome(request):
-    print(f"DEBUG karihome view: session_key={request.session.session_key} data={dict(request.session)}")
     return render(request, 'accounts/karihome.html')
 
 def login_choice(request):
@@ -1416,6 +1440,26 @@ def group_delete_confirm(request, group_id):
         'member_count': member_count,
     })
 
+def group_delete(request, group_id):
+    """POSTで受け取り、指定グループのメンバーとアカウントの紐付けを削除し、グループ本体を削除します。"""
+    if request.method != 'POST':
+        # 確認ページへ誘導（POST以外は削除を行わない）
+        return redirect('accounts:group_delete_confirm', group_id=group_id)
+
+    try:
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                # group_member テーブルから該当 group_id のメンバーを削除
+                cursor.execute('DELETE FROM group_member WHERE group_id = %s', [group_id])
+                # account テーブルの group_id を NULL にして紐付け解除
+                cursor.execute('UPDATE account SET group_id = NULL WHERE group_id = %s', [group_id])
+                # 最後に group 本体を削除（テーブル名が予約語のためダブルクォートで囲む）
+                cursor.execute('DELETE FROM "group" WHERE group_id = %s', [group_id])
+        messages.success(request, 'グループを削除しました。')
+    except Exception as e:
+        messages.error(request, f'グループの削除に失敗しました: {e}')
+    return redirect('accounts:account_entry')
+
 
 def group_menu_redirect(request):
     """グループメニュー root への互換ハンドラ。
@@ -1690,9 +1734,7 @@ def group_join_confirm(request):
             return redirect('accounts:student_login')
 
         try:
-            # Debug: show incoming ids for tracing
-            print(f"DEBUG group_join_confirm: attempting to join group_id={found_group_id} for user_id={user_id}")
-            messages.info(request, f'デバッグ: group_id={found_group_id}, user_id={user_id}')
+            # Debugging traces removed in production
             # Use an explicit transaction to ensure both inserts/updates succeed together.
             with transaction.atomic():
                 with connection.cursor() as cursor:
@@ -1717,15 +1759,11 @@ def group_join_confirm(request):
                     try:
                         cursor.execute('SELECT id FROM group_member WHERE group_id=%s AND member_user_id=%s', [found_group_id, user_id])
                         gm = cursor.fetchone()
-                        print(f"DEBUG group_join_confirm: group_member check for group_id={found_group_id}, user_id={user_id} -> {gm}")
-                        messages.info(request, f'デバッグ: group_member exists={bool(gm)}')
                     except Exception as _:
                         print('DEBUG group_join_confirm: failed to select group_member')
                     try:
                         cursor.execute('SELECT group_id FROM account WHERE user_id = %s', [user_id])
                         acc_row = cursor.fetchone()
-                        print(f"DEBUG group_join_confirm: account.group_id for user_id={user_id} -> {acc_row}")
-                        messages.info(request, f'デバッグ: account.group_id={acc_row[0] if acc_row else None}')
                     except Exception as _:
                         print('DEBUG group_join_confirm: failed to select account')
         except Exception as e:

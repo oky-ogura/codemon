@@ -62,13 +62,20 @@
                     {# アカウント種別はこのテンプレートが生徒用なので固定する（ユーザーによる選択は外す） #}
                     <input type="hidden" name="role" value="student">
                 </div>
-
+                
                 <div class="submit-area">
                     <!-- フォームを送信してアカウントを作成し、次の AI 外見設定画面へ移動 -->
                     <button type="submit" class="big-btn">決定</button>
                 </div>
+                
             </form>
-        {% load static %}
+{% load static %}
+            <div class="back-link" style="text-align:center;margin-top:12px">
+                    <a href="{% url 'accounts:student_login' %}">ログインページへ</a>
+                </div>
+
+        
+
         <style>
             :root{ --bg:#f8fafc; --muted:#444; --accent:#4b90ff }
             body{
