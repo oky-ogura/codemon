@@ -19,6 +19,36 @@
         .avatar-circle {
             width:140px; height:140px; border-radius:50%; border:3px solid #bbb; display:flex; align-items:center; justify-content:center; background:#fafafa; font-size:48px; margin:6px auto;
         }
+
+        /* イニシャルごとの背景色（A-Z） */
+        .avatar-circle.initial-A { background:#1abc9c; color:#fff; }
+        .avatar-circle.initial-B { background:#2ecc71; color:#fff; }
+        .avatar-circle.initial-C { background:#3498db; color:#fff; }
+        .avatar-circle.initial-D { background:#9b59b6; color:#fff; }
+        .avatar-circle.initial-E { background:#34495e; color:#fff; }
+        .avatar-circle.initial-F { background:#16a085; color:#fff; }
+        .avatar-circle.initial-G { background:#27ae60; color:#fff; }
+        .avatar-circle.initial-H { background:#2980b9; color:#fff; }
+        .avatar-circle.initial-I { background:#8e44ad; color:#fff; }
+        .avatar-circle.initial-J { background:#2c3e50; color:#fff; }
+        .avatar-circle.initial-K { background:#f39c12; color:#fff; }
+        .avatar-circle.initial-L { background:#d35400; color:#fff; }
+        .avatar-circle.initial-M { background:#c0392b; color:#fff; }
+        .avatar-circle.initial-N { background:#7f8c8d; color:#fff; }
+        .avatar-circle.initial-O { background:#e67e22; color:#fff; }
+        .avatar-circle.initial-P { background:#e74c3c; color:#fff; }
+        .avatar-circle.initial-Q { background:#1f618d; color:#fff; }
+        .avatar-circle.initial-R { background:#117a65; color:#fff; }
+        .avatar-circle.initial-S { background:#9b59b6; color:#fff; }
+        .avatar-circle.initial-T { background:#2e86c1; color:#fff; }
+        .avatar-circle.initial-U { background:#17a589; color:#fff; }
+        .avatar-circle.initial-V { background:#b03a2e; color:#fff; }
+        .avatar-circle.initial-W { background:#45b39d; color:#fff; }
+        .avatar-circle.initial-X { background:#5dade2; color:#fff; }
+        .avatar-circle.initial-Y { background:#f5b041; color:#fff; }
+        .avatar-circle.initial-Z { background:#a569bd; color:#fff; }
+
+        .initial-text { font-size:48px; line-height:1; color:inherit; font-weight:700; }
         .meta { margin-top:10px; font-size:14px; color:#333; }
         .logout-area { margin-top:14px; }
 
@@ -52,23 +82,27 @@
 <body>
     <div class="top-tabs">
         <nav class="tabs">
-            <a href="#">システムタブ</a>
-            <a href="#">アルゴリズムタブ</a>
-            <a href="#">進捗管理タブ</a>
-            <a href="{% url 'accounts:account_entry' %}">アカウント</a>
+            <a href="#">システム</a>
+            <a href="#">アルゴリズム</a>
+            <a href="#">進捗管理</a>
+            <a href="{% url 'accounts:karihome' %}">ホーム</a>
         </nav>
     </div>
 
     <div class="card">
         <div class="main">
             <div class="left">
-                <div class="avatar-circle">
-                    {% if user.profile.avatar %}
-                        <img src="{{ user.profile.avatar.url }}" alt="avatar" style="width:100%;height:100%;border-radius:50%;">
-                    {% else %}
-                        👤
-                    {% endif %}
-                </div>
+                {% with display_name=account.user_name|default:user.get_full_name|default:"codemon" %}
+                    {% with initial=display_name|slice:":1" %}
+                        <div class="avatar-circle {% if not user.profile.avatar %}initial-{{ initial|upper }}{% endif %}">
+                            {% if user.profile.avatar %}
+                                <img src="{{ user.profile.avatar.url }}" alt="avatar" style="width:100%;height:100%;border-radius:50%;">
+                            {% else %}
+                                <span class="initial-text">{{ initial|upper }}</span>
+                            {% endif %}
+                        </div>
+                    {% endwith %}
+                {% endwith %}
 
                 <div class="meta">
                     <div>ID <strong>{{ account.user_id|default:user.id }}</strong></div>
@@ -78,7 +112,7 @@
                     <div class="logout-area">
                         <form id="logout-form" method="post" action="{% url 'accounts:logout' %}">
                             {% csrf_token %}
-                            <button type="submit" class="btn logout">ログアウト</button>
+                            <button type="button" id="logout-btn" class="btn logout">ログアウト</button>
                         </form>
                     </div>
                 </div>
@@ -98,33 +132,150 @@
                 </table>
 
                 <div class="groups">
-                    <div style="font-weight:700; color:#444;">グループ</div>
-
+                    <div class="groups-header" style="display:flex; align-items:center; justify-content:space-between;">
+                        <div style="font-weight:700; color:#444;">グループ</div>
+                        <div class="groups-actions" style="margin-left:12px;">
+                            <a class="btn" href="{% url 'accounts:group_create' %}">新規作成</a>
+                        </div>
+                    </div>
                         {% if groups %}
                             {% for g in groups %}
                                 <div class="group-row">
                                     <div class="group-name">{{ g.name }}</div>
                                     <div class="group-meta">{{ g.member_count }}人</div>
-                                    <a class="btn detail" href="{% url 'group_detail' g.group_id %}">詳細ボタン</a>
-                                    <form method="post" action="{% url 'group_delete' g.group_id %}" style="display:inline">
-                                        {% csrf_token %}
-                                        <button class="btn del">削除ボタン</button>
-                                    </form>
+                                    <a class="btn detail" href="{% url 'accounts:group_menu' g.group_id %}">詳細</a>
+                                    <!-- 削除はページ内確認モーダルを表示してから遷移します -->
+                                    <button type="button" class="btn del" data-delete-url="{% url 'accounts:group_delete' g.group_id %}">削除</button>
                                 </div>
                             {% endfor %}
                         {% else %}
                             <div style="padding:10px 6px; color:#666;">グループはありません</div>
                         {% endif %}
 
-                        <div style="margin-top:8px;">
-                            <a class="btn" href="{% url 'group:group_create' %}">新規作成</a>
-                        </div>
+                        
                         
                     </div>
 
                 </div>
 
             </div>
+    </div>
+
+  <!-- 確認モーダル（s_account と同じ構成） -->
+  <div id="confirm-modal" aria-hidden="true" style="display:none; position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.4);align-items:center;justify-content:center">
+    <div class="box" role="dialog" aria-modal="true" aria-labelledby="confirm-title" style="background:#fff;padding:20px;border-radius:8px;min-width:320px;text-align:center">
+      <div id="confirm-title">ログアウトしますか？</div>
+      <div class="buttons" style="margin-top:16px;display:flex;gap:12px;justify-content:center">
+        <button class="btn yes" id="confirm-yes" style="padding:8px 14px;border-radius:6px;border:none;background:#f46b6b;color:#fff">はい</button>
+        <button class="btn no" id="confirm-no" style="padding:8px 14px;border-radius:6px;border:none;background:#e0e6ef">いいえ</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    var logoutBtn = document.getElementById('logout-btn');
+    var logoutForm = document.getElementById('logout-form');
+    var modal = document.getElementById('confirm-modal');
+    var yes = document.getElementById('confirm-yes');
+    var no = document.getElementById('confirm-no');
+    if(logoutBtn){ logoutBtn.addEventListener('click', function(){ modal.style.display = 'flex'; }); }
+    if(no){ no.addEventListener('click', function(){ modal.style.display = 'none'; }); }
+    if(yes){ yes.addEventListener('click', function(){ if(logoutForm) logoutForm.submit(); }); }
+  })();
+  </script>
+
+    <!-- グループ削除用モーダル -->
+    <div id="group-delete-modal" aria-hidden="true" style="display:none; position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;z-index:1200;">
+        <div class="box" role="dialog" aria-modal="true" aria-labelledby="gdel-title" style="background:#fff;padding:20px;border-radius:8px;min-width:320px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+            <div id="gdel-title" style="font-weight:700; margin-bottom:10px;">本当にこのグループを削除しますか？</div>
+            <div style="color:#666; font-size:14px;">削除すると復元できません。よろしいですか？</div>
+            <div class="buttons" style="margin-top:18px;display:flex;gap:12px;justify-content:center">
+                <button class="btn" id="gdel-cancel" style="padding:8px 14px;border-radius:6px;border:none;background:#e0e6ef">戻る</button>
+                <button class="btn del" id="gdel-confirm" style="padding:8px 14px;border-radius:6px;border:none;background:#ff6b6b;color:#fff">削除する</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function(){
+        var deleteButtons = document.querySelectorAll('button.btn.del[data-delete-url]');
+        var modal = document.getElementById('group-delete-modal');
+        var cancel = document.getElementById('gdel-cancel');
+        var confirm = document.getElementById('gdel-confirm');
+        var targetUrl = null;
+
+        function openModal(url){
+            targetUrl = url;
+            modal.style.display = 'flex';
+            modal.setAttribute('aria-hidden','false');
+            // focus the cancel button for accessibility
+            cancel && cancel.focus();
+        }
+
+        function closeModal(){
+            targetUrl = null;
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden','true');
+        }
+
+        deleteButtons.forEach(function(btn){
+            btn.addEventListener('click', function(e){
+                var url = btn.getAttribute('data-delete-url');
+                if(!url) return;
+                openModal(url);
+            });
+        });
+
+        if(cancel){ cancel.addEventListener('click', closeModal); }
+
+    // CSRF helper: read cookie
+    function getCookie(name) {
+      var v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+      return v ? v.pop() : '';
+    }
+
+    if(confirm){ confirm.addEventListener('click', function(){
+        if(!targetUrl){ closeModal(); return; }
+        // send POST via fetch to delete endpoint
+        var csrf = getCookie('csrftoken') || getCookie('csrf');
+        fetch(targetUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrf,
+                'Accept': 'application/json'
+            }
+        }).then(function(resp){
+            if(!resp.ok){ return resp.json().then(function(j){ throw j; }); }
+            return resp.json();
+        }).then(function(json){
+            // Success: remove the group row element
+            try{
+                // find the button that opened the modal (nearest match by data-delete-url)
+                var opener = document.querySelector('button.btn.del[data-delete-url="' + targetUrl + '"]');
+                if(opener){
+                    var row = opener.closest('.group-row');
+                    if(row){ row.parentNode.removeChild(row); }
+                }
+            }catch(e){ /* ignore DOM errors */ }
+            closeModal();
+        }).catch(function(err){
+            // show an alert on error
+            try{
+                var msg = (err && err.error) ? err.error : '削除に失敗しました';
+                alert(msg);
+            }catch(e){ alert('削除に失敗しました'); }
+            closeModal();
+        });
+    }); }
+
+        // ESC で閉じる
+        document.addEventListener('keydown', function(ev){ if(ev.key === 'Escape' && modal && modal.style.display === 'flex'){ closeModal(); } });
+    })();
+    </script>
+
         </div>
     </div>
 </body>

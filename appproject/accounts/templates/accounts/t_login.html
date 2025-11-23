@@ -18,6 +18,10 @@
             margin-bottom: 24px;
             color: #333;
         }
+        .messages { margin-bottom:12px }
+        .message { padding:10px;border-radius:6px;font-size:0.95em }
+        .message.error { background:#fdecea;color:#611a15;border:1px solid #f5c6cb }
+        .message.success { background:#e6ffed;color:#164d2b;border:1px solid #b3e6c1 }
         .login-box form {
             display: flex;
             flex-direction: column;
@@ -48,6 +52,13 @@
 <body>
     <div class="login-box">
         <h2>ログイン（教員）</h2>
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="message {{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
         <form method="post">
             {% csrf_token %}
             <label for="id_username">ユーザー名</label>
@@ -55,7 +66,7 @@
             <label for="id_password">パスワード</label>
             <input type="password" name="password" id="id_password" required>
             <div class="links">
-                <a href="{% url 'accounts:teacher_signup' %}" class="muted">アカウント新規作成リンク</a>
+                <a href="{% url 'accounts:teacher_signup' %}" class="muted">アカウント新規作成</a>
             </div>
             <button type="submit">ログイン</button>
         </form>

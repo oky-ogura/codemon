@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>ログイン種別を選択</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  body{font-family:Segoe UI,system-ui,-apple-system,\"Hiragino Kaku Gothic ProN\",\"Meiryo\",sans-serif;background:#f5f7fa;margin:0;padding:28px}
+  .card{max-width:520px;margin:48px auto;background:#fff;padding:28px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,0.06);text-align:center}
+  h1{margin:0 0 18px;font-size:20px}
+  .desc{color:#666;margin-bottom:20px}
+  .buttons{display:flex;gap:12px;justify-content:center}
+  .btn{padding:14px 22px;border-radius:8px;border:none;cursor:pointer;font-size:16px}
+  .btn-teacher{background:#3b82f6;color:#fff}
+  .btn-student{background:#10b981;color:#fff}
+  .small{margin-top:16px;color:#888;font-size:13px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>ログイン種別を選択してください</h1>
+    <div class="desc">利用目的に応じて、教員アカウントまたは生徒アカウントでログインしてください。</div>
+    <div class="buttons">
+      <a class="btn btn-teacher" href="{% url 'accounts:teacher_login' %}">教員でログイン</a>
+      <a class="btn btn-student" href="{% url 'accounts:student_login' %}">生徒でログイン</a>
+    </div>
+    <div class="small">※ 適切なアカウントをお持ちでない場合はサインアップから登録してください。</div>
+  </div>
+</body>
+</html>

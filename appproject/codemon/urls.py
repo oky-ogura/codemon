@@ -2,6 +2,7 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 from . import views
+from accounts import views as accounts_views
 
 app_name = 'codemon'
 
@@ -30,16 +31,7 @@ urlpatterns = [
     # 項目の完了／未完了切り替え
     path('checklists/<int:pk>/items/<int:item_id>/toggle/', views.checklist_toggle_item, name='checklist_toggle_item'),
 
-    # グループ管理
-    path('groups/', views.group_list, name='group_list'),
-    path('groups/create/', views.group_create, name='group_create'),
-    path('groups/<int:group_id>/', views.group_detail, name='group_detail'),
-    path('groups/<int:group_id>/edit/', views.group_edit, name='group_edit'),
-    path('groups/<int:group_id>/delete/', views.group_delete, name='group_delete'),
-    path('groups/<int:group_id>/invite/', views.group_invite, name='group_invite'),
-    path('groups/<int:group_id>/members/<int:member_id>/remove/', 
-        views.group_remove_member, name='group_remove_member'),
-    path('groups/<int:group_id>/leave/', views.group_leave, name='group_leave'),
+    
 
     # その他
     path('systems/', views.systems_list, name='systems_list'),
@@ -49,6 +41,8 @@ urlpatterns = [
     path('chat/threads/', views.thread_list, name='thread_list'),
     path('chat/threads/create/', views.thread_create, name='thread_create'),
     path('chat/threads/<int:thread_id>/', views.thread_detail, name='thread_detail'),
+    # Thread messages API (JSON)
+    path('chat/threads/<int:thread_id>/messages/', views.thread_messages_api, name='thread_messages_api'),
     path('chat/threads/<int:thread_id>/edit/', views.thread_edit, name='thread_edit'),
     path('chat/threads/<int:thread_id>/delete/', views.thread_delete, name='thread_delete'),
     # Upload attachments for chat (AJAX POST)
@@ -63,6 +57,17 @@ urlpatterns = [
     path('chat/attachment/<int:attachment_id>/download/', views.download_attachment, name='download_attachment'),
     # メッセージ検索
     path('chat/search/', views.search_messages, name='search_messages'),
+    # グループ管理
+    # codemon 側には group_detail / group_invite / group_remove_member の実装が存在しないため
+    # これらは accounts.views へ委譲する。名称は維持してテンプレート等の既存参照（codemon:group_detail など）を壊さない。
+    path('groups/', views.group_list, name='group_list'),
+    path('groups/create/', views.group_create, name='group_create'),
+    path('groups/<int:group_id>/', accounts_views.group_detail, name='group_detail'),
+    path('groups/<int:group_id>/edit/', views.group_edit, name='group_edit'),
+    path('groups/<int:group_id>/delete/', views.group_delete, name='group_delete'),
+    path('groups/<int:group_id>/leave/', views.group_leave, name='group_leave'),
+    path('groups/<int:group_id>/invite/', accounts_views.group_invite, name='group_invite'),
+    path('groups/<int:group_id>/remove_member/<int:member_id>/', accounts_views.group_remove_member, name='group_remove_member'),
     path('', views.index, name='index'),
     path('chat/upload_attachment/', views.upload_attachments, name='upload_attachments'),
     # AI Chat API
