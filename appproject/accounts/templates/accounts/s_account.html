@@ -10,6 +10,36 @@
   .tab{padding:8px 18px;border:1px solid #000;background:#fff}
   .profile{display:flex;gap:24px;align-items:flex-start}
   .avatar{width:120px;height:120px;border-radius:50%;border:4px solid #ddd;background:#eee;display:flex;align-items:center;justify-content:center;font-size:14px;color:#666}
+
+  /* イニシャルごとの背景色（A-Z） */
+  .avatar.initial-A { background:#1abc9c; color:#fff; }
+  .avatar.initial-B { background:#2ecc71; color:#fff; }
+  .avatar.initial-C { background:#3498db; color:#fff; }
+  .avatar.initial-D { background:#9b59b6; color:#fff; }
+  .avatar.initial-E { background:#34495e; color:#fff; }
+  .avatar.initial-F { background:#16a085; color:#fff; }
+  .avatar.initial-G { background:#27ae60; color:#fff; }
+  .avatar.initial-H { background:#2980b9; color:#fff; }
+  .avatar.initial-I { background:#8e44ad; color:#fff; }
+  .avatar.initial-J { background:#2c3e50; color:#fff; }
+  .avatar.initial-K { background:#f39c12; color:#fff; }
+  .avatar.initial-L { background:#d35400; color:#fff; }
+  .avatar.initial-M { background:#c0392b; color:#fff; }
+  .avatar.initial-N { background:#7f8c8d; color:#fff; }
+  .avatar.initial-O { background:#e67e22; color:#fff; }
+  .avatar.initial-P { background:#e74c3c; color:#fff; }
+  .avatar.initial-Q { background:#1f618d; color:#fff; }
+  .avatar.initial-R { background:#117a65; color:#fff; }
+  .avatar.initial-S { background:#9b59b6; color:#fff; }
+  .avatar.initial-T { background:#2e86c1; color:#fff; }
+  .avatar.initial-U { background:#17a589; color:#fff; }
+  .avatar.initial-V { background:#b03a2e; color:#fff; }
+  .avatar.initial-W { background:#45b39d; color:#fff; }
+  .avatar.initial-X { background:#5dade2; color:#fff; }
+  .avatar.initial-Y { background:#f5b041; color:#fff; }
+  .avatar.initial-Z { background:#a569bd; color:#fff; }
+
+  .initial-text { font-size:48px; line-height:1; font-weight:700; color:inherit; }
   .info{flex:1}
   .info .row{margin-bottom:8px}
   .label{display:inline-block;width:80px;color:#333}
@@ -34,50 +64,76 @@
       <div class="tab">システムタブ</div>
       <div class="tab">アルゴリズムタブ</div>
       <div class="tab"><a href="{% url 'codemon:checklist_selection' %}">進捗管理タブ</a></div>
-      <div class="tab"><a href="{% url 'accounts:account_entry' %}">アカウント</a></div>
+      <div class="tab"><a href="{% url 'accounts:karihome' %}">ホーム</a></div>
       
     </div>
 
     <div class="profile">
       <div>
-        <div class="avatar">ユーザー<br>アイコン</div>
+        {% with display_name=account.user_name|default:"ゲスト" %}
+          {% with initial=display_name|slice:":1" %}
+            {% if user and user.is_authenticated and user.profile.avatar %}
+              <div class="avatar">
+                <img src="{{ user.profile.avatar.url }}" alt="avatar" style="width:100%;height:100%;border-radius:50%;">
+              </div>
+            {% else %}
+              <div class="avatar initial-{{ initial|upper }}">
+                <span class="initial-text">{{ initial|upper }}</span>
+              </div>
+            {% endif %}
+          {% endwith %}
+        {% endwith %}
       </div>
 
       <div class="info">
-        <div class="row"><span class="label">ID</span>
-          <span>{% if account %}{{ account.user_id }}{% else %}---{% endif %}</span>
-        </div>
-        <div class="row"><span class="label">名前</span>
-          <strong>{% if account %}{{ account.user_name }}{% else %}ゲスト{% endif %}</strong>
-        </div>
-        <div class="row"><span class="label">年齢</span>
-          <span>{% if account and account.age is not None %}{{ account.age }}歳{% else %}--{% endif %}</span>
-        </div>
-        <div class="row"><span class="label">参加グループ</span>
-          <span>
-            {% if joined_group %}
-              {% if joined_group.detail_url %}
-                <a href="{{ joined_group.detail_url }}">{{ joined_group.group_name }}</a>
-              {% else %}
-                {{ joined_group.group_name }}
-              {% endif %}
-            {% else %}
-              未参加
-              <!-- 未参加時はグループ参加ボタンを表示 -->
-              <form method="get" action="{% url 'accounts:group_join_confirm' %}" style="display:inline;margin-left:12px">
-                <button type="submit" class="btn-logout">グループに参加</button>
-              </form>
-            {% endif %}
-          </span>
-        </div>
+<div class="row">
+  <span class="label">ID</span>
+  <span>{% if account %}{{ account.user_id }}{% else %}---{% endif %}</span>
+</div>
 
+<div class="row">
+  <span class="label">名前</span>
+  <strong>{% if account %}{{ account.user_name }}{% else %}ゲスト{% endif %}</strong>
+</div>
 
-        <div class="meta">
-          <div class="stick">
-            
-            
-            <div class="small">初めて会った日 {% if first_met %}{{ first_met|date:"Y/n/d" }}{% else %}--{% endif %}</div>
-            <div class="small">累計日数 {% if total_days %}{{ total_days }}{% else %}0日{% endif %}</div>
+<div class="row">
+  <span class="label">年齢</span>
+  <span>{% if account and account.age is not None %}{{ account.age }}歳{% else %}--{% endif %}</span>
+</div>
+
+<div class="row">
+  <span class="label">参加グループ</span>
+  <span>
+    {% if joined_group %}
+      {% if joined_group.detail_url %}
+        <a href="{{ joined_group.detail_url }}">{{ joined_group.group_name }}</a>
+      {% else %}
+        {{ joined_group.group_name }}
+      {% endif %}
+    {% else %}
+      未参加
+      <!-- 未参加時はグループ参加ボタンを表示 -->
+      <form method="get" action="{% url 'accounts:group_join_confirm' %}" style="display:inline;margin-left:12px">
+        <button type="submit" class="btn-logout">グループに参加</button>
+      </form>
+    {% endif %}
+  </span>
+</div>
+
+<div class="meta">
+  <div class="stick">
+    <div class="figure">⚪︎</div>
+
+    <!-- AI 設定表示（存在しない場合はデフォルト） -->
+    <div class="small">名前 {{ ai_config.ai_name|default:"codemon" }}</div>
+    <div class="small">性格 {{ ai_config.ai_personality|default:"元気" }}</div>
+    <div class="small">語尾 {{ ai_config.ai_speech|default:"です" }}</div>
+
+    <!-- main ブランチのメタ情報（日時や累計日数） -->
+    <div class="small">初めて会った日 {% if first_met %}{{ first_met|date:"Y/n/d" }}{% else %}--{% endif %}</div>
+    <div class="small">累計日数 {% if total_days %}{{ total_days }}{% else %}0日{% endif %}</div>
+  </div>
+</div>
 
           </div>
 

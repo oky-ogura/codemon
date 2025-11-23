@@ -13,9 +13,9 @@
     <div class="icon-circle">
       <i class="fas fa-check"></i>
     </div>
-    <h2>チェックリストの削除が完了しました</h2>
+    <h2>グループの削除が完了しました</h2>
     <p class="sub-message">
-      「{{ deleted_name }}」と含まれる{{ deleted_items_count }}個の項目が
+      「{{ deleted_name }}」と含まれる{{ deleted_members_count }}人のメンバー情報が
       正常に削除されました。
     </p>
     {% if messages %}
@@ -30,9 +30,9 @@
   </div>
 
   <div class="actions">  
-    <a href="{% url 'codemon:checklist_list' %}" class="btn-primary">
-      <i class="fas fa-list"></i>
-      チェックリスト一覧へ戻る
+    <a href="{% url 'codemon:group_list' %}" class="btn-primary">
+      <i class="fas fa-users"></i>
+      グループ一覧へ戻る
     </a>
   </div>
 </div>

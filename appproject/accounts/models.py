@@ -10,6 +10,7 @@ class Account(models.Model):
     # 年齢を保存できるようにフィールドを追加
     age = models.IntegerField(blank=True, null=True, verbose_name='年齢')
     account_type = models.CharField(max_length=20, blank=True, null=True, verbose_name='アカウント種別')
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True, verbose_name='アバター画像')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='登録日時')
     
     # 互換性のために `type` プロパティを提供する
