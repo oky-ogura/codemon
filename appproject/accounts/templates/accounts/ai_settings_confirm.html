@@ -6,65 +6,291 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>設定確認</title>
     <style>
-        body{margin:0;font-family:Meiryo, 'Hiragino Kaku Gothic ProN',sans-serif;background:#f8fafc}
-        .wrap{max-width:980px;margin:28px auto;padding:16px;border:2px solid #111;background:#fff}
-        h1{text-align:center;margin-top:8px}
-        .cols{display:flex;gap:24px;align-items:flex-start}
-        .col{flex:1;padding:8px}
-        .left{text-align:left}
-        .center{text-align:center}
-        .label{color:#444;margin:8px 0}
-        .ai-illustration{width:180px;height:200px;object-fit:contain}
-        .button-row{display:flex;justify-content:center;margin-top:18px}
-        .btn{padding:10px 22px;border-radius:8px;border:2px solid #9fb8e8;background:#ddeeff;cursor:pointer;margin:0 8px}
-        .btn.secondary{background:#f9dddd;border-color:#e3a3a3}
+        body{
+            margin:0;
+            font-family:'M PLUS Rounded 1c', Meiryo, 'Hiragino Kaku Gothic ProN',sans-serif;
+            min-height:100vh;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            position:relative;
+            overflow:hidden;
+        }
+        /* 装飾要素 */
+        .deco-shape{position:absolute;z-index:1}
+        .hexagon{width:100px;height:100px;border:8px solid rgba(147,112,219,0.5);transform:rotate(45deg);top:50px;left:200px;border-radius:15px}
+        .circle{width:60px;height:60px;border:6px solid rgba(255,105,180,0.6);border-radius:50%;top:120px;left:400px}
+        .triangle{width:0;height:0;border-left:40px solid transparent;border-right:40px solid transparent;border-bottom:70px solid rgba(147,200,255,0.5);top:80px;right:250px}
+        .pentagon{width:120px;height:120px;background:rgba(144,238,144,0.4);clip-path:polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);top:50px;right:100px}
+        .dots{position:absolute;bottom:100px;left:80px;display:grid;grid-template-columns:repeat(6,8px);gap:8px}
+        .dot{width:8px;height:8px;background:rgba(100,200,255,0.6);border-radius:50%}
+        .line1{position:absolute;width:200px;height:5px;background:rgba(255,105,180,0.7);transform:rotate(45deg);bottom:150px;right:200px;border-radius:3px}
+        .line2{position:absolute;width:150px;height:5px;background:rgba(100,200,255,0.7);transform:rotate(-45deg);top:200px;left:150px;border-radius:3px}
+        .cross{position:absolute;bottom:200px;right:400px;font-size:60px;color:rgba(255,105,180,0.5);font-weight:bold}
+        .curve{position:absolute;bottom:100px;right:100px;width:100px;height:100px;border:5px solid rgba(100,200,255,0.6);border-color:transparent rgba(100,200,255,0.6) rgba(100,200,255,0.6) transparent;border-radius:50%;transform:rotate(45deg)}
+        
+        .wrap{
+            max-width:1200px;
+            width:90%;
+            margin:0 auto;
+            padding:40px 50px;
+            position:relative;
+            z-index:10;
+        }
+        h1{
+            text-align:center;
+            margin:0 0 30px;
+            font-size:36px;
+            font-weight:bold;
+            position:relative;
+        }
+        h1::before, h1::after{
+            content:'///';
+            position:absolute;
+            top:50%;
+            transform:translateY(-50%);
+            color:#FFD700;
+            font-size:20px;
+        }
+        h1::before{left:calc(50% - 200px)}
+        h1::after{right:calc(50% - 200px)}
+        
+        .content{display:flex;gap:40px;align-items:flex-start}
+        .section{flex:1}
+        .section-title{
+            display:inline-block;
+            background:#fff;
+            border:3px solid #FF69B4;
+            border-radius:15px;
+            padding:8px 25px;
+            margin-bottom:30px;
+            font-size:18px;
+            font-weight:bold;
+        }
+        
+        .info-group{display:flex;flex-direction:column;gap:18px;margin-left:40px}
+        .info-row{display:flex;align-items:center;gap:15px}
+        .info-label{
+            font-size:16px;
+            font-weight:500;
+            min-width:140px;
+        }
+        .info-value{
+            background:linear-gradient(135deg, #7DD3FC 0%, #60C1FC 100%);
+            color:#000;
+            padding:12px 35px;
+            border-radius:25px;
+            font-size:16px;
+            font-weight:500;
+            flex:1;
+            max-width:350px;
+        }
+        
+        .center-section{
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            gap:20px;
+            padding:0 30px;
+        }
+        .ai-illustration-frame{
+            width:200px;
+            height:280px;
+            background:#fff;
+            border-radius:15px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            overflow:hidden;
+            position:relative;
+        }
+        .ai-illustration{
+            width:100%;
+            height:100%;
+            object-fit:contain;
+        }
+        
+        .button-row{
+            display:flex;
+            justify-content:center;
+            gap:20px;
+            margin-top:30px;
+            height:50px;
+            align-items:center;
+        }
+        .btn{
+            font-size:1rem;
+            color:#000000;
+            text-transform:uppercase;
+            padding:5px 10px;
+            border-radius:10px;
+            border-top:2px solid #ff8c00;
+            border-left:2px solid #ff8c00;
+            border-right:2px solid #fafafa;
+            border-bottom:2px solid #fafafa;
+            background:#ffffff;
+            box-shadow:5px 5px 0 #00bfff;
+            cursor:pointer;
+            font-weight:bold;
+            text-decoration:none;
+            display:inline-block;
+            transition:transform 0.2s;
+            height:40px;
+            line-height:40px;
+            padding:0 20px;
+        }
+        .btn:hover{transform:translateY(-2px)}
+        .btn-primary{
+            background:#ffffff;
+            color:#000000;
+        }
+        .btn-secondary{
+            background:#ffffff;
+            color:#000000;
+        }
+        
+        /* レスポンシブ対応 */
+        @media (max-width: 1000px) {
+            .content{flex-direction:column;align-items:center}
+            .section{width:100%;max-width:500px}
+            .info-group{margin-left:0}
+            h1::before, h1::after{display:none}
+        }
     </style>
 </head>
 <body>
+<!-- 装飾要素 -->
+<div class="deco-shape hexagon"></div>
+<div class="deco-shape circle"></div>
+<div class="deco-shape triangle"></div>
+<div class="deco-shape pentagon"></div>
+<div class="deco-shape dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+</div>
+<div class="deco-shape line1"></div>
+<div class="deco-shape line2"></div>
+<div class="deco-shape cross">+</div>
+<div class="deco-shape curve"></div>
+
 <div class="wrap">
-    <h1>設定確認</h1>
-    <p style="text-align:center;font-size:18px;margin:6px 0">これで大丈夫？</p>
-    <div class="cols">
-        <div class="col left">
-            <h3>あなたの情報</h3>
-            {% if request.user.is_authenticated %}
-                <div class="label">名前: {{ request.user.user_name|default:request.user.get_full_name|default:request.user.username }}</div>
-                <div class="label">メールアドレス: {{ request.user.email }}</div>
-            {% elif 'pending_account_name' in request.session or 'account_user_name' in request.session %}
-                {% if 'pending_account_name' in request.session %}
-                    <div class="label">名前: {{ request.session.pending_account_name }}</div>
+    <h1>これで大丈夫？</h1>
+    
+    <div class="content">
+        <!-- 左側：あなたの情報 -->
+        <div class="section">
+            <div class="section-title">あなたの情報</div>
+            <div class="info-group">
+                {% if request.user.is_authenticated %}
+                    <div class="info-row">
+                        <div class="info-label">名前</div>
+                        <div class="info-value">{{ request.user.user_name|default:request.user.get_full_name|default:request.user.username }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">年齢</div>
+                        <div class="info-value">{{ request.user.age|default:"未設定" }} 歳</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">メールアドレス</div>
+                        <div class="info-value">{{ request.user.email }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">パスワード</div>
+                        <div class="info-value">••••••••</div>
+                    </div>
+                {% elif 'pending_account_name' in request.session or 'account_user_name' in request.session %}
+                    <div class="info-row">
+                        <div class="info-label">名前</div>
+                        <div class="info-value">
+                            {% if 'pending_account_name' in request.session %}
+                                {{ request.session.pending_account_name }}
+                            {% else %}
+                                {{ request.session.account_user_name }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">年齢</div>
+                        <div class="info-value">
+                            {% if 'pending_account_age' in request.session %}
+                                {{ request.session.pending_account_age }} 歳
+                            {% elif 'account_age' in request.session %}
+                                {{ request.session.account_age }} 歳
+                            {% else %}
+                                未設定
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">メールアドレス</div>
+                        <div class="info-value">
+                            {% if 'pending_account_email' in request.session %}
+                                {{ request.session.pending_account_email }}
+                            {% else %}
+                                {{ request.session.account_email }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">パスワード</div>
+                        <div class="info-value">••••••••</div>
+                    </div>
                 {% else %}
-                    <div class="label">名前: {{ request.session.account_user_name }}</div>
+                    <div class="info-row">
+                        <div class="info-label" style="min-width:100%">(未ログイン — 登録・ログインするとここに表示されます)</div>
+                    </div>
                 {% endif %}
-                {% if 'pending_account_email' in request.session %}
-                    <div class="label">メールアドレス: {{ request.session.pending_account_email }}</div>
-                {% else %}
-                    <div class="label">メールアドレス: {{ request.session.account_email }}</div>
-                {% endif %}
-            {% else %}
-                <div class="label">(未ログイン — 登録・ログインするとここに表示されます)</div>
-            {% endif %}
-            <!-- 「あなたの情報を変更」は新規登録画面へ移動するためリンクに変更 -->
-            <a href="{% url 'accounts:student_signup' %}" class="btn secondary" style="text-decoration:none;display:inline-block;padding:10px 22px">あなたの情報を変更</a>
+            </div>
+            <div class="button-row">
+                <a href="{% url 'accounts:student_signup' %}" class="btn btn-secondary">情報を変更</a>
+            </div>
         </div>
-        <div class="col center">
-            <h3>CodeMonの情報</h3>
-            <img class="ai-illustration" id="ai_ill" src="" alt="AIのイラスト">
-            <div class="label">名前: <strong>{{ ai_name }}</strong></div>
-            <div class="label">性格: {{ ai_personality }}</div>
-            <div class="label">語尾: {{ ai_speech }}</div>
-            <!-- OK を押して確認画面へ（GET で表示） -->
+        
+        <!-- 中央：AIイラスト -->
+        <div class="center-section">
+            <div class="ai-illustration-frame">
+                <img class="ai-illustration" id="ai_ill" src="" alt="AIのイラスト">
+            </div>
+            <div style="height:45px"></div>
             <form method="post" action="{% url 'accounts:ai_initial_save' %}">
                 {% csrf_token %}
                 <input type="hidden" name="ai_name" value="{{ ai_name }}">
                 <input type="hidden" name="ai_personality" value="{{ ai_personality }}">
                 <input type="hidden" name="ai_speech" value="{{ ai_speech }}">
                 <input type="hidden" name="appearance" value="{{ appearance }}">
-                <div class="button-row">
-                    <a href="{% url 'accounts:ai_appearance' %}" class="btn secondary" style="text-decoration:none;display:inline-block;padding:10px 22px">外見を変更</a>
-                    <button type="submit" class="btn">OK！</button>
-                </div>
+                <button type="submit" class="btn btn-primary">決定</button>
             </form>
+        </div>
+        
+        <!-- 右側：CodeMonの情報 -->
+        <div class="section">
+            <div class="section-title">CodeMonの情報</div>
+            <div class="info-group">
+                <div class="info-row">
+                    <div class="info-label">名前</div>
+                    <div class="info-value">{{ ai_name }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"></div>
+                    <div class="info-value" style="background:transparent"></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"></div>
+                    <div class="info-value" style="background:transparent"></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"></div>
+                    <div class="info-value" style="background:transparent"></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"></div>
+                    <div class="info-value" style="background:transparent"></div>
+                </div>
+            </div>
+            <div class="button-row">
+                <a href="{% url 'accounts:ai_appearance' %}" class="btn btn-secondary">情報を変更</a>
+            </div>
         </div>
     </div>
 </div>

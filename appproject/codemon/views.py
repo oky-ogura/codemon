@@ -3,6 +3,7 @@ import json
 from functools import wraps
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db import models
+from django.db import transaction
 from django.contrib import messages
 from django.conf import settings
 from django.contrib.auth.decorators import login_required as _login_required
@@ -498,7 +499,8 @@ def checklist_selection(request):
             login_url = reverse('accounts:student_login') + '?next=' + request.path
             messages.error(request, 'チェックリストの閲覧にはログインが必要です')
             return redirect(login_url)
-        # ログイン済みのユーザー向けにはそのユーザーが作成したチェックリストを表示
+
+        # ログイン済みユーザー向けの一覧を設定
         checklists = Checklist.objects.filter(user=owner).order_by('-updated_at')
 
     return render(request, 'codemon/checklist_selection.html', {'checklists': checklists})
@@ -1147,20 +1149,32 @@ def group_delete(request, group_id):
 
     group = get_object_or_404(Group, group_id=group_id, owner=owner, is_active=True)
     
-    # グループを非アクティブ化（論理削除）
-    group.is_active = False
-    group.save()
+    # 実際にグループを削除する（トランザクションでメンバー削除、アカウント紐付け解除、本体削除をまとめて行う）
+    try:
+        with transaction.atomic():
+            # メンバーシップ削除
+            GroupMember.objects.filter(group=group).delete()
+            # account テーブルの group_id を解除（参照整合性のため）
+            try:
+                Account.objects.filter(group_id=group.group_id).update(group_id=None)
+            except Exception:
+                import logging
+                logging.exception('failed to clear account.group_id for group %s', group.group_id)
+            # グループ本体を削除
+            group_name = group.group_name
+            group.delete()
 
-    # メンバーシップも削除（is_active カラムがない環境に対応）
-    GroupMember.objects.filter(group=group).delete()
-    
+        # AJAX 呼び出しなら JSON を返す
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'status': 'ok', 'group_id': group_id, 'message': f'グループ「{group_name}」を削除しました'})
 
-    # If called via AJAX, return JSON so front-end can update without redirect
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        return JsonResponse({'status': 'ok', 'group_id': group_id, 'message': f'グループ「{group.group_name}」を削除しました'})
-
-    messages.success(request, f'グループ「{group.group_name}」を削除しました')
-    return redirect('codemon:group_list')
+        messages.success(request, f'グループ「{group_name}」を削除しました')
+        return redirect('codemon:group_list')
+    except Exception as e:
+        import logging
+        logging.exception('group_delete failed for group_id=%s', group_id)
+        messages.error(request, f'グループの削除に失敗しました: {e}')
+        return redirect('codemon:group_detail', group_id=group_id)
 
 
 # If ALLOW_ANONYMOUS_VIEWS is False, wrap the view callables with the real

@@ -1,40 +1,17 @@
-from django.shortcuts import render, redirect
-from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth import login, authenticate, logout
-from django.contrib import messages
- # password ハッシュ化はフォーム側で行うように変更しました
-from .forms import TeacherSignupForm, StudentSignupForm, ProfileEditForm
-from django.contrib.auth.decorators import login_required
-from django.urls import reverse
-from django.contrib.auth import views as auth_views
-from django.contrib.auth.forms import SetPasswordForm
-from django.contrib.auth.hashers import check_password
-from .models import Account, Group, GroupMember
-from django.conf import settings
-from django import forms
-from django.shortcuts import get_object_or_404
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes, force_str
-from django.core import signing
-from django.template.loader import render_to_string
 from django.core.mail import send_mail
-from django.contrib.auth.hashers import make_password
-<<<<<<< HEAD
-from django.http import HttpResponseRedirect, FileResponse, HttpResponseForbidden, JsonResponse
-# helper from codemon app to resolve the effective Account-like owner for write operations
-=======
+from django.contrib.auth.hashers import make_password # <= ここにあるので...
+
+# 以下のブロックは、HEADとmainのインポートを統合したもの
 from django.http import HttpResponseRedirect, HttpResponseForbidden, FileResponse, JsonResponse
 
 from django.db import connection, transaction
 from django.utils import timezone
-from django.contrib.auth.hashers import make_password
 from django.contrib.messages import get_messages
 import logging
 from django.utils.dateparse import parse_datetime, parse_date
 import datetime
 from codemon.models import System, Algorithm, SystemElement
 import json
->>>>>>> main
 try:
     from codemon.views import _get_write_owner
 except Exception:
@@ -92,6 +69,7 @@ class MyPasswordResetView(auth_views.PasswordResetView):
                 'email': acc.email,
                 'domain': self.request.get_host(),
                 'site_name': getattr(settings, 'SITE_NAME', self.request.get_host()),
+                'uid': uidb64,  # テンプレートで uid として参照されるように変更
                 'uidb64': uidb64,
                 'token': token,
                 'protocol': protocol,
@@ -138,6 +116,7 @@ def teacher_signup(request):
             try:
                 request.session['pending_account_name'] = instance.user_name
                 request.session['pending_account_email'] = instance.email
+                request.session['pending_account_age'] = instance.age
             except Exception:
                 pass
             # サインアップ直後にセッションへアカウント情報を入れておくと
@@ -147,6 +126,7 @@ def teacher_signup(request):
                 request.session['account_user_id'] = instance.user_id
                 request.session['account_email'] = instance.email
                 request.session['account_user_name'] = instance.user_name
+                request.session['account_age'] = instance.age
                 request.session.modified = True
                 try:
                     request.session.save()
@@ -171,6 +151,7 @@ def student_signup(request):
             try:
                 request.session['pending_account_name'] = instance.user_name
                 request.session['pending_account_email'] = instance.email
+                request.session['pending_account_age'] = instance.age
             except Exception:
                 pass
             # session にアカウント情報をセットしておく（サインアップ直後の扱いを容易にする）
@@ -179,6 +160,7 @@ def student_signup(request):
                 request.session['account_user_id'] = instance.user_id
                 request.session['account_email'] = instance.email
                 request.session['account_user_name'] = instance.user_name
+                request.session['account_age'] = instance.age
                 request.session.modified = True
                 try:
                     request.session.save()
@@ -224,7 +206,24 @@ def teacher_login(request):
             # ログイン成功 → karihome.html を表示
             return render(request, 'accounts/karihome.html')
         else:
-            messages.error(request, 'ユーザー名またはパスワードが違います')
+            # 認証失敗の原因が "別の種別のアカウントで存在している" 可能性があるため確認する
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "SELECT user_id, user_name, email, password, account_type FROM account WHERE user_name = %s OR email = %s LIMIT 1",
+                        [username, username]
+                    )
+                    alt_row = cursor.fetchone()
+                if alt_row and check_password(password, alt_row[3]):
+                    acct_type = (alt_row[4] or '').lower() if len(alt_row) > 4 else ''
+                    if acct_type != 'teacher':
+                        messages.error(request, 'このアカウントはここではログインできません')
+                    else:
+                        messages.error(request, 'ユーザー名またはパスワードが違います')
+                else:
+                    messages.error(request, 'ユーザー名またはパスワードが違います')
+            except Exception:
+                messages.error(request, 'ユーザー名またはパスワードが違います')
 
     # GET または認証失敗時はログインフォームを表示
     return render(request, 'accounts/t_login.html')
@@ -236,6 +235,15 @@ def student_login(request):
         # Account テーブルを使って認証（auth_user を利用しない）
         acc = Account.objects.filter(email=username).first() or Account.objects.filter(user_name=username).first()
         if acc and check_password(password, acc.password):
+            # このログイン画面は生徒用。アカウント種別が student でない場合はログイン不可とする
+            try:
+                acct_type = getattr(acc, 'account_type', '') or ''
+            except Exception:
+                acct_type = ''
+            if acct_type.lower() != 'student':
+                messages.error(request, 'このアカウントはここではログインできません')
+                return render(request, 'accounts/s_login.html')
+
             request.session['is_account_authenticated'] = True
             request.session['account_user_id'] = acc.user_id
             request.session['account_email'] = acc.email
@@ -275,6 +283,30 @@ def user_logout(request):
     except Exception:
         return redirect('/')
 
+
+# --- セッションベース認証簡易デコレータ & karihome ビュー追加 ---
+from functools import wraps
+
+def account_session_required(view_func):
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        if not request.session.get('is_account_authenticated'):
+            login_url = reverse('accounts:student_login')
+            next_url = request.get_full_path()
+            return redirect(f"{login_url}?next={next_url}")
+        return view_func(request, *args, **kwargs)
+    return _wrapped
+
+@account_session_required
+def karihome(request):
+    return render(request, 'accounts/karihome.html')
+
+def login_choice(request):
+    """ログイン種別の選択ページ（教師 or 生徒）を表示する簡易ビュー"""
+    # 単純な選択ページを表示するだけ。テンプレート内でそれぞれのログインページへ遷移する。
+    return render(request, 'accounts/login_choice.html')
+
+
 def ai_appearance(request):
     """AI外見設定ページ（簡易版）。POSTで選択を受け取り、ログイン済みなら保存します。"""
     if request.method == 'POST':
@@ -287,12 +319,15 @@ def ai_appearance(request):
                 if appearance:
                     cfg.appearance = appearance
                     cfg.save()
+            # セッションにも保存して次の画面で使えるようにする
+            request.session['selected_appearance'] = appearance
+            request.session.modified = True
         except Exception:
             pass
         # 外見選択後は初期設定画面へ遷移させる
         return redirect('accounts:ai_initial')
 
-    appearances = ['triangle', 'round', 'robot']
+    appearances = ['アルパカ.png', 'イヌ.png', 'ウサギ.png', 'キツネ.png', 'ネコ.png', 'パンダ.png', 'フクロウ.png', 'リス.png']
     return render(request, 'accounts/ai_appearance.html', {'appearances': appearances})
 
 
@@ -302,6 +337,18 @@ def ai_initial_settings(request):
 
     # デフォルトで利用する性格の候補
     personalities = ['元気', 'おとなしい', '優しい', '無口', '冷静']
+
+    # 動物ごとのデフォルト設定
+    animal_settings = {
+        'アルパカ.png': {'personality': 'おとなしい', 'speech': 'だよ'},
+        'イヌ.png': {'personality': '元気', 'speech': 'わん'},
+        'ウサギ.png': {'personality': '優しい', 'speech': 'ぴょん'},
+        'キツネ.png': {'personality': '冷静', 'speech': 'です'},
+        'ネコ.png': {'personality': '無口', 'speech': 'にゃん'},
+        'パンダ.png': {'personality': '元気', 'speech': 'だよ'},
+        'フクロウ.png': {'personality': '冷静', 'speech': 'ですな'},
+        'リス.png': {'personality': '元気', 'speech': 'なのだ'},
+    }
 
     # POST は基本的に確認画面へ遷移するためのデータ送信に使い、
     # 確定保存は別のエンドポイントで行う（two-step flow）。
@@ -317,7 +364,7 @@ def ai_initial_settings(request):
             'ai_name': ai_name or '',
             'ai_personality': ai_personality or '元気',
             'ai_speech': ai_speech or 'です',
-            'appearance': appearance or 'triangle'
+            'appearance': appearance or 'アルパカ.png'
         })()
 
         return render(request, 'accounts/ai_initial_settings.html', {'config': config, 'personalities': personalities})
@@ -331,9 +378,30 @@ def ai_initial_settings(request):
     except Exception:
         config = None
 
+    # セッションから選択された動物を取得
+    selected_appearance = request.session.get('selected_appearance', 'アルパカ.png')
+    
     if config is None:
         # テンプレートが期待するプロパティを持つダミーを用意
-        config = type('C', (), {'ai_name':'','ai_personality':'元気','ai_speech':'です','appearance':'triangle'})()
+        # 選択された動物のデフォルト設定を使用
+        default_settings = animal_settings.get(selected_appearance, {'personality': '元気', 'speech': 'です'})
+        config = type('C', (), {
+            'ai_name': '',
+            'ai_personality': default_settings['personality'],
+            'ai_speech': default_settings['speech'],
+            'appearance': selected_appearance
+        })()
+    else:
+        # 既存の設定がある場合でも、appearanceが新しく選択されていればそれを使用
+        if selected_appearance:
+            config.appearance = selected_appearance
+            # 動物が設定されていれば対応する性格・語尾を適用（既存値がない場合のみ）
+            if config.appearance in animal_settings:
+                settings = animal_settings[config.appearance]
+                if not config.ai_personality:
+                    config.ai_personality = settings['personality']
+                if not config.ai_speech:
+                    config.ai_speech = settings['speech']
 
     return render(request, 'accounts/ai_initial_settings.html', {'config': config, 'personalities': personalities})
 
@@ -1281,6 +1349,201 @@ def group_delete_confirm(request, group_id):
         'member_count': member_count,
     })
 
+
+def group_delete(request, group_id):
+    """POSTで受け取り、指定グループのメンバーとアカウントの紐付けを削除し、グループ本体を削除します。"""
+    if request.method != 'POST':
+        # 確認ページへ誘導（POST以外は削除を行わない）
+        return redirect('accounts:group_delete_confirm', group_id=group_id)
+
+    try:
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                # group_member テーブルから該当 group_id のメンバーを削除
+                cursor.execute('DELETE FROM group_member WHERE group_id = %s', [group_id])
+                # account テーブルの group_id を NULL にして紐付け解除
+                cursor.execute('UPDATE account SET group_id = NULL WHERE group_id = %s', [group_id])
+                # 最後に group 本体を削除（テーブル名が予約語のためダブルクォートで囲む）
+                cursor.execute('DELETE FROM "group" WHERE group_id = %s', [group_id])
+        messages.success(request, 'グループを削除しました。')
+    except Exception as e:
+        messages.error(request, f'グループの削除に失敗しました: {e}')
+    return redirect('accounts:account_entry')
+
+
+def group_menu_redirect(request):
+    """グループメニュー root への互換ハンドラ。
+
+    セッションやログインユーザーから所属する（または所有する）最初のグループを探し、
+    見つかればその `group_menu` へリダイレクトする。見つからなければグループ一覧/作成へ誘導する。
+    """
+    # 優先順: セッションの current group -> 自分が所有するグループの最初 -> アカウントページ
+    try:
+        gid = request.session.get('current_group_id')
+        if gid:
+            return redirect('accounts:group_menu', group_id=gid)
+
+        # 試しに現在のユーザー id を取得して所有グループを検索
+        current_user_id = request.session.get('account_user_id') or (request.user.id if getattr(request.user, 'is_authenticated', False) else None)
+        if current_user_id:
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT group_id FROM "group" WHERE user_id = %s ORDER BY group_id LIMIT 1', [current_user_id])
+                row = cursor.fetchone()
+                if row:
+                    return redirect('accounts:group_menu', group_id=row[0])
+    except Exception:
+        pass
+
+    # フォールバック: グループ作成ページへ誘導
+    return redirect('accounts:group_create')
+
+
+def group_detail(request, group_id):
+    """Proxy to show group detail using `codemon.views.group_detail` if available,
+    otherwise render a simple accounts template.
+    """
+    try:
+        from codemon import views as codemon_views
+        # Prefer codemon's implementation when present
+        if hasattr(codemon_views, 'group_detail'):
+            return codemon_views.group_detail(request, group_id)
+    except Exception:
+        pass
+
+    # Fallback: try to query minimal group info and render accounts template
+    group = None
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT group_id, group_name, user_id FROM "group" WHERE group_id = %s', [group_id])
+            row = cursor.fetchone()
+            if row:
+                group = {'group_id': row[0], 'group_name': row[1], 'owner_id': row[2]}
+    except Exception:
+        group = None
+
+    if group is None:
+        messages.error(request, '指定されたグループが見つかりません')
+        return redirect('accounts:account_entry')
+
+    return render(request, 'group/group_check.html', {'group': group})
+
+
+def group_delete_confirm(request, group_id):
+    """表示用の削除確認ページ。POST 実行は `codemon.views.group_delete` を使う想定。"""
+    group = None
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT group_id, group_name, user_id FROM "group" WHERE group_id = %s', [group_id])
+            row = cursor.fetchone()
+            if row:
+                group = {'group_id': row[0], 'group_name': row[1], 'owner_id': row[2]}
+    except Exception:
+        group = None
+
+    if group is None:
+        messages.error(request, '指定されたグループが見つかりません')
+        return redirect('accounts:account_entry')
+
+    return render(request, 'group/group_delete_confirm.html', {'group': group})
+
+
+def group_remove_member(request, group_id, member_id):
+    """グループからメンバーを削除するラッパー。
+
+    可能なら `codemon.views.group_remove_member` を呼び出し、なければ簡易に
+    `group_member` テーブルの `is_active` を False にして論理削除します。
+    """
+    try:
+        from codemon import views as codemon_views
+        if hasattr(codemon_views, 'group_remove_member'):
+            return codemon_views.group_remove_member(request, group_id, member_id)
+    except Exception:
+        pass
+
+    # フォールバック実装: セッションの権限チェックは簡易にしておく
+    try:
+        current_user_id = request.session.get('account_user_id') or (request.user.id if getattr(request.user, 'is_authenticated', False) else None)
+        # 簡易権限制御: current_user_id がグループの owner であるか、または自身を削除する場合のみ許可
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT user_id FROM "group" WHERE group_id = %s', [group_id])
+            row = cursor.fetchone()
+            owner_id = row[0] if row else None
+
+            if current_user_id is None:
+                messages.error(request, 'ログインが必要です')
+                return redirect('accounts:student_login')
+
+            if int(current_user_id) != int(owner_id) and int(current_user_id) != int(member_id):
+                return HttpResponseForbidden('この操作を行う権限がありません')
+
+            # 論理削除フラグがある場合は更新、なければ削除
+            try:
+                cursor.execute('UPDATE group_member SET is_active = FALSE WHERE group_id = %s AND member_user_id = %s', [group_id, member_id])
+            except Exception:
+                # fallback: attempt delete
+                try:
+                    cursor.execute('DELETE FROM group_member WHERE group_id = %s AND member_user_id = %s', [group_id, member_id])
+                except Exception as e:
+                    messages.error(request, f'メンバー削除に失敗しました: {e}')
+                    return redirect('accounts:group_detail', group_id=group_id)
+
+        messages.success(request, 'メンバーをグループから削除しました')
+        return redirect('accounts:group_detail', group_id=group_id)
+    except Exception as e:
+        messages.error(request, f'メンバー削除に失敗しました: {e}')
+        return redirect('accounts:group_detail', group_id=group_id)
+
+
+def group_invite(request, group_id):
+    """グループへメンバーを追加する処理（POST）またはフォーム表示（GET）を行う簡易ビュー。
+
+    - POST: `member_email` または `member_user_id` を受け取り `group_member` テーブルへ挿入する。
+    - GET: メンバー追加フォームへリダイレクトする。
+    """
+    if request.method != 'POST':
+        return redirect('accounts:group_add_member_form', group_id=group_id)
+
+    member_input = (request.POST.get('member_email') or request.POST.get('member_user_id') or '').strip()
+    role = request.POST.get('role', 'member')
+
+    if not member_input:
+        messages.error(request, '追加するメンバーの情報を指定してください。')
+        return redirect('accounts:group_add_member_form', group_id=group_id)
+
+    member_user_id = None
+    try:
+        # まず数値として解釈を試みる
+        try:
+            member_user_id = int(member_input)
+        except Exception:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT user_id FROM account WHERE email = %s OR user_name = %s", [member_input, member_input])
+                row = cursor.fetchone()
+                if row:
+                    member_user_id = row[0]
+
+        if not member_user_id:
+            messages.error(request, 'そのユーザーは見つかりませんでした。')
+            return redirect('accounts:group_add_member_form', group_id=group_id)
+
+        # 挿入（既存の重複チェックは簡易に任せる）
+        with connection.cursor() as cursor:
+            cursor.execute(
+                'INSERT INTO group_member (group_id, member_user_id, role) VALUES (%s, %s, %s)',
+                [group_id, member_user_id, role]
+            )
+
+        messages.success(request, 'メンバーを追加しました。')
+        return redirect('accounts:group_menu', group_id=group_id)
+    except Exception as e:
+        messages.error(request, f'メンバー追加に失敗しました: {e}')
+        return redirect('accounts:group_add_member_form', group_id=group_id)
+
+def group_menu_redirect(request):
+    """レガシー互換: /groups/menu/ へのアクセスに対応（単純描画）。"""
+    return render(request, 'group/group_menu.html')
+
+
 def group_join_confirm(request):
     """
     GET:
@@ -1385,9 +1648,7 @@ def group_join_confirm(request):
             return redirect('accounts:student_login')
 
         try:
-            # Debug: show incoming ids for tracing
-            print(f"DEBUG group_join_confirm: attempting to join group_id={found_group_id} for user_id={user_id}")
-            messages.info(request, f'デバッグ: group_id={found_group_id}, user_id={user_id}')
+            # Debugging traces removed in production
             # Use an explicit transaction to ensure both inserts/updates succeed together.
             with transaction.atomic():
                 with connection.cursor() as cursor:
@@ -1412,15 +1673,11 @@ def group_join_confirm(request):
                     try:
                         cursor.execute('SELECT id FROM group_member WHERE group_id=%s AND member_user_id=%s', [found_group_id, user_id])
                         gm = cursor.fetchone()
-                        print(f"DEBUG group_join_confirm: group_member check for group_id={found_group_id}, user_id={user_id} -> {gm}")
-                        messages.info(request, f'デバッグ: group_member exists={bool(gm)}')
                     except Exception as _:
                         print('DEBUG group_join_confirm: failed to select group_member')
                     try:
                         cursor.execute('SELECT group_id FROM account WHERE user_id = %s', [user_id])
                         acc_row = cursor.fetchone()
-                        print(f"DEBUG group_join_confirm: account.group_id for user_id={user_id} -> {acc_row}")
-                        messages.info(request, f'デバッグ: account.group_id={acc_row[0] if acc_row else None}')
                     except Exception as _:
                         print('DEBUG group_join_confirm: failed to select account')
         except Exception as e:
@@ -1511,7 +1768,7 @@ def password_reset_confirm(request, uidb64, token):
             new_pw = form.cleaned_data['new_password1']
             account.password = make_password(new_pw)
             account.save()
-            return HttpResponseRedirect(reverse('password_reset_complete'))
+            return HttpResponseRedirect(reverse('accounts:password_reset_complete'))
     else:
         form = _SetNewPasswordForm()
 
