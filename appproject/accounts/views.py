@@ -1768,7 +1768,10 @@ def password_reset_confirm(request, uidb64, token):
             new_pw = form.cleaned_data['new_password1']
             account.password = make_password(new_pw)
             account.save()
+
+
             return HttpResponseRedirect(reverse('accounts:password_reset_complete'))
+
     else:
         form = _SetNewPasswordForm()
 
@@ -1905,6 +1908,14 @@ def account_entry(request):
     except Exception:
         groups = []
 
+    # AI設定情報を取得
+    ai_config = None
+    try:
+        from .models import AiConfig
+        if current_user_id is not None:
+            ai_config = AiConfig.objects.filter(user_id=current_user_id).first()
+    except Exception:
+        ai_config = None
 
     context = {
         'account': account,
@@ -1913,6 +1924,7 @@ def account_entry(request):
         'total_days': total_days_str,
         'groups': groups,
         'current_user_id': current_user_id,
+        'ai_config': ai_config,
     }
 
     # 参加グループ情報を account.group_id から取得して context に含める
