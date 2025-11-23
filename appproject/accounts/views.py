@@ -337,7 +337,51 @@ def account_session_required(view_func):
 @account_session_required
 def karihome(request):
     print(f"DEBUG karihome view: session_key={request.session.session_key} data={dict(request.session)}")
-    return render(request, 'accounts/karihome.html')
+    
+    # AI設定を取得してAI名前とキャラクターをテンプレートに渡す
+    from .models import AiConfig
+    ai_name = 'うたー'  # デフォルト値
+    character = 'inu'  # デフォルト値（イヌ）
+    try:
+        acc = get_logged_account(request)
+        if acc:
+            ai_config = AiConfig.objects.filter(user_id=acc.user_id).first()
+            if ai_config:
+                if ai_config.ai_name:
+                    ai_name = ai_config.ai_name
+                if ai_config.appearance:
+                    # appearanceからキャラクターIDを決定
+                    # appearance値がファイル名形式(例: dog.png)の場合に対応
+                    appearance_lower = ai_config.appearance.lower().replace('.png', '')
+                    appearance_map = {
+                        'dog': 'inu',
+                        'cat': 'neko',
+                        'rabbit': 'usagi',
+                        'panda': 'panda',
+                        'fox': 'kitsune',
+                        'squirrel': 'risu',
+                        'owl': 'fukurou',
+                        'alpaca': 'arupaka',
+                        'イヌ': 'inu',
+                        'ネコ': 'neko',
+                        'ウサギ': 'usagi',
+                        'パンダ': 'panda',
+                        'キツネ': 'kitsune',
+                        'リス': 'risu',
+                        'フクロウ': 'fukurou',
+                        'アルパカ': 'arupaka',
+                        '犬': 'inu',
+                        '猫': 'neko',
+                        '兎': 'usagi',
+                    }
+                    character = appearance_map.get(appearance_lower, appearance_map.get(ai_config.appearance, 'inu'))
+    except Exception as e:
+        print(f"AI設定の取得エラー: {e}")
+    
+    return render(request, 'accounts/karihome.html', {
+        'ai_name': ai_name,
+        'character': character
+    })
 
 def login_choice(request):
     """ログイン種別の選択ページ（教師 or 生徒）を表示する簡易ビュー"""
