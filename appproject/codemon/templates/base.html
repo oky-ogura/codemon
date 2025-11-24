@@ -5,6 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>{% block title %}Codemon{% endblock %}</title>
+  {% block extra_css %}{% endblock %}
   
   <!-- 共通スタイル -->
   <style>
@@ -417,7 +418,6 @@
       color: #999;
     }
     
-    {% block extra_css %}{% endblock %}
   </style>
 </head>
 <body{% block body_class %}{% endblock %}>
@@ -765,5 +765,22 @@
   </script>
   
   {% block extra_js %}{% endblock %}
+  </script>
+
+  {% block global_character_widget %}
+    {% if user.is_authenticated %}
+      {% with current_path=request.path %}
+        {# --- 表示・非表示の制御ロジック --- #}
+        {# 1. accountsアプリ内のページを除外 (karihome/homeは許可) #}
+        {% if '/accounts/' in current_path and '/accounts/karihome/' not in current_path and '/accounts/home/' not in current_path %}
+          {# 非表示 #}
+        {% elif '/group/' in current_path %}
+          {# 非表示 #}
+        {% else %}
+          {% include 'includes/character_widget.html' %}
+        {% endif %}
+      {% endwith %}
+    {% endif %}
+  {% endblock %}
 </body>
 </html>

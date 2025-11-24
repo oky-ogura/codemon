@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0005_remove_account_avatar_remove_account_type'),
+        ('accounts', '0004_group_groupmember_remove_account_type'),
     ]
 
     operations = [
@@ -15,9 +15,5 @@ class Migration(migrations.Migration):
             name='avatar',
             field=models.ImageField(blank=True, null=True, upload_to='avatars/', verbose_name='アバター画像'),
         ),
-        migrations.AddField(
-            model_name='account',
-            name='account_type',
-            field=models.CharField(blank=True, max_length=20, null=True, verbose_name='アカウント種別'),
-        ),
+        # AddField(account_type) 操作を削除（既存列重複エラー回避）
     ]

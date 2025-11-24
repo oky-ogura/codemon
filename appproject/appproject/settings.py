@@ -77,8 +77,9 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
+                 'django.template.context_processors.request',
+                 'django.contrib.auth.context_processors.auth',
+                 'accounts.context_processors.global_character_data',
                 'django.contrib.messages.context_processors.messages',
             ],
         },

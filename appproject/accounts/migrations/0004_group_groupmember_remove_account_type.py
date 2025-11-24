@@ -37,8 +37,5 @@ class Migration(migrations.Migration):
             },
             bases=('codemon.groupmember',),
         ),
-        migrations.RemoveField(
-            model_name='account',
-            name='type',
-        ),
+        # RemoveField(type) 操作を削除（type 列は存在しないためエラー回避）
     ]

@@ -1,147 +1,223 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}システム選択 - Codemon{% endblock %}
+
 {% block extra_css %}
-  <style>
-    /* 新規追加: アクションパネル（2列×2行のグリッド配置） */
-    .action-panel {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 20px;
-      max-width: 800px;
-      margin: 40px auto;
-      padding: 0 20px;
-    }
-    .action-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 40px 24px;
-      border-radius: 12px;
-      background: linear-gradient(180deg,#e6f0ff,#cfe6ff);
-      color: #073763;
-      font-weight: 700;
-      font-size: 18px;
-      border: 1px solid rgba(10,59,110,0.08);
-      box-shadow: 0 8px 18px rgba(10,59,110,0.06);
-      cursor: pointer;
-      text-align: center;
-      transition: transform .12s ease, box-shadow .12s ease;
-      min-height: 120px;
-    }
-    .action-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 24px rgba(10,59,110,0.12);
-    }
-    .action-btn:active {
-      transform: translateY(1px);
-    }
-    .action-btn.disabled {
-      opacity: 0.7;
-      cursor: default;
-      pointer-events: none;
-    }
-
-    /* 右側の説明エリア（削除） */
-
-    .helper { margin-top:8px; color:#777; font-size:13px; text-align:center; }
-    .note { margin-top:12px; color:#444; font-size:13px; text-align:center; }
-    @media (max-width:880px){
-      .action-panel {
-        grid-template-columns: 1fr;
-        gap: 16px;
-      }
-    }
-  </style>
+<style>
+.bg-frame {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  object-fit: cover;
+  pointer-events: none;
+}
+.center-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 70vh;
+  margin-top: 120px;
+}
+  justify-content: flex-start;
+  min-height: 70vh;
+  margin-top: 120px;
+}
+.button-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 25px;
+  justify-content: center;
+  margin-bottom: 32px;
+}
+.main-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  color: #222;
+  background: none;
+  border: none;
+  min-width: 338px;
+  min-height: 208px;
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+}
+.button-img {
+  width: 100%;
+  max-width: 338px;
+  height: 182px;
+  aspect-ratio: 2/1;
+  object-fit: contain;
+  margin-bottom: 0;
+}
+.button-text {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #222;
+  text-align: center;
+  text-decoration: none;
+  position: absolute;
+  top: 91px;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  padding: 0 10px;
+  box-sizing: border-box;
+  z-index: 1;
+}
+</style>
+<style>
+.ai-chat-widget {
+  position: fixed;
+  right: 80px;
+  bottom: 80px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.ai-avatar {
+  width: 120px;
+  height: auto;
+  box-shadow: none;
+  background: none;
+  object-fit: contain;
+  margin-bottom: 10px;
+}
+.ai-chat-bubble {
+  margin-bottom: 8px;
+  background: #f5f7ff;
+  border-radius: 18px 18px 0 18px;
+  padding: 16px 20px;
+  color: #222;
+  font-size: 1.1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  max-width: 320px;
+}
+.ai-chat-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.ai-chat-input {
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  font-size: 1rem;
+  width: 180px;
+}
+.ai-chat-send {
+  border-radius: 12px;
+  background: #2b4ca7;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+</style>
+<style>
+/* ボタン行の2番目の要素（新規システム作成ボタン）に適用 */
+.button-row a:last-child {
+  position: relative;
+  top: -30px; /* 上方向に30px移動 (マイナス値で上に動く) */
+}
+</style>
 {% endblock %}
-</head>
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.querySelector('.ai-chat-form');
+  const input = document.querySelector('.ai-chat-input');
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    const bubble = document.createElement('div');
+    bubble.className = 'ai-chat-bubble';
+    bubble.textContent = text;
+    widget.insertBefore(bubble, form);
+    input.value = '';
+  });
+});
+</script>
+{% endblock %}
+
+{% block background_frame %}
+  <img src="{% static 'codemon/images/backgrounds/bg_common.png' %}" alt="外枠" class="bg-frame" onerror="this.style.display='none';">
+{% endblock %}
+
 {% block content %}
 
-<body>
-  
+<div class="center-buttons">
+  <div class="button-row">
+    <a href="/accounts/system/list/" class="main-button">
+      <img src="{% static 'codemon/images/button/system_blue.png' %}" class="button-img" alt="システム一覧">
+      <span class="button-text">システム一覧</span>
+    </a>
+    <a href="/accounts/system/create/" class="main-button">
+      <img src="{% static 'codemon/images/button/system_blue.png' %}" class="button-img" alt="新規作成">
+      <span class="button-text">新規システム作成</span>
+    </a>
+  </div>
+</div>
 
-  <main>
-    <h1>システム選択</h1>
+<div style="text-align:center; margin-top:40px; color:#555; font-size:1.1rem;">
+  <p>ご希望のシステムを選択するか、新規作成してください。</p>
+</div>
 
-    <div class="action-panel" role="region" aria-label="システム操作">
-      <!-- 1行目 左 -->
-      <button class="action-btn" id="btn-list">作成したシステム一覧を開く</button>
-      
-      <!-- 1行目 右 -->
-      <button class="action-btn disabled" id="btn-main">メイン画面へ</button>
-      
-      <!-- 2行目 左 -->
-      <button class="action-btn" id="btn-new">新しいシステムを作成</button>
-      
-      <!-- 2行目 右 -->
-      <button class="action-btn" id="btn-tutorial">チュートリアル</button>
+<!-- karihome chat widget start -->
+<div class="karihome-container">
+  <div class="speech-bubble-container">
+    <div class="speech-bubble">
+      <p class="text-fun" id="characterMumble" style="margin: 0;"></p>
     </div>
+  </div>
+  <button class="chat-trigger-btn" id="chatTriggerBtn">
+    💬 話しかける
+    <span class="sparkle">✨</span>
+    <span class="sparkle">⭐</span>
+    <span class="sparkle">✨</span>
+    <span class="sparkle">⭐</span>
+  </button>
+  <div class="character-container">
+    <img src="{% if character_img %}{{ character_img }}{% else %}{% static 'codemon/images/characters/inu.png' %}{% endif %}" alt="AIキャラクター" class="ai-avatar" onerror="this.onerror=null;this.src='{% static 'codemon/images/characters/inu.png' %}';">
+  </div>
+  <form class="ai-chat-form" style="display:none;">
+    <input type="text" class="ai-chat-input" placeholder="メッセージを入力">
+    <button type="submit" class="ai-chat-send">送信</button>
+  </form>
+</div>
+<div class="chat-modal" id="chatModal">
+  <div class="chat-window">
+    <div class="chat-header">
+      <h2 id="chatHeaderTitle">{{ ai_name|default:'うたー' }} と おはなし</h2>
+      <button class="chat-close-btn" id="closeChatBtn">×</button>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-message ai">
+        <div class="chat-message-content">
+          こんにちは！ぼくは{{ ai_name|default:'うたー' }}だよ！<br>
+          なんでもきいてね！✨
+        </div>
+      </div>
+    </div>
+    <div class="chat-loading" id="chatLoading">
+      {{ ai_name|default:'うたー' }}が考え中...🤔
+    </div>
+    <div class="chat-input-area">
+      <input type="text" class="chat-input" id="chatInput" placeholder="メッセージを入力してね！">
+      <button class="chat-send-btn" id="sendChatBtn">送信</button>
+    </div>
+  </div>
+</div>
+<!-- karihome chat widget end -->
 
-  </main>
-
-  <script>
-    // タブ見た目切替および一部タブで遷移（画面構成は変更しない）
-    document.querySelectorAll('.nav-tab').forEach(tab=>{
-      tab.addEventListener('click', function(e){
-        try{
-          document.querySelectorAll('.nav-tab').forEach(t=>{
-            t.classList.remove('active');
-            t.setAttribute('aria-pressed','false');
-          });
-          this.classList.add('active');
-          this.setAttribute('aria-pressed','true');
-          if (typeof this.blur === 'function') this.blur();
-
-          // システムタブ押下でシステム選択画面（自己）または明示的に choice へ遷移
-          if (this.id === 'tab-system') {
-            window.location.href = '/accounts/system/choice/';
-            return;
-          }
-
-          // 変更: アルゴリズムタブ押下で block/choice へ遷移
-          if (this.id === 'tab-algorithm') {
-            window.location.href = '/accounts/block/choice/';
-            return;
-          }
-
-          // 他タブは見た目切替のみ（必要なら遷移先を追加）
-        }catch(err){
-          console.error('tab click handler error', err);
-        }
-      });
-    });
-
-    // 作成したシステム一覧ボタンは system_list へ遷移
-    const btnList = document.getElementById('btn-list');
-    if (btnList) {
-      btnList.addEventListener('click', function(e){
-        e.preventDefault();
-        window.location.href = '/accounts/system/list/';
-      });
-    }
-
-    // 新しいシステム作成ボタンはindex.htmlへ遷移
-    const btnNew = document.getElementById('btn-new');
-    if (btnNew) {
-      btnNew.addEventListener('click', function(e){
-        e.preventDefault();
-        window.location.href = '/accounts/system/';
-      });
-    }
-
-    // 追加: チュートリアルボタンはチュートリアルページへ遷移
-    const btnTutorial = document.getElementById('btn-tutorial');
-    if (btnTutorial) {
-      btnTutorial.addEventListener('click', function(e){
-        e.preventDefault();
-        window.location.href = '/accounts/system/tutorial/';
-      });
-    }
-
-    // メイン画面へボタンは表示のみ（クリックイベントなし）
-    const btnMain = document.getElementById('btn-main');
-    // btnMainには何もイベントを付けない（表示のみ）
-  </script>
-</body>
 {% endblock %}
-</html>

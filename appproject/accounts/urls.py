@@ -1,14 +1,18 @@
 from django.urls import path
+from django.contrib.auth import views as auth_views
 from django.views.generic import RedirectView
 from . import views
+from .ai_chat_api import ai_chat_api
 from django.contrib.auth import views as auth_views
 app_name = 'accounts'  # アプリケーション名前空間を追加 
 from codemon import views as codemon_views
 urlpatterns = [
-    # Redirect the accounts root to the student login page
-    path('', RedirectView.as_view(url='student_login/', permanent=False), name='accounts_root'),
+     # Redirect the accounts root to the student login page
+     path('', RedirectView.as_view(url='student_login/', permanent=False), name='accounts_root'),
      # 新しいホーム（ログイン後リダイレクト先）
      path('karihome/', views.karihome, name='karihome'),
+     # AIチャットAPIエンドポイント
+     path('ai_chat_api/', ai_chat_api, name='ai_chat_api'),
     
     path('teacher_login/', views.teacher_login, name='teacher_login'),
     path('teacher_signup/', views.teacher_signup, name='teacher_signup'),
@@ -88,16 +92,13 @@ urlpatterns = [
     path('block/create/', views.block_create, name='block_create'),
     path('block/details/', views.block_details, name='block_details'),
     path('block/list/', views.block_list, name='block_list'),
-<<<<<<< HEAD
     # プロフィール編集（アイコン設定）
     path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('groups/<int:group_id>/', views.group_detail, name='group_detail'),
-=======
     path('block/list/data/', views.block_list_data, name='block_list_data'),
     path('block/delete/', views.block_delete, name='block_delete'),
     path('block/delete/success/', views.block_delete_success, name='block_delete_success'),
     path('system/tutorial/', views.system_tutorial, name='system_tutorial'),
     
->>>>>>> main
 ]
 

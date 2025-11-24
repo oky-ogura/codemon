@@ -1,5 +1,6 @@
 from django.core.mail import send_mail
 from django.contrib.auth.hashers import make_password # <= ここにあるので...
+from django.contrib.auth import views as auth_views
 
 # 以下のブロックは、HEADとmainのインポートを統合したもの
 from django.http import HttpResponseRedirect, HttpResponseForbidden, FileResponse, JsonResponse
@@ -11,6 +12,7 @@ import logging
 from django.utils.dateparse import parse_datetime, parse_date
 import datetime
 from codemon.models import System, Algorithm, SystemElement
+from .models import AiConfig
 import json
 try:
     from codemon.views import _get_write_owner
@@ -31,9 +33,26 @@ except Exception:
 from django.db import connection, transaction
 from django.utils import timezone
 import logging
-from django.contrib.auth.hashers import make_password
-
-
+from django.core.mail import send_mail
+from django.contrib.auth.hashers import make_password, check_password
+from django.contrib.auth import views as auth_views
+from django.shortcuts import render, redirect
+from django.urls import reverse
+from django.conf import settings
+from django.template.loader import render_to_string
+from django.core import signing
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.contrib import messages
+from django.contrib.auth import logout
+from .models import Account
+from .forms import TeacherSignupForm, StudentSignupForm, ProfileEditForm
+from django.shortcuts import get_object_or_404
+from django import forms
+from django.contrib.auth.forms import SetPasswordForm
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode
+from codemon.models import Group, GroupMember
 
 # カスタムのパスワード再設定ビュー
 class MyPasswordResetView(auth_views.PasswordResetView):
@@ -299,7 +318,7 @@ def account_session_required(view_func):
 
 @account_session_required
 def karihome(request):
-<<<<<<< HEAD
+
     print(f"DEBUG karihome view: session_key={request.session.session_key} data={dict(request.session)}")
     
     # AI設定を取得してAI名前とキャラクターをテンプレートに渡す
@@ -346,9 +365,7 @@ def karihome(request):
         'ai_name': ai_name,
         'character': character
     })
-=======
-    return render(request, 'accounts/karihome.html')
->>>>>>> main
+
 
 def login_choice(request):
     """ログイン種別の選択ページ（教師 or 生徒）を表示する簡易ビュー"""
@@ -673,7 +690,35 @@ def system_save(request):
 
 # システム選択画面
 def system_choice(request):
-    return render(request, 'system/system_choice.html')
+    account = get_logged_account(request)
+    character_img = None
+    ai_name = None
+    ai_personality = None
+    if account:
+        ai_config = AiConfig.objects.filter(user_id=account.user_id).order_by('-created_at').first()
+        # AI設定
+        if ai_config:
+            ai_name = ai_config.ai_name
+            ai_personality = ai_config.ai_personality
+            # appearance（外見）からキャラクター画像パスを決定
+            appearance_map = {
+                'inu': 'inu.png',
+                'usagi': 'usagi.png',
+                'kitune': 'kitune.png',
+                'panda': 'panda.png',
+            }
+            appearance_key = ai_config.appearance if ai_config.appearance else 'inu'
+            static_img = appearance_map.get(appearance_key, 'inu.png')
+            character_img = f'/static/codemon/images/characters/{static_img}'
+        # アバター画像（優先）
+        if account.avatar and hasattr(account.avatar, 'url'):
+            character_img = account.avatar.url
+    context = {
+        'character_img': character_img,
+        'ai_name': ai_name,
+        'ai_personality': ai_personality,
+    }
+    return render(request, 'system/system_choice.html', context)
 
 # システム新規作成画面（システム名、システムの詳細入力など）
 def system_create(request):
