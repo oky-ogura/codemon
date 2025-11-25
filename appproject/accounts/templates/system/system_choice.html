@@ -1,144 +1,80 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8" />
-  <title>システム選択</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+{% extends 'base.html' %}
+
+{% block title %}システム選択 - Codemon{% endblock %}
+{% block extra_css %}
   <style>
-    :root { --nav-height:56px; --primary:#1976d2; --muted:#666; --bg:#f9f9fb; }
-    body {
-      font-family: -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "メイリオ", sans-serif;
-      margin: 20px;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      min-height:100vh;
-      background:var(--bg);
-      color:#111;
-    }
-    .top-nav {
-      box-sizing:border-box;
-      width:100%;
-      max-width:980px;
-      height:var(--nav-height);
-      margin:16px auto 12px;
-      display:flex;
-      align-items:center;
-      gap:12px;
-      padding:6px 12px;
-      background:linear-gradient(180deg,#fff,#fafafa);
-      border-radius:10px;
-      box-shadow:0 1px 3px rgba(0,0,0,0.06);
-      border:1px solid #e6e6e9;
-    }
-    .nav-brand { display:flex; align-items:center; gap:8px; padding-right:8px; border-right:1px solid #eee; }
-    .nav-brand .logo { width:36px; height:36px; border-radius:6px; background:var(--primary); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:18px; }
-    .nav-brand .title { font-size:15px; color:#111; font-weight:600; }
-    .nav-tabs {
-      display:flex;
-      justify-content: space-evenly;
-      width:100%;
-      align-items:center;
-      gap:0;
-      margin:0;
-    }
-    .nav-tab {
-      appearance:none; border:0; background:transparent; padding:8px 12px; border-radius:8px;
-      font-size:14px; cursor:pointer; color:var(--muted); transition: all .12s ease;
-    }
-    .nav-tab:hover { background:#f0f6ff; color:var(--primary); transform:translateY(-1px); }
-    .nav-tab.active { background:var(--primary); color:#fff; box-shadow:0 2px 6px rgba(25,118,210,0.18); }
-
-    main { width:100%; max-width:980px; margin:6px auto; box-sizing:border-box; }
-    h1 { margin:2px 0 12px 0; font-size:20px; text-align:center; }
-
-    /* 新規追加: アクションパネル（中央寄せに調整） */
+    /* 新規追加: アクションパネル（2列×2行のグリッド配置） */
     .action-panel {
-      display:flex;
-      gap:24px;
-      align-items:flex-start;
-      margin-top:12px;
-      justify-content:center; /* ← 横方向に中央寄せ */
-    }
-    .action-column {
-      display:flex;
-      flex-direction:column;
-      gap:16px;
-      width: 360px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
     }
     .action-btn {
-      display:block;
-      width:100%;
-      padding:20px 18px;
-      border-radius:12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+      border-radius: 12px;
       background: linear-gradient(180deg,#e6f0ff,#cfe6ff);
-      color:#073763;
-      font-weight:700;
-      font-size:18px;
-      border:1px solid rgba(10,59,110,0.08);
+      color: #073763;
+      font-weight: 700;
+      font-size: 18px;
+      border: 1px solid rgba(10,59,110,0.08);
       box-shadow: 0 8px 18px rgba(10,59,110,0.06);
-      cursor:pointer;
-      text-align:center;
-      transition: transform .12s ease, box-shadow .12s ease, background .12s;
+      cursor: pointer;
+      text-align: center;
+      transition: transform .12s ease, box-shadow .12s ease;
+      min-height: 120px;
     }
-    /* secondary を主ボタンと同じ見た目に統一 */
-    .action-btn.secondary {
-      background: linear-gradient(180deg,#e6f0ff,#cfe6ff);
-      color:#073763;
-      border-color: rgba(10,59,110,0.08);
-      box-shadow: 0 8px 18px rgba(10,59,110,0.06);
+    .action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(10,59,110,0.12);
     }
-    .action-btn:active { transform: translateY(1px); }
-    .action-btn.selected {
-      outline: 3px solid rgba(25,118,210,0.12);
-      box-shadow: 0 14px 30px rgba(25,118,210,0.10);
-      transform: translateY(-3px);
+    .action-btn:active {
+      transform: translateY(1px);
+    }
+    .action-btn.disabled {
+      opacity: 0.7;
+      cursor: default;
+      pointer-events: none;
     }
 
-    /* 右側の説明エリア（任意） */
-    .info {
-      flex:1;
-      min-height:120px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      color:#444;
-      font-size:15px;
-      padding:12px;
-      background:#fff;
-      border-radius:10px;
-      border:1px solid #eef0f3;
-      box-shadow:0 6px 18px rgba(10,10,10,0.02);
-      max-width: 420px;
-    }
+    /* 右側の説明エリア（削除） */
 
     .helper { margin-top:8px; color:#777; font-size:13px; text-align:center; }
     .note { margin-top:12px; color:#444; font-size:13px; text-align:center; }
     @media (max-width:880px){
-      .action-panel { flex-direction:column; align-items:center; }
-      .info { width:100%; max-width:none; }
+      .action-panel {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
     }
   </style>
+{% endblock %}
 </head>
-<body>
-  <header class="top-nav" role="banner" aria-label="メインナビゲーション">
+{% block content %}
 
-    <nav class="nav-tabs" role="navigation" aria-label="タブメニュー">
-      <button type="button" class="nav-tab active" id="tab-system" aria-pressed="true" title="システム">システム</button>
-      <button type="button" class="nav-tab" id="tab-algorithm" aria-pressed="false" title="アルゴリズム">アルゴリズム</button>
-      <button type="button" class="nav-tab" id="tab-progress" aria-pressed="false" title="進捗確認">進捗確認</button>
-      <button type="button" class="nav-tab" id="tab-account" aria-pressed="false" title="アカウント">アカウント</button>
-    </nav>
-  </header>
+<body>
+  
 
   <main>
+    <h1>システム選択</h1>
 
     <div class="action-panel" role="region" aria-label="システム操作">
-      <div class="action-column" role="group" aria-label="システム操作ボタン群">
-        <button class="action-btn" id="btn-list">作成したシステム一覧を開く</button>
-        <button class="action-btn secondary" id="btn-new">新しいシステムを作成</button>
-      </div>
-
+      <!-- 1行目 左 -->
+      <button class="action-btn" id="btn-list">作成したシステム一覧を開く</button>
+      
+      <!-- 1行目 右 -->
+      <button class="action-btn disabled" id="btn-main">メイン画面へ</button>
+      
+      <!-- 2行目 左 -->
+      <button class="action-btn" id="btn-new">新しいシステムを作成</button>
+      
+      <!-- 2行目 右 -->
+      <button class="action-btn" id="btn-tutorial">チュートリアル</button>
     </div>
 
   </main>
@@ -184,14 +120,28 @@
       });
     }
 
-    // 新しいシステム作成ボタンは作成画面へ遷移（画面構成は変更しない）
+    // 新しいシステム作成ボタンはindex.htmlへ遷移
     const btnNew = document.getElementById('btn-new');
     if (btnNew) {
       btnNew.addEventListener('click', function(e){
         e.preventDefault();
-        window.location.href = '/accounts/system/create/';
+        window.location.href = '/accounts/system/';
       });
     }
+
+    // 追加: チュートリアルボタンはチュートリアルページへ遷移
+    const btnTutorial = document.getElementById('btn-tutorial');
+    if (btnTutorial) {
+      btnTutorial.addEventListener('click', function(e){
+        e.preventDefault();
+        window.location.href = '/accounts/system/tutorial/';
+      });
+    }
+
+    // メイン画面へボタンは表示のみ（クリックイベントなし）
+    const btnMain = document.getElementById('btn-main');
+    // btnMainには何もイベントを付けない（表示のみ）
   </script>
 </body>
+{% endblock %}
 </html>

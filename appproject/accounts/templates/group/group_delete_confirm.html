@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>グループ削除の確認</title>
+<style>
+  body{font-family:"Segoe UI",Meiryo,sans-serif;background:#f7f7f7;margin:0;padding:24px}
+  .frame{width:720px;margin:40px auto;background:#fff;border:1px solid #ddd;padding:24px;border-radius:8px}
+  .title{font-weight:700;margin-bottom:18px}
+  .meta{margin:20px 0;color:#666}
+  .buttons{display:flex;gap:18px;justify-content:center;margin-top:28px}
+  .btn{padding:12px 24px;border-radius:8px;border:none;cursor:pointer}
+  .btn.back{background:#e0e6ef}
+  .btn.del{background:#f46b6b;color:#fff}
+</style>
+</head>
+<body>
+  <div class="frame">
+    <div class="title">このグループを削除しますか？</div>
+    <div style="text-align:center;font-weight:600;margin-top:12px">{{ group.group_name }}　メンバー　{{ member_count }}人</div>
+
+    <div class="buttons">
+      <a href="{% url 'accounts:account_entry' %}" class="btn back">戻るボタン</a>
+
+      <form method="post" action="{% url 'accounts:group_delete' group.group_id %}" style="display:inline">
+        {% csrf_token %}
+        <button type="submit" class="btn del">削除するボタン</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

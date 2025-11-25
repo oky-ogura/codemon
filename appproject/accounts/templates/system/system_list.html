@@ -60,6 +60,38 @@
       border:1px solid #eef2f6;
     }
     .list-empty { color:#666; padding:28px; text-align:center; min-width:420px; }
+    
+    /* ページネーション */
+    .pagination {
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      gap:16px;
+      margin:16px 0 12px 0;
+    }
+    .pagination-info {
+      color:#666;
+      font-size:14px;
+    }
+    .pagination-btn {
+      padding:8px 12px;
+      border-radius:8px;
+      border:1px solid #d0d7de;
+      background:#fff;
+      cursor:pointer;
+      font-size:14px;
+      transition: all .12s ease;
+    }
+    .pagination-btn:hover:not(:disabled) {
+      background:#f0f6ff;
+      color:var(--primary);
+      border-color:var(--primary);
+    }
+    .pagination-btn:disabled {
+      opacity:0.4;
+      cursor:not-allowed;
+    }
+    
     .actions { display:flex; gap:12px; margin-top:12px; justify-content:center; }
     .btn {
       padding:10px 14px;
@@ -79,25 +111,6 @@
       color:#444;
       border:1px solid #e6e9ee;
     }
-
-    /* 追加: 左下の戻るボタン */
-    .btn-back {
-      position: fixed;
-      left: 16px;
-      bottom: 16px;
-      z-index: 60;
-      padding: 10px 30px;
-      border-radius: 8px;
-      background: transparent;
-      color: #444;
-      border: 1px solid #e6e9ee;
-      cursor: pointer;
-      font-weight:700;
-      font-size:14px;
-      box-shadow: 0 6px 14px rgba(0,0,0,0.04);
-      transition: transform .12s ease, box-shadow .12s ease;
-    }
-    .btn-back:active { transform: translateY(1px); }
 
     @media (max-width:640px){
       .list-empty { padding:18px; }
@@ -119,22 +132,152 @@
     <h1>システム一覧</h1>
 
     <div class="list-card" role="region" aria-label="システム一覧">
-      <div class="list-empty">
-        作成済みのシステムはまだありません。<br />
-        「新しいシステムを作成」ボタンで作成を開始できます。
+      <!-- ページネーション（上部） -->
+      <div class="pagination" id="topPagination">
+        <button class="pagination-btn" id="prevBtn" disabled>← 前へ</button>
+        <span class="pagination-info" id="pageInfo">1 / 1</span>
+        <button class="pagination-btn" id="nextBtn" disabled>次へ →</button>
+      </div>
+
+      <div id="systemsContainer">
+        {% if systems %}
+        <div class="system-list">
+          <ul id="systemsList" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px;">
+            {% for s in systems %}
+            <li data-id="{{ s.system_id }}" style="background:#fbfdff;border-radius:8px;padding:12px 14px;border:1px solid #eef4fb;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+              <div style="flex:1;">
+                <div style="font-weight:700;font-size:15px;color:#0b2f5a;">{{ s.system_name }}</div>
+                {% if s.system_description %}
+                <div style="color:#666;font-size:13px;margin-top:4px;">{{ s.system_description }}</div>
+                {% endif %}
+                {% if s.updated_at|date:"Y-m-d H:i" != s.created_at|date:"Y-m-d H:i" %}
+                <div style="color:#999;font-size:12px;margin-top:4px;">更新日: {{ s.updated_at|date:"Y年n月j日 H:i" }}</div>
+                {% else %}
+                <div style="color:#999;font-size:12px;margin-top:4px;">{{ s.created_at|date:"Y年n月j日 H:i" }}</div>
+                {% endif %}
+              </div>
+              <button class="btn btn-primary system-detail-btn" data-system-id="{{ s.system_id }}" style="white-space:nowrap;padding:8px 16px;font-size:13px;">詳細</button>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% else %}
+        <div class="list-empty">
+          作成済みのシステムはまだありません。<br />
+          「新しいシステムを作成」ボタンで作成を開始できます。
+        </div>
+        {% endif %}
       </div>
 
       <div class="actions" aria-hidden="false">
         <button class="btn btn-primary" id="btn-new">新しいシステムを作成</button>
         <button class="btn btn-ghost" id="btn-refresh">一覧を更新</button>
+        <button class="btn btn-ghost" id="btn-back">戻る</button>
       </div>
     </div>
   </main>
 
-  <!-- 追加: 左下の戻るボタン -->
-  <button id="btn-back" class="btn-back" aria-label="戻る">戻る</button>
-
   <script>
+    // ページネーション設定
+    const ITEMS_PER_PAGE = 5;
+    let currentPage = 1;
+    let allSystems = [];
+
+    // 初期データの読み込み
+    (function initializeSystems() {
+      const systemsListElement = document.getElementById('systemsList');
+      if (systemsListElement) {
+        // Django テンプレートから初期データを取得
+        const items = systemsListElement.querySelectorAll('li[data-id]');
+        allSystems = Array.from(items).map(item => {
+          const systemId = item.getAttribute('data-id');
+          const nameElement = item.querySelector('div[style*="font-weight:700"]');
+          const descElement = item.querySelector('div[style*="color:#666"]');
+          const dateElement = item.querySelector('div[style*="color:#999"]');
+          
+          return {
+            system_id: systemId,
+            system_name: nameElement ? nameElement.textContent : '',
+            system_description: descElement ? descElement.textContent : '',
+            date_display: dateElement ? dateElement.textContent : ''
+          };
+        });
+        
+        // 初期表示
+        renderPage(1);
+      } else {
+        // システムが1つもない場合
+        updatePaginationButtons();
+      }
+    })();
+
+    function renderPage(page) {
+      currentPage = page;
+      const container = document.getElementById('systemsContainer');
+      if (!container) return;
+
+      if (!allSystems || allSystems.length === 0) {
+        container.innerHTML = `
+          <div class="list-empty">作成済みのシステムはまだありません。<br />「新しいシステムを作成」ボタンで作成を開始できます。</div>`;
+        updatePaginationButtons();
+        return;
+      }
+
+      const startIndex = (page - 1) * ITEMS_PER_PAGE;
+      const endIndex = startIndex + ITEMS_PER_PAGE;
+      const pageSystems = allSystems.slice(startIndex, endIndex);
+
+      let html = '<div class="system-list"><ul id="systemsList" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px;">';
+      for (const s of pageSystems) {
+        html += `<li data-id="${s.system_id}" style="background:#fbfdff;border-radius:8px;padding:12px 14px;border:1px solid #eef4fb;display:flex;justify-content:space-between;align-items:center;gap:12px;">`;
+        html += `<div style="flex:1;"><div style="font-weight:700;font-size:15px;color:#0b2f5a;">${escapeHtml(s.system_name)}</div>`;
+        if (s.system_description) html += `<div style="color:#666;font-size:13px;margin-top:4px;">${escapeHtml(s.system_description)}</div>`;
+        html += `<div style="color:#999;font-size:12px;margin-top:4px;">${escapeHtml(s.date_display)}</div></div>`;
+        html += `<button class="btn btn-primary system-detail-btn" data-system-id="${s.system_id}" style="white-space:nowrap;padding:8px 16px;font-size:13px;">詳細</button>`;
+        html += `</li>`;
+      }
+      html += '</ul></div>';
+      container.innerHTML = html;
+      
+      // 詳細ボタンにイベントリスナーを追加
+      attachDetailButtonListeners();
+      
+      // ページネーションボタンの状態更新
+      updatePaginationButtons();
+    }
+
+    function updatePaginationButtons() {
+      const totalPages = Math.ceil(allSystems.length / ITEMS_PER_PAGE) || 1;
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      const pageInfo = document.getElementById('pageInfo');
+
+      if (prevBtn) prevBtn.disabled = currentPage <= 1;
+      if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
+      if (pageInfo) pageInfo.textContent = `${currentPage} / ${totalPages}`;
+    }
+
+    function escapeHtml(str){
+      if (!str) return '';
+      return String(str).replace(/[&<>\"]/g, function(c){
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+      });
+    }
+
+    // ページネーションボタンのイベントリスナー
+    document.getElementById('prevBtn')?.addEventListener('click', function() {
+      if (currentPage > 1) {
+        renderPage(currentPage - 1);
+      }
+    });
+
+    document.getElementById('nextBtn')?.addEventListener('click', function() {
+      const totalPages = Math.ceil(allSystems.length / ITEMS_PER_PAGE);
+      if (currentPage < totalPages) {
+        renderPage(currentPage + 1);
+      }
+    });
+
     // ナビタブ見た目切替。システムタブとアルゴリズムタブで遷移（画面構成は変更しない）
     document.querySelectorAll('.nav-tab').forEach(tab=>{
       tab.addEventListener('click', function(e){
@@ -161,26 +304,54 @@
       });
     });
 
-    // 「新しいシステムを作成」ボタンは system_create へ遷移
+    // 「新しいシステムを作成」ボタンは index.html へ遷移
     const btnNew = document.getElementById('btn-new');
     if (btnNew) {
       btnNew.addEventListener('click', function(e){
         e.preventDefault();
-        window.location.href = '/accounts/system/create/';
+        window.location.href = '/accounts/system/';
       });
     }
 
-    // 「一覧を更新」は表示のみ（ダミー）
+    // 「一覧を更新」: サーバから最新データを取得して DOM を更新する
     const btnRefresh = document.getElementById('btn-refresh');
+    async function loadSystemsFromServer() {
+      try {
+        const res = await fetch('/accounts/system/list/data/');
+        if (!res.ok) throw new Error('Network response was not ok');
+        const data = await res.json();
+        
+        // サーバーから取得したデータを allSystems に格納
+        allSystems = (data.systems || []).map(s => ({
+          system_id: s.system_id,
+          system_name: s.system_name,
+          system_description: s.system_description,
+          created_at: s.created_at,
+          updated_at: s.updated_at,
+          // 更新されたシステムは「更新日:」を表示、それ以外は作成日を表示
+          date_display: (s.updated_at && s.created_at && s.updated_at !== s.created_at) 
+            ? `更新日: ${s.updated_at}` 
+            : s.created_at
+        }));
+        
+        // 1ページ目を表示
+        renderPage(1);
+      } catch (err) {
+        console.error(err);
+        alert('一覧の取得に失敗しました。');
+      }
+    }
+
     if (btnRefresh) {
-      btnRefresh.addEventListener('click', function(e){
+      btnRefresh.addEventListener('click', async function(e){
         e.preventDefault();
         btnRefresh.disabled = true;
-        setTimeout(()=> { btnRefresh.disabled = false; alert('一覧を更新しました（サンプル動作：実際の更新処理は未実装）。'); }, 700);
+        await loadSystemsFromServer();
+        btnRefresh.disabled = false;
       });
     }
 
-    // 追加: 左下の戻るボタン -> system_choice へ遷移
+    // 戻るボタン -> system_choice へ遷移
     const btnBack = document.getElementById('btn-back');
     if (btnBack) {
       btnBack.addEventListener('click', function(e){
@@ -188,6 +359,24 @@
         window.location.href = '/accounts/system/choice/';
       });
     }
+
+    // 詳細ボタンのイベントリスナーを追加する関数
+    function attachDetailButtonListeners() {
+      document.querySelectorAll('.system-detail-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          const systemId = this.getAttribute('data-system-id');
+          if (systemId) {
+            window.location.href = `/accounts/system/details/?id=${systemId}`;
+          }
+        });
+      });
+    }
+
+    // ページ読み込み時に詳細ボタンのイベントリスナーを追加
+    document.addEventListener('DOMContentLoaded', function() {
+      attachDetailButtonListeners();
+    });
   </script>
 </body>
 </html>

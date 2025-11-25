@@ -200,20 +200,16 @@
   <main class="page-wrap" role="main">
     <div class="card">
       <h1>システム保存</h1>
-      <div class="save-layout" aria-label="保存操作">
-        <div class="action-column" role="group" aria-label="保存ボタン群">
-          <!-- 矢印は文字で表示（クリックでシステム作成画面へ） -->
-          <div class="back-icon" id="arrowBack" title="システム作成に戻る" aria-disabled="false" aria-hidden="false">
-            <span class="arrow-char" aria-hidden="true">←</span>
+      <div style="text-align: center; padding: 40px 20px;">
+        <p style="font-size: 20px; font-weight: 600; color: #28a745; margin-bottom: 30px;">
+          ✓ システムの保存が完了しました
+        </p>
+        <div class="save-layout" aria-label="保存操作">
+          <div class="action-column" role="group" aria-label="ナビゲーション">
+            <button id="toListBtn" class="big-btn btn-back" aria-label="システム一覧画面に戻る">システム一覧画面に戻る</button>
           </div>
-
-          <button id="overwriteBtn" class="big-btn btn-save" aria-label="上書き保存">上書き保存</button>
-          <!-- 「システム一覧画面に戻る」ボタンは有効化して挙動を追加 -->
-          <button id="toListBtn" class="big-btn btn-back" aria-label="システム一覧画面に戻る">システム一覧画面に戻る</button>
         </div>
       </div>
-
-      <p class="note">上書き保存は未実装です。システム一覧へ戻る前に確認を行います。</p>
     </div>
   </main>
 
@@ -256,72 +252,18 @@
 </script>
 
 <script>
-/* 保存画面用スクリプト
-   - 矢印戻りは保存済みでなければ確認表示、保存済みなら直接遷移
-   - toListBtn は常に確認表示
-   - 上書き保存はダミー（実行すると保存済み扱いにする）
+/* 保存完了画面用スクリプト
+   - システム一覧へ戻るボタンのみ（確認なしで直接遷移）
 */
 (function(){
-  // 変更検知（将来のために残す）
-  let isDirty = false;
-  function bindChangeDetection(){
-    const els = document.querySelectorAll('input, textarea, select');
-    els.forEach(el => {
-      const ev = (el.tagName.toLowerCase() === 'select') ? 'change' : 'input';
-      el.addEventListener(ev, () => { isDirty = true; });
-    });
-  }
-  bindChangeDetection();
-
-  // 共通：確認ダイアログ表示 -> true なら遷移先へ移動
-  function confirmAndNavigate(message, url){
-    const ok = confirm(message);
-    if(!ok) return;
-    location.href = url;
-  }
-
-  // 矢印クリック: 保存済みなら直接遷移、未保存なら確認ダイアログを出す
-  const arrow = document.getElementById('arrowBack');
-  if(arrow){
-    arrow.addEventListener('click', function(e){
-      e.preventDefault();
-      if(isDirty){
-        const ok = confirm('変更が保存されていません。変更を破棄してシステム作成画面に戻りますか？');
-        if(!ok) return;
-        location.href = '/accounts/system/';
-      }else{
-        // 保存済み（または変更なし）は即遷移
-        location.href = '/accounts/system/';
-      }
-    });
-  }
-
-  // 上書き保存（ダミー）
-  const overwriteBtn = document.getElementById('overwriteBtn');
-  if(overwriteBtn){
-
-    overwriteBtn.addEventListener('click', function(e){
-      e.preventDefault();
-      isDirty = false;
-      alert('上書き保存は未実装です（ダミー）。変更は保存済み扱いになります。');
-    });
-  }
-
-  // 「システム一覧画面に戻る」ボタン：常に確認表示
+  // 「システム一覧画面に戻る」ボタン：直接遷移
   const toListBtn = document.getElementById('toListBtn');
   if(toListBtn){
     toListBtn.addEventListener('click', function(e){
       e.preventDefault();
-      confirmAndNavigate('変更が保存されていない場合は破棄されます。システム一覧画面に戻りますか？', '/accounts/system/list/');
+      location.href = '/accounts/system/list/';
     });
   }
-
-  // ページ離脱時の確認（オプション、コメント解除で強制表示）
-  window.addEventListener('beforeunload', function(e){
-    // 必要なら以下を有効にしてください（ブラウザによっては表示されないことがあります）
-    // e.preventDefault();
-    // e.returnValue = '';
-  });
 })();
 </script>
 </body>
