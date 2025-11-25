@@ -86,40 +86,54 @@
       </div>
 
       <div class="info">
-        <div class="row"><span class="label">ID</span>
-          <span>{% if account %}{{ account.user_id }}{% else %}---{% endif %}</span>
-        </div>
-        <div class="row"><span class="label">名前</span>
-          <strong>{% if account %}{{ account.user_name }}{% else %}ゲスト{% endif %}</strong>
-        </div>
-        <div class="row"><span class="label">年齢</span>
-          <span>{% if account and account.age is not None %}{{ account.age }}歳{% else %}--{% endif %}</span>
-        </div>
-        <div class="row"><span class="label">参加グループ</span>
-          <span>
-            {% if joined_group %}
-              {% if joined_group.detail_url %}
-                <a href="{{ joined_group.detail_url }}">{{ joined_group.group_name }}</a>
-              {% else %}
-                {{ joined_group.group_name }}
-              {% endif %}
-            {% else %}
-              未参加
-              <!-- 未参加時はグループ参加ボタンを表示 -->
-              <form method="get" action="{% url 'accounts:group_join_confirm' %}" style="display:inline;margin-left:12px">
-                <button type="submit" class="btn-logout">グループに参加</button>
-              </form>
-            {% endif %}
-          </span>
-        </div>
+<div class="row">
+  <span class="label">ID</span>
+  <span>{% if account %}{{ account.user_id }}{% else %}---{% endif %}</span>
+</div>
 
+<div class="row">
+  <span class="label">名前</span>
+  <strong>{% if account %}{{ account.user_name }}{% else %}ゲスト{% endif %}</strong>
+</div>
 
-        <div class="meta">
-          <div class="stick">
-            
-            
-            <div class="small">初めて会った日 {% if first_met %}{{ first_met|date:"Y/n/d" }}{% else %}--{% endif %}</div>
-            <div class="small">累計日数 {% if total_days %}{{ total_days }}{% else %}0日{% endif %}</div>
+<div class="row">
+  <span class="label">年齢</span>
+  <span>{% if account and account.age is not None %}{{ account.age }}歳{% else %}--{% endif %}</span>
+</div>
+
+<div class="row">
+  <span class="label">参加グループ</span>
+  <span>
+    {% if joined_group %}
+      {% if joined_group.detail_url %}
+        <a href="{{ joined_group.detail_url }}">{{ joined_group.group_name }}</a>
+      {% else %}
+        {{ joined_group.group_name }}
+      {% endif %}
+    {% else %}
+      未参加
+      <!-- 未参加時はグループ参加ボタンを表示 -->
+      <form method="get" action="{% url 'accounts:group_join_confirm' %}" style="display:inline;margin-left:12px">
+        <button type="submit" class="btn-logout">グループに参加</button>
+      </form>
+    {% endif %}
+  </span>
+</div>
+
+<div class="meta">
+  <div class="stick">
+    <div class="figure">⚪︎</div>
+
+    <!-- AI 設定表示（存在しない場合はデフォルト） -->
+    <div class="small">名前 {{ ai_config.ai_name|default:"codemon" }}</div>
+    <div class="small">性格 {{ ai_config.ai_personality|default:"元気" }}</div>
+    <div class="small">語尾 {{ ai_config.ai_speech|default:"です" }}</div>
+
+    <!-- main ブランチのメタ情報（日時や累計日数） -->
+    <div class="small">初めて会った日 {% if first_met %}{{ first_met|date:"Y/n/d" }}{% else %}--{% endif %}</div>
+    <div class="small">累計日数 {% if total_days %}{{ total_days }}{% else %}0日{% endif %}</div>
+  </div>
+</div>
 
           </div>
 

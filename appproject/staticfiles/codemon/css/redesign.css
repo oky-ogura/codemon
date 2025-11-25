@@ -1,0 +1,298 @@
+/* ============================================
+   Codemon Redesign CSS
+   小学生向け楽しいデザインシステム
+   ============================================ */
+
+/* ==================== 基本レイアウト ==================== */
+
+/* ページ全体のコンテナ */
+.page-container {
+  position: relative;
+  width: 100vw;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* 背景画像（全画面共通） */
+.bg-common {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  object-fit: cover;
+}
+
+/* 背景外枠（機能ごとに色違い） */
+.bg-frame {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+/* 機能別の外枠カラー */
+.frame-yellow { /* karihome, 新規登録, ログイン */
+  /* 画像で対応: bg_frame_yellow.png */
+}
+
+.frame-blue { /* システム機能 */
+  /* 画像で対応: bg_frame_blue.png */
+}
+
+.frame-purple { /* アルゴリズム機能 */
+  /* 画像で対応: bg_frame_purple.png */
+}
+
+.frame-green { /* チェックリスト */
+  /* 画像で対応: bg_frame_green.png */
+}
+
+.frame-pink { /* グループ参加系 */
+  /* 画像で対応: bg_frame_pink.png */
+}
+
+.frame-black { /* その他グループ系 */
+  /* 画像で対応: bg_frame_black.png */
+}
+
+.frame-white { /* ログアウト */
+  /* 画像で対応: bg_frame_white.png */
+}
+
+/* ==================== コンテンツエリア ==================== */
+
+/* メインコンテンツ */
+.main-content {
+  position: relative;
+  width: 100%;
+  min-height: calc(100vh - 80px); /* ナビバー分を引く */
+  padding: 40px 60px;
+  z-index: 1;
+}
+
+/* ==================== キャラクター表示 ==================== */
+
+/* キャラクター立ち絵コンテナ */
+.character-container {
+  position: absolute;
+  right: 15%;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  pointer-events: auto;
+}
+
+.character-image {
+  max-width: 400px;
+  max-height: 500px;
+  width: auto;
+  height: auto;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.2));
+  transition: transform 0.3s ease;
+}
+
+/* キャラクターアニメーション（ホバー時など） */
+.character-image:hover {
+  transform: scale(1.02) translateY(-5px);
+}
+
+/* ==================== 吹き出し ==================== */
+
+.speech-bubble-container {
+  position: absolute;
+  left: 150px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 11;
+  max-width: 500px;
+}
+
+.speech-bubble {
+  background: white;
+  border-radius: 30px;
+  padding: 30px 40px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  position: relative;
+  font-size: 18px;
+  line-height: 1.8;
+  color: #333;
+  animation: bubbleFloat 2s ease-in-out infinite;
+}
+
+/* 吹き出しの三角部分 */
+.speech-bubble::after {
+  content: '';
+  position: absolute;
+  right: -20px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 25px solid white;
+  border-top: 20px solid transparent;
+  border-bottom: 20px solid transparent;
+}
+
+/* 吹き出しアニメーション */
+@keyframes bubbleFloat {
+  0%, 100% {
+    transform: translateY(-50%) translateX(0);
+  }
+  50% {
+    transform: translateY(-50%) translateX(-10px);
+  }
+}
+
+/* ==================== ボタンスタイル ==================== */
+
+/* 基本ボタン */
+.btn-custom {
+  position: relative;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+.btn-custom img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ホバー効果 */
+.btn-custom:hover {
+  transform: translateY(-5px) scale(1.05);
+  filter: brightness(1.1);
+}
+
+/* クリック効果 */
+.btn-custom:active {
+  transform: translateY(-2px) scale(1.02);
+  filter: brightness(0.95);
+}
+
+/* フォーカス時（キーボード操作） */
+.btn-custom:focus {
+  outline: 3px solid #FFD700;
+  outline-offset: 5px;
+  border-radius: 15px;
+}
+
+/* ボタンバウンスアニメーション */
+@keyframes buttonBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.btn-bounce {
+  animation: buttonBounce 1s ease-in-out infinite;
+}
+
+/* ==================== 入力フォーム ==================== */
+
+.form-custom {
+  position: relative;
+  margin: 20px 0;
+}
+
+.form-custom input,
+.form-custom textarea {
+  width: 100%;
+  padding: 15px 20px;
+  border: 3px solid #ddd;
+  border-radius: 15px;
+  font-size: 16px;
+  transition: all 0.3s;
+  background: white;
+}
+
+.form-custom input:focus,
+.form-custom textarea:focus {
+  outline: none;
+  border-color: #FFD700;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+  transform: scale(1.02);
+}
+
+/* ==================== レスポンシブ調整（念のため） ==================== */
+
+@media (max-width: 1366px) {
+  .character-container {
+    right: 50px;
+  }
+  
+  .character-image {
+    max-width: 300px;
+    max-height: 450px;
+  }
+  
+  .speech-bubble-container {
+    left: 100px;
+    max-width: 400px;
+  }
+}
+
+/* ==================== ユーティリティ ==================== */
+
+/* 中央揃え */
+.center-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+/* テキスト装飾 */
+.text-fun {
+  font-family: "Yu Gothic UI", "Meiryo", sans-serif;
+  font-weight: bold;
+  color: #333;
+  text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.8);
+}
+
+/* キラキラエフェクト用 */
+.sparkle {
+  position: relative;
+}
+
+.sparkle::before {
+  content: '✨';
+  position: absolute;
+  animation: sparkleAnimation 1.5s ease-in-out infinite;
+}
+
+@keyframes sparkleAnimation {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.5) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2) rotate(180deg);
+  }
+}
+
+/* アクセシビリティ: スクリーンリーダー用の非表示 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

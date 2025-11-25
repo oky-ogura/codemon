@@ -1,3 +1,4 @@
+{% load static %}
 <!doctype html>
 <html lang="ja">
 <head>
@@ -19,49 +20,179 @@
       margin: 0;
       padding: 0;
       background: #f5f5f5;
+      overflow: hidden; /* スクロール無効化 */
+      height: 100vh;
+    }
+    
+    /* 背景システム（全画面共通） */
+    .bg-common {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -2;
+      object-fit: cover;
+    }
+    
+    .bg-frame {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      object-fit: cover;
+      pointer-events: none;
     }
     
     /* ナビゲーションタブのスタイル */
     .top-tabs {
-      border-bottom: 2px solid #000;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000; /* 最前面に配置 */
       padding: 10px 20px;
-      background: #fff;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-top: 50px; /* 外枠から離す */
+      background: transparent;
+      box-shadow: none;
     }
     
     .tabs ul {
-      margin: 0;
-      padding: 0;
       list-style: none;
       display: flex;
       gap: 10px;
       justify-content: center;
       flex-wrap: wrap;
+      margin: 0;
+      padding: 0;
     }
     
-    .tabs li {
-      flex: 0 1 auto;
+    .tabs ul li {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     
     .tabs a {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      border: none;
+      text-decoration: none;
+      position: relative; /* 画像を重ねるため */
+    }
+    
+    /* 画像コンテナ */
+    .tabs .nav-image-container {
+      position: relative;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    /* ナビゲーション画像のスタイル */
+    .tabs .nav-image-container img {
+      height: 50px;
+      width: auto;
+      display: block;
+      transition: opacity 0.3s;
+    }
+    
+    /* normal画像 */
+    .tabs .nav-image-container .nav-normal {
+      opacity: 1;
+    }
+    
+    /* active画像（通常は非表示） */
+    .tabs .nav-image-container .nav-active {
+      position: absolute;
+      top: 0;
+      left: 0;
+      opacity: 0;
+    }
+    
+    /* ホバー時：normal非表示、active表示 */
+    .tabs a:hover .nav-image-container .nav-normal {
+      opacity: 0;
+    }
+    
+    .tabs a:hover .nav-image-container .nav-active {
+      opacity: 1;
+    }
+    
+    /* アクティブ時：normal非表示、active表示 */
+    .tabs a.active .nav-image-container .nav-normal {
+      opacity: 0;
+    }
+    
+    .tabs a.active .nav-image-container .nav-active {
+      opacity: 1;
+    }
+    
+    /* 画像はJavaScriptで切り替えるため、CSSでの画像変更は不要 */
+    /* ホバー時は画像の切り替えのみ（動きなし） */
+    
+    /* SVGアイコンのスタイル */
+    .tabs a svg {
+      height: 50px;
+      width: 50px;
+      display: block;
+      transition: opacity 0.3s; /* transformの代わりにopacityを使用 */
+      background: white; /* 白背景 */
+      border-radius: 4px;
+      padding: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      box-sizing: border-box; /* paddingを含めて50pxに */
+    }
+    
+    /* SVGアイコンの色変更(通常時) */
+    .tabs a svg path {
+      fill: #F72585 !important; /* ピンク色 */
+      transition: fill 0.3s;
+    }
+    
+    /* SVGアイコンの色変更(ホバー時) - 動きなし、色のみ変更 */
+    .tabs ul li:hover a svg path {
+      fill: #FFD166 !important; /* 黄色 */
+    }
+    
+    /* SVGアイコンの色変更(アクティブ時) */
+    .tabs a.active svg path {
+      fill: #FFD166 !important; /* アクティブ時も黄色 */
+    }
+    
+    /* ホームアイコン専用色指定 */
+    header.top-tabs nav.tabs ul li:first-child a svg path {
+      fill: #F72585 !important;
+    }
+    header.top-tabs nav.tabs ul li:first-child:hover a svg path,
+    header.top-tabs nav.tabs ul li:first-child a.active svg path {
+      fill: #FFD166 !important;
+    }
+    
+    /* テキスト表示用(画像未作成時) */
+    .tabs a .nav-text {
       display: inline-block;
       padding: 12px 24px;
       border: 1px solid #000;
-      text-decoration: none;
       color: #000;
       background: #fff;
       border-radius: 4px;
-      transition: all 0.3s;
       font-weight: 500;
+      transition: background 0.3s, box-shadow 0.3s; /* transformを削除 */
     }
     
-    .tabs a:hover {
+    .tabs ul li:hover a .nav-text {
       background: #f0f0f0;
-      transform: translateY(-2px);
       box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
     
-    .tabs a.active {
+    .tabs a.active .nav-text {
       background: #667eea;
       color: #fff;
       border-color: #667eea;
@@ -69,11 +200,19 @@
     
     /* コンテンツエリア */
     .content-wrapper {
-      max-width: 1200px;
-      margin: 0 auto;
+      position: relative;
+      z-index: 10;
+      max-width: 100%;
+      margin: 0;
       padding: 20px;
-      background: #fff;
+      background: transparent;
       min-height: calc(100vh - 80px);
+      overflow-y: auto;
+    }
+    
+    /* デザインシステム使用時はスクロール無効 */
+    body.no-scroll .content-wrapper {
+      overflow: hidden;
     }
     
     /* メッセージ表示 */
@@ -281,16 +420,78 @@
     {% block extra_css %}{% endblock %}
   </style>
 </head>
-<body>
+<body{% block body_class %}{% endblock %}>
+  <!-- 背景画像（全画面共通） -->
+  <img src="{% static 'codemon/images/backgrounds/bg_common.png' %}" 
+       alt="" 
+       class="bg-common"
+       onerror="this.style.display='none';">
+
+  <!-- 外枠画像（画面ごとに色違い） -->
+  {% block background_frame %}
+  <!-- 各ページでbg_frame_*.pngを指定 -->
+  {% endblock %}
+
   <!-- ナビゲーションタブ -->
   <header class="top-tabs">
     <nav class="tabs">
       <ul>
-        <li><a href="{% url 'accounts:karihome' %}" id="tab-home">ホーム</a></li>
-  <li><a href="{% url 'accounts:system_choice' %}" id="tab-systems">システム</a></li>
-  <li><a href="{% url 'accounts:block_choice' %}" id="tab-algorithms">アルゴリズム</a></li>
-        <li><a href="{% url 'codemon:checklist_selection' %}" id="tab-checklist">チェックリスト（進捗確認）</a></li>
-        <li><a href="{% url 'accounts:account_entry' %}" id="tab-account">アカウント</a></li>
+        <li>
+          <a href="{% url 'accounts:karihome' %}" id="tab-home">
+            <!-- ホームアイコン(SVG) -->
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+            </svg>
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'accounts:system_choice' %}" id="tab-systems">
+            <div class="nav-image-container">
+              <img src="{% static 'codemon/images/nav/system.png' %}" 
+                   class="nav-normal"
+                   alt="システム">
+              <img src="{% static 'codemon/images/nav/system_active.png' %}" 
+                   class="nav-active"
+                   alt="システム">
+            </div>
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'accounts:block_choice' %}" id="tab-algorithms">
+            <div class="nav-image-container">
+              <img src="{% static 'codemon/images/nav/algorithm.png' %}" 
+                   class="nav-normal"
+                   alt="アルゴリズム">
+              <img src="{% static 'codemon/images/nav/algorithm_active.png' %}" 
+                   class="nav-active"
+                   alt="アルゴリズム">
+            </div>
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'codemon:checklist_selection' %}" id="tab-checklist">
+            <div class="nav-image-container">
+              <img src="{% static 'codemon/images/nav/checklist.png' %}" 
+                   class="nav-normal"
+                   alt="チェックリスト">
+              <img src="{% static 'codemon/images/nav/checklist_active.png' %}" 
+                   class="nav-active"
+                   alt="チェックリスト">
+            </div>
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'accounts:account_entry' %}" id="tab-account">
+            <div class="nav-image-container">
+              <img src="{% static 'codemon/images/nav/account.png' %}" 
+                   class="nav-normal"
+                   alt="アカウント">
+              <img src="{% static 'codemon/images/nav/account_active.png' %}" 
+                   class="nav-active"
+                   alt="アカウント">
+            </div>
+          </a>
+        </li>
       </ul>
     </nav>
   </header>
@@ -310,8 +511,7 @@
   </div>
 
   <!-- AI キャラクターウィジェット -->
-  {% load static %}
-  <div id="character-widget">
+  <div id="character-widget" style="display: none;">
     <!-- キャラ画像 -->
     <img id="character-image"
       src="{% static 'codemon/images/characters' %}/{{ request.session.ai_character|default:'inu' }}.png"
@@ -385,7 +585,10 @@
     for (const [tabId, paths] of Object.entries(tabLinks)) {
       const matchesPath = paths.some(path => currentPath.startsWith(path));
       if (matchesPath) {
-        document.getElementById(tabId)?.classList.add('active');
+        const tabLink = document.getElementById(tabId);
+        if (tabLink) {
+          tabLink.classList.add('active');
+        }
         break;
       }
     }
