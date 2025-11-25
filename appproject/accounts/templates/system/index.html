@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <title>システム作成</title>
+  <!-- Blockly CDN -->
+  <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+  <script src="https://unpkg.com/blockly/javascript_compressed.js"></script>
+  <script src="https://unpkg.com/blockly/msg/ja.js"></script>
   <style>
     :root { --nav-height:56px; --primary:#1976d2; --bg:#f9f9fb; --muted:#666; }
     .top-nav {
@@ -1279,22 +1283,28 @@
             const newBtn = btn.cloneNode(true);
             btn.parentNode.replaceChild(newBtn, btn);
             
-            // 遷移先システムIDがある場合のイベントリスナーを設定
+            // アルゴリズムIDとシステムIDを取得
             const targetSystemId = newBtn.getAttribute('data-target-system');
-            console.log('ボタン設定:', newBtn.textContent, 'システムID:', targetSystemId);
+            const algorithmId = newBtn.getAttribute('data-algorithm-id');
+            const algorithmXml = newBtn.getAttribute('data-algorithm-xml');
             
-            if (targetSystemId) {
-              newBtn.addEventListener('click', function(e){
-                e.stopPropagation();
-                console.log('ボタンクリック - システムID:', targetSystemId);
+            console.log('ボタン設定:', newBtn.textContent, 'システムID:', targetSystemId, 'アルゴリズムID:', algorithmId);
+            
+            newBtn.addEventListener('click', function(e){
+              e.stopPropagation();
+              
+              if (algorithmId && algorithmXml) {
+                // アルゴリズムを実行
+                console.log('アルゴリズム実行:', algorithmId);
+                executeAlgorithmFromButton(algorithmXml, newBtn.textContent);
+              } else if (targetSystemId) {
+                // システム遷移
+                console.log('システム遷移:', targetSystemId);
                 loadSystemInPreview(targetSystemId);
-              });
-            } else {
-              newBtn.addEventListener('click', function(e){
-                e.stopPropagation();
-                console.log('ボタンクリック - 遷移先なし');
-              });
-            }
+              } else {
+                console.log('ボタンクリック - 動作なし');
+              }
+            });
           }
         } catch(err) {
           console.error('ボタンのイベント設定エラー:', err);
@@ -1836,6 +1846,8 @@
       // ボタン
       slide.querySelectorAll('.draggable-btn').forEach(btn => {
         const targetSystemId = btn.getAttribute('data-target-system');
+        const algorithmId = btn.getAttribute('data-algorithm-id');
+        const algorithmXml = btn.getAttribute('data-algorithm-xml');
         let buttonText = btn.textContent.trim();
         buttonText = buttonText.replace(/≡/g, '').trim();
         
@@ -1852,7 +1864,9 @@
             color: btn.style.color
           },
           element_config: {
-            target_system_id: targetSystemId
+            target_system_id: targetSystemId,
+            algorithm_id: algorithmId,
+            algorithm_xml: algorithmXml
           }
         });
       });
@@ -2309,7 +2323,7 @@
       saveHistory();
     }
 
-    function createButton(labelText, width, height, color, textColor, targetSystemId) {
+    function createButton(labelText, width, height, color, textColor, targetSystemId, targetAlgorithmId, algorithmXml) {
       let btn = document.createElement("button");
       btn.classList.add("draggable-btn");
       btn.textContent = labelText;
@@ -2322,6 +2336,14 @@
       // 遷移先システムIDを data 属性として保存
       if (targetSystemId) {
         btn.setAttribute('data-target-system', targetSystemId);
+      }
+      
+      // アルゴリズムIDとXMLを data 属性として保存
+      if (targetAlgorithmId) {
+        btn.setAttribute('data-algorithm-id', targetAlgorithmId);
+      }
+      if (algorithmXml) {
+        btn.setAttribute('data-algorithm-xml', algorithmXml);
       }
 
       btn.addEventListener('click', function(e) {
@@ -2385,14 +2407,35 @@
         return;
       }
 
-      // 他のシステム一覧を取得（Djangoテンプレートから）
+      // アルゴリズム一覧を取得（Djangoテンプレートから）
+      const algorithms = {{ algorithms_json|safe }};
       const otherSystems = {{ other_systems_json|safe }};
       
+      let actionType = prompt("ボタンの動作を選択してください:\n1. アルゴリズム実行\n2. システム遷移\n3. 動作なし", "1");
+      
       let targetSystemId = null;
-      if (otherSystems && otherSystems.length > 0) {
-        // 遷移先システムを選択するプロンプト
+      let targetAlgorithmId = null;
+      let algorithmXml = null;
+      
+      if (actionType === "1" && algorithms && algorithms.length > 0) {
+        // アルゴリズム実行を選択
+        let algorithmList = algorithms.map((algo, idx) => `${idx + 1}. ${algo.algorithm_name}`).join('\n');
+        let selectMsg = "実行するアルゴリズムを選択してください\n\n" + algorithmList;
+        let selectedNum = prompt(selectMsg, "1");
+        
+        if (selectedNum !== null && selectedNum !== "") {
+          let idx = parseInt(selectedNum) - 1;
+          if (idx >= 0 && idx < algorithms.length) {
+            targetAlgorithmId = algorithms[idx].algorithm_id;
+            algorithmXml = algorithms[idx].blockly_xml;
+          }
+        } else {
+          return; // キャンセル
+        }
+      } else if (actionType === "2" && otherSystems && otherSystems.length > 0) {
+        // システム遷移を選択
         let systemList = otherSystems.map((sys, idx) => `${idx + 1}. ${sys.system_name}`).join('\n');
-        let selectMsg = "このボタンで遷移するシステムを選択してください（実行画面のみ表示されます）\n遷移しない場合は 0 を入力してください\n\n" + systemList;
+        let selectMsg = "遷移先のシステムを選択してください（実行画面のみ表示されます）\n\n" + systemList;
         let selectedNum = prompt(selectMsg, "1");
         
         if (selectedNum !== null && selectedNum !== "") {
@@ -2400,14 +2443,12 @@
           if (idx >= 0 && idx < otherSystems.length) {
             targetSystemId = otherSystems[idx].system_id;
           }
-          // 0が入力された場合やそれ以外の無効な値の場合はtargetSystemIdはnullのまま
         } else {
-          // キャンセルされた場合は処理を中断
-          return;
+          return; // キャンセル
         }
       }
 
-      createButton(name, width, height, colorObj.value, colorObj.textColor, targetSystemId);
+      createButton(name, width, height, colorObj.value, colorObj.textColor, targetSystemId, targetAlgorithmId, algorithmXml);
     });
 
     window.onload = function() {
@@ -2706,16 +2747,31 @@
       if (elem.style_data?.color) btn.style.color = elem.style_data.color;
 
       const targetSystemId = elem.element_config?.target_system_id;
+      const algorithmId = elem.element_config?.algorithm_id;
+      const algorithmXml = elem.element_config?.algorithm_xml;
+      
       if (targetSystemId) {
         btn.setAttribute('data-target-system', targetSystemId);
+      }
+      if (algorithmId) {
+        btn.setAttribute('data-algorithm-id', algorithmId);
+      }
+      if (algorithmXml) {
+        btn.setAttribute('data-algorithm-xml', algorithmXml);
       }
 
       btn.addEventListener('click', function(e) {
         e.stopPropagation();
         const isPreview = btn.closest('#previewSlideArea');
-        if (isPreview && targetSystemId) {
-          // 他のシステムの実行画面を表示
-          loadSystemInPreview(targetSystemId);
+        
+        if (isPreview) {
+          if (algorithmId && algorithmXml) {
+            // アルゴリズム実行
+            executeAlgorithmFromButton(algorithmXml, btn.textContent);
+          } else if (targetSystemId) {
+            // システム遷移
+            loadSystemInPreview(targetSystemId);
+          }
         }
       });
 
@@ -2980,6 +3036,57 @@
       });
 
     })();
+
+    // アルゴリズム実行関数
+    function executeAlgorithmFromButton(blocklyXml, buttonName) {
+      if (!blocklyXml) {
+        alert('アルゴリズムのデータが見つかりません');
+        return;
+      }
+
+      try {
+        // 非表示のBlocklyワークスペースを作成
+        const tempDiv = document.createElement('div');
+        tempDiv.style.display = 'none';
+        document.body.appendChild(tempDiv);
+
+        const workspace = Blockly.inject(tempDiv, {
+          toolbox: '<xml></xml>'
+        });
+
+        // XMLからブロックを読み込む
+        const xml = Blockly.utils.xml.textToDom(blocklyXml);
+        Blockly.Xml.domToWorkspace(xml, workspace);
+
+        // JavaScriptコードを生成
+        const code = Blockly.JavaScript.workspaceToCode(workspace);
+        
+        console.log('生成されたコード:', code);
+
+        // コードを実行
+        if (code) {
+          try {
+            // eval を使用してコードを実行
+            // セキュリティ: ユーザー自身が作成したコードのみ実行
+            eval(code);
+            console.log(`アルゴリズム「${buttonName}」を実行しました`);
+          } catch (execError) {
+            console.error('コード実行エラー:', execError);
+            alert(`アルゴリズムの実行中にエラーが発生しました:\n${execError.message}`);
+          }
+        } else {
+          alert('実行可能なコードが生成されませんでした');
+        }
+
+        // クリーンアップ
+        workspace.dispose();
+        tempDiv.remove();
+
+      } catch (error) {
+        console.error('アルゴリズム実行エラー:', error);
+        alert(`アルゴリズムの読み込み中にエラーが発生しました:\n${error.message}`);
+      }
+    }
   </script>
 
 </body>
