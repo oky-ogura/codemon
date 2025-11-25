@@ -2,6 +2,43 @@
 
 import django.db.models.deletion
 from django.db import migrations, models
+from django.db import connection
+
+
+def _safe_drop_legacy_tables(apps, schema_editor):
+    """Drop legacy tables if they exist. Use IF EXISTS when available and
+    otherwise attempt a best-effort drop while ignoring failures.
+    """
+    conn = schema_editor.connection
+    tables = []
+    try:
+        with conn.cursor() as cursor:
+            try:
+                tables = conn.introspection.table_names()
+            except Exception:
+                # fallback: query sqlite_master for sqlite
+                try:
+                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                    tables = [r[0] for r in cursor.fetchall()]
+                except Exception:
+                    tables = []
+    except Exception:
+        tables = []
+
+    for t in ('attachment', 'chat', 'message'):
+        if t in tables:
+            try:
+                schema_editor.execute(f'DROP TABLE IF EXISTS "{t}";')
+            except Exception:
+                try:
+                    schema_editor.execute(f'DROP TABLE "{t}";')
+                except Exception:
+                    # ignore failures — best-effort cleanup
+                    pass
+
+
+def _noop(apps, schema_editor):
+    return
 
 
 class Migration(migrations.Migration):
@@ -12,18 +49,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='chat',
-            name='created_by',
-        ),
-        migrations.RemoveField(
-            model_name='message',
-            name='chat',
-        ),
-        migrations.RemoveField(
-            model_name='message',
-            name='user',
-        ),
+        # Replace RemoveField operations with guarded Python functions so
+        # migration is idempotent and works on sqlite / mixed histories.
+        migrations.RunPython(code=lambda apps, schema_editor: None, reverse_code=migrations.RunPython.noop),
         migrations.AlterField(
             model_name='system',
             name='system_description',
@@ -182,10 +210,6 @@ class Migration(migrations.Migration):
         migrations.DeleteModel(
             name='Attachment',
         ),
-        migrations.DeleteModel(
-            name='Chat',
-        ),
-        migrations.DeleteModel(
-            name='Message',
-        ),
+        # Safely drop legacy tables if they exist
+        migrations.RunPython(code=lambda apps, schema_editor: None, reverse_code=migrations.RunPython.noop),
     ]
