@@ -1,9 +1,22 @@
+from django.shortcuts import render, redirect, get_object_or_404
 from django.core.mail import send_mail
-from django.contrib.auth.hashers import make_password # <= ここにあるので...
-
-# 以下のブロックは、HEADとmainのインポートを統合したもの
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth import get_user_model
+from django.contrib import messages
+from django.urls import reverse
+from django.contrib.auth import views as auth_views
+from django.contrib.auth.forms import SetPasswordForm
+from django.contrib.auth.hashers import check_password, make_password
+from django.conf import settings
+from django import forms
 from django.http import HttpResponseRedirect, HttpResponseForbidden, FileResponse, JsonResponse
-
+from .forms import TeacherSignupForm, StudentSignupForm, ProfileEditForm
+from .models import Account, Group, GroupMember
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.core import signing
+from django.template.loader import render_to_string
 from django.db import connection, transaction
 from django.utils import timezone
 from django.contrib.messages import get_messages
@@ -28,11 +41,6 @@ except Exception:
         if getattr(request, 'user', None) and getattr(request.user, 'is_authenticated', False):
             return request.user
         return None
-
-from django.db import connection, transaction
-from django.utils import timezone
-import logging
-from django.contrib.auth.hashers import make_password
 
 
 
@@ -300,7 +308,6 @@ def account_session_required(view_func):
 
 @account_session_required
 def karihome(request):
-<<<<<<< HEAD
     print(f"DEBUG karihome view: session_key={request.session.session_key} data={dict(request.session)}")
     
     # AI設定を取得してAI名前とキャラクターをテンプレートに渡す
@@ -347,9 +354,6 @@ def karihome(request):
         'ai_name': ai_name,
         'character': character
     })
-=======
-    return render(request, 'accounts/karihome.html')
->>>>>>> main
 
 def login_choice(request):
     """ログイン種別の選択ページ（教師 or 生徒）を表示する簡易ビュー"""
@@ -596,8 +600,6 @@ def system_index(request):
     # ログインユーザーの他のシステム一覧を取得
     account = get_logged_account(request)
     other_systems_json = '[]'
-    algorithms_json = '[]'  # アルゴリズム一覧を追加
-    
     if account:
         try:
             other_systems_qs = System.objects.filter(user=account).order_by('-created_at')
@@ -616,23 +618,8 @@ def system_index(request):
             other_systems_json = json.dumps(other_systems_list, ensure_ascii=False)
         except Exception:
             pass
-        
-        # アルゴリズム一覧を取得
-        try:
-            algorithms_qs = Algorithm.objects.filter(user=account).order_by('-created_at')
-            algorithms_list = []
-            for algo in algorithms_qs:
-                algorithms_list.append({
-                    'algorithm_id': algo.algorithm_id,
-                    'algorithm_name': algo.algorithm_name,
-                    'blockly_xml': algo.blockly_xml or ''
-                })
-            algorithms_json = json.dumps(algorithms_list, ensure_ascii=False)
-        except Exception:
-            pass
 
     context['other_systems_json'] = other_systems_json
-    context['algorithms_json'] = algorithms_json  # コンテキストに追加
 
     if system_id:
         try:
