@@ -1,8 +1,22 @@
+from django.shortcuts import render, redirect, get_object_or_404
 from django.core.mail import send_mail
-from django.contrib.auth.hashers import make_password # <= ここにあるので...
-
-# 以下のブロックは、HEADとmainのインポートを統合したもの
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth import get_user_model
+from django.contrib import messages
+from django.urls import reverse
+from django.contrib.auth import views as auth_views
+from django.contrib.auth.forms import SetPasswordForm
+from django.contrib.auth.hashers import check_password, make_password
+from django.conf import settings
+from django import forms
 from django.http import HttpResponseRedirect, HttpResponseForbidden, FileResponse, JsonResponse
+from .forms import TeacherSignupForm, StudentSignupForm, ProfileEditForm
+
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.core import signing
+from django.template.loader import render_to_string
 
 from django.db import connection, transaction
 from django.utils import timezone
@@ -13,6 +27,7 @@ import datetime
 from codemon.models import System, Algorithm, SystemElement
 import json
 from types import SimpleNamespace
+from .models import Account, Group, GroupMember
 try:
     from codemon.views import _get_write_owner
 except Exception:
@@ -300,7 +315,7 @@ def account_session_required(view_func):
 
 @account_session_required
 def karihome(request):
-<<<<<<< HEAD
+
     print(f"DEBUG karihome view: session_key={request.session.session_key} data={dict(request.session)}")
     
     # AI設定を取得してAI名前とキャラクターをテンプレートに渡す
@@ -347,9 +362,7 @@ def karihome(request):
         'ai_name': ai_name,
         'character': character
     })
-=======
-    return render(request, 'accounts/karihome.html')
->>>>>>> main
+
 
 def login_choice(request):
     """ログイン種別の選択ページ（教師 or 生徒）を表示する簡易ビュー"""
