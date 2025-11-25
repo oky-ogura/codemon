@@ -1,0 +1,23 @@
+# Generated migration file for avatar field
+
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('accounts', '0005_remove_account_avatar_remove_account_type'),
+    ]
+
+    operations = [
+        migrations.AddField(
+            model_name='account',
+            name='avatar',
+            field=models.ImageField(blank=True, null=True, upload_to='avatars/', verbose_name='アバター画像'),
+        ),
+        migrations.AddField(
+            model_name='account',
+            name='account_type',
+            field=models.CharField(blank=True, max_length=20, null=True, verbose_name='アカウント種別'),
+        ),
+    ]

@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS algorithm (
     user_id INTEGER NOT NULL,
     algorithm_name VARCHAR(100) NOT NULL,
     algorithm_description TEXT DEFAULT CURRENT_TIMESTAMP,
+    blockly_xml TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

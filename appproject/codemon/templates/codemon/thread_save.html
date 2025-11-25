@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<!-- 💬 AIチャットボタン -->
+<div class="chat-ai-bubble">
+  <a href="{% url 'codemon:chat' %}" class="chat-button">
+    <i class="fas fa-comments"></i> AIチャット
+  </a>
+</div>
+
+<!-- 🧾 スレッド確認・保存フォーム -->
+<div class="checklist-edit-container">
+  <h2>スレッドの保存確認</h2>
+
+  <div class="checklist-details">
+    <p><strong>スレッド名：</strong> {{ thread.title|default:thread_title }}</p>
+    <p><strong>概要：</strong> {{ thread.description|default:thread_description|default:"(なし)" }}</p>
+    <p><strong>グループ：</strong> {% if thread.group %}{{ thread.group.group_name }}{% else %}{{ selected_group_name|default:"（未指定）" }}{% endif %}</p>
+  </div>
+
+  <form method="POST" action="{% url 'codemon:thread_edit' thread.thread_id %}">
+    {% csrf_token %}
+    {# Hidden fields to round-trip values if the view expects them #}
+    <input type="hidden" name="title" value="{{ thread.title|default:thread_title }}">
+    <input type="hidden" name="description" value="{{ thread.description|default:thread_description }}">
+    <input type="hidden" name="group_id" value="{% if thread.group %}{{ thread.group.group_id }}{% else %}{{ selected_group_id|default:'' }}{% endif %}">
+    <input type="hidden" name="confirm_save" value="1">
+
+    <div class="form-actions">
+      <button type="submit" class="btn-save">確定保存</button>
+      <a href="{% url 'codemon:thread_edit' thread.thread_id %}" class="btn-back">編集に戻る</a>
+    </div>
+  </form>
+</div>
+
+<!-- 🎨 スタイル -->
+<style>
+.chat-ai-bubble { position: fixed; bottom: 20px; right: 20px; }
+.chat-button { display: inline-flex; align-items: center; gap: 6px; padding: 10px 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 20px; box-shadow: 0 3px 6px rgba(0,0,0,0.2); }
+
+.checklist-edit-container { max-width: 800px; margin: 40px auto; padding: 30px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #fafafa; }
+.checklist-edit-container h2 { text-align: center; margin-bottom: 20px; }
+.checklist-details { background-color: #f8f9fa; border: 1px solid #ddd; padding: 15px 20px; border-radius: 6px; margin-bottom: 20px; }
+.checklist-details p { margin: 8px 0; font-size: 1rem; }
+
+.form-actions { display: flex; gap: 15px; justify-content: center; margin-top: 20px; }
+.btn-save, .btn-back { padding: 10px 25px; border-radius: 5px; text-decoration: none; font-weight: bold; cursor: pointer; }
+.btn-save { background-color: #28a745; color: white; border: none; }
+.btn-save:hover { background-color: #218838; }
+.btn-back { background-color: #6c757d; color: white; }
+.btn-back:hover { background-color: #5a6268; }
+</style>
+
+<!-- ⚙️ スクリプト -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const accountTab = document.getElementById('account-tab');
+  {% if request.user.role == 'teacher' %}
+    accountTab.href = "{% url 'accounts:teacher_home' %}";
+  {% endif %}
+});
+</script>
+
+{% endblock %}

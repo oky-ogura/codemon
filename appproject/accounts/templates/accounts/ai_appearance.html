@@ -1,35 +1,164 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+    {% load static %}
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>AI外見設定</title>
     <style>
-        body{margin:0;font-family:Meiryo, 'Hiragino Kaku Gothic ProN',sans-serif;background:#f8fafc}
-        .wrap{max-width:980px;margin:28px auto;padding:16px;border:2px solid #111;background:#fff}
-        h1{text-align:center;margin-top:8px}
-        .canvas{position:relative;height:420px;display:flex;align-items:center;justify-content:center}
-        /* 画像周りの四角（枠）を消すために border を無効化し、img に合わせて表示する */
+        body{
+            margin:0;
+            font-family:Meiryo, 'Hiragino Kaku Gothic ProN',sans-serif;
+
+/* ---------------------------------------------------- /
+/ 競合修正後の統合されたスタイル /
+/ ---------------------------------------------------- */
+
+/* body: 背景設定とFlexboxによる画面中央寄せを統合 /
+body{
+/ mainのショートハンドとbackground-size:coverを採用し、f5f5f5を背景色として採用 */
+background:#f5f5f5 url("{% static 'accounts/background.png' %}") no-repeat center center fixed;
+background-size:cover;
+
+/* accountsのレイアウト（全画面表示と中央寄せ）を採用 */
+min-height:100vh;
+display:flex;
+align-items:center;
+justify-content:center;
+padding:20px;
+box-sizing:border-box;
+
+
+}
+
+/* .wrap: max-width、マージン、パディング、角丸を統合 /
+.wrap{
+max-width:980px; / mainを採用 /
+width:95%;
+margin:20px auto; / mainを採用 /
+padding:50px 60px; / accountsを採用 /
+border:none;
+background:transparent;
+border-radius:12px; / mainを採用 */
+box-shadow:none;
+}
+
+/* h1: タイトルスタイルを統合 /
+h1{
+text-align:center;
+margin-top:0;
+margin-bottom:30px; / accountsを採用 */
+font-size:28px;
+font-weight:bold;
+}
+
+/* .canvas: 高さ300pxを採用 /
+.canvas{
+position:relative;
+height:300px; / mainを採用 */
+display:flex;
+align-items:center;
+justify-content:center;
+margin-bottom:20px;
+}
+
+/* 画像周りの四角（枠）を消すために border を無効化し、img に合わせて表示する */
+.illustration{
+width:250px;
+height:250px;
+display:block;
+border:none;
+background:transparent;
+border-radius:0;
+object-fit:contain;
+}
+.nav-left,.nav-right{
+position:absolute;
+left:40px;
+top:50%;
+transform:translateY(-50%);
+cursor:pointer;
+transition:opacity 0.2s;
+}
         .illustration{
-            width:220px;
-            height:240px;
-            display:block; /* img要素なので block にする */
-            border:none; /* 枠を消す */
+            width:250px;
+            height:250px;
+            display:block;
+            border:none;
             background:transparent;
-            border-radius:0; /* 角丸も不要なら0に */
-            object-fit:contain; /* 画像の縦横比を保って収める */
+            border-radius:0;
+            object-fit:contain;
         }
-        .nav-left,.nav-right{position:absolute;left:40px;top:50%;transform:translateY(-50%);cursor:pointer}
-        .nav-right{left:auto;right:40px}
-        .nav-button{width:36px;height:36px;border-radius:6px;border:2px solid #222;display:flex;align-items:center;justify-content:center}
-        .controls{display:flex;justify-content:space-between;padding:20px}
-        .btn{padding:10px 18px;border-radius:10px;border:2px solid #d6d6d6;cursor:pointer}
-        .btn.primary{background:#ddeeff;border-color:#9fb8e8}
-        .btn.secondary{background:#f9dddd;border-color:#e3a3a3}
+        .nav-left,.nav-right{
+            position:absolute;
+            left:40px;
+            top:50%;
+            transform:translateY(-50%);
+            cursor:pointer;
+            transition:opacity 0.2s;
+        }
+        .nav-left:hover,.nav-right:hover{
+            opacity:0.7;
+        }
+        .nav-right{
+            left:auto;
+            right:40px;
+        }
+        .nav-button{
+            width:48px;
+            height:48px;
+            border-radius:8px;
+            border:2px solid #333;
+            background:#fff;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size:20px;
+        }
+        .controls{
+            display:flex;
+            justify-content:space-between;
+            padding:0 40px;
+            margin-top:35px;
+        }
+        .btn{
+            font-size:1rem;
+            color:#000000;
+            text-transform:uppercase;
+            padding:5px 10px;
+            border-radius:10px;
+            border-top:2px solid #ff8c00;
+            border-left:2px solid #ff8c00;
+            border-right:2px solid #fafafa;
+            border-bottom:2px solid #fafafa;
+            background:#ffffff;
+            box-shadow:5px 5px 0 #00bfff;
+            cursor:pointer;
+            transition:transform 0.1s;
+        }
+        .btn:hover{
+            transform:translate(2px, 2px);
+            box-shadow:3px 3px 0 #00bfff;
+        }
+        .btn:active{
+            transform:translate(5px, 5px);
+            box-shadow:0 0 0 #00bfff;
+        }
+
+        .nav-left,.nav-right{position:absolute;left:20px;top:50%;transform:translateY(-50%);cursor:pointer}
+        .nav-right{left:auto;right:20px}
+        .nav-button{width:48px;height:48px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;background:#f0f0f0;font-size:24px;transition:all 0.3s}
+        .nav-button:hover{background:#e0e0e0;transform:scale(1.1)}
+        .controls{display:flex;justify-content:space-between;padding:10px 0}
+        .btn{padding:12px 40px;border-radius:8px;border:none;cursor:pointer;font-size:16px;font-weight:bold;transition:all 0.3s}
+        .btn.primary{background:#5dade2;color:#fff}
+        .btn.primary:hover{background:#3498db}
+        .btn.secondary{background:#f8f9fa;color:#333;border:2px solid #ddd}
+        .btn.secondary:hover{background:#e9ecef}
+
     </style>
 </head>
 <body>
-    {% load static %}
     <div class="wrap">
         <h1>CodeMonの見た目を決めよう！</h1>
         <div class="canvas">
@@ -43,8 +172,8 @@
             {% csrf_token %}
             <input type="hidden" name="appearance" id="appearanceInput" value="triangle">
             <div class="controls">
-                <button type="button" class="btn secondary" id="backBtn">戻る</button>
-                <button type="submit" class="btn primary" id="decideBtn">決定</button>
+                <button type="button" class="btn" id="backBtn">戻る</button>
+                <button type="submit" class="btn" id="decideBtn">決定</button>
             </div>
         </form>
     </div>
@@ -57,24 +186,8 @@
         const illustration = document.getElementById('illustration');
         const appearanceInput = document.getElementById('appearanceInput');
 
-        function filenameFor(a){
-            if(!a) return '';
-            // 既に拡張子があればそのまま
-            if(typeof a === 'string' && a.match(/\.(png|jpg|jpeg|gif)$/i)) return a;
-            const map = {
-                // 既存のキーをファイル名にマップ（必要なら追加）
-                'triangle':'dog.png',
-                'round':'panda.png',
-                // static/accounts 内の実際のファイル名に合わせる
-                'robot':'rabitto.png',
-            };
-            if(map[a]) return map[a];
-            return a + '.png';
-        }
-
         function render(){
-            const a = appearances[idx];
-            const filename = filenameFor(a);
+            const filename = appearances[idx];
             appearanceInput.value = filename;
             if(filename){
                 // 日本語ファイル名にも対応するため encodeURIComponent を使用
