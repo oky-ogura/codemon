@@ -41,6 +41,29 @@ def _noop(apps, schema_editor):
     return
 
 
+def _drop_existing_new_tables(apps, schema_editor):
+    """If previous partial runs left new tables present, drop them so
+    CreateModel can run cleanly. This is best-effort and ignores failures.
+    """
+    conn = schema_editor.connection
+    try:
+        with conn.cursor() as cursor:
+            try:
+                tables = conn.introspection.table_names()
+            except Exception:
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                tables = [r[0] for r in cursor.fetchall()]
+    except Exception:
+        tables = []
+
+    for t in ('chat_message', 'chat_attachment', 'chat_thread', 'chat_score', 'group', 'group_member', 'chat_read_receipt', 'system_element'):
+        if t in tables:
+            try:
+                schema_editor.execute(f'DROP TABLE IF EXISTS "{t}";')
+            except Exception:
+                pass
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -49,9 +72,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # Replace RemoveField operations with guarded Python functions so
-        # migration is idempotent and works on sqlite / mixed histories.
-        migrations.RunPython(code=lambda apps, schema_editor: None, reverse_code=migrations.RunPython.noop),
+        # Ensure any partially-created new tables are removed first so
+        # CreateModel operations below won't fail with "table already exists".
+        migrations.RunPython(code=_drop_existing_new_tables, reverse_code=migrations.RunPython.noop),
         migrations.AlterField(
             model_name='system',
             name='system_description',
@@ -210,6 +233,6 @@ class Migration(migrations.Migration):
         migrations.DeleteModel(
             name='Attachment',
         ),
-        # Safely drop legacy tables if they exist
-        migrations.RunPython(code=lambda apps, schema_editor: None, reverse_code=migrations.RunPython.noop),
+        # Safely drop legacy tables if they exist (best-effort cleanup)
+        migrations.RunPython(code=_safe_drop_legacy_tables, reverse_code=migrations.RunPython.noop),
     ]
