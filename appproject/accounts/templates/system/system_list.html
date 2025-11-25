@@ -145,16 +145,10 @@
           <ul id="systemsList" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px;">
             {% for s in systems %}
             <li data-id="{{ s.system_id }}" style="background:#fbfdff;border-radius:8px;padding:12px 14px;border:1px solid #eef4fb;display:flex;justify-content:space-between;align-items:center;gap:12px;">
-              <div style="flex:1;">
-                <div style="font-weight:700;font-size:15px;color:#0b2f5a;">{{ s.system_name }}</div>
-                {% if s.system_description %}
-                <div style="color:#666;font-size:13px;margin-top:4px;">{{ s.system_description }}</div>
-                {% endif %}
-                {% if s.updated_at|date:"Y-m-d H:i" != s.created_at|date:"Y-m-d H:i" %}
-                <div style="color:#999;font-size:12px;margin-top:4px;">更新日: {{ s.updated_at|date:"Y年n月j日 H:i" }}</div>
-                {% else %}
-                <div style="color:#999;font-size:12px;margin-top:4px;">{{ s.created_at|date:"Y年n月j日 H:i" }}</div>
-                {% endif %}
+              <div style="flex:1;display:flex;align-items:center;gap:16px;">
+                <div style="font-weight:700;font-size:15px;color:#0b2f5a;min-width:150px;">{{ s.system_name }}</div>
+                <div style="color:#999;font-size:12px;">作成日: {{ s.created_at|date:"Y年n月j日 H:i" }}</div>
+                <div style="color:#999;font-size:12px;">更新日: {{ s.updated_at|date:"Y年n月j日 H:i" }}</div>
               </div>
               <button class="btn btn-primary system-detail-btn" data-system-id="{{ s.system_id }}" style="white-space:nowrap;padding:8px 16px;font-size:13px;">詳細</button>
             </li>
@@ -192,14 +186,21 @@
         allSystems = Array.from(items).map(item => {
           const systemId = item.getAttribute('data-id');
           const nameElement = item.querySelector('div[style*="font-weight:700"]');
-          const descElement = item.querySelector('div[style*="color:#666"]');
-          const dateElement = item.querySelector('div[style*="color:#999"]');
+          const dateElements = item.querySelectorAll('div[style*="color:#999"]');
+          
+          let createdAt = '';
+          let updatedAt = '';
+          
+          if (dateElements.length >= 2) {
+            createdAt = dateElements[0].textContent.replace('作成日: ', '');
+            updatedAt = dateElements[1].textContent.replace('更新日: ', '');
+          }
           
           return {
             system_id: systemId,
             system_name: nameElement ? nameElement.textContent : '',
-            system_description: descElement ? descElement.textContent : '',
-            date_display: dateElement ? dateElement.textContent : ''
+            created_at: createdAt,
+            updated_at: updatedAt
           };
         });
         
@@ -230,9 +231,10 @@
       let html = '<div class="system-list"><ul id="systemsList" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px;">';
       for (const s of pageSystems) {
         html += `<li data-id="${s.system_id}" style="background:#fbfdff;border-radius:8px;padding:12px 14px;border:1px solid #eef4fb;display:flex;justify-content:space-between;align-items:center;gap:12px;">`;
-        html += `<div style="flex:1;"><div style="font-weight:700;font-size:15px;color:#0b2f5a;">${escapeHtml(s.system_name)}</div>`;
-        if (s.system_description) html += `<div style="color:#666;font-size:13px;margin-top:4px;">${escapeHtml(s.system_description)}</div>`;
-        html += `<div style="color:#999;font-size:12px;margin-top:4px;">${escapeHtml(s.date_display)}</div></div>`;
+        html += `<div style="flex:1;display:flex;align-items:center;gap:16px;">`;
+        html += `<div style="font-weight:700;font-size:15px;color:#0b2f5a;min-width:150px;">${escapeHtml(s.system_name)}</div>`;
+        html += `<div style="color:#999;font-size:12px;">作成日: ${escapeHtml(s.created_at)}</div>`;
+        html += `<div style="color:#999;font-size:12px;">更新日: ${escapeHtml(s.updated_at)}</div></div>`;
         html += `<button class="btn btn-primary system-detail-btn" data-system-id="${s.system_id}" style="white-space:nowrap;padding:8px 16px;font-size:13px;">詳細</button>`;
         html += `</li>`;
       }
@@ -325,13 +327,8 @@
         allSystems = (data.systems || []).map(s => ({
           system_id: s.system_id,
           system_name: s.system_name,
-          system_description: s.system_description,
           created_at: s.created_at,
-          updated_at: s.updated_at,
-          // 更新されたシステムは「更新日:」を表示、それ以外は作成日を表示
-          date_display: (s.updated_at && s.created_at && s.updated_at !== s.created_at) 
-            ? `更新日: ${s.updated_at}` 
-            : s.created_at
+          updated_at: s.updated_at
         }));
         
         // 1ページ目を表示
