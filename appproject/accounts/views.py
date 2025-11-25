@@ -1,16 +1,16 @@
 from django.core.mail import send_mail
 from django.contrib.auth.hashers import make_password # <= ここにあるので...
-
+from django.contrib.auth import views as auth_views
 # 以下のブロックは、HEADとmainのインポートを統合したもの
 from django.http import HttpResponseRedirect, HttpResponseForbidden, FileResponse, JsonResponse
-
+from django import forms
 from django.db import connection, transaction
 from django.utils import timezone
 from django.contrib.messages import get_messages
 import logging
 from django.utils.dateparse import parse_datetime, parse_date
 import datetime
-from codemon.models import System, Algorithm, SystemElement
+from codemon.models import System, Algorithm
 import json
 try:
     from codemon.views import _get_write_owner
@@ -299,7 +299,7 @@ def account_session_required(view_func):
 
 @account_session_required
 def karihome(request):
-<<<<<<< HEAD
+
     print(f"DEBUG karihome view: session_key={request.session.session_key} data={dict(request.session)}")
     
     # AI設定を取得してAI名前とキャラクターをテンプレートに渡す
@@ -346,9 +346,7 @@ def karihome(request):
         'ai_name': ai_name,
         'character': character
     })
-=======
-    return render(request, 'accounts/karihome.html')
->>>>>>> main
+
 
 def login_choice(request):
     """ログイン種別の選択ページ（教師 or 生徒）を表示する簡易ビュー"""

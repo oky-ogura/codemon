@@ -9,7 +9,7 @@ class System(models.Model):
     system_id = models.BigAutoField(primary_key=True)
     user = models.ForeignKey(Account, on_delete=models.CASCADE, verbose_name='ユーザーID')
     system_name = models.CharField(max_length=100, verbose_name='システム名')
-    system_description = models.TextField(blank=True, null=True, verbose_name='システム詳細')
+    system_description = models.TextField(blank=True, null=True, verbose_name='システム種類')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新日時')
 
@@ -22,40 +22,12 @@ class System(models.Model):
         return f"{self.system_name} (ID: {self.system_id})"
 
 
-class SystemElement(models.Model):
-    # element_id は PostgreSQL のシーケンスで管理（7000001 から開始）
-    element_id = models.BigAutoField(primary_key=True)
-    system = models.ForeignKey(System, on_delete=models.CASCADE, related_name='elements', verbose_name='システムID')
-    element_type = models.CharField(max_length=50, verbose_name='要素タイプ')
-    element_label = models.CharField(max_length=200, blank=True, null=True, verbose_name='要素ラベル')
-    element_value = models.TextField(blank=True, null=True, verbose_name='要素値')
-    position_x = models.IntegerField(default=0, verbose_name='X座標')
-    position_y = models.IntegerField(default=0, verbose_name='Y座標')
-    width = models.IntegerField(blank=True, null=True, verbose_name='幅')
-    height = models.IntegerField(blank=True, null=True, verbose_name='高さ')
-    style_data = models.JSONField(blank=True, null=True, verbose_name='スタイルデータ')
-    element_config = models.JSONField(blank=True, null=True, verbose_name='要素設定')
-    sort_order = models.IntegerField(default=0, verbose_name='表示順')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新日時')
-
-    class Meta:
-        db_table = 'system_element'
-        verbose_name = 'システム要素'
-        verbose_name_plural = 'システム要素'
-        ordering = ['sort_order', 'element_id']
-
-    def __str__(self):
-        return f"{self.element_type}: {self.element_label or 'No Label'} (ID: {self.element_id})"
-
-
 class Algorithm(models.Model):
     # algorithm_id は PostgreSQL のシーケンスで管理（5000001 から開始）
     algorithm_id = models.BigAutoField(primary_key=True)
     user = models.ForeignKey(Account, on_delete=models.CASCADE, verbose_name='ユーザーID')
     algorithm_name = models.CharField(max_length=100, verbose_name='アルゴリズム名')
     algorithm_description = models.TextField(blank=True, null=True, verbose_name='アルゴリズム概要')
-    blockly_xml = models.TextField(blank=True, null=True, verbose_name='Blockly XML')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新日時')
 
@@ -107,6 +79,48 @@ class ChecklistItem(models.Model):
         return f"{self.item_text[:40]}{'...' if len(self.item_text) > 40 else ''} (ID: {self.checklist_item_id})"
 
 
+class Group(models.Model):
+    """教師が作成・管理するグループ。メンバーはGroupMemberを通じて管理。"""
+    # group_id は PostgreSQL のシーケンスで管理（7000001 から開始）
+    group_id = models.BigAutoField(primary_key=True)
+    group_name = models.CharField(max_length=50, verbose_name='グループ名')
+    description = models.TextField(blank=True, null=True, verbose_name='グループ説明')
+    owner = models.ForeignKey(Account, on_delete=models.CASCADE, null=True, blank=True)
+    members = models.ManyToManyField(Account, through='GroupMember', related_name='joined_groups')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新日時')
+    is_active = models.BooleanField(default=True, verbose_name='アクティブフラグ')
+
+    class Meta:
+        db_table = 'group'
+        verbose_name = 'グループ'
+        verbose_name_plural = 'グループ'
+
+    def __str__(self):
+        return f"{self.group_name} (ID: {self.group_id})"
+
+
+class GroupMember(models.Model):
+    """グループのメンバーシップを管理。役割や参加日時も記録。"""
+    id = models.BigAutoField(primary_key=True)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='memberships')
+    member = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='group_memberships')
+    role = models.CharField(max_length=20, choices=[
+        ('owner', 'オーナー'),
+        ('teacher', '教師'),
+        ('student', '学生')
+    ], default='student')
+    joined_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'group_member'
+        verbose_name = 'グループメンバー'
+        verbose_name_plural = 'グループメンバー'
+        unique_together = [['group', 'member']]
+
+    def __str__(self):
+        return f"{self.member.user_name} in {self.group.group_name} ({self.role})"
 
 
 class ChatThread(models.Model):
@@ -196,92 +210,10 @@ class ChatScore(models.Model):
         return f"Score {self.score} by {self.scorer} for {target}"
 
 
-
-class Group(models.Model):
-    """グループ管理テーブル
-
-    既存データベースはカラム名 `user_id` を作成者として使っているため、
-    Django 側ではフィールド名を `owner` のまま使いつつ DB カラム名を
-    `user_id` にマップする（互換性維持）。
-    """
-    group_id = models.BigAutoField(primary_key=True)
-    group_name = models.CharField(max_length=50, verbose_name='グループ名')
-    description = models.TextField(blank=True, null=True, verbose_name='グループ説明')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新日時')
-    is_active = models.BooleanField(default=True, verbose_name='アクティブフラグ')
-    owner = models.ForeignKey(
-        Account,
-        on_delete=models.CASCADE,
-        blank=True,
-        null=True,
-        db_column='user_id',
-        verbose_name='作成者'
-    )
-
-    # Many-to-many through GroupMember
-    members = models.ManyToManyField(
-        Account,
-        through='GroupMember',
-        related_name='joined_groups'
-    )
-
-    class Meta:
-        db_table = 'group'
-        verbose_name = 'グループ'
-        verbose_name_plural = 'グループ'
-
-    def __str__(self):
-        return f"{self.group_name} (ID: {self.group_id})"
-
-
-class GroupMember(models.Model):
-    ROLE_OWNER = 'owner'
-    ROLE_TEACHER = 'teacher'
-    ROLE_STUDENT = 'student'
-
-    ROLE_CHOICES = [
-        (ROLE_OWNER, 'オーナー'),
-        (ROLE_TEACHER, '教師'),
-        (ROLE_STUDENT, '学生'),
-    ]
-
-    id = models.BigAutoField(primary_key=True)
-    role = models.CharField(max_length=50, blank=True, null=True, verbose_name='メンバーの役割')
-    # created_at (DB column) を保持する
-    created_at = models.DateTimeField(auto_now_add=True, db_column='created_at', verbose_name='追加日時')
-    # DBの既存スキーマではカラム名が group_id / member_user_id になっているため db_column を指定
-    group = models.ForeignKey(
-        Group,
-        on_delete=models.CASCADE,
-        related_name='memberships',
-        db_column='group_id',
-        verbose_name='グループ'
-    )
-    member = models.ForeignKey(
-        Account,
-        on_delete=models.CASCADE,
-        related_name='group_memberships',
-        db_column='member_user_id',
-        verbose_name='メンバー(アカウント)'
-    )
-
-    class Meta:
-        db_table = 'group_member'
-        verbose_name = 'グループメンバー'
-        verbose_name_plural = 'グループメンバー'
-        unique_together = (('group', 'member'),)
-
-    # このモデルは既存のスキーマに合わせてカラム名を指定しているため
-    # マイグレーションを作成/適用する際は注意してください。
-
-    def __str__(self):
-        return f"{self.member} in {self.group} ({self.role})"
-
 # --- AI 会話履歴 ---
 class AIConversation(models.Model):
     user = models.ForeignKey(
-        Account,
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="ai_conversations",
     )
