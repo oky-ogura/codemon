@@ -1,5 +1,17 @@
 from django.core.mail import send_mail
 from django.contrib.auth.hashers import make_password # <= ここにあるので...
+from django.contrib.auth import views as auth_views
+from django import forms
+from django.shortcuts import render, redirect, get_object_or_404, reverse
+from django.contrib import messages
+from django.contrib.auth.hashers import check_password
+from django.contrib.auth import logout
+from django.template.loader import render_to_string
+from django.conf import settings
+from django.core import signing
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.contrib.auth.forms import SetPasswordForm
 
 # 以下のブロックは、HEADとmainのインポートを統合したもの
 from django.http import HttpResponseRedirect, HttpResponseForbidden, FileResponse, JsonResponse
@@ -299,7 +311,6 @@ def account_session_required(view_func):
 
 @account_session_required
 def karihome(request):
-<<<<<<< HEAD
     print(f"DEBUG karihome view: session_key={request.session.session_key} data={dict(request.session)}")
     
     # AI設定を取得してAI名前とキャラクターをテンプレートに渡す
@@ -346,9 +357,6 @@ def karihome(request):
         'ai_name': ai_name,
         'character': character
     })
-=======
-    return render(request, 'accounts/karihome.html')
->>>>>>> main
 
 def login_choice(request):
     """ログイン種別の選択ページ（教師 or 生徒）を表示する簡易ビュー"""
