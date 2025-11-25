@@ -230,9 +230,7 @@ class Migration(migrations.Migration):
                 'ordering': ['sort_order', 'element_id'],
             },
         ),
-        migrations.DeleteModel(
-            name='Attachment',
-        ),
+        migrations.RunPython(code=lambda apps, schema_editor: schema_editor.execute('DROP TABLE IF EXISTS "attachment";'), reverse_code=migrations.RunPython.noop),
         # Safely drop legacy tables if they exist (best-effort cleanup)
         migrations.RunPython(code=_safe_drop_legacy_tables, reverse_code=migrations.RunPython.noop),
     ]
