@@ -596,6 +596,8 @@ def system_index(request):
     # ログインユーザーの他のシステム一覧を取得
     account = get_logged_account(request)
     other_systems_json = '[]'
+    algorithms_json = '[]'  # アルゴリズム一覧を追加
+    
     if account:
         try:
             other_systems_qs = System.objects.filter(user=account).order_by('-created_at')
@@ -614,8 +616,23 @@ def system_index(request):
             other_systems_json = json.dumps(other_systems_list, ensure_ascii=False)
         except Exception:
             pass
+        
+        # アルゴリズム一覧を取得
+        try:
+            algorithms_qs = Algorithm.objects.filter(user=account).order_by('-created_at')
+            algorithms_list = []
+            for algo in algorithms_qs:
+                algorithms_list.append({
+                    'algorithm_id': algo.algorithm_id,
+                    'algorithm_name': algo.algorithm_name,
+                    'blockly_xml': algo.blockly_xml or ''
+                })
+            algorithms_json = json.dumps(algorithms_list, ensure_ascii=False)
+        except Exception:
+            pass
 
     context['other_systems_json'] = other_systems_json
+    context['algorithms_json'] = algorithms_json  # コンテキストに追加
 
     if system_id:
         try:
