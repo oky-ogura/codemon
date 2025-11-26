@@ -6,7 +6,7 @@ SET client_encoding TO 'UTF8';
 BEGIN;
 
 -- 0) シーケンスの初期位置安全化（最低値のセット）
-SELECT setval('account_user_id_seq',      GREATEST(COALESCE((SELECT MAX(user_id) FROM account),      20000000), 20000000), true);
+SELECT setval('account_user_id_seq',      GREATEST(COALESCE((SELECT MAX(user_id) FROM account),      1), 1), true);
 SELECT setval('group_group_id_seq',       GREATEST(COALESCE((SELECT MAX(group_id) FROM "group"),    7000000),  7000000),  true);
 SELECT setval('ai_config_ai_setting_id_seq', GREATEST(COALESCE((SELECT MAX(ai_setting_id) FROM ai_config), 3000000), 3000000), true);
 SELECT setval('algorithm_algorithm_id_seq',  GREATEST(COALESCE((SELECT MAX(algorithm_id) FROM algorithm), 5000000), 5000000), true);
@@ -26,17 +26,17 @@ SELECT setval('ai_learning_training_data_id_seq', GREATEST(COALESCE((SELECT MAX(
 -- 1) グループ（ID固定で冪等に投入）
 INSERT INTO "group" (group_id, group_name, user_id, password)
 VALUES
-  (7000001, 'A組', 20000001, 'gApass'),
-  (7000002, 'B組', 20000001, 'gBpass')
+  (7000001, 'A組', 1, 'gApass'),
+  (7000002, 'B組', 1, 'gBpass')
 ON CONFLICT (group_id) DO NOTHING;
 
 -- 2) アカウント（教師1 + 学生3）
 INSERT INTO account (user_id, user_name, email, password, account_type, age, group_id)
 VALUES
-  (20000001, '山田 太郎(教師)', 'teacher@example.com', 'teacher_pass', 'teacher', 35, NULL),
-  (20000002, '佐藤 花子',       'student1@example.com', 'stud_pass1',  'student', 18, 7000001),
-  (20000003, '鈴木 次郎',       'student2@example.com', 'stud_pass2',  'student', 17, 7000001),
-  (20000004, '高橋 三奈',       'student3@example.com', 'stud_pass3',  'student', 19, 7000002)
+  (1, '山田 太郎(教師)', 'teacher@example.com', 'teacher_pass', 'teacher', 35, NULL),
+  (2, '佐藤 花子',       'student1@example.com', 'stud_pass1',  'student', 18, 7000001),
+  (3, '鈴木 次郎',       'student2@example.com', 'stud_pass2',  'student', 17, 7000001),
+  (4, '高橋 三奈',       'student3@example.com', 'stud_pass3',  'student', 19, 7000002)
 ON CONFLICT (user_id) DO NOTHING;
 
 -- シーケンス追従
@@ -45,19 +45,19 @@ SELECT setval('account_user_id_seq', (SELECT MAX(user_id) FROM account), true);
 -- 3) グループメンバー（教師をteacher、学生をmemberとして追加）
 INSERT INTO group_member (group_id, member_user_id, role)
 VALUES
-  (7000001, 20000001, 'teacher'),
-  (7000001, 20000002, 'member'),
-  (7000001, 20000003, 'member'),
-  (7000002, 20000001, 'teacher'),
-  (7000002, 20000004, 'member')
+  (7000001, 1, 'teacher'),
+  (7000001, 2, 'member'),
+  (7000001, 3, 'member'),
+  (7000002, 1, 'teacher'),
+  (7000002, 4, 'member')
 ON CONFLICT (group_id, member_user_id) DO NOTHING;
 
 -- 4) AI設定（ai_config）: ID固定で投入
 INSERT INTO ai_config (ai_setting_id, user_id, appearance, ai_name, ai_personality, ai_speech)
 VALUES
-  (3000001, 20000001, 'triangle', 'codemon', 'energetic', 'です'),
-  (3000002, 20000002, 'circle',   'usagi',   'おどおど',  'です'),
-  (3000003, 20000003, 'square',   'neko',    'けだるげ',  'だよ')
+  (3000001, 1, 'triangle', 'codemon', 'energetic', 'です'),
+  (3000002, 2, 'circle',   'usagi',   'おどおど',  'です'),
+  (3000003, 3, 'square',   'neko',    'けだるげ',  'だよ')
 ON CONFLICT (ai_setting_id) DO NOTHING;
 
 SELECT setval('ai_config_ai_setting_id_seq', (SELECT MAX(ai_setting_id) FROM ai_config), true);
@@ -73,7 +73,7 @@ ON CONFLICT (ai_setting_id) DO NOTHING;
 -- 6) システム（system）
 INSERT INTO system (system_id, user_id, system_name, system_description)
 VALUES
-  (4000001, 20000001, '進捗管理システム', '生徒の進捗を管理するシステム')
+  (4000001, 1, '進捗管理システム', '生徒の進捗を管理するシステム')
 ON CONFLICT (system_id) DO NOTHING;
 
 SELECT setval('system_system_id_seq', (SELECT MAX(system_id) FROM system), true);
@@ -81,8 +81,8 @@ SELECT setval('system_system_id_seq', (SELECT MAX(system_id) FROM system), true)
 -- 7) アルゴリズム（algorithm）
 INSERT INTO algorithm (algorithm_id, user_id, algorithm_name, algorithm_description)
 VALUES
-  (5000001, 20000001, '進捗判定アルゴリズム', '課題達成・提出頻度・既読などから進捗を算出する'),
-  (5000002, 20000001, '学習傾向分析',        '投稿内容と既読・添付から学習傾向を抽出する')
+  (5000001, 1, '進捗判定アルゴリズム', '課題達成・提出頻度・既読などから進捗を算出する'),
+  (5000002, 1, '学習傾向分析',        '投稿内容と既読・添付から学習傾向を抽出する')
 ON CONFLICT (algorithm_id) DO NOTHING;
 
 SELECT setval('algorithm_algorithm_id_seq', (SELECT MAX(algorithm_id) FROM algorithm), true);
@@ -90,8 +90,8 @@ SELECT setval('algorithm_algorithm_id_seq', (SELECT MAX(algorithm_id) FROM algor
 -- 8) チェックリスト（checklist）
 INSERT INTO checklist (checklist_id, user_id, checklist_name, checklist_description, is_selected)
 VALUES
-  (6000001, 20000002, '毎日の学習チェック', '基礎学習の進捗を毎日確認', true),
-  (6000002, 20000001, '授業準備チェック',   '授業前の準備確認', false)
+  (6000001, 2, '毎日の学習チェック', '基礎学習の進捗を毎日確認', true),
+  (6000002, 1, '授業準備チェック',   '授業前の準備確認', false)
 ON CONFLICT (checklist_id) DO NOTHING;
 
 SELECT setval('checklist_checklist_id_seq', (SELECT MAX(checklist_id) FROM checklist), true);
@@ -128,10 +128,10 @@ END; $$;
 -- 10) チャット履歴（chat_history）
 INSERT INTO chat_history (chat_id, user_id, ai_setting_id, sender_type, message)
 VALUES
-  (1, 20000002, 3000001, 'user', 'こんにちは、AIさん'),
-  (2, 20000002, 3000001, 'ai',   'こんにちは！何を手伝えばよいですか？'),
-  (3, 20000002, 3000001, 'user', 'Pythonの勉強のコツを教えて'),
-  (4, 20000002, 3000001, 'ai',   '小さく書いて動かして、理解を積み上げましょう。')
+  (1, 2, 3000001, 'user', 'こんにちは、AIさん'),
+  (2, 2, 3000001, 'ai',   'こんにちは！何を手伝えばよいですか？'),
+  (3, 2, 3000001, 'user', 'Pythonの勉強のコツを教えて'),
+  (4, 2, 3000001, 'ai',   '小さく書いて動かして、理解を積み上げましょう。')
 ON CONFLICT (chat_id) DO NOTHING;
 
 SELECT setval('chat_history_chat_id_seq', (SELECT MAX(chat_id) FROM chat_history), true);
@@ -139,9 +139,9 @@ SELECT setval('chat_history_chat_id_seq', (SELECT MAX(chat_id) FROM chat_history
 -- 11) AI学習（ai_learning）
 INSERT INTO ai_learning (training_data_id, ai_setting_id, data_name, data_type, data_path, features, user_id)
 VALUES
-  (1, 3000001, 'プログラミング基礎データ', 'text',  '/data/programming_basics.txt', '{"keyword":"進捗","count":5}'::jsonb, 20000001),
-  (2, 3000001, 'Python学習画像',         'image', '/data/python_tutorial.jpg',   '{"language":"python","difficulty":"beginner"}'::jsonb, 20000001),
-  (3, 3000002, 'Java演習問題',           'text',  '/data/java_exercises.txt',    '{"keyword":"演習","count":10}'::jsonb, 20000002)
+  (1, 3000001, 'プログラミング基礎データ', 'text',  '/data/programming_basics.txt', '{"keyword":"進捗","count":5}'::jsonb, 1),
+  (2, 3000001, 'Python学習画像',         'image', '/data/python_tutorial.jpg',   '{"language":"python","difficulty":"beginner"}'::jsonb, 1),
+  (3, 3000002, 'Java演習問題',           'text',  '/data/java_exercises.txt',    '{"keyword":"演習","count":10}'::jsonb, 2)
 ON CONFLICT (training_data_id) DO NOTHING;
 
 SELECT setval('ai_learning_training_data_id_seq', (SELECT MAX(training_data_id) FROM ai_learning), true);
