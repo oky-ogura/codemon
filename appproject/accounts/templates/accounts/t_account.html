@@ -1,18 +1,17 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="utf-8">
-    <title>アカウント（教員）</title>
+
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}アカウント（教員） - Codemon{% endblock %}
+{% block extra_css %}
     <style>
-        body { font-family: "Segoe UI", Meiryo, sans-serif; background:#f5f7fa; margin:0; padding:20px; }
-        /* 上部タブ */
-        .top-tabs { max-width:1000px; margin:0 auto 18px; border:2px solid #333; background:#fff; padding:6px 8px; box-sizing:border-box; }
-        .tabs { display:flex; gap:0; }
-        .tabs a { flex:1 0 auto; display:block; padding:8px 12px; border-right:1px solid #333; text-align:center; text-decoration:none; color:#111; font-weight:600; }
-        .tabs a:last-child { border-right: none; }
+        
+        
 
         /* メインカード */
-        .card { max-width:1000px; margin:0 auto; background:#fff; border:1px solid #ddd; padding:18px; box-shadow:0 6px 20px rgba(0,0,0,0.05); box-sizing:border-box; }
+        /* ヘッダーが固定表示のため、このページだけ上部に余白を確保する */
+        /* 余白をやや大きめにしてヘッダーとの重なりを防止 */
+        .card { max-width:1000px; margin:160px auto 0; background:#fff; border:1px solid #ddd; padding:18px; box-shadow:0 6px 20px rgba(0,0,0,0.05); box-sizing:border-box; }
 
         .main { display:flex; gap:24px; align-items:flex-start; }
         .left { width:220px; text-align:center; }
@@ -76,18 +75,13 @@
             .main { flex-direction:column; }
             .left { width:100%; text-align:left; display:flex; gap:12px; align-items:center; }
             .avatar-circle { width:96px; height:96px; font-size:32px; }
+            /* モバイルではヘッダーが狭くなるので余白を小さく調整 */
+            .card { margin-top:120px; }
         }
     </style>
+{% endblock %}
 </head>
-<body>
-    <div class="top-tabs">
-        <nav class="tabs">
-            <a href="#">システム</a>
-            <a href="#">アルゴリズム</a>
-            <a href="#">進捗管理</a>
-            <a href="{% url 'accounts:karihome' %}">ホーム</a>
-        </nav>
-    </div>
+{% block content %}
 
     <div class="card">
         <div class="main">
@@ -143,7 +137,9 @@
                                 <div class="group-row">
                                     <div class="group-name">{{ g.name }}</div>
                                     <div class="group-meta">{{ g.member_count }}人</div>
-                                    <a class="btn detail" href="{% url 'accounts:group_menu' g.group_id %}">詳細</a>
+                                    <a class="btn detail" href="{% url 'accounts:group_menu' g.group_id %}" aria-label="詳細">
+                                        <img src="{% static 'codemon/images/nav/教員用アカウント画面 (14).png' %}" alt="詳細" style="height:28px; display:block;">
+                                    </a>
                                     <!-- 削除はページ内確認モーダルを表示してから遷移します -->
                                     <button type="button" class="btn del" data-delete-url="{% url 'accounts:group_delete' g.group_id %}">削除</button>
                                 </div>
@@ -278,5 +274,29 @@
 
         </div>
     </div>
-</body>
-</html>
+    <!-- ページ専用: ヘッダー高さに合わせてカードの上マージンを調整 -->
+    <script>
+    (function(){
+        function adjustCardMargin(){
+            try{
+                var header = document.querySelector('.top-tabs');
+                var card = document.querySelector('.card');
+                if(!header || !card) return;
+                var rect = header.getBoundingClientRect();
+                var bottom = rect.bottom || 0;
+                var extra = 18; // ヘッダーと本文の余裕
+                var pad = Math.ceil(bottom + extra);
+                // inline style で確実に上マージンを適用
+                card.style.marginTop = pad + 'px';
+            }catch(e){ console.error('adjustCardMargin error', e); }
+        }
+
+        document.addEventListener('DOMContentLoaded', adjustCardMargin);
+        window.addEventListener('load', adjustCardMargin);
+        window.addEventListener('resize', adjustCardMargin);
+        // 遅延レイアウト変化にも対応
+        setTimeout(adjustCardMargin, 300);
+        setTimeout(adjustCardMargin, 1000);
+    })();
+    </script>
+{% endblock %}

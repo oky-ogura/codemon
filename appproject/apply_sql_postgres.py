@@ -72,6 +72,7 @@ ordered = [
     "create_ai_config.sql",
     "create_ai_detail.sql",
     "create_system.sql",
+    "create_system_element.sql",
     "create_algorithm.sql",
     "create_checklist.sql",
     "create_group_member.sql", # group_member は group と account の後
