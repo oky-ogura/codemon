@@ -1,90 +1,27 @@
 {% extends 'base.html' %}
-{% block content %}
+{% load static %}
 
-<!-- 🔹 AIチャットボタン -->
-<div class="chat-ai-bubble">
-  <a href="{% url 'codemon:chat' %}" class="chat-button">
-    <i class="fas fa-comments"></i>
-    AIチャット
-  </a>
-</div>
+{% block title %}チェックリスト作成 - Codemon{% endblock %}
+{% block body_class %} class="no-scroll"{% endblock %}
 
-<!-- 🔹 メッセージ表示 -->
-{% if messages %}
-  <ul class="messages">
-    {% for message in messages %}
-      <li>{{ message }}</li>
-    {% endfor %}
-  </ul>
-{% endif %}
+{% block background_frame %}
+  <img src="{% static 'codemon/images/frames/bg_frame_green.png' %}" 
+       alt="" 
+       class="bg-frame frame-green"
+       onerror="this.style.display='none';">
+{% endblock %}
 
-<!-- 🔹 フォーム本体 -->
-<div class="checklist-form-container">
-
-  <form method="post" id="checklist-form">
-    {% csrf_token %}
-
-    <div class="form-group">
-      <label for="name">チェックリスト名 <span class="required">*</span></label>
-      <input type="text" name="name" id="name" required placeholder="例：第1回課題進捗チェック">
-    </div>
-
-    <div class="form-group">
-      <label for="description">チェックリスト概要</label>
-      <textarea name="description" id="description" rows="3" placeholder="チェックリストの目的や概要を入力してください。"></textarea>
-    </div>
-
-    {% if checklist %}
-      <div class="meta-info">
-        <p><strong>作成日：</strong>{{ checklist.created_at|date:"Y/m/d H:i" }}</p>
-        <p><strong>最終更新日：</strong>{{ checklist.updated_at|date:"Y/m/d H:i" }}</p>
-      </div>
-    {% endif %}
-
-    <div class="form-actions">
-      <a href="{% url 'codemon:checklist_selection' %}" class="btn-back">戻る</a>
-      <button type="submit" class="btn-save">作成</button>
-    </div>
-  </form>
-</div>
-
-<!-- 🔹 スタイル -->
+{% block extra_css %}
 <style>
-/* ===== AIチャットボタン ===== */
-.chat-ai-bubble {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-}
-.chat-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 15px;
-  background-color: #007bff;
-  color: white;
-  text-decoration: none;
-  border-radius: 20px;
-  font-weight: bold;
-}
-
-/* ===== メッセージエリア ===== */
-.messages {
-  max-width: 800px;
-  margin: 0 auto 20px;
-  list-style: none;
-  padding: 10px;
-  background-color: #e9f7ef;
-  border: 1px solid #c3e6cb;
-  color: #155724;
-  border-radius: 4px;
-}
 
 /* ===== フォーム全体 ===== */
 .checklist-form-container {
   max-width: 700px;
-  margin: 30px auto;
+  /* ナビゲーションタブの下に配置し、下部のボタン類と被らないよう余白を強制的に確保 */
+  margin: 160px auto 160px !important;
   padding: 25px 30px;
+  position: relative;
+  z-index: 20;
   background-color: #f9f9f9;
   border: 1px solid #ddd;
   border-radius: 10px;
@@ -92,6 +29,18 @@
 .checklist-form-container h2 {
   text-align: center;
   margin-bottom: 25px;
+}
+
+/* ページヘッダー用画像（フォーム上部の飾り） */
+.page-hero {
+  text-align: center;
+  margin-bottom: 12px;
+}
+.page-hero-img {
+  max-width: 640px;
+  width: 60%;
+  height: auto;
+  display: inline-block;
 }
 
 /* ===== 入力フィールド ===== */
@@ -139,6 +88,8 @@ textarea {
   color: white;
   cursor: pointer;
   font-weight: bold;
+  background: none; /* 画像で表示するため背景を無効化 */
+  padding: 0; /* 画像サイズで調整 */
 }
 .btn-back {
   background-color: #6c757d;
@@ -153,16 +104,95 @@ textarea {
 .btn-save:hover {
   background-color: #218838;
 }
+/* 画像ボタン用 */
+.btn-back img, .btn-save img {
+  display: inline-block;
+  width: auto;
+  height: 56px;
+  max-width: 220px;
+}
+
+@media (max-width: 480px) {
+  .btn-back img, .btn-save img { height: 44px; }
+}
+
+/* ページ固有：ナビゲーションの高さ分だけコンテンツを下げる（固定ヘッダと重ならないように） */
+.content-wrapper {
+  padding-top: 140px !important;
+}
+
 </style>
 
-<!-- 🔹 スクリプト -->
+{% endblock %}
+
+{% block content %}
+
+<!-- 🔹 メッセージ表示 -->
+{% if messages %}
+  <ul class="messages">
+    {% for message in messages %}
+      <li>{{ message }}</li>
+    {% endfor %}
+  </ul>
+{% endif %}
+
+<!-- 🔹 フォーム本体 -->
+<!-- ページヘッダー画像：フォームの上に表示 -->
+<div class="page-hero">
+  <img src="{% static 'codemon/images/titles/checklist_create.png' %}" alt="チェックリスト作成" class="page-hero-img" onerror="this.style.display='none'">
+</div>
+
+<div class="checklist-form-container">
+
+  <form method="post" id="checklist-form">
+    {% csrf_token %}
+
+    <div class="form-group">
+      <label for="name">チェックリスト名 <span class="required">*</span></label>
+      <input type="text" name="name" id="name" required placeholder="例：第1回課題進捗チェック">
+    </div>
+
+    <div class="form-group">
+      <label for="description">チェックリスト概要</label>
+      <textarea name="description" id="description" rows="3" placeholder="チェックリストの目的や概要を入力してください。"></textarea>
+    </div>
+
+    {% if checklist %}
+      <div class="meta-info">
+        <p><strong>作成日：</strong>{{ checklist.created_at|date:"Y/m/d H:i" }}</p>
+        <p><strong>最終更新日：</strong>{{ checklist.updated_at|date:"Y/m/d H:i" }}</p>
+      </div>
+    {% endif %}
+
+    <div class="form-actions">
+      <a href="{% url 'codemon:checklist_selection' %}" class="btn-back" aria-label="戻る">
+        <img src="{% static 'codemon/images/buttons/back.png' %}" alt="戻る">
+      </a>
+      <button type="submit" class="btn-save" aria-label="作成">
+        <img src="{% static 'codemon/images/buttons/create.png' %}" alt="作成">
+      </button>
+    </div>
+  </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const accountTab = document.getElementById('account-tab');
   {% if request.user.role == 'teacher' %}
-    accountTab.href = "{% url 'accounts:account_entry' %}";
+    if (accountTab) accountTab.href = "{% url 'accounts:account_entry' %}";
   {% endif %}
+  // Ensure chat bubble is attached to <body> so position:fixed is viewport-relative
+  try {
+    const chat = document.querySelector('.chat-ai-bubble');
+    if (chat && chat.parentElement !== document.body) {
+      document.body.appendChild(chat);
+    }
+  } catch(e) {
+    console.error('chat bubble reposition failed', e);
+  }
 });
 </script>
-
 {% endblock %}

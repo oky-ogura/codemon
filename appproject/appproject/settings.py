@@ -105,6 +105,26 @@ DATABASES = {
     }
 }
 
+# Development: allow forcing sqlite for local testing to avoid needing a Postgres
+# server or to work around environment encoding issues (set FORCE_SQLITE=1).
+FORCE_SQLITE = os.getenv('FORCE_SQLITE', '')
+if FORCE_SQLITE.lower() in ('1', 'true', 'yes'):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+else:
+    # If in DEBUG and no DB env vars are present, default to sqlite for local dev.
+    if DEBUG and not os.getenv('DB_NAME') and not os.getenv('DATABASE_URL'):
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
