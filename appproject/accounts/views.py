@@ -12,12 +12,11 @@ from django.conf import settings
 from django import forms
 from django.http import HttpResponseRedirect, HttpResponseForbidden, FileResponse, JsonResponse
 from .forms import TeacherSignupForm, StudentSignupForm, ProfileEditForm
-
+from .models import Account, Group, GroupMember
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.core import signing
 from django.template.loader import render_to_string
-
 from django.db import connection, transaction
 from django.utils import timezone
 from django.contrib.messages import get_messages
@@ -27,7 +26,6 @@ import datetime
 from codemon.models import System, Algorithm, SystemElement
 import json
 from types import SimpleNamespace
-from .models import Account, Group, GroupMember
 try:
     from codemon.views import _get_write_owner
 except Exception:
@@ -43,11 +41,6 @@ except Exception:
         if getattr(request, 'user', None) and getattr(request.user, 'is_authenticated', False):
             return request.user
         return None
-
-from django.db import connection, transaction
-from django.utils import timezone
-import logging
-from django.contrib.auth.hashers import make_password
 
 
 
@@ -315,7 +308,6 @@ def account_session_required(view_func):
 
 @account_session_required
 def karihome(request):
-
     print(f"DEBUG karihome view: session_key={request.session.session_key} data={dict(request.session)}")
     
     # AI設定を取得してAI名前とキャラクターをテンプレートに渡す
@@ -362,7 +354,6 @@ def karihome(request):
         'ai_name': ai_name,
         'character': character
     })
-
 
 def login_choice(request):
     """ログイン種別の選択ページ（教師 or 生徒）を表示する簡易ビュー"""
@@ -608,7 +599,7 @@ def system_index(request):
     # ログインユーザーの他のシステム一覧を取得
     account = get_logged_account(request)
     other_systems_json = '[]'
-    algorithms_json = '[]'  # アルゴリズム一覧を追加
+    algorithms_json = '[]'
     
     if account:
         try:
@@ -644,7 +635,7 @@ def system_index(request):
             pass
 
     context['other_systems_json'] = other_systems_json
-    context['algorithms_json'] = algorithms_json  # コンテキストに追加
+    context['algorithms_json'] = algorithms_json
 
     if system_id:
         try:
