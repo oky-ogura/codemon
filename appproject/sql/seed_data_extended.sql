@@ -19,14 +19,14 @@ BEGIN;
 UPDATE "group"
 SET 
   description = 'プログラミング基礎クラスA',
-  owner_id = 20000001,  -- 教師（山田 太郎）
+  owner_id = 1,  -- 教師（山田 太郎）
   is_active = TRUE
 WHERE group_id = 7000001;
 
 UPDATE "group"
 SET 
   description = 'プログラミング応用クラスB',
-  owner_id = 20000001,  -- 教師（山田 太郎）
+  owner_id = 1,  -- 教師（山田 太郎）
   is_active = TRUE
 WHERE group_id = 7000002;
 
@@ -48,9 +48,9 @@ WHERE is_active IS NULL OR joined_at IS NULL;
 -- 教師が作成した投函ボックス
 INSERT INTO chat_thread (thread_id, title, description, created_by_id, group_id, is_active)
 VALUES
-  (1, '第1回課題提出スレッド', 'プログラミング基礎の第1回課題を提出してください', 20000001, 7000001, TRUE),
-  (2, '質問・相談スレッド', '学習中の疑問点や相談事項はこちらへ', 20000001, 7000001, TRUE),
-  (3, '第2回課題提出スレッド', 'プログラミング応用の第2回課題を提出してください', 20000001, 7000002, TRUE)
+  (1, '第1回課題提出スレッド', 'プログラミング基礎の第1回課題を提出してください', 1, 7000001, TRUE),
+  (2, '質問・相談スレッド', '学習中の疑問点や相談事項はこちらへ', 1, 7000001, TRUE),
+  (3, '第2回課題提出スレッド', 'プログラミング応用の第2回課題を提出してください', 1, 7000002, TRUE)
 ON CONFLICT (thread_id) DO NOTHING;
 
 -- シーケンスを最新に
@@ -62,13 +62,13 @@ SELECT setval('chat_thread_thread_id_seq', (SELECT MAX(thread_id) FROM chat_thre
 -- スレッド1での学生2名の提出と教師のコメント
 INSERT INTO chat_message (message_id, thread_id, sender_id, content, is_deleted)
 VALUES
-  (1, 1, 20000002, '第1回課題を提出します。変数と演算子について学びました。', FALSE),
-  (2, 1, 20000001, 'お疲れ様です。提出ありがとうございます。', FALSE),
-  (3, 1, 20000003, '課題提出いたします。ループ処理の理解が深まりました。', FALSE),
-  (4, 1, 20000001, 'よくできています。次回も頑張りましょう。', FALSE),
+  (1, 1, 2, '第1回課題を提出します。変数と演算子について学びました。', FALSE),
+  (2, 1, 1, 'お疲れ様です。提出ありがとうございます。', FALSE),
+  (3, 1, 3, '課題提出いたします。ループ処理の理解が深まりました。', FALSE),
+  (4, 1, 1, 'よくできています。次回も頑張りましょう。', FALSE),
   -- スレッド2での質問
-  (5, 2, 20000002, 'for文とwhile文の使い分けが分かりません。', FALSE),
-  (6, 2, 20000001, '繰り返し回数が決まっている場合はfor、条件で判断する場合はwhileを使うといいですよ。', FALSE)
+  (5, 2, 2, 'for文とwhile文の使い分けが分かりません。', FALSE),
+  (6, 2, 1, '繰り返し回数が決まっている場合はfor、条件で判断する場合はwhileを使うといいですよ。', FALSE)
 ON CONFLICT (message_id) DO NOTHING;
 
 SELECT setval('chat_message_message_id_seq', (SELECT MAX(message_id) FROM chat_message), true);
@@ -91,9 +91,9 @@ SELECT setval('chat_attachment_attachment_id_seq', (SELECT MAX(attachment_id) FR
 -- 教師がメッセージ1,3,5を既読
 INSERT INTO chat_read_receipt (message_id, reader_id)
 VALUES
-  (1, 20000001),
-  (3, 20000001),
-  (5, 20000001)
+  (1, 1),
+  (3, 1),
+  (5, 1)
 ON CONFLICT (message_id, reader_id) DO NOTHING;
 
 -- ========================================
@@ -102,8 +102,8 @@ ON CONFLICT (message_id, reader_id) DO NOTHING;
 -- 教師がメッセージ1と3に点数を付与
 INSERT INTO chat_score (message_id, scorer_id, score, comment)
 VALUES
-  (1, 20000001, 85, '変数と演算子の理解が良好です。次はもう少し複雑な演算にも挑戦しましょう。'),
-  (3, 20000001, 90, 'ループ処理がしっかり理解できています。素晴らしいです。')
+  (1, 1, 85, '変数と演算子の理解が良好です。次はもう少し複雑な演算にも挑戦しましょう。'),
+  (3, 1, 90, 'ループ処理がしっかり理解できています。素晴らしいです。')
 ON CONFLICT DO NOTHING;
 
 -- ========================================
@@ -112,9 +112,9 @@ ON CONFLICT DO NOTHING;
 -- 学生がAIキャラクター(usagi, kitsune)と会話
 INSERT INTO codemon_aiconversation (id, user_id, character_id, title)
 VALUES
-  (1, 20000002, 'usagi', 'usagi-20251111-session'),
-  (2, 20000003, 'kitsune', 'kitsune-20251111-session'),
-  (3, 20000004, 'arupaka', 'arupaka-20251111-session')
+  (1, 2, 'usagi', 'usagi-20251111-session'),
+  (2, 3, 'kitsune', 'kitsune-20251111-session'),
+  (3, 4, 'arupaka', 'arupaka-20251111-session')
 ON CONFLICT (id) DO NOTHING;
 
 SELECT setval('codemon_aiconversation_id_seq', (SELECT MAX(id) FROM codemon_aiconversation), true);

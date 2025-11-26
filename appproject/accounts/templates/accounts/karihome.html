@@ -34,7 +34,7 @@
   /* キャラクターを画面中央右寄りに配置 */
   .character-container {
     position: fixed !important;
-    right: 15%;
+    right: 20%;
     bottom: 0;
     transform: none;
     z-index: 100 !important;
@@ -43,8 +43,8 @@
   }
   
   .character-image {
-    max-width: 400px !important;
-    max-height: 500px !important;
+    max-width: 350px !important;
+    max-height: 450px !important;
     pointer-events: auto;
     transition: transform 0.3s ease;
     transform-origin: bottom center;
@@ -399,9 +399,10 @@
 
   <!-- キャラクター立ち絵(画面右下) -->
   <div class="character-container">
-    <img src="{% static 'codemon/images/characters/inu.png' %}" 
+    <img src="{% static 'codemon/images/characters/' %}{{ appearance|default:'イヌ.png' }}" 
          alt="AIキャラクター" 
-         class="character-image">
+         class="character-image"
+         onerror="this.src='{% static 'codemon/images/characters/イヌ.png' %}'">
   </div>
 </div>
 
