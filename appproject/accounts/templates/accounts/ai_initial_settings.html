@@ -317,12 +317,11 @@
     </div>
 
     <script>
-        const baseStatic = "{% static 'accounts/' %}";
+        const baseStatic = "{% static 'codemon/images/characters/' %}";
         const appearance = "{{ config.appearance|escapejs }}" || '';
 
         // 動物ごとの性格と語尾の設定
         const animalSettings = {
-            'アルパカ.png': { personality: 'おとなしい', speech: 'だよ' },
             'イヌ.png': { personality: '元気', speech: 'わん' },
             'ウサギ.png': { personality: '優しい', speech: 'ぴょん' },
             'キツネ.png': { personality: '冷静', speech: 'です' },
