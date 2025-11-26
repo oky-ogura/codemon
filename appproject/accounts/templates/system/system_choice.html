@@ -1,37 +1,68 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block background_frame %}
+<img src="{% static 'codemon/images/frames/bg_frame_blue.png' %}" 
+     alt="" 
+     class="bg-frame"
+     onerror="this.style.display='none';">
+{% endblock %}
 
 {% block title %}システム選択 - Codemon{% endblock %}
 {% block extra_css %}
   <style>
-    /* 新規追加: アクションパネル（2列×2行のグリッド配置） */
+    /* content-wrapperの調整 */
+    .content-wrapper {
+      padding: 0 !important;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding-left: 100px !important;
+    }
+    
+    /* mainとh1の左寄せ配置 */
+    main {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      min-height: calc(100vh - 100px);
+      width: 100%;
+      max-width: 700px;
+      padding-top: 100px;
+    }
+    
+    /* 新規追加: アクションパネル（左寄せ配置） */
     .action-panel {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
       gap: 20px;
-      max-width: 800px;
-      margin: 40px auto;
-      padding: 0 20px;
+      max-width: 600px;
+      width: 100%;
+      padding: 0;
     }
     .action-btn {
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 40px 24px;
-      border-radius: 12px;
-      background: linear-gradient(180deg,#e6f0ff,#cfe6ff);
+      border: none;
+      background: url("{% static 'codemon/images/button/button_blue.png' %}") no-repeat center center;
+      background-size: contain;
       color: #073763;
       font-weight: 700;
       font-size: 18px;
-      border: 1px solid rgba(10,59,110,0.08);
-      box-shadow: 0 8px 18px rgba(10,59,110,0.06);
       cursor: pointer;
       text-align: center;
-      transition: transform .12s ease, box-shadow .12s ease;
-      min-height: 120px;
+      transition: transform .12s ease;
+      min-height: 80px;
+      width: 100%;
+      max-width: 500px;
     }
     .action-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 12px 24px rgba(10,59,110,0.12);
     }
     .action-btn:active {
       transform: translateY(1px);
@@ -48,8 +79,11 @@
     .note { margin-top:12px; color:#444; font-size:13px; text-align:center; }
     @media (max-width:880px){
       .action-panel {
-        grid-template-columns: 1fr;
         gap: 16px;
+        padding: 0 16px;
+      }
+      .action-btn {
+        max-width: 100%;
       }
     }
   </style>
@@ -61,19 +95,14 @@
   
 
   <main>
-    <h1>システム選択</h1>
-
     <div class="action-panel" role="region" aria-label="システム操作">
       <!-- 1行目 左 -->
       <button class="action-btn" id="btn-list">作成したシステム一覧を開く</button>
       
       <!-- 1行目 右 -->
-      <button class="action-btn disabled" id="btn-main">メイン画面へ</button>
-      
-      <!-- 2行目 左 -->
       <button class="action-btn" id="btn-new">新しいシステムを作成</button>
       
-      <!-- 2行目 右 -->
+      <!-- 2行目 左 -->
       <button class="action-btn" id="btn-tutorial">チュートリアル</button>
     </div>
 
@@ -137,10 +166,6 @@
         window.location.href = '/accounts/system/tutorial/';
       });
     }
-
-    // メイン画面へボタンは表示のみ（クリックイベントなし）
-    const btnMain = document.getElementById('btn-main');
-    // btnMainには何もイベントを付けない（表示のみ）
   </script>
 </body>
 {% endblock %}

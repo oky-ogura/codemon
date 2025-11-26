@@ -1,65 +1,62 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8" />
-  <title>システム一覧</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    :root { --nav-height:56px; --primary:#1976d2; --muted:#666; --bg:#f9f9fb; }
-    body{
-      font-family: -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "メイリオ", sans-serif;
-      margin:20px;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      min-height:100vh;
-      background:var(--bg);
-      color:#111;
-    }
-    .top-nav {
-      box-sizing:border-box;
-      width:100%;
-      max-width:980px;
-      height:var(--nav-height);
-      margin:16px auto 12px;
-      display:flex;
-      align-items:center;
-      gap:12px;
-      padding:6px 12px;
-      background:linear-gradient(180deg,#fff,#fafafa);
-      border-radius:10px;
-      box-shadow:0 1px 3px rgba(0,0,0,0.06);
-      border:1px solid #e6e6e9;
-    }
-    .nav-brand { display:flex; align-items:center; gap:8px; padding-right:8px; border-right:1px solid #eee; }
-    .nav-brand .logo { width:36px; height:36px; border-radius:6px; background:var(--primary); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:18px; }
-    .nav-brand .title { font-size:15px; color:#111; font-weight:600; }
-    .nav-tabs {
-      display:flex;
-      justify-content: space-evenly;
-      width:100%;
-      align-items:center;
-      gap:0;
-      margin:0;
-    }
-    .nav-tab {
-      appearance:none; border:0; background:transparent; padding:8px 12px; border-radius:8px;
-      font-size:14px; cursor:pointer; color:var(--muted); transition: all .12s ease;
-    }
-    .nav-tab:hover { background:#f0f6ff; color:var(--primary); transform:translateY(-1px); }
-    .nav-tab.active { background:var(--primary); color:#fff; box-shadow:0 2px 6px rgba(25,118,210,0.18); }
+{% extends 'base.html' %}
+{% load static %}
 
-    main { width:100%; max-width:980px; margin:6px auto; box-sizing:border-box; }
-    h1 { margin:2px 0 12px 0; font-size:20px; text-align:center; }
+{% block background_frame %}
+<img src="{% static 'codemon/images/frames/bg_frame_blue.png' %}" 
+     alt="" 
+     class="bg-frame"
+     onerror="this.style.display='none';">
+{% endblock %}
+
+{% block title %}システム一覧 - Codemon{% endblock %}
+
+{% block messages %}
+  <!-- メッセージを表示しない -->
+{% endblock %}
+
+{% block extra_css %}
+  <style>
+    /* メッセージを非表示 */
+    .messages {
+      display: none !important;
+    }
+    
+    main { width:100%; max-width:1000px; margin:6px auto; margin-top:82px; box-sizing:border-box; }
 
     .list-card {
-      background:#fff;
+      background: transparent;
       border-radius:10px;
       padding:16px;
-      box-shadow:0 6px 18px rgba(10,10,10,0.04);
-      border:1px solid #eef2f6;
+      padding-bottom:80px;
+      box-shadow: none;
+      border: none;
+      max-width:1000px;
+      margin:0 auto;
     }
-    .list-empty { color:#666; padding:28px; text-align:center; min-width:420px; }
+    .list-empty { color:#666; padding:28px; text-align:center; }
+    
+    /* システム一覧項目の背景画像 */
+    #systemsList li {
+      background: url("{% static 'codemon/images/backgrounds/system_list_bg.png' %}") no-repeat center center !important;
+      background-size: contain !important;
+      border: none !important;
+      min-height: 70px;
+    }
+    
+    /* 詳細ボタンの画像スタイル */
+    .system-detail-btn {
+      background: url("{% static 'codemon/images/button/system_list_button.png' %}") no-repeat center center !important;
+      background-size: contain !important;
+      background-color: transparent !important;
+      border: none !important;
+      color: transparent !important;
+      box-shadow: none !important;
+      width: 110px;
+      height: 55px;
+      cursor: pointer;
+      padding: 0 !important;
+      flex-shrink: 0;
+    }
     
     /* ページネーション */
     .pagination {
@@ -107,7 +104,7 @@
       box-shadow:0 8px 18px rgba(10,59,110,0.06);
     }
     .btn-ghost {
-      background:transparent;
+      background: #fff;
       color:#444;
       border:1px solid #e6e9ee;
     }
@@ -116,21 +113,10 @@
       .list-empty { padding:18px; }
     }
   </style>
-</head>
-<body>
-  <header class="top-nav" role="banner" aria-label="メインナビゲーション">
+{% endblock %}
 
-    <nav class="nav-tabs" role="navigation" aria-label="タブメニュー">
-      <button type="button" class="nav-tab active" id="tab-system" aria-pressed="true" title="システム">システム</button>
-      <button type="button" class="nav-tab" id="tab-algorithm" aria-pressed="false" title="アルゴリズム">アルゴリズム</button>
-      <button type="button" class="nav-tab" id="tab-progress" aria-pressed="false" title="進捗確認">進捗確認</button>
-      <button type="button" class="nav-tab" id="tab-account" aria-pressed="false" title="アカウント">アカウント</button>
-    </nav>
-  </header>
-
+{% block content %}
   <main>
-    <h1>システム一覧</h1>
-
     <div class="list-card" role="region" aria-label="システム一覧">
       <!-- ページネーション（上部） -->
       <div class="pagination" id="topPagination">
@@ -142,21 +128,13 @@
       <div id="systemsContainer">
         {% if systems %}
         <div class="system-list">
-          <ul id="systemsList" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px;">
+          <ul id="systemsList" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:3px;">
             {% for s in systems %}
-            <li data-id="{{ s.system_id }}" style="background:#fbfdff;border-radius:8px;padding:12px 14px;border:1px solid #eef4fb;display:flex;justify-content:space-between;align-items:center;gap:12px;">
-              <div style="flex:1;">
-                <div style="font-weight:700;font-size:15px;color:#0b2f5a;">{{ s.system_name }}</div>
-                {% if s.system_description %}
-                <div style="color:#666;font-size:13px;margin-top:4px;">{{ s.system_description }}</div>
-                {% endif %}
-                {% if s.updated_at|date:"Y-m-d H:i" != s.created_at|date:"Y-m-d H:i" %}
-                <div style="color:#999;font-size:12px;margin-top:4px;">更新日: {{ s.updated_at|date:"Y年n月j日 H:i" }}</div>
-                {% else %}
-                <div style="color:#999;font-size:12px;margin-top:4px;">{{ s.created_at|date:"Y年n月j日 H:i" }}</div>
-                {% endif %}
-              </div>
-              <button class="btn btn-primary system-detail-btn" data-system-id="{{ s.system_id }}" style="white-space:nowrap;padding:8px 16px;font-size:13px;">詳細</button>
+            <li data-id="{{ s.system_id }}" style="border-radius:8px;padding:12px 14px;display:flex;align-items:center;gap:16px;">
+              <div style="flex:1;min-width:0;font-weight:700;font-size:15px;color:#0b2f5a;">{{ s.system_name }}</div>
+              <div style="flex:1;min-width:0;color:#666;font-size:13px;">作成日: {{ s.created_at|date:"Y年n月j日 H:i" }}</div>
+              <div style="flex:1;min-width:0;color:#666;font-size:13px;">更新日: {{ s.updated_at|date:"Y年n月j日 H:i" }}</div>
+              <button class="system-detail-btn" data-system-id="{{ s.system_id }}">詳細</button>
             </li>
             {% endfor %}
           </ul>
@@ -171,7 +149,6 @@
 
       <div class="actions" aria-hidden="false">
         <button class="btn btn-primary" id="btn-new">新しいシステムを作成</button>
-        <button class="btn btn-ghost" id="btn-refresh">一覧を更新</button>
         <button class="btn btn-ghost" id="btn-back">戻る</button>
       </div>
     </div>
@@ -179,7 +156,7 @@
 
   <script>
     // ページネーション設定
-    const ITEMS_PER_PAGE = 5;
+    const ITEMS_PER_PAGE = 4;
     let currentPage = 1;
     let allSystems = [];
 
@@ -191,15 +168,13 @@
         const items = systemsListElement.querySelectorAll('li[data-id]');
         allSystems = Array.from(items).map(item => {
           const systemId = item.getAttribute('data-id');
-          const nameElement = item.querySelector('div[style*="font-weight:700"]');
-          const descElement = item.querySelector('div[style*="color:#666"]');
-          const dateElement = item.querySelector('div[style*="color:#999"]');
+          const elements = item.querySelectorAll('div');
           
           return {
             system_id: systemId,
-            system_name: nameElement ? nameElement.textContent : '',
-            system_description: descElement ? descElement.textContent : '',
-            date_display: dateElement ? dateElement.textContent : ''
+            system_name: elements[0] ? elements[0].textContent : '',
+            created_at: elements[1] ? elements[1].textContent.replace('作成日: ', '') : '',
+            updated_at: elements[2] ? elements[2].textContent.replace('更新日: ', '') : ''
           };
         });
         
@@ -227,13 +202,13 @@
       const endIndex = startIndex + ITEMS_PER_PAGE;
       const pageSystems = allSystems.slice(startIndex, endIndex);
 
-      let html = '<div class="system-list"><ul id="systemsList" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px;">';
+      let html = '<div class="system-list"><ul id="systemsList" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:3px;">';
       for (const s of pageSystems) {
-        html += `<li data-id="${s.system_id}" style="background:#fbfdff;border-radius:8px;padding:12px 14px;border:1px solid #eef4fb;display:flex;justify-content:space-between;align-items:center;gap:12px;">`;
-        html += `<div style="flex:1;"><div style="font-weight:700;font-size:15px;color:#0b2f5a;">${escapeHtml(s.system_name)}</div>`;
-        if (s.system_description) html += `<div style="color:#666;font-size:13px;margin-top:4px;">${escapeHtml(s.system_description)}</div>`;
-        html += `<div style="color:#999;font-size:12px;margin-top:4px;">${escapeHtml(s.date_display)}</div></div>`;
-        html += `<button class="btn btn-primary system-detail-btn" data-system-id="${s.system_id}" style="white-space:nowrap;padding:8px 16px;font-size:13px;">詳細</button>`;
+        html += `<li data-id="${s.system_id}" style="border-radius:8px;padding:12px 14px;display:flex;align-items:center;gap:16px;">`;
+        html += `<div style="flex:1;min-width:0;font-weight:700;font-size:15px;color:#0b2f5a;">${escapeHtml(s.system_name)}</div>`;
+        html += `<div style="flex:1;min-width:0;color:#666;font-size:13px;">作成日: ${escapeHtml(s.created_at)}</div>`;
+        html += `<div style="flex:1;min-width:0;color:#666;font-size:13px;">更新日: ${escapeHtml(s.updated_at)}</div>`;
+        html += `<button class="system-detail-btn" data-system-id="${s.system_id}">詳細</button>`;
         html += `</li>`;
       }
       html += '</ul></div>';
@@ -278,76 +253,12 @@
       }
     });
 
-    // ナビタブ見た目切替。システムタブとアルゴリズムタブで遷移（画面構成は変更しない）
-    document.querySelectorAll('.nav-tab').forEach(tab=>{
-      tab.addEventListener('click', function(e){
-        e.preventDefault();
-        // 見た目更新
-        document.querySelectorAll('.nav-tab').forEach(t=>{
-          t.classList.remove('active');
-          t.setAttribute('aria-pressed','false');
-        });
-        this.classList.add('active');
-        this.setAttribute('aria-pressed','true');
-
-        // システムタブのみ system_choice へ遷移
-        if (this.id === 'tab-system') {
-          window.location.href = '/accounts/system/choice/';
-          return;
-        }
-        // 変更: アルゴリズムタブ押下で block/choice へ遷移
-        if (this.id === 'tab-algorithm') {
-          window.location.href = '/accounts/block/choice';
-          return;
-        }
-        // それ以外は遷移しない（表示のみ）
-      });
-    });
-
     // 「新しいシステムを作成」ボタンは index.html へ遷移
     const btnNew = document.getElementById('btn-new');
     if (btnNew) {
       btnNew.addEventListener('click', function(e){
         e.preventDefault();
         window.location.href = '/accounts/system/';
-      });
-    }
-
-    // 「一覧を更新」: サーバから最新データを取得して DOM を更新する
-    const btnRefresh = document.getElementById('btn-refresh');
-    async function loadSystemsFromServer() {
-      try {
-        const res = await fetch('/accounts/system/list/data/');
-        if (!res.ok) throw new Error('Network response was not ok');
-        const data = await res.json();
-        
-        // サーバーから取得したデータを allSystems に格納
-        allSystems = (data.systems || []).map(s => ({
-          system_id: s.system_id,
-          system_name: s.system_name,
-          system_description: s.system_description,
-          created_at: s.created_at,
-          updated_at: s.updated_at,
-          // 更新されたシステムは「更新日:」を表示、それ以外は作成日を表示
-          date_display: (s.updated_at && s.created_at && s.updated_at !== s.created_at) 
-            ? `更新日: ${s.updated_at}` 
-            : s.created_at
-        }));
-        
-        // 1ページ目を表示
-        renderPage(1);
-      } catch (err) {
-        console.error(err);
-        alert('一覧の取得に失敗しました。');
-      }
-    }
-
-    if (btnRefresh) {
-      btnRefresh.addEventListener('click', async function(e){
-        e.preventDefault();
-        btnRefresh.disabled = true;
-        await loadSystemsFromServer();
-        btnRefresh.disabled = false;
       });
     }
 
@@ -378,5 +289,5 @@
       attachDetailButtonListeners();
     });
   </script>
-</body>
-</html>
+  </main>
+{% endblock %}
