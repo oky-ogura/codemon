@@ -17,7 +17,7 @@ def add_account_type_if_missing(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0005_remove_account_avatar_remove_account_type'),
+        ('accounts', '0004_group_groupmember_remove_account_type'),
     ]
 
     operations = [
