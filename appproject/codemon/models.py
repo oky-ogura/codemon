@@ -1,5 +1,5 @@
 from django.db import models
-from accounts.models import Account
+## Account参照は文字列で行う（循環依存回避）
 from django.conf import settings
 from django.utils import timezone
 
@@ -7,7 +7,7 @@ from django.utils import timezone
 class System(models.Model):
     # system_id は PostgreSQL のシーケンスで管理（4000001 から開始）
     system_id = models.BigAutoField(primary_key=True)
-    user = models.ForeignKey(Account, on_delete=models.CASCADE, verbose_name='ユーザーID')
+    user = models.ForeignKey('accounts.Account', on_delete=models.CASCADE, verbose_name='ユーザーID')
     system_name = models.CharField(max_length=100, verbose_name='システム名')
     system_description = models.TextField(blank=True, null=True, verbose_name='システム種類')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
@@ -25,7 +25,7 @@ class System(models.Model):
 class Algorithm(models.Model):
     # algorithm_id は PostgreSQL のシーケンスで管理（5000001 から開始）
     algorithm_id = models.BigAutoField(primary_key=True)
-    user = models.ForeignKey(Account, on_delete=models.CASCADE, verbose_name='ユーザーID')
+    user = models.ForeignKey('accounts.Account', on_delete=models.CASCADE, verbose_name='ユーザーID')
     algorithm_name = models.CharField(max_length=100, verbose_name='アルゴリズム名')
     algorithm_description = models.TextField(blank=True, null=True, verbose_name='アルゴリズム概要')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
@@ -43,7 +43,7 @@ class Algorithm(models.Model):
 class Checklist(models.Model):
     # checklist_id は PostgreSQL のシーケンスで管理（6000001 から開始）
     checklist_id = models.BigAutoField(primary_key=True)
-    user = models.ForeignKey(Account, on_delete=models.CASCADE, verbose_name='ユーザーID')
+    user = models.ForeignKey('accounts.Account', on_delete=models.CASCADE, verbose_name='ユーザーID')
     checklist_name = models.CharField(max_length=100, verbose_name='チェックリスト名')
     checklist_description = models.TextField(blank=True, null=True, verbose_name='チェックリスト概要')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
@@ -85,8 +85,8 @@ class Group(models.Model):
     group_id = models.BigAutoField(primary_key=True)
     group_name = models.CharField(max_length=50, verbose_name='グループ名')
     description = models.TextField(blank=True, null=True, verbose_name='グループ説明')
-    owner = models.ForeignKey(Account, on_delete=models.CASCADE, null=True, blank=True)
-    members = models.ManyToManyField(Account, through='GroupMember', related_name='joined_groups')
+    owner = models.ForeignKey('accounts.Account', on_delete=models.CASCADE, null=True, blank=True)
+    members = models.ManyToManyField('accounts.Account', through='GroupMember', related_name='joined_groups')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新日時')
     is_active = models.BooleanField(default=True, verbose_name='アクティブフラグ')
@@ -103,8 +103,8 @@ class Group(models.Model):
 class GroupMember(models.Model):
     """グループのメンバーシップを管理。役割や参加日時も記録。"""
     id = models.BigAutoField(primary_key=True)
-    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='memberships')
-    member = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='group_memberships')
+    group = models.ForeignKey('Group', on_delete=models.CASCADE, related_name='memberships')
+    member = models.ForeignKey('accounts.Account', on_delete=models.CASCADE, related_name='group_memberships')
     role = models.CharField(max_length=20, choices=[
         ('owner', 'オーナー'),
         ('teacher', '教師'),
@@ -128,7 +128,7 @@ class ChatThread(models.Model):
     thread_id = models.BigAutoField(primary_key=True)
     title = models.CharField(max_length=200, verbose_name='スレッド名')
     description = models.TextField(blank=True, null=True, verbose_name='説明')
-    created_by = models.ForeignKey(Account, on_delete=models.CASCADE, verbose_name='作成者')
+    created_by = models.ForeignKey('accounts.Account', on_delete=models.CASCADE, verbose_name='作成者')
     group = models.ForeignKey('Group', on_delete=models.CASCADE, null=True, blank=True, related_name='threads', verbose_name='グループ')
     is_active = models.BooleanField(default=True, verbose_name='アクティブフラグ')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
@@ -146,7 +146,7 @@ class ChatMessage(models.Model):
     """チャットメッセージ。AI を含む送信者は Account を参照。"""
     message_id = models.BigAutoField(primary_key=True)
     thread = models.ForeignKey(ChatThread, on_delete=models.CASCADE, related_name='messages')
-    sender = models.ForeignKey(Account, on_delete=models.CASCADE, verbose_name='送信者')
+    sender = models.ForeignKey('accounts.Account', on_delete=models.CASCADE, verbose_name='送信者')
     content = models.TextField(blank=True, null=True, verbose_name='メッセージ本文')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='送信日時')
     is_deleted = models.BooleanField(default=False, verbose_name='削除フラグ')
@@ -181,7 +181,7 @@ class ReadReceipt(models.Model):
     """既読管理。メッセージごとに誰が読んだかを記録する。"""
     id = models.BigAutoField(primary_key=True)
     message = models.ForeignKey(ChatMessage, on_delete=models.CASCADE, related_name='read_receipts')
-    reader = models.ForeignKey(Account, on_delete=models.CASCADE)
+    reader = models.ForeignKey('accounts.Account', on_delete=models.CASCADE)
     read_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -195,7 +195,7 @@ class ChatScore(models.Model):
     id = models.BigAutoField(primary_key=True)
     message = models.ForeignKey(ChatMessage, on_delete=models.CASCADE, related_name='scores', null=True, blank=True)
     thread = models.ForeignKey(ChatThread, on_delete=models.CASCADE, related_name='scores', null=True, blank=True)
-    scorer = models.ForeignKey(Account, on_delete=models.CASCADE, verbose_name='採点者')
+    scorer = models.ForeignKey('accounts.Account', on_delete=models.CASCADE, verbose_name='採点者')
     score = models.IntegerField(null=True, blank=True)
     comment = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)

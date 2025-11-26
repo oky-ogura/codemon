@@ -3,20 +3,19 @@ from django.contrib.auth.hashers import make_password # <= ここにあるので
 from django.contrib.auth import views as auth_views
 # 以下のブロックは、HEADとmainのインポートを統合したもの
 from django.http import HttpResponseRedirect, HttpResponseForbidden, FileResponse, JsonResponse
-<<<<<<< HEAD
+
 from .models import Account
 from .forms import StudentSignupForm
 from django.shortcuts import render,redirect
 
 from django import forms
-=======
+
 from .forms import TeacherSignupForm, StudentSignupForm, ProfileEditForm
 from .models import Account, Group, GroupMember
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.core import signing
 from django.template.loader import render_to_string
->>>>>>> main
 from django.db import connection, transaction
 from django.utils import timezone
 from django.contrib.messages import get_messages
@@ -27,10 +26,10 @@ from codemon.models import System, Algorithm
 from django.contrib.auth.hashers import check_password
 
 import json
-<<<<<<< HEAD
-=======
+
+
 from types import SimpleNamespace
->>>>>>> main
+
 try:
     from codemon.views import _get_write_owner
 except Exception:
@@ -578,64 +577,59 @@ def system_index(request):
     # ログインユーザーの他のシステム一覧を取得
     account = get_logged_account(request)
     other_systems_json = '[]'
-<<<<<<< HEAD
-=======
+
     algorithms_json = '[]'
     
->>>>>>> main
+
     if account:
-        try:
-            other_systems_qs = System.objects.filter(user=account).order_by('-created_at')
-            # 編集モードの場合は、編集中のシステムを除外
-            if system_id:
-                other_systems_qs = other_systems_qs.exclude(system_id=system_id)
+                try:
+                    other_systems_qs = System.objects.filter(user=account).order_by('-created_at')
+                    # 編集モードの場合は、編集中のシステムを除外
+                    if system_id:
+                        other_systems_qs = other_systems_qs.exclude(system_id=system_id)
 
-            # JSON形式に変換
-            other_systems_list = []
-            for sys in other_systems_qs:
-                other_systems_list.append({
-                    'system_id': sys.system_id,
-                    'system_name': sys.system_name
-                })
+                    # JSON形式に変換
+                    other_systems_list = []
+                    for sys in other_systems_qs:
+                        other_systems_list.append({
+                            'system_id': sys.system_id,
+                            'system_name': sys.system_name
+                        })
 
-            other_systems_json = json.dumps(other_systems_list, ensure_ascii=False)
-        except Exception:
-            pass
+                    other_systems_json = json.dumps(other_systems_list, ensure_ascii=False)
+                except Exception:
+                    pass
 
     context['other_systems_json'] = other_systems_json
-<<<<<<< HEAD
-=======
+
     context['algorithms_json'] = algorithms_json
->>>>>>> main
+
 
     if system_id:
-        try:
-            system = System.objects.get(system_id=system_id)
-            context['system_id'] = system.system_id
-            context['system_name'] = system.system_name
-            context['system_description'] = system.system_description or ''
-
-            # システム要素を取得してJSON化
-            elements = SystemElement.objects.filter(system=system).order_by('sort_order', 'element_id')
-            elements_list = []
-            for elem in elements:
-                elements_list.append({
-                    'element_type': elem.element_type,
-                    'element_label': elem.element_label or '',
-                    'element_value': elem.element_value or '',
-                    'position_x': elem.position_x,
-                    'position_y': elem.position_y,
-                    'width': elem.width,
-                    'height': elem.height,
-                    'style_data': elem.style_data or {},
-                    'element_config': elem.element_config or {}
-                })
-            context['elements_json'] = json.dumps(elements_list, ensure_ascii=False)
-        except System.DoesNotExist:
-            messages.error(request, '指定されたシステムが見つかりません。')
+            try:
+                system = System.objects.get(system_id=system_id)
+                context['system_id'] = system.system_id
+                context['system_name'] = system.system_name
+                context['system_description'] = system.system_description or ''
+                elements = SystemElement.objects.filter(system=system).order_by('sort_order', 'element_id')
+                elements_list = []
+                for elem in elements:
+                    elements_list.append({
+                        'element_type': elem.element_type,
+                        'element_label': elem.element_label or '',
+                        'element_value': elem.element_value or '',
+                        'position_x': elem.position_x,
+                        'position_y': elem.position_y,
+                        'width': elem.width,
+                        'height': elem.height,
+                        'style_data': elem.style_data or {},
+                        'element_config': elem.element_config or {}
+                    })
+                context['elements_json'] = json.dumps(elements_list, ensure_ascii=False)
+            except System.DoesNotExist:
+                messages.error(request, '指定されたシステムが見つかりません。')
 
     return render(request, 'system/index.html', context)
-
 # システム要素取得API
 def get_system_elements(request):
     """
