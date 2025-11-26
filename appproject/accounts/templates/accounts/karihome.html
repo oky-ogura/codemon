@@ -399,9 +399,10 @@
 
   <!-- キャラクター立ち絵(画面右下) -->
   <div class="character-container">
-    <img src="{% static 'codemon/images/characters/inu.png' %}" 
+    <img src="{% static 'codemon/images/characters/' %}{{ appearance|default:'イヌ' }}" 
          alt="AIキャラクター" 
-         class="character-image">
+         class="character-image"
+         id="characterImage">
   </div>
 </div>
 

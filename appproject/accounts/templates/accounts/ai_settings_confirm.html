@@ -296,17 +296,14 @@
 </div>
 
 <script>
-    const baseStatic = "{% static 'accounts/' %}";
+    const baseStatic = "{% static 'codemon/images/characters/' %}";
     const appearance = "{{ appearance|default:''|escapejs }}";
-    function filenameFor(a){
-        if(!a) return '';
-        const map = { 'triangle':'dog.png','round':'panda.png','robot':'rabitto.png' };
-        if(map[a]) return map[a];
-        return a;
-    }
     const ill = document.getElementById('ai_ill');
-    const filename = filenameFor(appearance);
-    if(filename){ ill.src = baseStatic + encodeURIComponent(filename); ill.alt = filename; }
+    if(appearance){
+        // appearanceはそのまま動物名（例：イヌ、ウサギ）なので、.pngを付けるだけ
+        ill.src = baseStatic + encodeURIComponent(appearance);
+        ill.alt = appearance;
+    }
 </script>
 </body>
 </html>

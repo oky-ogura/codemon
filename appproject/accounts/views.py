@@ -322,6 +322,7 @@ def karihome(request):
     from .models import AiConfig
     ai_name = 'うたー'  # デフォルト値
     character = 'inu'  # デフォルト値（イヌ）
+    appearance = 'イヌ.png'  # デフォルト値（実際のファイル名）
     try:
         acc = get_logged_account(request)
         if acc:
@@ -330,37 +331,20 @@ def karihome(request):
                 if ai_config.ai_name:
                     ai_name = ai_config.ai_name
                 if ai_config.appearance:
-                    # appearanceからキャラクターIDを決定
-                    # appearance値がファイル名形式(例: dog.png)の場合に対応
-                    appearance_lower = ai_config.appearance.lower().replace('.png', '')
-                    appearance_map = {
-                        'dog': 'inu',
-                        'cat': 'neko',
-                        'rabbit': 'usagi',
-                        'panda': 'panda',
-                        'fox': 'kitsune',
-                        'squirrel': 'risu',
-                        'owl': 'fukurou',
-                        'alpaca': 'arupaka',
-                        'イヌ': 'inu',
-                        'ネコ': 'neko',
-                        'ウサギ': 'usagi',
-                        'パンダ': 'panda',
-                        'キツネ': 'kitsune',
-                        'リス': 'risu',
-                        'フクロウ': 'fukurou',
-                        'アルパカ': 'arupaka',
-                        '犬': 'inu',
-                        '猫': 'neko',
-                        '兎': 'usagi',
-                    }
-                    character = appearance_map.get(appearance_lower, appearance_map.get(ai_config.appearance, 'inu'))
+                    # appearanceはそのまま使用（例: イヌ.png, ウサギ.png）
+                    appearance = ai_config.appearance
+                    # .pngがついていない場合は追加
+                    if not appearance.endswith('.png'):
+                        appearance = appearance + '.png'
+                    # characterはファイル名から拡張子を除いたもの
+                    character = ai_config.appearance.replace('.png', '')
     except Exception as e:
         print(f"AI設定の取得エラー: {e}")
     
     return render(request, 'accounts/karihome.html', {
         'ai_name': ai_name,
-        'character': character
+        'character': character,
+        'appearance': appearance
     })
 
 
