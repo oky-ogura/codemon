@@ -390,7 +390,7 @@ def ai_appearance(request):
         # 外見選択後は初期設定画面へ遷移させる
         return redirect('accounts:ai_initial')
 
-    appearances = ['アルパカ.png', 'イヌ.png', 'ウサギ.png', 'キツネ.png', 'ネコ.png', 'パンダ.png', 'フクロウ.png', 'リス.png']
+    appearances = ['イヌ.png', 'ウサギ.png', 'キツネ.png', 'ネコ.png', 'パンダ.png', 'フクロウ.png', 'リス.png']
     return render(request, 'accounts/ai_appearance.html', {'appearances': appearances})
 
 
@@ -403,7 +403,6 @@ def ai_initial_settings(request):
 
     # 動物ごとのデフォルト設定
     animal_settings = {
-        'アルパカ.png': {'personality': 'おとなしい', 'speech': 'だよ'},
         'イヌ.png': {'personality': '元気', 'speech': 'わん'},
         'ウサギ.png': {'personality': '優しい', 'speech': 'ぴょん'},
         'キツネ.png': {'personality': '冷静', 'speech': 'です'},
