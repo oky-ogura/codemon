@@ -1,6 +1,7 @@
 import os
 import time
 from typing import List, Tuple, Dict, Any
+from django.conf import settings
 import google.generativeai as genai
 
 # 全キャラ共通のルール（自動的に全てのキャラクターに適用される）
@@ -224,16 +225,18 @@ def build_system_instruction(character_id: str) -> str:
     return prompt.strip()
 
 def chat_gemini(user_text: str, history_pairs: List[Tuple[str, str]], character_id: str = "usagi") -> str:
-    api_key = os.getenv("GEMINI_API_KEY", "")
+    # Prefer settings.AI_API_KEY (project-wide). Fallback to legacy GEMINI_API_KEY env var.
+    api_key = getattr(settings, 'AI_API_KEY', '') or os.getenv('GEMINI_API_KEY', '')
     if not api_key:
-        return "[設定エラー] GEMINI_API_KEY が未設定です。"
+        return "[設定エラー] AI APIキーが未設定です。環境変数 `AI_API_KEY` または `GEMINI_API_KEY` を設定してください。"
 
     genai.configure(api_key=api_key)
-    model_name = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-exp")
-    
-    # モデル名にmodels/プレフィックスを追加
-    if not model_name.startswith("models/"):
-        model_name = f"models/{model_name}"
+
+    # Prefer settings.AI_MODEL, then GEMINI_MODEL env var, then default Gemini model
+    model_name = getattr(settings, 'AI_MODEL', '') or os.getenv('GEMINI_MODEL', 'gemini-2.0-flash-exp')
+    # モデル名に models/ プレフィックスを追加（Gemini の形式）
+    if not model_name.startswith('models/'):
+        model_name = f'models/{model_name}'
 
     generation_config = {
         "temperature": 0.7,
