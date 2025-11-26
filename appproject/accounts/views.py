@@ -3,6 +3,10 @@ from django.contrib.auth.hashers import make_password # <= ここにあるので
 from django.contrib.auth import views as auth_views
 # 以下のブロックは、HEADとmainのインポートを統合したもの
 from django.http import HttpResponseRedirect, HttpResponseForbidden, FileResponse, JsonResponse
+from .models import Account
+from .forms import StudentSignupForm
+from django.shortcuts import render,redirect
+
 from django import forms
 from django.db import connection, transaction
 from django.utils import timezone
@@ -11,8 +15,9 @@ import logging
 from django.utils.dateparse import parse_datetime, parse_date
 import datetime
 from codemon.models import System, Algorithm
+from django.contrib.auth.hashers import check_password
+
 import json
-from types import SimpleNamespace
 try:
     from codemon.views import _get_write_owner
 except Exception:
@@ -546,40 +551,14 @@ def block_index(request):
     if algorithm_id:
         try:
             algorithm = Algorithm.objects.get(algorithm_id=algorithm_id)
-            # ORM may fail if DB schema is missing columns; guard access
-            blockly_xml = ''
-            try:
-                blockly_xml = algorithm.blockly_xml or ''
-            except Exception:
-                blockly_xml = ''
             context = {
                 'algorithm_id': algorithm.algorithm_id,
                 'algorithm_name': algorithm.algorithm_name,
                 'algorithm_description': algorithm.algorithm_description or '',
-                'blockly_xml': blockly_xml,
+                'blockly_xml': algorithm.blockly_xml or '',
             }
         except Algorithm.DoesNotExist:
             messages.error(request, '指定されたアルゴリズムが見つかりません。')
-        except Exception:
-            # Fallback: fetch known columns via raw SQL to avoid missing-column errors
-            try:
-                with connection.cursor() as cursor:
-                    cursor.execute(
-                        'SELECT algorithm_id, algorithm_name, algorithm_description, created_at, updated_at FROM algorithm WHERE algorithm_id = %s',
-                        [algorithm_id]
-                    )
-                    row = cursor.fetchone()
-                    if row:
-                        context = {
-                            'algorithm_id': row[0],
-                            'algorithm_name': row[1],
-                            'algorithm_description': row[2] or '',
-                            'blockly_xml': '',
-                        }
-                    else:
-                        messages.error(request, '指定されたアルゴリズムが見つかりません。')
-            except Exception:
-                messages.error(request, '指定されたアルゴリズムが見つかりません。')
     return render(request, 'block/index.html', context)
 
 def system_index(request):
@@ -997,38 +976,14 @@ def block_create(request):
     if algorithm_id:
         try:
             algorithm = Algorithm.objects.get(algorithm_id=algorithm_id)
-            try:
-                blockly_xml = algorithm.blockly_xml or ''
-            except Exception:
-                blockly_xml = ''
             context = {
                 'algorithm_id': algorithm.algorithm_id,
                 'algorithm_name': algorithm.algorithm_name,
                 'algorithm_description': algorithm.algorithm_description or '',
-                'blockly_xml': blockly_xml,
+                'blockly_xml': algorithm.blockly_xml or '',
             }
         except Algorithm.DoesNotExist:
             messages.error(request, '指定されたアルゴリズムが見つかりません。')
-        except Exception:
-            # Fallback to raw SQL when ORM selection may reference missing columns
-            try:
-                with connection.cursor() as cursor:
-                    cursor.execute(
-                        'SELECT algorithm_id, algorithm_name, algorithm_description, created_at, updated_at FROM algorithm WHERE algorithm_id = %s',
-                        [algorithm_id]
-                    )
-                    row = cursor.fetchone()
-                    if row:
-                        context = {
-                            'algorithm_id': row[0],
-                            'algorithm_name': row[1],
-                            'algorithm_description': row[2] or '',
-                            'blockly_xml': '',
-                        }
-                    else:
-                        messages.error(request, '指定されたアルゴリズムが見つかりません。')
-            except Exception:
-                messages.error(request, '指定されたアルゴリズムが見つかりません。')
 
     return render(request, 'block/block_create.html', context)
 
@@ -1044,19 +999,7 @@ def block_details(request):
     
     try:
         # アルゴリズムIDでデータベースから取得
-        try:
-            algorithm = Algorithm.objects.get(algorithm_id=algorithm_id)
-        except Exception:
-            # ORM may fail if DB schema missing columns; fallback to raw SQL
-            algorithm = None
-            try:
-                with connection.cursor() as cursor:
-                    cursor.execute('SELECT algorithm_id, algorithm_name, algorithm_description, created_at, updated_at FROM algorithm WHERE algorithm_id = %s', [algorithm_id])
-                    row = cursor.fetchone()
-                    if row:
-                        algorithm = SimpleNamespace(algorithm_id=row[0], algorithm_name=row[1], algorithm_description=row[2] or '', blockly_xml='')
-            except Exception:
-                algorithm = None
+        algorithm = Algorithm.objects.get(algorithm_id=algorithm_id)
 
         # ログインユーザーを取得
         account = get_logged_account(request)
@@ -1074,12 +1017,7 @@ def block_details(request):
                 })
 
             # 所有者チェック（他のユーザーのアルゴリズムは編集不可）
-            try:
-                if getattr(algorithm, 'user', None) != account:
-                    messages.error(request, '他のユーザーのアルゴリズムは編集できません。')
-                    return redirect('accounts:block_list')
-            except Exception:
-                # if we couldn't determine ownership from fallback object, be conservative
+            if algorithm.user != account:
                 messages.error(request, '他のユーザーのアルゴリズムは編集できません。')
                 return redirect('accounts:block_list')
 
@@ -1112,27 +1050,13 @@ def block_list(request):
         account = get_logged_account(request)
     except Exception:
         account = None
-    algorithms = []
-    try:
-        # Use values() to select only safe columns so ORM SQL won't reference missing columns
-        if account:
-            qs = Algorithm.objects.filter(user=account).order_by('-updated_at', '-created_at').values('algorithm_id', 'algorithm_name', 'algorithm_description', 'created_at', 'updated_at')
-        else:
-            qs = Algorithm.objects.all().order_by('-updated_at', '-created_at').values('algorithm_id', 'algorithm_name', 'algorithm_description', 'created_at', 'updated_at')[:100]
-        rows = list(qs)
-        algorithms = [SimpleNamespace(algorithm_id=r.get('algorithm_id'), algorithm_name=r.get('algorithm_name'), algorithm_description=r.get('algorithm_description'), created_at=r.get('created_at'), updated_at=r.get('updated_at')) for r in rows]
-    except Exception:
-        # ORM may fail; fallback to raw SQL selecting known columns
-        try:
-            with connection.cursor() as cursor:
-                if account:
-                    cursor.execute('SELECT algorithm_id, algorithm_name, algorithm_description, created_at, updated_at FROM algorithm WHERE user_id = %s ORDER BY updated_at DESC, created_at DESC', [account.user_id])
-                else:
-                    cursor.execute('SELECT algorithm_id, algorithm_name, algorithm_description, created_at, updated_at FROM algorithm ORDER BY updated_at DESC, created_at DESC LIMIT 100')
-                rows = cursor.fetchall()
-            algorithms = [SimpleNamespace(algorithm_id=r[0], algorithm_name=r[1], algorithm_description=r[2], created_at=r[3], updated_at=r[4]) for r in rows]
-        except Exception:
-            algorithms = []
+        
+    if account:
+        # 更新日が新しい順、同じ場合は作成日が新しい順
+        algorithms = Algorithm.objects.filter(user=account).order_by('-updated_at', '-created_at')
+    else:
+        # ログイン情報が取れない場合は全件を上位表示（最大100件）
+        algorithms = Algorithm.objects.all().order_by('-updated_at', '-created_at')[:100]
 
     return render(request, 'block/block_list.html', {'algorithms': algorithms})
 
@@ -1143,24 +1067,11 @@ def block_list_data(request):
     except Exception:
         account = None
 
-    try:
-        if account:
-            qs = Algorithm.objects.filter(user=account).order_by('-updated_at', '-created_at').values('algorithm_id', 'algorithm_name', 'algorithm_description', 'created_at', 'updated_at')
-        else:
-            qs = Algorithm.objects.all().order_by('-updated_at', '-created_at').values('algorithm_id', 'algorithm_name', 'algorithm_description', 'created_at', 'updated_at')[:100]
-        rows = list(qs)
-        algorithms = [SimpleNamespace(algorithm_id=r.get('algorithm_id'), algorithm_name=r.get('algorithm_name'), algorithm_description=r.get('algorithm_description'), created_at=r.get('created_at'), updated_at=r.get('updated_at')) for r in rows]
-    except Exception:
-        try:
-            with connection.cursor() as cursor:
-                if account:
-                    cursor.execute('SELECT algorithm_id, algorithm_name, algorithm_description, created_at, updated_at FROM algorithm WHERE user_id = %s ORDER BY updated_at DESC, created_at DESC', [account.user_id])
-                else:
-                    cursor.execute('SELECT algorithm_id, algorithm_name, algorithm_description, created_at, updated_at FROM algorithm ORDER BY updated_at DESC, created_at DESC LIMIT 100')
-                rows = cursor.fetchall()
-            algorithms = [SimpleNamespace(algorithm_id=r[0], algorithm_name=r[1], algorithm_description=r[2], created_at=r[3], updated_at=r[4]) for r in rows]
-        except Exception:
-            algorithms = []
+    if account:
+        # 更新日が新しい順、同じ場合は作成日が新しい順
+        algorithms = Algorithm.objects.filter(user=account).order_by('-updated_at', '-created_at')
+    else:
+        algorithms = Algorithm.objects.all().order_by('-updated_at', '-created_at')[:100]
 
     # アルゴリズムデータをJSON形式に変換
     algorithms_data = []
@@ -2240,3 +2151,7 @@ def group_remove_member(request, group_id):
     except GroupMember.DoesNotExist:
         messages.error(request, '指定されたメンバーが見つかりません')
         return redirect('accounts:group_menu', group_id=group_id)
+
+def group_invite(request, group_id):
+    from django.http import HttpResponseNotFound
+    return HttpResponseNotFound('group_inviteビューは未実装です')

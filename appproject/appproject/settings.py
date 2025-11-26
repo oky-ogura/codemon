@@ -235,7 +235,7 @@ LOGGING = {
 # AI integration settings (external API)
 AI_API_KEY = os.getenv('AI_API_KEY', '')
 # Default model to call for chat completions
-AI_MODEL = os.getenv('AI_MODEL', 'gpt-3.5-turbo')
+AI_MODEL = os.getenv('AI_MODEL', 'gemini-2.0-flash')
 # Development-time email backend: print emails to console so password-reset links are visible during development
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

@@ -213,7 +213,7 @@ class ChatScore(models.Model):
 # --- AI 会話履歴 ---
 class AIConversation(models.Model):
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        'accounts.Account',
         on_delete=models.CASCADE,
         related_name="ai_conversations",
     )
