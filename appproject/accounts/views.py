@@ -212,8 +212,8 @@ def teacher_login(request):
             request.session['account_email'] = account_row[2]
             request.session['account_user_name'] = account_row[1]
             request.session.modified = True
-            # ログイン成功 → karihome.html を表示
-            return render(request, 'accounts/karihome.html')
+            # ログイン成功 → karihome へリダイレクト（URL を更新して PRG パターンに従う）
+            return redirect('accounts:karihome')
         else:
             # 認証失敗の原因が "別の種別のアカウントで存在している" 可能性があるため確認する
             try:
@@ -263,8 +263,8 @@ def student_login(request):
                 request.session.save()
             except Exception:
                 pass
-            # ログイン成功後は仮ホーム（karihome.html）を表示する
-            return render(request, 'accounts/karihome.html')
+            # ログイン成功後は新しい karihome ページへリダイレクトする
+            return redirect('accounts:karihome')
         else:
             messages.error(request, 'ユーザー名またはパスワードが間違っています')
     return render(request, 'accounts/s_login.html')
@@ -381,7 +381,7 @@ def ai_appearance(request):
         # 外見選択後は初期設定画面へ遷移させる
         return redirect('accounts:ai_initial')
 
-    appearances = ['アルパカ.png', 'イヌ.png', 'ウサギ.png', 'キツネ.png', 'ネコ.png', 'パンダ.png', 'フクロウ.png', 'リス.png']
+    appearances = ['イヌ.png', 'ウサギ.png', 'キツネ.png', 'ネコ.png', 'パンダ.png', 'フクロウ.png', 'リス.png']
     return render(request, 'accounts/ai_appearance.html', {'appearances': appearances})
 
 
@@ -394,7 +394,6 @@ def ai_initial_settings(request):
 
     # 動物ごとのデフォルト設定
     animal_settings = {
-        'アルパカ.png': {'personality': 'おとなしい', 'speech': 'だよ'},
         'イヌ.png': {'personality': '元気', 'speech': 'わん'},
         'ウサギ.png': {'personality': '優しい', 'speech': 'ぴょん'},
         'キツネ.png': {'personality': '冷静', 'speech': 'です'},
@@ -533,7 +532,7 @@ def ai_initial_save(request):
             return redirect('accounts:group_join_confirm')
         elif acc and getattr(acc, 'account_type', '').lower() == 'teacher':
             # 教員 → karihome を表示
-            return render(request, 'accounts/karihome.html')
+            return redirect('accounts:karihome')
     except Exception:
         pass
 
@@ -1428,12 +1427,10 @@ def group_create(request):
             # ログに完全なトレースを残す（開発用）
             logging.exception('group_create failed')
             # ユーザ向けのメッセージを表示して作成ページへ戻す
-            messages.error(request, f'グループ作成に失敗しました: {e}')
-            return redirect('accounts:group_create')
-
-        except Exception as e:
-            messages.error(request, f'グループ作成に失敗しました: {e}')
-            return redirect('accounts:group_create')
+            err = str(e)
+            messages.error(request, f'グループ作成に失敗しました: {err}')
+            # Render the same template with an explicit error message so it is visible
+            return render(request, 'group/create_group.html', {'error_message': err})
 
         messages.success(request, 'グループを作成しました。')
         # 要求: 作成後は教員アカウント用テンプレート `t_account.html` に戻す
