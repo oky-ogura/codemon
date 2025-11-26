@@ -135,13 +135,6 @@
               <div style="flex:1;min-width:0;color:#666;font-size:13px;">作成日: {{ s.created_at|date:"Y年n月j日 H:i" }}</div>
               <div style="flex:1;min-width:0;color:#666;font-size:13px;">更新日: {{ s.updated_at|date:"Y年n月j日 H:i" }}</div>
               <button class="system-detail-btn" data-system-id="{{ s.system_id }}">詳細</button>
-            <li data-id="{{ s.system_id }}" style="background:#fbfdff;border-radius:8px;padding:12px 14px;border:1px solid #eef4fb;display:flex;justify-content:space-between;align-items:center;gap:12px;">
-              <div style="flex:1;display:flex;align-items:center;gap:16px;">
-                <div style="font-weight:700;font-size:15px;color:#0b2f5a;min-width:150px;">{{ s.system_name }}</div>
-                <div style="color:#999;font-size:12px;">作成日: {{ s.created_at|date:"Y年n月j日 H:i" }}</div>
-                <div style="color:#999;font-size:12px;">更新日: {{ s.updated_at|date:"Y年n月j日 H:i" }}</div>
-              </div>
-              <button class="btn btn-primary system-detail-btn" data-system-id="{{ s.system_id }}" style="white-space:nowrap;padding:8px 16px;font-size:13px;">詳細</button>
             </li>
             {% endfor %}
           </ul>
@@ -182,22 +175,6 @@
             system_name: elements[0] ? elements[0].textContent : '',
             created_at: elements[1] ? elements[1].textContent.replace('作成日: ', '') : '',
             updated_at: elements[2] ? elements[2].textContent.replace('更新日: ', '') : ''
-          const nameElement = item.querySelector('div[style*="font-weight:700"]');
-          const dateElements = item.querySelectorAll('div[style*="color:#999"]');
-          
-          let createdAt = '';
-          let updatedAt = '';
-          
-          if (dateElements.length >= 2) {
-            createdAt = dateElements[0].textContent.replace('作成日: ', '');
-            updatedAt = dateElements[1].textContent.replace('更新日: ', '');
-          }
-          
-          return {
-            system_id: systemId,
-            system_name: nameElement ? nameElement.textContent : '',
-            created_at: createdAt,
-            updated_at: updatedAt
           };
         });
         
@@ -232,12 +209,6 @@
         html += `<div style="flex:1;min-width:0;color:#666;font-size:13px;">作成日: ${escapeHtml(s.created_at)}</div>`;
         html += `<div style="flex:1;min-width:0;color:#666;font-size:13px;">更新日: ${escapeHtml(s.updated_at)}</div>`;
         html += `<button class="system-detail-btn" data-system-id="${s.system_id}">詳細</button>`;
-        html += `<li data-id="${s.system_id}" style="background:#fbfdff;border-radius:8px;padding:12px 14px;border:1px solid #eef4fb;display:flex;justify-content:space-between;align-items:center;gap:12px;">`;
-        html += `<div style="flex:1;display:flex;align-items:center;gap:16px;">`;
-        html += `<div style="font-weight:700;font-size:15px;color:#0b2f5a;min-width:150px;">${escapeHtml(s.system_name)}</div>`;
-        html += `<div style="color:#999;font-size:12px;">作成日: ${escapeHtml(s.created_at)}</div>`;
-        html += `<div style="color:#999;font-size:12px;">更新日: ${escapeHtml(s.updated_at)}</div></div>`;
-        html += `<button class="btn btn-primary system-detail-btn" data-system-id="${s.system_id}" style="white-space:nowrap;padding:8px 16px;font-size:13px;">詳細</button>`;
         html += `</li>`;
       }
       html += '</ul></div>';

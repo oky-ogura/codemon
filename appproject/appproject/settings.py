@@ -98,7 +98,7 @@ ASGI_APPLICATION = 'appproject.asgi.application'
 # For development, prefer a simple SQLite database when DEBUG is True so
 # the dev server can run without a PostgreSQL instance. In production (DEBUG=False)
 # PostgreSQL settings are used from environment variables.
-if DEBUG:
+if DEBUG==False:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
