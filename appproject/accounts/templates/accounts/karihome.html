@@ -1,18 +1,21 @@
+{% extends 'base.html' %}
+{% load static %}
 
-<header class="top-tabs">
-  <nav class="tabs">
-    <ul>
-      <li><a href="#">システムタブ</a></li>
-      <li><a href="#">アルゴリズムタブ</a></li>
-      <li><a href="{% url 'codemon:checklist_selection' %}">チェックリストタブ</a></li>
-      <li><a href="{% url 'accounts:account_entry' %}">アカウント</a>
-</li>
-    </ul>
-  </nav>
-</header>
+{% block title %}ホーム - Codemon{% endblock %}
 
+{% block body_class %} class="no-scroll"{% endblock %}
+
+{% block background_frame %}
+<!-- karihome用外枠（黄色） -->
+<img src="{% static 'codemon/images/frames/bg_frame_yellow.png' %}" 
+     alt="" 
+     class="bg-frame frame-yellow"
+     onerror="this.style.display='none';">
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'codemon/css/redesign.css' %}">
 <style>
-
   /* karihome 専用スタイル */
   .content-wrapper {
     padding: 0 !important;
@@ -371,15 +374,18 @@
   }
 
 </style>
-<!-- ...existing code... -->
+{% endblock %}
 
-<!-- AI 相棒パネル（内部用途） -->
-<div id="ai-assistant-panel" style="position:fixed;right:12px;bottom:12px;width:320px;background:#fff;border:1px solid #333;padding:8px;font-size:13px;z-index:9999;">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-    <strong>AI相棒 (内部)</strong>
-    <button id="ai-close" style="background:#eee;border:1px solid #999;cursor:pointer;padding:2px 6px;font-size:12px;">×</button>
+{% block content %}
+<div class="karihome-container">
+  <!-- 吹き出し（画面左側） -->
+  <div class="speech-bubble-container">
+    <div class="speech-bubble">
+      <p class="text-fun" id="characterMumble" style="margin: 0;">
+        <!-- JavaScriptで性格に合わせた独り言を表示 -->
+      </p>
+    </div>
   </div>
-<<<<<<< HEAD
 
   <!-- 話しかけるボタン -->
   <button class="chat-trigger-btn" id="chatTriggerBtn">
@@ -397,77 +403,239 @@
          alt="AIキャラクター" 
          class="character-image"
          onerror="this.src='{% static 'codemon/images/characters/イヌ.png' %}'">
-
-
   </div>
-  <small style="color:#666;display:block;margin-top:6px;">開発用: Gemini API を利用します</small>
-  {% csrf_token %}
-  <!-- CSRF Cookie 利用のため、フォームレンダリング経由でトークン生成 -->
 </div>
 
+<!-- チャットモーダル -->
+<div class="chat-modal" id="chatModal">
+  <div class="chat-window">
+    <div class="chat-header">
+      <h2 id="chatHeaderTitle">🐶 {{ ai_name|default:'うたー' }} と おはなし</h2>
+      <button class="chat-close-btn" id="closeChatBtn">×</button>
+    </div>
+    
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-message ai">
+        <div class="chat-message-content">
+          こんにちは！ぼくは{{ ai_name|default:'うたー' }}だよ！<br>
+          なんでもきいてね！✨
+        </div>
+      </div>
+    </div>
+    
+    <div class="chat-loading" id="chatLoading">
+      うたーが考え中...🤔
+    </div>
+    
+    <div class="chat-input-area">
+      <input type="text" 
+             class="chat-input" 
+             id="chatInput" 
+             placeholder="メッセージを入力してね！">
+      <button class="chat-send-btn" id="sendChatBtn">送信</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'codemon/js/interactions.js' %}"></script>
 <script>
-(function(){
-  let conversationId = null;
-  const panel   = document.getElementById('ai-assistant-panel');
-  const messagesEl = document.getElementById('ai-messages');
-  const inputEl = document.getElementById('ai-input');
-  const sendBtn = document.getElementById('ai-send');
-  const closeBtn= document.getElementById('ai-close');
-
-  closeBtn.addEventListener('click', () => { panel.style.display='none'; });
-
-  function append(role, text){
-    const div = document.createElement('div');
-    div.style.marginBottom='4px';
-    div.innerHTML = '<b>' + (role==='user'?'あなた':'AI') + ':</b> ' +
-      text.replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    messagesEl.appendChild(div);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-  }
-
-  async function send(){
-    const msg = inputEl.value.trim();
-    if(!msg) return;
-    append('user', msg);
-    inputEl.value='';
-    sendBtn.disabled = true;
-    // Djangoテンプレート変数 character を利用
-    const character = '{{ character|escapejs }}' || 'usagi';
-    try {
-      const resp = await fetch('/codemon/api/ai/chat', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json', 'X-CSRFToken': getCsrf()},
-        body: JSON.stringify({
-          message: msg,
-          character: character,
-          conversation_id: conversationId
-        })
-      });
-      const data = await resp.json();
-      if(data.error){
-        append('assistant', '[エラー] ' + data.error);
-      } else {
-        conversationId = data.conversation_id;
-        append('assistant', data.reply);
+  // karihome専用: チャット機能とキャラクターエフェクト
+  document.addEventListener('DOMContentLoaded', function() {
+    const character = document.querySelector('.character-image');
+    const chatModal = document.getElementById('chatModal');
+    const closeChatBtn = document.getElementById('closeChatBtn');
+    const sendChatBtn = document.getElementById('sendChatBtn');
+    const chatInput = document.getElementById('chatInput');
+    const chatMessages = document.getElementById('chatMessages');
+    const chatLoading = document.getElementById('chatLoading');
+    const chatTriggerBtn = document.getElementById('chatTriggerBtn');
+    const characterMumble = document.getElementById('characterMumble');
+    
+    // 性格に合わせた独り言リスト（AIの性格に応じて変更可能）
+    const mumbles = [
+      '眠いなぁ...💤',
+      '暇だな～ 🎵',
+      'お腹すいたわん 🍖',
+      '遊びたいな！✨',
+      'なんかないかな～ 🤔',
+      'ねむねむだわん... 😴',
+      '誰か来ないかな？ 👀',
+      'たいくつだわん 🐾'
+    ];
+    
+    // ランダムな独り言を表示
+    function showRandomMumble() {
+      if (characterMumble) {
+        const randomMumble = mumbles[Math.floor(Math.random() * mumbles.length)];
+        characterMumble.textContent = randomMumble;
       }
-    } catch(e){
-      append('assistant', '[通信失敗] ' + e);
-    } finally {
-      sendBtn.disabled = false;
     }
-  }
-
-  function getCsrf(){
-    const name = 'csrftoken';
-    const cookies = document.cookie.split(';');
-    for(const c of cookies){
-      const trimmed = c.trim();
-      if(trimmed.startsWith(name + '=')) return trimmed.slice(name.length+1);
+    
+    // 初回表示
+    showRandomMumble();
+    
+    // 5秒ごとに独り言を変更
+    setInterval(showRandomMumble, 5000);
+    
+    // チャットを開く関数
+    function openChat() {
+      chatModal.classList.add('active');
+      chatInput.focus();
+      
+      // ナビゲーションバーを非表示にする
+      const navBar = document.querySelector('.top-tabs');
+      if (navBar) {
+        navBar.style.display = 'none';
+      }
     }
-    return '';
-  }
-
-  sendBtn.addEventListener('click', send);
-  inputEl.addEventListener('keydown', e => { if(e.key === 'Enter'){ send(); } });
-})();
+    
+    // チャットを閉じる関数
+    function closeChat() {
+      chatModal.classList.remove('active');
+      
+      // ナビゲーションバーを再表示
+      const navBar = document.querySelector('.top-tabs');
+      if (navBar) {
+        navBar.style.display = '';
+      }
+    }
+    
+    if (character) {
+      character.style.cursor = 'pointer';
+      
+      // interactions.jsのイベントリスナーを削除
+      const newCharacter = character.cloneNode(true);
+      character.parentNode.replaceChild(newCharacter, character);
+      
+      // 新しいキャラクターに対してイベントを設定
+      const freshCharacter = document.querySelector('.character-image');
+      
+      // ホバーイベント（位置を固定）
+      freshCharacter.addEventListener('mouseenter', function() {
+        this.style.transform = 'scale(1.05) rotate(2deg)';
+      });
+      
+      freshCharacter.addEventListener('mouseleave', function() {
+        this.style.transform = 'scale(1) rotate(0deg)';
+      });
+      
+      // クリック時にチャットモーダルを開く
+      freshCharacter.addEventListener('click', openChat);
+    }
+    
+    // 話しかけるボタンでもチャットを開く
+    if (chatTriggerBtn) {
+      chatTriggerBtn.addEventListener('click', openChat);
+    }
+    
+    // チャットモーダルを閉じる
+    closeChatBtn.addEventListener('click', closeChat);
+    
+    // 背景クリックで閉じる
+    chatModal.addEventListener('click', function(e) {
+      if (e.target === chatModal) {
+        closeChat();
+      }
+    });
+    
+    // メッセージ送信
+    async function sendMessage() {
+      const message = chatInput.value.trim();
+      if (!message) return;
+      
+      // ユーザーメッセージを追加
+      addMessage(message, 'user');
+      chatInput.value = '';
+      
+      // ローディング表示
+      chatLoading.classList.add('active');
+      
+      try {
+        console.log('Sending message to AI:', message);
+        console.log('Character:', '{{ character }}');
+        
+        // AI APIにメッセージを送信
+        const response = await fetch('/codemon/api/ai/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({
+            message: message,
+            character: '{{ character }}' || 'inu'
+          })
+        });
+        
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Error response:', errorText);
+          throw new Error('通信エラーが発生しました');
+        }
+        
+        const data = await response.json();
+        console.log('Response data:', data);
+        
+        // AIの返答を表示
+        if (data.reply) {
+          addMessage(data.reply, 'ai');
+        } else {
+          addMessage('ごめんね、今は答えられないみたい...', 'ai');
+        }
+      } catch (error) {
+        console.error('エラー:', error);
+        addMessage('エラーが発生しました。もう一度試してみてね！', 'ai');
+      } finally {
+        chatLoading.classList.remove('active');
+      }
+    }
+    
+    // CSRFトークン取得関数
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+    
+    // メッセージを追加
+    function addMessage(text, type) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `chat-message ${type}`;
+      
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'chat-message-content';
+      contentDiv.textContent = text;
+      
+      messageDiv.appendChild(contentDiv);
+      chatMessages.appendChild(messageDiv);
+      
+      // 最新メッセージまでスクロール
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    // 送信ボタンクリック
+    sendChatBtn.addEventListener('click', sendMessage);
+    
+    // Enterキーで送信
+    chatInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+  });
 </script>
+{% endblock %}
