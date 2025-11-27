@@ -99,33 +99,43 @@
 
   /* 左側ボタンバー内のアクションボタンのスタイル */
   .button-bar #saveBtn {
-    background: #28a745;
-    color: #fff;
+    background: transparent;
     border: none;
-    font-weight: 600;
+    padding: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .button-bar #saveBtn img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
   }
   .button-bar #saveBtn:hover {
-    background: #1e7e34;
-  }
-
-  .button-bar #clearAllBtn {
-    background: #dc3545;
-    color: #fff;
-    border: none;
-    font-weight: 600;
-  }
-  .button-bar #clearAllBtn:hover {
-    background: #c82333;
+    opacity: 0.8;
   }
 
   .button-bar #executeBtn {
-    background: #007bff;
-    color: #fff;
+    background: transparent;
     border: none;
-    font-weight: 600;
+    padding: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .button-bar #executeBtn img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
   }
   .button-bar #executeBtn:hover {
-    background: #0056b3;
+    opacity: 0.8;
   }
 
   /* 右側のメインエリア */
@@ -678,10 +688,13 @@
       <button id="redoBtn" title="やり直し (Ctrl+Y)">→</button>
     </div>
 
-    <!-- 全削除、実行、保存ボタン -->
-    <button id="clearAllBtn" aria-disabled="false">全削除</button>
-    <button id="executeBtn" aria-disabled="false">実行</button>
-    <button id="saveBtn" aria-disabled="false">保存</button>
+    <!-- 実行、保存ボタン -->
+    <button id="executeBtn" aria-disabled="false">
+      <img src="{% static 'codemon/images/button/execution_button.png' %}" alt="実行">
+    </button>
+    <button id="saveBtn" aria-disabled="false">
+      <img src="{% static 'codemon/images/button/save_button.png' %}" alt="保存">
+    </button>
 
     <!-- フォームボタン + プルダウン -->
     <div class="form-dropdown" id="formDropdownWrap">
