@@ -27,12 +27,11 @@ from django.conf import settings
 from django import forms
 from django.http import HttpResponseRedirect, HttpResponseForbidden, FileResponse, JsonResponse
 from .forms import TeacherSignupForm, StudentSignupForm, ProfileEditForm
-
+from .models import Account, Group, GroupMember
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.core import signing
 from django.template.loader import render_to_string
-
 from django.db import connection, transaction
 from django.utils import timezone
 from django.contrib.messages import get_messages
@@ -42,7 +41,6 @@ import datetime
 from codemon.models import System, Algorithm, SystemElement
 import json
 from types import SimpleNamespace
-from .models import Account, Group, GroupMember
 try:
     from codemon.views import _get_write_owner
 except Exception:
@@ -58,11 +56,6 @@ except Exception:
         if getattr(request, 'user', None) and getattr(request.user, 'is_authenticated', False):
             return request.user
         return None
-
-from django.db import connection, transaction
-from django.utils import timezone
-import logging
-from django.contrib.auth.hashers import make_password
 
 
 
@@ -234,8 +227,8 @@ def teacher_login(request):
             request.session['account_email'] = account_row[2]
             request.session['account_user_name'] = account_row[1]
             request.session.modified = True
-            # ログイン成功 → karihome.html を表示
-            return render(request, 'accounts/karihome.html')
+            # ログイン成功 → karihome へリダイレクト（URL を更新して PRG パターンに従う）
+            return redirect('accounts:karihome')
         else:
             # 認証失敗の原因が "別の種別のアカウントで存在している" 可能性があるため確認する
             try:
@@ -285,8 +278,8 @@ def student_login(request):
                 request.session.save()
             except Exception:
                 pass
-            # ログイン成功後は仮ホーム（karihome.html）を表示する
-            return render(request, 'accounts/karihome.html')
+            # ログイン成功後は新しい karihome ページへリダイレクトする
+            return redirect('accounts:karihome')
         else:
             messages.error(request, 'ユーザー名またはパスワードが間違っています')
     return render(request, 'accounts/s_login.html')
@@ -330,7 +323,6 @@ def account_session_required(view_func):
 
 @account_session_required
 def karihome(request):
-
     print(f"DEBUG karihome view: session_key={request.session.session_key} data={dict(request.session)}")
     
     # AI設定を取得してAI名前とキャラクターをテンプレートに渡す
@@ -378,7 +370,6 @@ def karihome(request):
         'character': character
     })
 
-
 def login_choice(request):
     """ログイン種別の選択ページ（教師 or 生徒）を表示する簡易ビュー"""
     # 単純な選択ページを表示するだけ。テンプレート内でそれぞれのログインページへ遷移する。
@@ -405,7 +396,7 @@ def ai_appearance(request):
         # 外見選択後は初期設定画面へ遷移させる
         return redirect('accounts:ai_initial')
 
-    appearances = ['アルパカ.png', 'イヌ.png', 'ウサギ.png', 'キツネ.png', 'ネコ.png', 'パンダ.png', 'フクロウ.png', 'リス.png']
+    appearances = ['イヌ.png', 'ウサギ.png', 'キツネ.png', 'ネコ.png', 'パンダ.png', 'フクロウ.png', 'リス.png']
     return render(request, 'accounts/ai_appearance.html', {'appearances': appearances})
 
 
@@ -418,7 +409,6 @@ def ai_initial_settings(request):
 
     # 動物ごとのデフォルト設定
     animal_settings = {
-        'アルパカ.png': {'personality': 'おとなしい', 'speech': 'だよ'},
         'イヌ.png': {'personality': '元気', 'speech': 'わん'},
         'ウサギ.png': {'personality': '優しい', 'speech': 'ぴょん'},
         'キツネ.png': {'personality': '冷静', 'speech': 'です'},
@@ -557,7 +547,7 @@ def ai_initial_save(request):
             return redirect('accounts:group_join_confirm')
         elif acc and getattr(acc, 'account_type', '').lower() == 'teacher':
             # 教員 → karihome を表示
-            return render(request, 'accounts/karihome.html')
+            return redirect('accounts:karihome')
     except Exception:
         pass
 
@@ -624,7 +614,7 @@ def system_index(request):
     # ログインユーザーの他のシステム一覧を取得
     account = get_logged_account(request)
     other_systems_json = '[]'
-    algorithms_json = '[]'  # アルゴリズム一覧を追加
+    algorithms_json = '[]'
     
     if account:
         try:
@@ -660,7 +650,7 @@ def system_index(request):
             pass
 
     context['other_systems_json'] = other_systems_json
-    context['algorithms_json'] = algorithms_json  # コンテキストに追加
+    context['algorithms_json'] = algorithms_json
 
     if system_id:
         try:
@@ -1452,12 +1442,10 @@ def group_create(request):
             # ログに完全なトレースを残す（開発用）
             logging.exception('group_create failed')
             # ユーザ向けのメッセージを表示して作成ページへ戻す
-            messages.error(request, f'グループ作成に失敗しました: {e}')
-            return redirect('accounts:group_create')
-
-        except Exception as e:
-            messages.error(request, f'グループ作成に失敗しました: {e}')
-            return redirect('accounts:group_create')
+            err = str(e)
+            messages.error(request, f'グループ作成に失敗しました: {err}')
+            # Render the same template with an explicit error message so it is visible
+            return render(request, 'group/create_group.html', {'error_message': err})
 
         messages.success(request, 'グループを作成しました。')
         # 要求: 作成後は教員アカウント用テンプレート `t_account.html` に戻す

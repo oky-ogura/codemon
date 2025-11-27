@@ -58,13 +58,11 @@ input[type="text"], textarea { width: 100%; padding: 10px; border: 1px solid #cc
 {% block content %}
 
 <!-- 🔹 チェックリスト編集フォーム -->
-<!-- ページヘッダー画像：フォームの上に表示 -->
-<div class="page-hero">
-  <img src="{% static 'codemon/images/titles/checklist_edit.png' %}" alt="チェックリスト編集" class="page-hero-img" onerror="this.style.display='none'">
-</div>
 
 <div class="checklist-edit-container">
-  <h2>チェックリストの編集</h2>
+  <div class="page-hero">
+    <img src="{% static 'codemon/images/titles/checklist_edit.png' %}" alt="チェックリスト編集" class="page-hero-img" onerror="this.style.display='none'">
+  </div>
   <form method="POST" action="{% url 'codemon:checklist_save' pk=checklist.checklist_id %}">
   {% csrf_token %}
 
@@ -92,12 +90,12 @@ input[type="text"], textarea { width: 100%; padding: 10px; border: 1px solid #cc
   <div class="side-actions" aria-hidden="false">
     <!-- 項目追加（JSで処理） -->
     <button type="button" id="add-item" class="btn-add" aria-label="項目追加">
-      <img src="{% static 'codemon/images/buttons/selection_green.png' %}" alt="項目追加">
+      <img src="{% static 'codemon/images/nav/add_item.png' %}" alt="項目追加">
     </button>
 
     <!-- 保存（画像ボタン） -->
     <button type="submit" name="show_confirm" value="1" class="btn-save" aria-label="保存">
-      <img src="{% static 'codemon/images/buttons/edit.png' %}" alt="保存">
+      <img src="{% static 'codemon/images/nav/save.png' %}" alt="保存">
     </button>
 
     <!-- 戻る -->
@@ -112,66 +110,39 @@ input[type="text"], textarea { width: 100%; padding: 10px; border: 1px solid #cc
       <img src="{% static 'codemon/images/buttons/back.png' %}" alt="戻る">
     </a>
     <button type="submit" class="btn-save" aria-label="保存">
-      <img src="{% static 'codemon/images/buttons/edit.png' %}" alt="保存">
+      <img src="{% static 'codemon/images/buttons/save.png' %}" alt="保存">
     </button>
   </div>
 </form>
 
 <script>
-let itemIndex = {{ checklist.items.count }} + 1;
-document.getElementById('add-item').addEventListener('click', function() {
-    const container = document.getElementById('items-container');
-    const div = document.createElement('div');
-    div.classList.add('item-row');
-    div.innerHTML = `<input type="text" name="item_${itemIndex}" value="">
-                     <input type="checkbox" name="done_${itemIndex}">`;
-    container.appendChild(div);
-    itemIndex++;
-});
-</script>
-
-<!-- removed duplicate style block; styles moved to extra_css -->
-
-<!-- 🔹 スクリプト -->
-<script>
 document.addEventListener('DOMContentLoaded', function() {
+  // account tab redirect for teachers
   const accountTab = document.getElementById('account-tab');
   {% if request.user.role == 'teacher' %}
-    accountTab.href = "{% url 'accounts:teacher_home' %}";
+    if (accountTab) accountTab.href = "{% url 'accounts:teacher_home' %}";
   {% endif %}
 
-  const addItemBtn = document.getElementById('add-item-btn');
-  const container = document.getElementById('checklist-items-container');
+  // dynamic item add/remove
+  let itemIndex = {{ checklist.items.count }} + 1;
+  const addBtn = document.getElementById('add-item');
+  const container = document.getElementById('items-container');
 
-  addItemBtn.addEventListener('click', function() {
-    const index = container.children.length + 1;
-    const div = document.createElement('div');
-    div.className = 'checklist-item';
-    div.innerHTML = `
-      <input type="text" name="item_${index}" placeholder="項目を入力" required>
-      <label>
-        <input type="checkbox" name="done_${index}">
-        完了
-      </label>
-      <button type="button" class="remove-item-btn" onclick="removeItem(this)">削除</button>
-    `;
-    container.appendChild(div);
-  });
-});
+  function removeItem(btn) { btn.parentElement.remove(); }
 
-function removeItem(btn) {
-  btn.parentElement.remove();
-}
-
-let itemIndex = {{ checklist.items.count }} + 1;
-document.getElementById('add-item').addEventListener('click', function() {
-    const container = document.getElementById('items-container');
-    const div = document.createElement('div');
-    div.classList.add('item-row');
-    div.innerHTML = `<input type="text" name="item_${itemIndex}" value="">
-                     <input type="checkbox" name="done_${itemIndex}">`;
-    container.appendChild(div);
-    itemIndex++;
+  if (addBtn && container) {
+    addBtn.addEventListener('click', function() {
+      const div = document.createElement('div');
+      div.className = 'item-row';
+      div.innerHTML = `
+        <input type="text" name="item_${itemIndex}" value="">
+        <input type="checkbox" name="done_${itemIndex}">
+        <button type="button" class="remove-item-btn" onclick="this.parentElement.remove()">削除</button>
+      `;
+      container.appendChild(div);
+      itemIndex++;
+    });
+  }
 });
 </script>
 

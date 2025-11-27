@@ -16,13 +16,14 @@
 
 /* ===== フォーム全体 ===== */
 .checklist-form-container {
-  max-width: 700px;
-  /* ナビゲーションタブの下に配置し、下部のボタン類と被らないよう余白を強制的に確保 */
-  margin: 160px auto 160px !important;
-  padding: 25px 30px;
+  max-width: 760px;
+  width: min(92vw, 760px);
+  /* ナビゲーションタブの下に配置し、下部のボタン類と被らないよう余白を確保 */
+  margin: 120px auto !important;
+  padding: 28px 30px;
   position: relative;
   z-index: 20;
-  background-color: #f9f9f9;
+  background-color: rgba(249,249,249,0.95);
   border: 1px solid #ddd;
   border-radius: 10px;
 }
@@ -37,10 +38,12 @@
   margin-bottom: 12px;
 }
 .page-hero-img {
+  /* 幅をナビゲーション中段の「アルゴリズム」→「チェックリスト」区間に近づける */
+  width: min(26vw, 640px);
   max-width: 640px;
-  width: 60%;
   height: auto;
-  display: inline-block;
+  display: block;
+  margin: 25px auto 22px; /* 中央に寄せつつ下の余白を広めに */
 }
 
 /* ===== 入力フィールド ===== */
@@ -58,10 +61,13 @@ label {
 input[type="text"],
 textarea {
   width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 24px;
   box-sizing: border-box;
+  background-color: #62d1ee; /* 青い入力ブロック */
+  color: #012; 
+  font-size: 1rem;
 }
 
 /* ===== メタ情報（作成日など） ===== */
@@ -105,11 +111,27 @@ textarea {
   background-color: #218838;
 }
 /* 画像ボタン用 */
-.btn-back img, .btn-save img {
+.btn-back, .btn-save {
   display: inline-block;
+  box-shadow: none !important;
+  overflow: hidden; /* 画像の外周を切り取るため */
+  border-radius: 8px; /* 角丸で馴染ませる */
+  padding: 0;
+  background: transparent;
+}
+
+.btn-back img, .btn-save img {
+  display: block;
   width: auto;
   height: 56px;
   max-width: 220px;
+  box-shadow: none !important;
+  filter: none !important;
+  border: none !important;
+  background: transparent !important;
+  /* 画像の外側6pxを切り取って縁取りを隠す（画像により調整可能） */
+  -webkit-clip-path: inset(6px 6px 6px 6px round 6px);
+  clip-path: inset(6px 6px 6px 6px round 6px);
 }
 
 @media (max-width: 480px) {
@@ -119,6 +141,51 @@ textarea {
 /* ページ固有：ナビゲーションの高さ分だけコンテンツを下げる（固定ヘッダと重ならないように） */
 .content-wrapper {
   padding-top: 140px !important;
+}
+
+/* 背景画像（フォーム右側の飾り） */
+.checklist-form-container {
+  background-image: url("{% static 'codemon/images/background/checklist_bule_bg.png' %}");
+  background-repeat: no-repeat;
+  background-position: right center;
+  background-size: 48% auto;
+}
+
+/* ラベルと入力を横並びにして、ラベルは左、入力は右の青いボックスにする */
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 18px;
+  max-width: 640px; /* 行幅を抑えて中央寄せ */
+  margin-left: auto;
+  margin-right: auto;
+  /* 白い背景画像を行全体に適用。背景色とブレンドして薄い灰色を付与 */
+  /* 不透明度を上げて背後の図形が見えないようにする */
+  background-image: linear-gradient(rgba(245,245,245,1), rgba(245,245,245,1)), url("{% static 'codemon/images/background/checklist_white_bg.png' %}");
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: 100% 100%;
+  background-blend-mode: multiply;
+  padding: 10px 18px; /* 画像内の余白と整合させる */
+}
+.form-row label {
+  width: 160px;
+  text-align: left;
+  flex-shrink: 0;
+}
+.form-row .field-input {
+  flex: 1;
+  max-width: 520px;
+}
+
+/* テキストエリアを青いカード風に */
+textarea { min-height: 84px; padding: 14px 18px; }
+
+@media (max-width: 768px) {
+  .checklist-form-container { background-size: 60% auto; padding: 20px; }
+  .form-row { flex-direction: column; align-items: stretch; }
+  .form-row label { width: 100%; margin-bottom: 8px; }
 }
 
 </style>
@@ -147,14 +214,18 @@ textarea {
   <form method="post" id="checklist-form">
     {% csrf_token %}
 
-    <div class="form-group">
+    <div class="form-row form-group">
       <label for="name">チェックリスト名 <span class="required">*</span></label>
-      <input type="text" name="name" id="name" required placeholder="例：第1回課題進捗チェック">
+      <div class="field-input">
+        <input type="text" name="name" id="name" required placeholder="例：第1回課題進捗チェック">
+      </div>
     </div>
 
-    <div class="form-group">
+    <div class="form-row form-group">
       <label for="description">チェックリスト概要</label>
-      <textarea name="description" id="description" rows="3" placeholder="チェックリストの目的や概要を入力してください。"></textarea>
+      <div class="field-input">
+        <textarea name="description" id="description" rows="3" placeholder="チェックリストの目的や概要を入力してください。"></textarea>
+      </div>
     </div>
 
     {% if checklist %}

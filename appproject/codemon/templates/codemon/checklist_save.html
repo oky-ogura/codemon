@@ -1,4 +1,42 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block background_frame %}
+  <img src="{% static 'codemon/images/frames/bg_frame_green.png' %}" 
+       alt="" 
+       class="bg-frame frame-green"
+       onerror="this.style.display='none';">
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ===== チャットボタン ===== */
+.chat-ai-bubble { position: fixed; bottom: 20px; right: 20px; }
+.chat-button { display: inline-flex; align-items: center; gap: 6px; padding: 10px 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 20px; box-shadow: 0 3px 6px rgba(0,0,0,0.2); }
+.chat-button:hover { background-color: #0056b3; }
+
+/* ===== メインコンテナ ===== */
+.checklist-edit-container { max-width: 800px; margin: 40px auto; padding: 30px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #fafafa; }
+.checklist-edit-container h2 { text-align: center; margin-bottom: 25px; }
+
+/* ===== チェックリスト情報表示 ===== */
+.checklist-details { background-color: #f8f9fa; border: 1px solid #ddd; padding: 15px 20px; border-radius: 6px; margin-bottom: 25px; }
+.checklist-details p { margin: 10px 0; font-size: 1rem; }
+.checklist-items { list-style: disc; margin-left: 20px; margin-bottom: 20px; }
+.checklist-items li { margin-bottom: 6px; }
+
+/* ===== ボタンエリア ===== */
+.form-actions { display: flex; gap: 15px; justify-content: center; margin-top: 20px; }
+.btn-save, .btn-back { padding: 0; border: none; background: none; cursor: pointer; }
+.btn-save img, .btn-back img { height:56px; }
+.btn-save img:hover { filter:brightness(0.97); }
+
+/* ページ固有：ナビゲーションの高さ分だけコンテンツを下げる */
+.content-wrapper { padding-top: 140px !important; }
+
+</style>
+{% endblock %}
+
 {% block content %}
 
 <!-- 💬 AIチャットボタン -->
@@ -38,126 +76,34 @@
     {% endfor %}
 
     <div class="form-actions">
-      <button type="submit" name="confirm_save" value="1" class="btn-save">確定保存</button>
-      <a href="{% url 'codemon:checklist_edit' pk=checklist.checklist_id %}" class="btn-back">編集に戻る</a>
+      <button type="submit" name="confirm_save" value="1" class="btn-save" aria-label="確定保存">
+        <img src="{% static 'codemon/images/buttons/edit.png' %}" alt="確定保存">
+      </button>
+      <a href="{% url 'codemon:checklist_edit' pk=checklist.checklist_id %}" class="btn-back" aria-label="編集に戻る">
+        <img src="{% static 'codemon/images/buttons/back.png' %}" alt="編集に戻る">
+      </a>
     </div>
   </form>
 </div>
 
-<!-- 🎨 スタイル -->
-<style>
-/* ===== チャットボタン ===== */
-.chat-ai-bubble {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-}
-.chat-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 15px;
-  background-color: #007bff;
-  color: white;
-  text-decoration: none;
-  border-radius: 20px;
-  box-shadow: 0 3px 6px rgba(0,0,0,0.2);
-}
-.chat-button:hover {
-  background-color: #0056b3;
-}
+{% endblock %}
 
-/* ===== メインコンテナ ===== */
-.checklist-edit-container {
-  max-width: 800px;
-  margin: 40px auto;
-  padding: 30px;
-  border: 1px solid #e0e0e0;
-  border-radius: 10px;
-  background-color: #fafafa;
-}
-.checklist-edit-container h2 {
-  text-align: center;
-  margin-bottom: 25px;
-}
-
-/* ===== チェックリスト情報表示 ===== */
-.checklist-details {
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
-  padding: 15px 20px;
-  border-radius: 6px;
-  margin-bottom: 25px;
-}
-.checklist-details p {
-  margin: 10px 0;
-  font-size: 1rem;
-}
-.checklist-items {
-  list-style: disc;
-  margin-left: 20px;
-  margin-bottom: 20px;
-}
-.checklist-items li {
-  margin-bottom: 6px;
-}
-/* ===== 戻るリンク ===== */
-.back-arrow-container {
-  margin-bottom: 20px;
-  text-align: center;
-}
-.back-arrow {
-  display: inline-block;
-  color: #007bff;
-  text-decoration: none;
-  font-weight: bold;
-  font-size: 16px;
-}
-.back-arrow:hover {
-  text-decoration: underline;
-}
-
-/* ===== ボタンエリア ===== */
-.form-actions {
-  display: flex;
-  gap: 15px;
-  justify-content: center;
-  margin-top: 20px;
-}
-.btn-save,
-.btn-back {
-  padding: 10px 25px;
-  border-radius: 5px;
-  border: none;
-  text-decoration: none;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-.btn-save {
-  background-color: #28a745;
-  color: white;
-}
-.btn-save:hover {
-  background-color: #218838;
-}
-.btn-back {
-  background-color: #6c757d;
-  color: white;
-}
-.btn-back:hover {
-  background-color: #5a6268;
-}
-</style>
-
-<!-- ⚙️ スクリプト -->
+{% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const accountTab = document.getElementById('account-tab');
   {% if request.user.role == 'teacher' %}
-    accountTab.href = "{% url 'accounts:teacher_home' %}";
+    if (accountTab) accountTab.href = "{% url 'accounts:teacher_home' %}";
   {% endif %}
+  // Ensure chat bubble is attached to <body> so position:fixed is viewport-relative
+  try {
+    const chat = document.querySelector('.chat-ai-bubble');
+    if (chat && chat.parentElement !== document.body) {
+      document.body.appendChild(chat);
+    }
+  } catch(e) {
+    console.error('chat bubble reposition failed', e);
+  }
 });
 </script>
-
 {% endblock %}

@@ -75,6 +75,8 @@ class Migration(migrations.Migration):
         # Ensure any partially-created new tables are removed first so
         # CreateModel operations below won't fail with "table already exists".
         migrations.RunPython(code=_drop_existing_new_tables, reverse_code=migrations.RunPython.noop),
+        # このマイグレーションは既に0001_initialで作成されたモデルと重複するため、
+        # システム説明フィールドの変更のみを保持
         migrations.AlterField(
             model_name='system',
             name='system_description',

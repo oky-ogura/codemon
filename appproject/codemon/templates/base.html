@@ -257,7 +257,7 @@
       position: absolute;
       bottom: 80px;
       right: 80px;
-      background: white;
+      background: linear-gradient(180deg, #fff9e6 0%, #fff4cc 100%); /* 優しい黄色の背景 */
       border-radius: 20px;
       box-shadow: 0 6px 20px rgba(0,0,0,0.25);
       padding: 0;
@@ -289,11 +289,12 @@
       justify-content: space-between;
       align-items: center;
       padding: 12px 15px;
-      border-bottom: 2px solid #f0f0f0;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
+      border-bottom: 2px solid rgba(0,0,0,0.06);
+      background: linear-gradient(90deg, #ffd54f 0%, #ffca28 100%); /* 黄色ベース */
+      color: #333;
       border-radius: 20px 20px 0 0;
       flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08) inset;
     }
     
     #chat-bubble-header strong {
@@ -306,14 +307,15 @@
     }
     
     #chat-bubble-controls button {
-      background: rgba(255,255,255,0.2);
-      border: 1px solid rgba(255,255,255,0.3);
-      color: white;
+      background: rgba(255,255,255,0.85);
+      border: 1px solid rgba(0,0,0,0.06);
+      color: #333;
       cursor: pointer;
-      padding: 4px 10px;
-      border-radius: 8px;
+      padding: 6px 10px;
+      border-radius: 10px;
       font-size: 13px;
-      transition: background 0.2s;
+      transition: transform 0.12s ease, background 0.12s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.06);
     }
     
     #chat-bubble-controls button:hover {
@@ -332,19 +334,22 @@
       display: flex;
       gap: 8px;
       padding: 12px 15px;
-      border-top: 2px solid #f0f0f0;
-      background: white;
-      border-radius: 0 0 20px 20px;
+      border-top: 2px solid rgba(0,0,0,0.04);
+      background: linear-gradient(180deg, #fff, #fff9e6);
+      border-radius: 0 0 18px 18px;
       flex-shrink: 0;
+      align-items: center;
     }
     
     #chat-input {
       flex: 1;
-      padding: 10px 15px;
-      border: 2px solid #e0e0e0;
-      border-radius: 20px;
-      font-size: 13px;
+      padding: 12px 16px;
+      border: 2px solid rgba(255,180,0,0.25);
+      border-radius: 24px;
+      font-size: 14px;
       outline: none;
+      background: #fffef8;
+      box-shadow: 0 2px 6px rgba(255,180,0,0.06) inset;
     }
     
     #chat-input:focus {
@@ -352,19 +357,21 @@
     }
     
     #chat-send {
-      padding: 10px 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
+      padding: 10px 18px;
+      background: linear-gradient(90deg, #ffeb3b 0%, #ffc107 100%); /* 明るい黄色 */
+      color: #333;
       border: none;
-      border-radius: 20px;
+      border-radius: 18px;
       cursor: pointer;
-      font-size: 13px;
-      font-weight: bold;
-      transition: transform 0.2s;
+      font-size: 14px;
+      font-weight: 700;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+      box-shadow: 0 6px 18px rgba(255,184,0,0.12);
     }
     
     #chat-send:hover {
-      transform: scale(1.05);
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 10px 26px rgba(255,184,0,0.16);
     }
     
     #chat-send:disabled {
@@ -382,17 +389,20 @@
     }
     
     .chat-message.user {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
+      background: linear-gradient(90deg, #fff59d 0%, #ffd54f 100%); /* 黄色系 */
+      color: #333;
       margin-left: 40px;
       text-align: right;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
     }
     
     .chat-message.assistant {
       background: white;
-      border: 2px solid #e9ecef;
+      border: 2px solid rgba(0,0,0,0.04);
       color: #333;
       margin-right: 40px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
     }
     
     .chat-message .role {
@@ -408,15 +418,31 @@
     
     .minimized-content p {
       margin: 0;
-      font-size: 14px;
-      color: #667eea;
-      font-weight: bold;
+      font-size: 15px;
+      color: #b56f00;
+      font-weight: 800;
+      letter-spacing: .5px;
     }
     
     .minimized-content small {
       font-size: 12px;
-      color: #999;
+      color: #7a5a00;
     }
+
+    /* キャラクターの軽い傾きアニメーション (遊び心) */
+    #character-image:hover {
+      transform: rotate(-6deg) scale(1.06);
+      transition: transform 0.18s ease;
+    }
+
+    /* ぷるぷるアニメ (小さい揺れ) */
+    @keyframes wiggle {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+      100% { transform: translateY(0); }
+    }
+
+    #character-image { animation: wiggle 4s ease-in-out infinite; }
     
     {% block extra_css %}{% endblock %}
   </style>
@@ -497,55 +523,12 @@
     </nav>
   </header>
 
-  <!-- メッセージ表示 -->
-  {% if messages %}
-  <ul class="messages">
-    {% for message in messages %}
-      <li>{{ message }}</li>
-    {% endfor %}
-  </ul>
-  {% endif %}
-
   <!-- コンテンツエリア -->
   <div class="content-wrapper">
     {% block content %}{% endblock %}
   </div>
 
-  <!-- AI キャラクターウィジェット -->
-  <div id="character-widget" style="display: none;">
-    <!-- キャラ画像 -->
-    <img id="character-image"
-      src="{% static 'codemon/images/characters' %}/{{ request.session.ai_character|default:'inu' }}.png"
-      data-character="{{ request.session.ai_character|default:'inu' }}"
-      alt="AI Character"
-      onerror="this.style.display='none'; console.error('画像が読み込めません');"
-      title="クリックしてチャット">
-    
-    <!-- チャット吹き出し -->
-    <div id="chat-bubble">
-      <!-- 最小化時の表示 -->
-      <div id="minimized-view" class="minimized-content">
-        <p id="initial-message">ねぇねぇ、何か聞きたいことある?わん!</p>
-        <small>クリックして話しかけてね!</small>
-      </div>
-      
-      <!-- 展開時の表示 -->
-      <div id="expanded-view" style="display:none; width:100%; height:100%;">
-        <div id="chat-bubble-header">
-          <strong>🐶 AI相棒チャット</strong>
-          <div id="chat-bubble-controls">
-            <button id="minimize-btn" title="最小化">−</button>
-            <button id="close-btn" title="閉じる">×</button>
-          </div>
-        </div>
-        <div id="chat-messages"></div>
-        <div id="chat-input-area">
-          <input id="chat-input" type="text" placeholder="メッセージを入力...">
-          <button id="chat-send">送信</button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- (右下ウィジェットは削除済: karihome の中央チャットを使用) -->
 
   {% csrf_token %}
 
@@ -571,7 +554,7 @@
       'tab-home': ['/accounts/karihome/'],
       // システム: 新しい遷移先（system_choice）と既存の下層URLの両方をアクティブ対象に含める
       'tab-systems': [
-        '/accounts/system/choice/',
+        '/accounts/system/',
         '/codemon/systems/', '/codemon/groups/', '/codemon/threads/'
       ],
       // アルゴリズム: 新しい遷移先（block_choice）と既存の下層URLの両方をアクティブ対象に含める
@@ -619,12 +602,20 @@
       initialMessageEl.textContent = initialMessages[characterCode] || initialMessages.default;
     }
     
+    // safety: if widget not present (excluded by template), skip all handlers
+    if (!widget) return;
+
+    // Ensure widget is visible in DOM (template may render it but keep inline styles)
+    widget.style.display = 'block';
+
     // キャラクター画像クリック → 最小化表示
-    characterImg.addEventListener('click', () => {
-      if (!isMinimized && !isExpanded) {
-        showMinimized();
-      }
-    });
+    if (characterImg) {
+      characterImg.addEventListener('click', () => {
+        if (!isMinimized && !isExpanded) {
+          showMinimized();
+        }
+      });
+    }
     
     // 最小化表示クリック → 展開
     minimizedView.addEventListener('click', () => {
@@ -762,6 +753,13 @@
       // それ以外の領域クリックで閉じる
       hideBubble();
     });
+
+    // 初回ロード時は最小化して表示する
+    try {
+      showMinimized();
+    } catch (e) {
+      // safe fallback: ignore
+    }
   })();
   </script>
   
