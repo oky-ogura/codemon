@@ -82,7 +82,6 @@ class Migration(migrations.Migration):
             name='system_description',
             field=models.TextField(blank=True, null=True, verbose_name='システム詳細'),
         ),
-
         migrations.CreateModel(
             name='ChatMessage',
             fields=[
@@ -237,4 +236,3 @@ class Migration(migrations.Migration):
         # Safely drop legacy tables if they exist (best-effort cleanup)
         migrations.RunPython(code=_safe_drop_legacy_tables, reverse_code=migrations.RunPython.noop),
     ]
-

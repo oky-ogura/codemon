@@ -96,12 +96,4 @@ urlpatterns = [
     path('block/delete/', views.block_delete, name='block_delete'),
     path('block/delete/success/', views.block_delete_success, name='block_delete_success'),
     path('system/tutorial/', views.system_tutorial, name='system_tutorial'),
-
-
-    # プロフィール編集(アイコン設定)
-    path('profile/edit/', views.edit_profile, name='edit_profile'),
-    path('groups/<int:group_id>/', views.group_detail, name='group_detail'),
-
-
 ]
-
