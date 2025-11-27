@@ -1358,12 +1358,37 @@ def s_account_view(request):
     except Exception:
         joined_group = None
 
+    # Get AI config for the user
+    ai_config = None
+    try:
+        if account and account.get('user_id'):
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT ai_setting_id, user_id, appearance, ai_name, ai_personality, ai_speech, created_at "
+                    "FROM ai_config WHERE user_id = %s",
+                    [account.get('user_id')]
+                )
+                row = cursor.fetchone()
+                if row:
+                    ai_config = {
+                        'ai_setting_id': row[0],
+                        'user_id': row[1],
+                        'appearance': row[2],
+                        'ai_name': row[3],
+                        'ai_personality': row[4],
+                        'ai_speech': row[5],
+                        'created_at': row[6],
+                    }
+    except Exception:
+        ai_config = None
+
     # Render template with gathered context (fall back to template defaults if account missing)
-    return render(request, 'accounts/karihome.html', {
+    return render(request, 'accounts/s_account.html', {
         'account': account,
         'first_met': first_met,
         'total_days': total_days_str,
         'joined_group': joined_group,
+        'ai_config': ai_config,
     })
 
 
@@ -1966,7 +1991,78 @@ def t_account(request):
                 'group_id': row[5],
                 'created_at': row[6],
             }
-    return render(request, 'accounts/t_account.html', {'account': account, 'user': request.user})
+    
+    # 初めて会った日と累計日数を計算
+    first_met = None
+    total_days_str = '0日'
+    if account and account.get('created_at'):
+        try:
+            now = timezone.now()
+            delta = now - account.get('created_at')
+            days = max(delta.days, 0)
+            first_met = account.get('created_at')
+            total_days_str = f"{days}日"
+        except Exception:
+            first_met = account.get('created_at')
+            total_days_str = '0日'
+    
+    # グループ一覧を取得（教員が作成したグループ）
+    groups = []
+    if account and account.get('user_id'):
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    'SELECT group_id, group_name, user_id FROM "group" WHERE user_id = %s ORDER BY created_at DESC',
+                    [account.get('user_id')]
+                )
+                rows = cursor.fetchall()
+                for r in rows:
+                    # メンバー数を取得
+                    with connection.cursor() as c2:
+                        c2.execute('SELECT COUNT(*) FROM group_member WHERE group_id = %s', [r[0]])
+                        count_row = c2.fetchone()
+                        member_count = count_row[0] if count_row else 0
+                    groups.append({
+                        'group_id': r[0],
+                        'name': r[1],
+                        'user_id': r[2],
+                        'member_count': member_count
+                    })
+        except Exception:
+            groups = []
+    
+    # AI設定を取得
+    ai_config = None
+    try:
+        if account and account.get('user_id'):
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT ai_setting_id, user_id, appearance, ai_name, ai_personality, ai_speech, created_at "
+                    "FROM ai_config WHERE user_id = %s",
+                    [account.get('user_id')]
+                )
+                row = cursor.fetchone()
+                if row:
+                    ai_config = {
+                        'ai_setting_id': row[0],
+                        'user_id': row[1],
+                        'appearance': row[2],
+                        'ai_name': row[3],
+                        'ai_personality': row[4],
+                        'ai_speech': row[5],
+                        'created_at': row[6],
+                    }
+    except Exception:
+        ai_config = None
+    
+    return render(request, 'accounts/t_account.html', {
+        'account': account,
+        'user': request.user,
+        'first_met': first_met,
+        'total_days': total_days_str,
+        'groups': groups,
+        'ai_config': ai_config,
+    })
 
 def account_entry(request):
     """
