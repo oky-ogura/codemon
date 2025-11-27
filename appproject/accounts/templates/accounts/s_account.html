@@ -120,14 +120,21 @@
   </span>
 </div>
 
+{% load static %}
 <div class="meta">
   <div class="stick">
-    <div class="figure">⚪︎</div>
+    <!-- AI画像を表示 -->
+    {% if ai_config and ai_config.appearance %}
+      <img src="{% static 'codemon/images/characters/' %}{{ ai_config.appearance }}" 
+           alt="AI" 
+           style="width:120px;height:120px;object-fit:contain;margin-bottom:8px;"
+           onerror="this.src='{% static 'codemon/images/characters/イヌ.png' %}'">
+    {% else %}
+      <div class="figure">⚪︎</div>
+    {% endif %}
 
-    <!-- AI 設定表示（存在しない場合はデフォルト） -->
+    <!-- AI名前のみ表示 -->
     <div class="small">名前 {{ ai_config.ai_name|default:"codemon" }}</div>
-    <div class="small">性格 {{ ai_config.ai_personality|default:"元気" }}</div>
-    <div class="small">語尾 {{ ai_config.ai_speech|default:"です" }}</div>
 
     <!-- main ブランチのメタ情報（日時や累計日数） -->
     <div class="small">初めて会った日 {% if first_met %}{{ first_met|date:"Y/n/d" }}{% else %}--{% endif %}</div>
