@@ -62,7 +62,7 @@ def _get_write_owner(request):
     # If Django auth is present, try to return the linked Account
     if getattr(request, 'user', None) and getattr(request.user, 'is_authenticated', False):
         try:
-            acct = Account.objects.get(user=request.user)
+            acct = Account.objects.get(user_id=request.user.id)
             return acct
         except Account.DoesNotExist:
             # fall back to Django user object
