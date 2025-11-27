@@ -1,5 +1,26 @@
 from django.core.mail import send_mail
 from django.contrib.auth.hashers import make_password # <= ここにあるので...
+
+from django.contrib.auth import views as auth_views
+from django import forms
+from django.shortcuts import render, redirect, get_object_or_404, reverse
+from django.contrib import messages
+from django.contrib.auth.hashers import check_password
+from django.contrib.auth import logout
+from django.template.loader import render_to_string
+from django.conf import settings
+from django.core import signing
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.contrib.auth.forms import SetPasswordForm
+
+# 以下のブロックは、HEADとmainのインポートを統合したもの
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth import get_user_model
+from django.contrib import messages
+from django.urls import reverse
+
 from django.contrib.auth import views as auth_views
 # 以下のブロックは、HEADとmainのインポートを統合したもの
 from django.http import HttpResponseRedirect, HttpResponseForbidden, FileResponse, JsonResponse

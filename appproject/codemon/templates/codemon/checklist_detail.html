@@ -1,12 +1,19 @@
 {% extends 'base.html' %}
-{% block content %}
+{% load static %}
+{% block background_frame %}
 
-<!-- 🔹 チャットボタン -->
-<div class="chat-ai-bubble">
-  <a href="{% url 'codemon:chat' %}" class="chat-button">
-    <i class="fas fa-comments"></i> AIチャット
-  </a>
-</div>
+<img src="{% static 'codemon/images/frames/bg_frame_green.png' %}" 
+     alt="" 
+     class="bg-frame frame-green"
+     onerror="this.style.display='none';">
+{% endblock %}
+{% block extra_css %}
+<style>
+/* ページ固有：ナビゲーション固定ヘッダ分の余白を確保 */
+.content-wrapper { padding-top: 140px !important; }
+</style>
+{% endblock %}
+{% block content %}
 
 <!-- 🔹 チェックリスト詳細 -->
 <div class="checklist-detail">
@@ -57,36 +64,28 @@
 
   <!-- 🔹 アクションボタン -->
   <div class="actions">
-    <a href="{% url 'codemon:checklist_list' %}" class="btn-back">一覧に戻る</a>
-    <a href="{% url 'codemon:checklist_edit' pk=checklist.checklist_id %}" class="btn-edit">編集する</a>
-    <a href="{% url 'codemon:checklist_delete_confirm' pk=checklist.checklist_id %}" class="btn-delete">削除する</a>
+    <a href="{% url 'codemon:checklist_list' %}" class="btn-back" aria-label="一覧に戻る">
+      <img src="{% static 'codemon/images/buttons/back.png' %}" alt="戻る">
+    </a>
+    <a href="{% url 'codemon:checklist_edit' pk=checklist.checklist_id %}" class="btn-edit" aria-label="編集">
+      <img src="{% static 'codemon/images/buttons/edit.png' %}" alt="編集">
+    </a>
+    <a href="{% url 'codemon:checklist_delete_confirm' pk=checklist.checklist_id %}" class="btn-delete" aria-label="削除">
+      <img src="{% static 'codemon/images/buttons/delete.png' %}" alt="削除">
+    </a>
   </div>
 
 </div>
 
 <!-- 🔹 スタイル -->
 <style>
-/* チャットボタン */
-.chat-ai-bubble {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-}
-.chat-button {
-  display: inline-flex;
-  align-items: center;
-  padding: 10px 15px;
-  background-color: #007bff;
-  color: white;
-  text-decoration: none;
-  border-radius: 20px;
-}
-
-/* チェックリスト詳細 */
 .checklist-detail {
   max-width: 800px;
-  margin: 30px auto;
+  /* ナビゲーション下に表示されるよう上マージンを広げる */
+  margin: 120px auto 160px;
   padding: 20px;
+  position: relative;
+  z-index: 20;
   border: 1px solid #ddd;
   border-radius: 8px;
   background-color: #fafafa;
@@ -127,12 +126,11 @@
   gap: 10px;
   margin-top: 20px;
 }
-.btn-back { padding: 10px 20px; background-color: #6c757d; color: white; border-radius: 4px; text-decoration: none; }
-.btn-edit { padding: 10px 20px; background-color: #28a745; color: white; border-radius: 4px; text-decoration: none; }
-.btn-delete { padding: 10px 20px; background-color: #dc3545; color: white; border-radius: 4px; text-decoration: none; }
-.btn-back:hover { background-color: #5a6268; }
-.btn-edit:hover { background-color: #218838; }
-.btn-delete:hover { background-color: #c82333; }
+.btn-back, .btn-edit, .btn-delete { text-decoration: none; display: inline-block; }
+.actions img { height: 56px; display: inline-block; }
+.btn-back:hover img { opacity: 0.9; }
+.btn-edit:hover img { opacity: 0.9; }
+.btn-delete:hover img { opacity: 0.9; }
 </style>
 
 <script>
