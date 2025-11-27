@@ -22,6 +22,24 @@ class System(models.Model):
         return f"{self.system_name} (ID: {self.system_id})"
 
 
+class SystemElement(models.Model):
+    # element_id は PostgreSQL のシーケンスで管理（7000001 から開始）
+    element_id = models.BigAutoField(primary_key=True)
+    system = models.ForeignKey(System, on_delete=models.CASCADE, related_name='elements', verbose_name='システムID')
+    element_type = models.CharField(max_length=50, verbose_name='要素タイプ')
+    element_label = models.CharField(max_length=200, blank=True, null=True, verbose_name='要素ラベル')
+    element_value = models.TextField(blank=True, null=True, verbose_name='要素値')
+    position_x = models.IntegerField(default=0, verbose_name='X座標')
+    position_y = models.IntegerField(default=0, verbose_name='Y座標')
+    width = models.IntegerField(blank=True, null=True, verbose_name='幅')
+    height = models.IntegerField(blank=True, null=True, verbose_name='高さ')
+    style_data = models.JSONField(blank=True, null=True, verbose_name='スタイルデータ')
+    element_config = models.JSONField(blank=True, null=True, verbose_name='要素設定')
+    sort_order = models.IntegerField(default=0, verbose_name='表示順')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新日時')
+
+
 class Algorithm(models.Model):
     # algorithm_id は PostgreSQL のシーケンスで管理（5000001 から開始）
     algorithm_id = models.BigAutoField(primary_key=True)

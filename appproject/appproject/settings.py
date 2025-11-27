@@ -58,7 +58,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     # Custom middleware to render friendly 500 page for DB/server errors
-    'appproject.middleware.system_error_middleware.SystemErrorMiddleware',
+    # 'appproject.middleware.system_error_middleware.SystemErrorMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',

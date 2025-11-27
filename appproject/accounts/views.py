@@ -1,6 +1,6 @@
+from django.shortcuts import render, redirect, get_object_or_404
 from django.core.mail import send_mail
 from django.contrib.auth.hashers import make_password # <= ここにあるので...
-
 from django.contrib.auth import views as auth_views
 from django import forms
 from django.shortcuts import render, redirect, get_object_or_404, reverse
@@ -20,18 +20,12 @@ from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth import get_user_model
 from django.contrib import messages
 from django.urls import reverse
-
 from django.contrib.auth import views as auth_views
-# 以下のブロックは、HEADとmainのインポートを統合したもの
-from django.http import HttpResponseRedirect, HttpResponseForbidden, FileResponse, JsonResponse
-from django.contrib import messages
-
-from .models import Account
-from .forms import StudentSignupForm
-from django.shortcuts import render,redirect
-
+from django.contrib.auth.forms import SetPasswordForm
+from django.contrib.auth.hashers import check_password, make_password
+from django.conf import settings
 from django import forms
-
+from django.http import HttpResponseRedirect, HttpResponseForbidden, FileResponse, JsonResponse
 from .forms import TeacherSignupForm, StudentSignupForm, ProfileEditForm
 from .models import Account, Group, GroupMember
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -44,14 +38,9 @@ from django.contrib.messages import get_messages
 import logging
 from django.utils.dateparse import parse_datetime, parse_date
 import datetime
-from codemon.models import System, Algorithm
-from django.contrib.auth.hashers import check_password
-
+from codemon.models import System, Algorithm, SystemElement
 import json
-
-
 from types import SimpleNamespace
-
 try:
     from codemon.views import _get_write_owner
 except Exception:
@@ -259,6 +248,10 @@ def teacher_login(request):
                     messages.error(request, 'ユーザー名またはパスワードが違います')
             except Exception:
                 messages.error(request, 'ユーザー名またはパスワードが違います')
+    else:
+        # GETリクエスト時はメッセージをクリア
+        storage = messages.get_messages(request)
+        storage.used = True
 
     # GET または認証失敗時はログインフォームを表示
     return render(request, 'accounts/t_login.html')
@@ -293,6 +286,10 @@ def student_login(request):
             return redirect('accounts:karihome')
         else:
             messages.error(request, 'ユーザー名またはパスワードが間違っています')
+    else:
+        # GETリクエスト時はメッセージをクリア
+        storage = messages.get_messages(request)
+        storage.used = True
     return render(request, 'accounts/s_login.html')
 
 
@@ -386,6 +383,9 @@ def karihome(request):
 
 def login_choice(request):
     """ログイン種別の選択ページ（教師 or 生徒）を表示する簡易ビュー"""
+    # ログイン選択画面でも前回のメッセージをクリア
+    storage = messages.get_messages(request)
+    storage.used = True
     # 単純な選択ページを表示するだけ。テンプレート内でそれぞれのログインページへ遷移する。
     return render(request, 'accounts/login_choice.html')
 
@@ -508,6 +508,9 @@ def ai_initial_confirm(request):
 
 def login_choice(request):
     """ログイン種別の選択ページ（教師 or 生徒）を表示する簡易ビュー"""
+    # ログイン選択画面でも前回のメッセージをクリア
+    storage = messages.get_messages(request)
+    storage.used = True
     # 単純な選択ページを表示するだけ。テンプレート内でそれぞれのログインページへ遷移する。
     return render(request, 'accounts/login_choice.html')
 
@@ -580,14 +583,40 @@ def block_index(request):
     if algorithm_id:
         try:
             algorithm = Algorithm.objects.get(algorithm_id=algorithm_id)
+            # ORM may fail if DB schema is missing columns; guard access
+            blockly_xml = ''
+            try:
+                blockly_xml = algorithm.blockly_xml or ''
+            except Exception:
+                blockly_xml = ''
             context = {
                 'algorithm_id': algorithm.algorithm_id,
                 'algorithm_name': algorithm.algorithm_name,
                 'algorithm_description': algorithm.algorithm_description or '',
-                'blockly_xml': algorithm.blockly_xml or '',
+                'blockly_xml': blockly_xml,
             }
         except Algorithm.DoesNotExist:
             messages.error(request, '指定されたアルゴリズムが見つかりません。')
+        except Exception:
+            # Fallback: fetch known columns via raw SQL to avoid missing-column errors
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        'SELECT algorithm_id, algorithm_name, algorithm_description, created_at, updated_at FROM algorithm WHERE algorithm_id = %s',
+                        [algorithm_id]
+                    )
+                    row = cursor.fetchone()
+                    if row:
+                        context = {
+                            'algorithm_id': row[0],
+                            'algorithm_name': row[1],
+                            'algorithm_description': row[2] or '',
+                            'blockly_xml': '',
+                        }
+                    else:
+                        messages.error(request, '指定されたアルゴリズムが見つかりません。')
+            except Exception:
+                messages.error(request, '指定されたアルゴリズムが見つかりません。')
     return render(request, 'block/index.html', context)
 
 def system_index(request):
@@ -602,59 +631,72 @@ def system_index(request):
     # ログインユーザーの他のシステム一覧を取得
     account = get_logged_account(request)
     other_systems_json = '[]'
-
     algorithms_json = '[]'
     
-
     if account:
-                try:
-                    other_systems_qs = System.objects.filter(user=account).order_by('-created_at')
-                    # 編集モードの場合は、編集中のシステムを除外
-                    if system_id:
-                        other_systems_qs = other_systems_qs.exclude(system_id=system_id)
+        try:
+            other_systems_qs = System.objects.filter(user=account).order_by('-created_at')
+            # 編集モードの場合は、編集中のシステムを除外
+            if system_id:
+                other_systems_qs = other_systems_qs.exclude(system_id=system_id)
 
-                    # JSON形式に変換
-                    other_systems_list = []
-                    for sys in other_systems_qs:
-                        other_systems_list.append({
-                            'system_id': sys.system_id,
-                            'system_name': sys.system_name
-                        })
+            # JSON形式に変換
+            other_systems_list = []
+            for sys in other_systems_qs:
+                other_systems_list.append({
+                    'system_id': sys.system_id,
+                    'system_name': sys.system_name
+                })
 
-                    other_systems_json = json.dumps(other_systems_list, ensure_ascii=False)
-                except Exception:
-                    pass
+            other_systems_json = json.dumps(other_systems_list, ensure_ascii=False)
+        except Exception:
+            pass
+        
+        # アルゴリズム一覧を取得
+        try:
+            algorithms_qs = Algorithm.objects.filter(user=account).order_by('-created_at')
+            algorithms_list = []
+            for algo in algorithms_qs:
+                algorithms_list.append({
+                    'algorithm_id': algo.algorithm_id,
+                    'algorithm_name': algo.algorithm_name,
+                    'blockly_xml': algo.blockly_xml or ''
+                })
+            algorithms_json = json.dumps(algorithms_list, ensure_ascii=False)
+        except Exception:
+            pass
 
     context['other_systems_json'] = other_systems_json
-
     context['algorithms_json'] = algorithms_json
 
-
     if system_id:
-            try:
-                system = System.objects.get(system_id=system_id)
-                context['system_id'] = system.system_id
-                context['system_name'] = system.system_name
-                context['system_description'] = system.system_description or ''
-                elements = SystemElement.objects.filter(system=system).order_by('sort_order', 'element_id')
-                elements_list = []
-                for elem in elements:
-                    elements_list.append({
-                        'element_type': elem.element_type,
-                        'element_label': elem.element_label or '',
-                        'element_value': elem.element_value or '',
-                        'position_x': elem.position_x,
-                        'position_y': elem.position_y,
-                        'width': elem.width,
-                        'height': elem.height,
-                        'style_data': elem.style_data or {},
-                        'element_config': elem.element_config or {}
-                    })
-                context['elements_json'] = json.dumps(elements_list, ensure_ascii=False)
-            except System.DoesNotExist:
-                messages.error(request, '指定されたシステムが見つかりません。')
+        try:
+            system = System.objects.get(system_id=system_id)
+            context['system_id'] = system.system_id
+            context['system_name'] = system.system_name
+            context['system_description'] = system.system_description or ''
+
+            # システム要素を取得してJSON化
+            elements = SystemElement.objects.filter(system=system).order_by('sort_order', 'element_id')
+            elements_list = []
+            for elem in elements:
+                elements_list.append({
+                    'element_type': elem.element_type,
+                    'element_label': elem.element_label or '',
+                    'element_value': elem.element_value or '',
+                    'position_x': elem.position_x,
+                    'position_y': elem.position_y,
+                    'width': elem.width,
+                    'height': elem.height,
+                    'style_data': elem.style_data or {},
+                    'element_config': elem.element_config or {}
+                })
+            context['elements_json'] = json.dumps(elements_list, ensure_ascii=False)
+        except System.DoesNotExist:
+            messages.error(request, '指定されたシステムが見つかりません。')
 
     return render(request, 'system/index.html', context)
+
 # システム要素取得API
 def get_system_elements(request):
     """
@@ -1009,14 +1051,38 @@ def block_create(request):
     if algorithm_id:
         try:
             algorithm = Algorithm.objects.get(algorithm_id=algorithm_id)
+            try:
+                blockly_xml = algorithm.blockly_xml or ''
+            except Exception:
+                blockly_xml = ''
             context = {
                 'algorithm_id': algorithm.algorithm_id,
                 'algorithm_name': algorithm.algorithm_name,
                 'algorithm_description': algorithm.algorithm_description or '',
-                'blockly_xml': algorithm.blockly_xml or '',
+                'blockly_xml': blockly_xml,
             }
         except Algorithm.DoesNotExist:
             messages.error(request, '指定されたアルゴリズムが見つかりません。')
+        except Exception:
+            # Fallback to raw SQL when ORM selection may reference missing columns
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        'SELECT algorithm_id, algorithm_name, algorithm_description, created_at, updated_at FROM algorithm WHERE algorithm_id = %s',
+                        [algorithm_id]
+                    )
+                    row = cursor.fetchone()
+                    if row:
+                        context = {
+                            'algorithm_id': row[0],
+                            'algorithm_name': row[1],
+                            'algorithm_description': row[2] or '',
+                            'blockly_xml': '',
+                        }
+                    else:
+                        messages.error(request, '指定されたアルゴリズムが見つかりません。')
+            except Exception:
+                messages.error(request, '指定されたアルゴリズムが見つかりません。')
 
     return render(request, 'block/block_create.html', context)
 
@@ -1032,7 +1098,19 @@ def block_details(request):
     
     try:
         # アルゴリズムIDでデータベースから取得
-        algorithm = Algorithm.objects.get(algorithm_id=algorithm_id)
+        try:
+            algorithm = Algorithm.objects.get(algorithm_id=algorithm_id)
+        except Exception:
+            # ORM may fail if DB schema missing columns; fallback to raw SQL
+            algorithm = None
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute('SELECT algorithm_id, algorithm_name, algorithm_description, created_at, updated_at FROM algorithm WHERE algorithm_id = %s', [algorithm_id])
+                    row = cursor.fetchone()
+                    if row:
+                        algorithm = SimpleNamespace(algorithm_id=row[0], algorithm_name=row[1], algorithm_description=row[2] or '', blockly_xml='')
+            except Exception:
+                algorithm = None
 
         # ログインユーザーを取得
         account = get_logged_account(request)
@@ -1050,7 +1128,12 @@ def block_details(request):
                 })
 
             # 所有者チェック（他のユーザーのアルゴリズムは編集不可）
-            if algorithm.user != account:
+            try:
+                if getattr(algorithm, 'user', None) != account:
+                    messages.error(request, '他のユーザーのアルゴリズムは編集できません。')
+                    return redirect('accounts:block_list')
+            except Exception:
+                # if we couldn't determine ownership from fallback object, be conservative
                 messages.error(request, '他のユーザーのアルゴリズムは編集できません。')
                 return redirect('accounts:block_list')
 
@@ -1083,13 +1166,27 @@ def block_list(request):
         account = get_logged_account(request)
     except Exception:
         account = None
-        
-    if account:
-        # 更新日が新しい順、同じ場合は作成日が新しい順
-        algorithms = Algorithm.objects.filter(user=account).order_by('-updated_at', '-created_at')
-    else:
-        # ログイン情報が取れない場合は全件を上位表示（最大100件）
-        algorithms = Algorithm.objects.all().order_by('-updated_at', '-created_at')[:100]
+    algorithms = []
+    try:
+        # Use values() to select only safe columns so ORM SQL won't reference missing columns
+        if account:
+            qs = Algorithm.objects.filter(user=account).order_by('-updated_at', '-created_at').values('algorithm_id', 'algorithm_name', 'algorithm_description', 'created_at', 'updated_at')
+        else:
+            qs = Algorithm.objects.all().order_by('-updated_at', '-created_at').values('algorithm_id', 'algorithm_name', 'algorithm_description', 'created_at', 'updated_at')[:100]
+        rows = list(qs)
+        algorithms = [SimpleNamespace(algorithm_id=r.get('algorithm_id'), algorithm_name=r.get('algorithm_name'), algorithm_description=r.get('algorithm_description'), created_at=r.get('created_at'), updated_at=r.get('updated_at')) for r in rows]
+    except Exception:
+        # ORM may fail; fallback to raw SQL selecting known columns
+        try:
+            with connection.cursor() as cursor:
+                if account:
+                    cursor.execute('SELECT algorithm_id, algorithm_name, algorithm_description, created_at, updated_at FROM algorithm WHERE user_id = %s ORDER BY updated_at DESC, created_at DESC', [account.user_id])
+                else:
+                    cursor.execute('SELECT algorithm_id, algorithm_name, algorithm_description, created_at, updated_at FROM algorithm ORDER BY updated_at DESC, created_at DESC LIMIT 100')
+                rows = cursor.fetchall()
+            algorithms = [SimpleNamespace(algorithm_id=r[0], algorithm_name=r[1], algorithm_description=r[2], created_at=r[3], updated_at=r[4]) for r in rows]
+        except Exception:
+            algorithms = []
 
     return render(request, 'block/block_list.html', {'algorithms': algorithms})
 
@@ -1100,11 +1197,24 @@ def block_list_data(request):
     except Exception:
         account = None
 
-    if account:
-        # 更新日が新しい順、同じ場合は作成日が新しい順
-        algorithms = Algorithm.objects.filter(user=account).order_by('-updated_at', '-created_at')
-    else:
-        algorithms = Algorithm.objects.all().order_by('-updated_at', '-created_at')[:100]
+    try:
+        if account:
+            qs = Algorithm.objects.filter(user=account).order_by('-updated_at', '-created_at').values('algorithm_id', 'algorithm_name', 'algorithm_description', 'created_at', 'updated_at')
+        else:
+            qs = Algorithm.objects.all().order_by('-updated_at', '-created_at').values('algorithm_id', 'algorithm_name', 'algorithm_description', 'created_at', 'updated_at')[:100]
+        rows = list(qs)
+        algorithms = [SimpleNamespace(algorithm_id=r.get('algorithm_id'), algorithm_name=r.get('algorithm_name'), algorithm_description=r.get('algorithm_description'), created_at=r.get('created_at'), updated_at=r.get('updated_at')) for r in rows]
+    except Exception:
+        try:
+            with connection.cursor() as cursor:
+                if account:
+                    cursor.execute('SELECT algorithm_id, algorithm_name, algorithm_description, created_at, updated_at FROM algorithm WHERE user_id = %s ORDER BY updated_at DESC, created_at DESC', [account.user_id])
+                else:
+                    cursor.execute('SELECT algorithm_id, algorithm_name, algorithm_description, created_at, updated_at FROM algorithm ORDER BY updated_at DESC, created_at DESC LIMIT 100')
+                rows = cursor.fetchall()
+            algorithms = [SimpleNamespace(algorithm_id=r[0], algorithm_name=r[1], algorithm_description=r[2], created_at=r[3], updated_at=r[4]) for r in rows]
+        except Exception:
+            algorithms = []
 
     # アルゴリズムデータをJSON形式に変換
     algorithms_data = []
@@ -2278,7 +2388,3 @@ def group_remove_member(request, group_id):
     except GroupMember.DoesNotExist:
         messages.error(request, '指定されたメンバーが見つかりません')
         return redirect('accounts:group_menu', group_id=group_id)
-
-def group_invite(request, group_id):
-    from django.http import HttpResponseNotFound
-    return HttpResponseNotFound('group_inviteビューは未実装です')
