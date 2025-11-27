@@ -306,6 +306,9 @@
                     </div>
                     <!-- 選択済みの外見を確認画面へ渡す -->
                     <input type="hidden" name="appearance" value="{{ config.appearance }}">
+                    <!-- 性格と語尾は空文字を送信 -->
+                    <input type="hidden" name="ai_personality" value="">
+                    <input type="hidden" name="ai_speech" value="">
 
                     <div class="controls">
                         <a href="{% url 'accounts:ai_appearance' %}" class="btn secondary">戻る</a>

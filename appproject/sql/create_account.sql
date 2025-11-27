@@ -4,7 +4,7 @@
 -- Updated to match the provided table definition document.
 -- ...existing code...
 CREATE SEQUENCE IF NOT EXISTS account_user_id_seq
-    START WITH 20000001
+    START WITH 1
     INCREMENT BY 1
     NO MINVALUE
     NO MAXVALUE

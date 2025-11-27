@@ -522,15 +522,6 @@
     </nav>
   </header>
 
-  <!-- メッセージ表示 -->
-  {% if messages %}
-  <ul class="messages">
-    {% for message in messages %}
-      <li>{{ message }}</li>
-    {% endfor %}
-  </ul>
-  {% endif %}
-
   <!-- コンテンツエリア -->
   <div class="content-wrapper">
     {% block content %}{% endblock %}
@@ -562,7 +553,7 @@
       'tab-home': ['/accounts/karihome/'],
       // システム: 新しい遷移先（system_choice）と既存の下層URLの両方をアクティブ対象に含める
       'tab-systems': [
-        '/accounts/system/choice/',
+        '/accounts/system/',
         '/codemon/systems/', '/codemon/groups/', '/codemon/threads/'
       ],
       // アルゴリズム: 新しい遷移先（block_choice）と既存の下層URLの両方をアクティブ対象に含める

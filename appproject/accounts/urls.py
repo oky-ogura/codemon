@@ -88,13 +88,12 @@ urlpatterns = [
     path('block/create/', views.block_create, name='block_create'),
     path('block/details/', views.block_details, name='block_details'),
     path('block/list/', views.block_list, name='block_list'),
-    # プロフィール編集（アイコン設定）
-    path('profile/edit/', views.edit_profile, name='edit_profile'),
-    path('groups/<int:group_id>/', views.group_detail, name='group_detail'),
-
     path('block/list/data/', views.block_list_data, name='block_list_data'),
     path('block/delete/', views.block_delete, name='block_delete'),
     path('block/delete/success/', views.block_delete_success, name='block_delete_success'),
     path('system/tutorial/', views.system_tutorial, name='system_tutorial'),
+    # プロフィール編集(アイコン設定)
+    path('profile/edit/', views.edit_profile, name='edit_profile'),
+    path('groups/<int:group_id>/', views.group_detail, name='group_detail'),
 ]
 
