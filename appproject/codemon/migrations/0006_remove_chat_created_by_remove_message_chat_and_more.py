@@ -2,6 +2,66 @@
 
 import django.db.models.deletion
 from django.db import migrations, models
+from django.db import connection
+
+
+def _safe_drop_legacy_tables(apps, schema_editor):
+    """Drop legacy tables if they exist. Use IF EXISTS when available and
+    otherwise attempt a best-effort drop while ignoring failures.
+    """
+    conn = schema_editor.connection
+    tables = []
+    try:
+        with conn.cursor() as cursor:
+            try:
+                tables = conn.introspection.table_names()
+            except Exception:
+                # fallback: query sqlite_master for sqlite
+                try:
+                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                    tables = [r[0] for r in cursor.fetchall()]
+                except Exception:
+                    tables = []
+    except Exception:
+        tables = []
+
+    for t in ('attachment', 'chat', 'message'):
+        if t in tables:
+            try:
+                schema_editor.execute(f'DROP TABLE IF EXISTS "{t}";')
+            except Exception:
+                try:
+                    schema_editor.execute(f'DROP TABLE "{t}";')
+                except Exception:
+                    # ignore failures — best-effort cleanup
+                    pass
+
+
+def _noop(apps, schema_editor):
+    return
+
+
+def _drop_existing_new_tables(apps, schema_editor):
+    """If previous partial runs left new tables present, drop them so
+    CreateModel can run cleanly. This is best-effort and ignores failures.
+    """
+    conn = schema_editor.connection
+    try:
+        with conn.cursor() as cursor:
+            try:
+                tables = conn.introspection.table_names()
+            except Exception:
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                tables = [r[0] for r in cursor.fetchall()]
+    except Exception:
+        tables = []
+
+    for t in ('chat_message', 'chat_attachment', 'chat_thread', 'chat_score', 'group', 'group_member', 'chat_read_receipt', 'system_element'):
+        if t in tables:
+            try:
+                schema_editor.execute(f'DROP TABLE IF EXISTS "{t}";')
+            except Exception:
+                pass
 
 
 class Migration(migrations.Migration):
@@ -12,6 +72,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # Ensure any partially-created new tables are removed first so
+        # CreateModel operations below won't fail with "table already exists".
+        migrations.RunPython(code=_drop_existing_new_tables, reverse_code=migrations.RunPython.noop),
         # このマイグレーションは既に0001_initialで作成されたモデルと重複するため、
         # システム説明フィールドの変更のみを保持
         migrations.AlterField(
@@ -19,4 +82,157 @@ class Migration(migrations.Migration):
             name='system_description',
             field=models.TextField(blank=True, null=True, verbose_name='システム詳細'),
         ),
+        migrations.CreateModel(
+            name='ChatMessage',
+            fields=[
+                ('message_id', models.BigAutoField(primary_key=True, serialize=False)),
+                ('content', models.TextField(blank=True, null=True, verbose_name='メッセージ本文')),
+                ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='送信日時')),
+                ('is_deleted', models.BooleanField(default=False, verbose_name='削除フラグ')),
+                ('sender', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='accounts.account', verbose_name='送信者')),
+            ],
+            options={
+                'verbose_name': 'チャットメッセージ',
+                'verbose_name_plural': 'チャットメッセージ',
+                'db_table': 'chat_message',
+                'ordering': ['created_at'],
+            },
+        ),
+        migrations.CreateModel(
+            name='ChatAttachment',
+            fields=[
+                ('attachment_id', models.BigAutoField(primary_key=True, serialize=False)),
+                ('file', models.FileField(upload_to='chat_attachments/')),
+                ('uploaded_at', models.DateTimeField(auto_now_add=True)),
+                ('message', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='attachments', to='codemon.chatmessage')),
+            ],
+            options={
+                'verbose_name': 'チャット添付',
+                'verbose_name_plural': 'チャット添付',
+                'db_table': 'chat_attachment',
+            },
+        ),
+        migrations.CreateModel(
+            name='ChatThread',
+            fields=[
+                ('thread_id', models.BigAutoField(primary_key=True, serialize=False)),
+                ('title', models.CharField(max_length=200, verbose_name='スレッド名')),
+                ('description', models.TextField(blank=True, null=True, verbose_name='説明')),
+                ('is_active', models.BooleanField(default=True, verbose_name='アクティブフラグ')),
+                ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='作成日時')),
+                ('created_by', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='accounts.account', verbose_name='作成者')),
+            ],
+            options={
+                'verbose_name': 'チャットスレッド',
+                'verbose_name_plural': 'チャットスレッド',
+                'db_table': 'chat_thread',
+            },
+        ),
+        migrations.CreateModel(
+            name='ChatScore',
+            fields=[
+                ('id', models.BigAutoField(primary_key=True, serialize=False)),
+                ('score', models.IntegerField(blank=True, null=True)),
+                ('comment', models.TextField(blank=True, null=True)),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('message', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='scores', to='codemon.chatmessage')),
+                ('scorer', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='accounts.account', verbose_name='採点者')),
+                ('thread', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='scores', to='codemon.chatthread')),
+            ],
+            options={
+                'verbose_name': 'チャットスコア',
+                'verbose_name_plural': 'チャットスコア',
+                'db_table': 'chat_score',
+            },
+        ),
+        migrations.AddField(
+            model_name='chatmessage',
+            name='thread',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='messages', to='codemon.chatthread'),
+        ),
+        migrations.CreateModel(
+            name='Group',
+            fields=[
+                ('group_id', models.BigAutoField(primary_key=True, serialize=False)),
+                ('group_name', models.CharField(max_length=50, verbose_name='グループ名')),
+                ('description', models.TextField(blank=True, null=True, verbose_name='グループ説明')),
+                ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='作成日時')),
+                ('updated_at', models.DateTimeField(auto_now=True, verbose_name='更新日時')),
+                ('is_active', models.BooleanField(default=True, verbose_name='アクティブフラグ')),
+                ('owner', models.ForeignKey(blank=True, db_column='user_id', null=True, on_delete=django.db.models.deletion.CASCADE, to='accounts.account', verbose_name='作成者')),
+            ],
+            options={
+                'verbose_name': 'グループ',
+                'verbose_name_plural': 'グループ',
+                'db_table': 'group',
+            },
+        ),
+        migrations.AddField(
+            model_name='chatthread',
+            name='group',
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='threads', to='codemon.group', verbose_name='グループ'),
+        ),
+        migrations.CreateModel(
+            name='GroupMember',
+            fields=[
+                ('id', models.BigAutoField(primary_key=True, serialize=False)),
+                ('role', models.CharField(blank=True, max_length=50, null=True, verbose_name='メンバーの役割')),
+                ('created_at', models.DateTimeField(auto_now_add=True, db_column='created_at', verbose_name='追加日時')),
+                ('group', models.ForeignKey(db_column='group_id', on_delete=django.db.models.deletion.CASCADE, related_name='memberships', to='codemon.group', verbose_name='グループ')),
+                ('member', models.ForeignKey(db_column='member_user_id', on_delete=django.db.models.deletion.CASCADE, related_name='group_memberships', to='accounts.account', verbose_name='メンバー(アカウント)')),
+            ],
+            options={
+                'verbose_name': 'グループメンバー',
+                'verbose_name_plural': 'グループメンバー',
+                'db_table': 'group_member',
+                'unique_together': {('group', 'member')},
+            },
+        ),
+        migrations.AddField(
+            model_name='group',
+            name='members',
+            field=models.ManyToManyField(related_name='joined_groups', through='codemon.GroupMember', to='accounts.account'),
+        ),
+        migrations.CreateModel(
+            name='ReadReceipt',
+            fields=[
+                ('id', models.BigAutoField(primary_key=True, serialize=False)),
+                ('read_at', models.DateTimeField(auto_now_add=True)),
+                ('message', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='read_receipts', to='codemon.chatmessage')),
+                ('reader', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='accounts.account')),
+            ],
+            options={
+                'verbose_name': '既読レシート',
+                'verbose_name_plural': '既読レシート',
+                'db_table': 'chat_read_receipt',
+            },
+        ),
+        migrations.CreateModel(
+            name='SystemElement',
+            fields=[
+                ('element_id', models.BigAutoField(primary_key=True, serialize=False)),
+                ('element_type', models.CharField(max_length=50, verbose_name='要素タイプ')),
+                ('element_label', models.CharField(blank=True, max_length=200, null=True, verbose_name='要素ラベル')),
+                ('element_value', models.TextField(blank=True, null=True, verbose_name='要素値')),
+                ('position_x', models.IntegerField(default=0, verbose_name='X座標')),
+                ('position_y', models.IntegerField(default=0, verbose_name='Y座標')),
+                ('width', models.IntegerField(blank=True, null=True, verbose_name='幅')),
+                ('height', models.IntegerField(blank=True, null=True, verbose_name='高さ')),
+                ('style_data', models.JSONField(blank=True, null=True, verbose_name='スタイルデータ')),
+                ('element_config', models.JSONField(blank=True, null=True, verbose_name='要素設定')),
+                ('sort_order', models.IntegerField(default=0, verbose_name='表示順')),
+                ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='作成日時')),
+                ('updated_at', models.DateTimeField(auto_now=True, verbose_name='更新日時')),
+                ('system', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='elements', to='codemon.system', verbose_name='システムID')),
+            ],
+            options={
+                'verbose_name': 'システム要素',
+                'verbose_name_plural': 'システム要素',
+                'db_table': 'system_element',
+                'ordering': ['sort_order', 'element_id'],
+            },
+        ),
+        migrations.RunPython(code=lambda apps, schema_editor: schema_editor.execute('DROP TABLE IF EXISTS "attachment";'), reverse_code=migrations.RunPython.noop),
+        # Safely drop legacy tables if they exist (best-effort cleanup)
+        migrations.RunPython(code=_safe_drop_legacy_tables, reverse_code=migrations.RunPython.noop),
     ]
