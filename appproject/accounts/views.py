@@ -329,6 +329,7 @@ def karihome(request):
     from .models import AiConfig
     ai_name = 'うたー'  # デフォルト値
     character = 'inu'  # デフォルト値（イヌ）
+    appearance = 'イヌ.png'  # デフォルト値
     try:
         acc = get_logged_account(request)
         if acc:
@@ -337,6 +338,7 @@ def karihome(request):
                 if ai_config.ai_name:
                     ai_name = ai_config.ai_name
                 if ai_config.appearance:
+                    appearance = ai_config.appearance
                     # appearanceからキャラクターIDを決定
                     # appearance値がファイル名形式(例: dog.png)の場合に対応
                     appearance_lower = ai_config.appearance.lower().replace('.png', '')
@@ -367,7 +369,8 @@ def karihome(request):
     
     return render(request, 'accounts/karihome.html', {
         'ai_name': ai_name,
-        'character': character
+        'character': character,
+        'appearance': appearance
     })
 
 def login_choice(request):
@@ -1410,7 +1413,7 @@ def group_create(request):
                 # 多くの既存 DB スキーマでは group.password が NOT NULL の場合があるため
                 # raw SQL で確実に挿入する
                 with connection.cursor() as cursor:
-                    cursor.execute('INSERT INTO "group" (group_name, user_id, password, is_active, created_at, updated_at) VALUES (%s, %s, %s, %s, now(), now())', [group_name, user_id, hashed or '', True])
+                    cursor.execute('INSERT INTO "group" (group_name, user_id, password, owner_id, is_active, created_at, updated_at) VALUES (%s, %s, %s, %s, %s, now(), now())', [group_name, user_id, hashed or '', user_id, True])
                     # 挿入した行を取得（group_name と user_id の組で最新のものを選ぶ）
                     cursor.execute('SELECT group_id FROM "group" WHERE group_name = %s AND user_id = %s ORDER BY group_id DESC LIMIT 1', [group_name, user_id])
                     row = cursor.fetchone()

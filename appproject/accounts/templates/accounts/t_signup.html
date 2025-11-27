@@ -33,7 +33,7 @@
                 <div class="form-grid">
                     <label class="label">名前</label>
                     <div class="control">
-                        <input type="text" name="user_name" id="id_name" required value="{{ form.user_name.value|default_if_none:'' }}">
+                        <input type="text" name="user_name" id="id_user_name" required value="{{ form.user_name.value|default_if_none:'' }}">
                         {% if form.user_name.errors %}
                             <div class="error">{{ form.user_name.errors.0 }}</div>
                         {% endif %}
@@ -48,20 +48,24 @@
                     </div>
 
                     <label class="label">パスワード</label>
-                    <div class="control"><input type="password" id="id_password1" name="password1" required></div>
-                    {% if form.password1.errors %}
-                        <div class="error">{{ form.password1.errors.0 }}</div>
-                    {% endif %}
+                    <div class="control">
+                        <input type="password" id="id_password1" name="password1" required>
+                        {% if form.password1.errors %}
+                            <div class="error">{{ form.password1.errors.0 }}</div>
+                        {% endif %}
+                    </div>
 
                     <label class="label">パスワード確認</label>
-                    <div class="control"><input type="password" id="id_password2" name="password2" required></div>
-                    {% if form.password2.errors %}
-                        <div class="error">{{ form.password2.errors.0 }}</div>
-                    {% endif %}
+                    <div class="control">
+                        <input type="password" id="id_password2" name="password2" required>
+                        {% if form.password2.errors %}
+                            <div class="error">{{ form.password2.errors.0 }}</div>
+                        {% endif %}
+                    </div>
 
                     <label class="label">年齢</label>
                     <div class="control age-wrap">
-                        <select id="id_age" name="age">
+                        <select id="id_age" name="age" required>
                             <option value="">▽</option>
                             {% for i in ages %}
                                 <option value="{{ i }}"{% if form.age.value|stringformat:"s" == i|stringformat:"s" %} selected{% endif %}>{{ i }}歳</option>
