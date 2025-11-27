@@ -503,6 +503,53 @@ def checklist_selection(request):
         # ログイン済みユーザー向けの一覧を設定
         checklists = Checklist.objects.filter(user=owner).order_by('-updated_at')
 
+    # --- AIキャラクター選択の反映 ---
+    try:
+        # 優先順: セッションの selected_appearance -> アカウントの AiConfig.appearance -> 既存の session.ai_character -> デフォルト
+        appearance_map = {
+            'dog': 'inu', 'dog.png': 'inu', 'イヌ': 'inu', '犬': 'inu',
+            'cat': 'neko', 'cat.png': 'neko', 'ネコ': 'neko', '猫': 'neko',
+            'rabbit': 'usagi', 'rabbit.png': 'usagi', 'ウサギ': 'usagi', '兎': 'usagi',
+            'panda': 'panda', 'panda.png': 'panda',
+            'fox': 'kitsune', 'fox.png': 'kitsune', 'キツネ': 'kitsune',
+            'squirrel': 'risu', 'squirrel.png': 'risu', 'リス': 'risu',
+            'owl': 'fukurou', 'owl.png': 'fukurou', 'フクロウ': 'fukurou',
+            'alpaca': 'arupaka', 'alpaca.png': 'arupaka', 'アルパカ.png': 'arupaka'
+        }
+
+        char = None
+        # 1) セッションに一時保存された選択肢
+        sel = request.session.get('selected_appearance')
+        if sel:
+            key = sel.lower().replace('.png', '')
+            char = appearance_map.get(key) or appearance_map.get(sel)
+
+        # 2) アカウントに保存された AiConfig
+        if not char:
+            try:
+                from accounts.models import AiConfig
+                owner_id = None
+                if not getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
+                    owner_id = getattr(owner, 'user_id', getattr(owner, 'id', None))
+                if owner_id:
+                    cfg = AiConfig.objects.filter(user_id=owner_id).first()
+                    if cfg and cfg.appearance:
+                        key = cfg.appearance.lower().replace('.png', '')
+                        char = appearance_map.get(key) or appearance_map.get(cfg.appearance)
+            except Exception:
+                # ignore and fallback
+                pass
+
+        # 3) 既にセッションに入っている値、またはデフォルト
+        if not char:
+            char = request.session.get('ai_character', 'inu')
+
+        request.session['ai_character'] = char
+        request.session.modified = True
+    except Exception:
+        # 安全性: 例外は握り潰してテンプレートは通常通り描画
+        pass
+
     return render(request, 'codemon/checklist_selection.html', {'checklists': checklists})
 
 def checklist_list(request):

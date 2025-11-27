@@ -1,17 +1,63 @@
 {% extends 'base.html' %}
+{% load static %}
+{% block title %}チェックリスト - Codemon{% endblock %}
 
-{% block title %}チェックリスト選択 - Codemon{% endblock %}
+{% block body_class %} class="no-scroll"{% endblock %}
+
+{% block background_frame %}
+
+<img src="{% static 'codemon/images/frames/bg_frame_green.png' %}" 
+     alt="" 
+     class="bg-frame frame-green"
+     onerror="this.style.display='none';">
+{% endblock %}
 
 {% block extra_css %}
 <style>
 .checklist-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  padding: 40px 20px;
+  padding: 30px;
+  min-height: calc(100vh - 140px);
+  gap: 18px;
 }
 
+/* 保険: 親を相対位置にして絶対配置の子を中央にできるようにする */
+.checklist-container { position: relative; }
+
 .create-button {
-  margin: 30px auto;
-  max-width: 400px;
+  margin: 0 auto;
+  width: 100%;
+  max-width: min(92vw, 980px);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+}
+
+/* 絶対配置で確実に中央に置くためのユーティリティクラス */
+.create-button.center {
+  /* ビューポート基準で中央に固定する（親の高さやスクロールに影響されない） */
+  position: fixed;
+  top: 50%;
+  left: 44%; /* 中央よりやや左寄せ（画像イメージに合わせる） */
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  width: min(92vw, 980px);
+  padding: 0 12px;
+}
+
+@media (max-width: 480px) {
+  /* モバイルでは固定だと邪魔になる可能性があるため相対配置に戻す */
+  .create-button.center {
+    position: static;
+    transform: none;
+    margin-top: 24px;
+    width: 100%;
+  }
 }
 
 .btn-list, .btn-create {
@@ -24,13 +70,12 @@
   font-size: 18px;
   font-weight: bold;
   transition: all 0.3s;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  box-shadow: none; /* シャドウを無効化 */
 }
 
 .btn-list:hover, .btn-create:hover {
   background-color: #218838;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+  box-shadow: none; /* ホバー時の影も無効化 */
 }
 
 .no-items {
@@ -41,7 +86,7 @@
 
 .chat-ai-bubble {
   position: fixed;
-  right: 20px;
+  right: 20px !important;
   bottom: 20px;
   z-index: 9999;
   display: flex;
@@ -67,29 +112,64 @@
 }
 .chat-button i { font-size: 16px }
 .chat-button span { font-weight: 600 }
+/* 画像ボタン用スタイル（選択ボタン画像を使用） */
+.btn-create { position: relative; display: block; padding: 0; background: none; }
+.btn-create img { width: 100%; max-width: 420px; height: auto; display: block; border-radius: 999px; box-shadow: none !important; transition: transform 0.22s ease; }
+.btn-create + .btn-create { margin-top: 14px; }
+.btn-create:hover img { box-shadow: none !important; }
+
+/* キーボードやクリックでフォーカスしたときのブラウザデフォルトの枠を無効化 */
+.btn-create:focus,
+.btn-create:active,
+.btn-create:focus-visible,
+.btn-create img:focus,
+.btn-create img:active,
+.btn-create img:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* タップハイライトの無効化（モバイル） */
+.btn-create, .btn-create img { -webkit-tap-highlight-color: transparent; }
+.btn-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #04353b;
+  font-weight: 600;
+  font-size: 18px;
+  pointer-events: none;
+  white-space: nowrap;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+}
+
+@media (max-width: 768px) {
+  .btn-create img { max-width: 320px; }
+  .btn-label { font-size: 16px; }
+}
+
+/* 微調整: 下のボタンをわずかに左にズラして重なり感を出す（大きい画面のみ） */
+@media (min-width: 900px) {
+  .create-button.center .btn-create:nth-child(2) { transform: translateX(-14px); }
+}
 </style>
 {% endblock %}
 
 {% block content %}
-<h1 style="text-align: center; margin-bottom: 40px;">チェックリスト</h1>
-
-<div class="chat-ai-bubble">
-  <a href="{% url 'codemon:chat' %}" class="chat-button msg-tag-button" aria-label="メッセージ" title="メッセージ">
-    <i class="fas fa-tag"></i>
-    <span style="margin-left:8px;">メッセージ</span>
-  </a>
-  <a href="#" class="chat-button ai-chat-button" aria-label="AIチャット">
-    <i class="fas fa-comments"></i>
-    <span style="margin-left:8px;">AIチャット</span>
-  </a>
-</div>
 
 <div class="checklist-container">
-  <div class="create-button">
-    <a href="{% url 'codemon:checklist_list' %}" class="btn-list">作成したチェックリスト一覧</a>
+  <div class="create-button center">
+    <a href="{% url 'codemon:checklist_list' %}" class="btn-create" role="button" aria-label="作成したチェックリスト一覧">
+      <img src="{% static 'codemon/images/buttons/selection_green.png' %}" alt="作成したチェックリスト一覧" onerror="this.style.display='none'">
+      <span class="btn-label">作成したチェックリスト一覧</span>
+    </a>
+
+    <a href="{% url 'codemon:checklist_create' %}" class="btn-create" role="button" aria-label="新しいチェックリストを作る">
+      <img src="{% static 'codemon/images/buttons/selection_green.png' %}" alt="新しいチェックリストを作る" onerror="this.style.display='none'">
+      <span class="btn-label">新しいチェックリストを作る</span>
+    </a>
   </div>
-  <div class="create-button">
-    <a href="{% url 'codemon:checklist_create' %}" class="btn-create" role="button" onclick="window.location.href='{% url 'codemon:checklist_create' %}'; return true;">新しいチェックリストを作る</a>
-  </div>
+
 </div>
 {% endblock %}
