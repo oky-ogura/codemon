@@ -3,6 +3,7 @@ from django.contrib.auth.hashers import make_password # <= ここにあるので
 from django.contrib.auth import views as auth_views
 # 以下のブロックは、HEADとmainのインポートを統合したもの
 from django.http import HttpResponseRedirect, HttpResponseForbidden, FileResponse, JsonResponse
+from django.contrib import messages
 
 from .models import Account
 from .forms import StudentSignupForm
