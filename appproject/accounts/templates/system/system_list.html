@@ -133,7 +133,11 @@
             <li data-id="{{ s.system_id }}" style="border-radius:8px;padding:12px 14px;display:flex;align-items:center;gap:16px;">
               <div style="flex:1;min-width:0;font-weight:700;font-size:15px;color:#0b2f5a;">{{ s.system_name }}</div>
               <div style="flex:1;min-width:0;color:#666;font-size:13px;">作成日: {{ s.created_at|date:"Y年n月j日 H:i" }}</div>
+              {% if s.created_at != s.updated_at %}
               <div style="flex:1;min-width:0;color:#666;font-size:13px;">更新日: {{ s.updated_at|date:"Y年n月j日 H:i" }}</div>
+              {% else %}
+              <div style="flex:1;min-width:0;color:#666;font-size:13px;"></div>
+              {% endif %}
               <button class="system-detail-btn" data-system-id="{{ s.system_id }}">詳細</button>
             </li>
             {% endfor %}
@@ -207,7 +211,12 @@
         html += `<li data-id="${s.system_id}" style="border-radius:8px;padding:12px 14px;display:flex;align-items:center;gap:16px;">`;
         html += `<div style="flex:1;min-width:0;font-weight:700;font-size:15px;color:#0b2f5a;">${escapeHtml(s.system_name)}</div>`;
         html += `<div style="flex:1;min-width:0;color:#666;font-size:13px;">作成日: ${escapeHtml(s.created_at)}</div>`;
-        html += `<div style="flex:1;min-width:0;color:#666;font-size:13px;">更新日: ${escapeHtml(s.updated_at)}</div>`;
+        // 作成日と更新日が異なる場合のみ更新日を表示
+        if (s.created_at !== s.updated_at) {
+          html += `<div style="flex:1;min-width:0;color:#666;font-size:13px;">更新日: ${escapeHtml(s.updated_at)}</div>`;
+        } else {
+          html += `<div style="flex:1;min-width:0;color:#666;font-size:13px;"></div>`;
+        }
         html += `<button class="system-detail-btn" data-system-id="${s.system_id}">詳細</button>`;
         html += `</li>`;
       }
