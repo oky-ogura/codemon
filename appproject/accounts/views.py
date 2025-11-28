@@ -27,11 +27,12 @@ from django.conf import settings
 from django import forms
 from django.http import HttpResponseRedirect, HttpResponseForbidden, FileResponse, JsonResponse
 from .forms import TeacherSignupForm, StudentSignupForm, ProfileEditForm
-from .models import Account, Group, GroupMember
+
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.core import signing
 from django.template.loader import render_to_string
+
 from django.db import connection, transaction
 from django.utils import timezone
 from django.contrib.messages import get_messages
@@ -41,6 +42,7 @@ import datetime
 from codemon.models import System, Algorithm, SystemElement
 import json
 from types import SimpleNamespace
+from .models import Account, Group, GroupMember
 try:
     from codemon.views import _get_write_owner
 except Exception:
@@ -56,6 +58,11 @@ except Exception:
         if getattr(request, 'user', None) and getattr(request.user, 'is_authenticated', False):
             return request.user
         return None
+
+from django.db import connection, transaction
+from django.utils import timezone
+import logging
+from django.contrib.auth.hashers import make_password
 
 
 
@@ -331,13 +338,14 @@ def account_session_required(view_func):
 
 @account_session_required
 def karihome(request):
+
     print(f"DEBUG karihome view: session_key={request.session.session_key} data={dict(request.session)}")
     
     # AI設定を取得してAI名前とキャラクターをテンプレートに渡す
     from .models import AiConfig
     ai_name = 'うたー'  # デフォルト値
     character = 'inu'  # デフォルト値（イヌ）
-    appearance = 'イヌ.png'  # デフォルト値
+    appearance = 'イヌ.png'  # デフォルト値（実際のファイル名）
     try:
         acc = get_logged_account(request)
         if acc:
@@ -346,32 +354,13 @@ def karihome(request):
                 if ai_config.ai_name:
                     ai_name = ai_config.ai_name
                 if ai_config.appearance:
+                    # appearanceはそのまま使用（例: イヌ.png, ウサギ.png）
                     appearance = ai_config.appearance
-                    # appearanceからキャラクターIDを決定
-                    # appearance値がファイル名形式(例: dog.png)の場合に対応
-                    appearance_lower = ai_config.appearance.lower().replace('.png', '')
-                    appearance_map = {
-                        'dog': 'inu',
-                        'cat': 'neko',
-                        'rabbit': 'usagi',
-                        'panda': 'panda',
-                        'fox': 'kitsune',
-                        'squirrel': 'risu',
-                        'owl': 'fukurou',
-                        'alpaca': 'arupaka',
-                        'イヌ': 'inu',
-                        'ネコ': 'neko',
-                        'ウサギ': 'usagi',
-                        'パンダ': 'panda',
-                        'キツネ': 'kitsune',
-                        'リス': 'risu',
-                        'フクロウ': 'fukurou',
-                        'アルパカ': 'arupaka',
-                        '犬': 'inu',
-                        '猫': 'neko',
-                        '兎': 'usagi',
-                    }
-                    character = appearance_map.get(appearance_lower, appearance_map.get(ai_config.appearance, 'inu'))
+                    # .pngがついていない場合は追加
+                    if not appearance.endswith('.png'):
+                        appearance = appearance + '.png'
+                    # characterはファイル名から拡張子を除いたもの
+                    character = ai_config.appearance.replace('.png', '')
     except Exception as e:
         print(f"AI設定の取得エラー: {e}")
     
@@ -380,6 +369,7 @@ def karihome(request):
         'character': character,
         'appearance': appearance
     })
+
 
 def login_choice(request):
     """ログイン種別の選択ページ（教師 or 生徒）を表示する簡易ビュー"""
@@ -410,7 +400,7 @@ def ai_appearance(request):
         # 外見選択後は初期設定画面へ遷移させる
         return redirect('accounts:ai_initial')
 
-    appearances = ['イヌ.png', 'ウサギ.png', 'キツネ.png', 'ネコ.png', 'パンダ.png', 'フクロウ.png', 'リス.png']
+    appearances = ['イヌ.png', 'ウサギ.png', 'キツネ.png', 'ネコ.png', 'パンダ.png', 'フクロウ.png', 'リス.png', 'アルパカ.png']
     return render(request, 'accounts/ai_appearance.html', {'appearances': appearances})
 
 
@@ -430,6 +420,7 @@ def ai_initial_settings(request):
         'パンダ.png': {'personality': '元気', 'speech': 'だよ'},
         'フクロウ.png': {'personality': '冷静', 'speech': 'ですな'},
         'リス.png': {'personality': '元気', 'speech': 'なのだ'},
+        'アルパカ.png': {'personality': '穏やか', 'speech': 'もふ'},
     }
 
     # POST は基本的に確認画面へ遷移するためのデータ送信に使い、
@@ -631,7 +622,7 @@ def system_index(request):
     # ログインユーザーの他のシステム一覧を取得
     account = get_logged_account(request)
     other_systems_json = '[]'
-    algorithms_json = '[]'
+    algorithms_json = '[]'  # アルゴリズム一覧を追加
     
     if account:
         try:
@@ -667,7 +658,7 @@ def system_index(request):
             pass
 
     context['other_systems_json'] = other_systems_json
-    context['algorithms_json'] = algorithms_json
+    context['algorithms_json'] = algorithms_json  # コンテキストに追加
 
     if system_id:
         try:
@@ -1488,7 +1479,7 @@ def group_create(request):
                 # 多くの既存 DB スキーマでは group.password が NOT NULL の場合があるため
                 # raw SQL で確実に挿入する
                 with connection.cursor() as cursor:
-                    cursor.execute('INSERT INTO "group" (group_name, user_id, password, owner_id, is_active, created_at, updated_at) VALUES (%s, %s, %s, %s, %s, now(), now())', [group_name, user_id, hashed or '', user_id, True])
+                    cursor.execute('INSERT INTO "group" (group_name, user_id, password, is_active, created_at, updated_at) VALUES (%s, %s, %s, %s, now(), now())', [group_name, user_id, hashed or '', True])
                     # 挿入した行を取得（group_name と user_id の組で最新のものを選ぶ）
                     cursor.execute('SELECT group_id FROM "group" WHERE group_name = %s AND user_id = %s ORDER BY group_id DESC LIMIT 1', [group_name, user_id])
                     row = cursor.fetchone()
@@ -2141,13 +2132,13 @@ def account_entry(request):
     with connection.cursor() as cursor:
         if user_id:
             cursor.execute(
-                "SELECT user_id, user_name, email, account_type, age, group_id, created_at "
+                "SELECT user_id, user_name, email, account_type, age, group_id, created_at, avatar "
                 "FROM account WHERE user_id = %s",
                 [user_id]
             )
         else:
             cursor.execute(
-                "SELECT user_id, user_name, email, account_type, age, group_id, created_at "
+                "SELECT user_id, user_name, email, account_type, age, group_id, created_at, avatar "
                 "FROM account WHERE email = %s",
                 [email]
             )
@@ -2162,6 +2153,7 @@ def account_entry(request):
             'age': row[4],
             'group_id': row[5],
             'created_at': row[6],
+            'avatar': row[7],
         }
 
     # created_at -> 初めて会った日（datetime）と累計日数（文字列）を計算

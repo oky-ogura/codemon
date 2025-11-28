@@ -189,7 +189,17 @@
                     </div>
                     <div class="info-row">
                         <div class="info-label">年齢</div>
-                        <div class="info-value">{{ request.user.age|default:"未設定" }} 歳</div>
+                        <div class="info-value">
+                            {% if request.user.age %}
+                                {{ request.user.age }} 歳
+                            {% elif request.session.account_age %}
+                                {{ request.session.account_age }} 歳
+                            {% elif request.session.pending_account_age %}
+                                {{ request.session.pending_account_age }} 歳
+                            {% else %}
+                                未設定
+                            {% endif %}
+                        </div>
                     </div>
                     <div class="info-row">
                         <div class="info-label">メールアドレス</div>
@@ -299,9 +309,10 @@
     const baseStatic = "{% static 'codemon/images/characters/' %}";
     const appearance = "{{ appearance|default:''|escapejs }}";
     const ill = document.getElementById('ai_ill');
-    if(appearance){ 
-        ill.src = baseStatic + encodeURIComponent(appearance); 
-        ill.alt = appearance; 
+    if(appearance){
+        // appearanceはそのまま動物名（例：イヌ、ウサギ）なので、.pngを付けるだけ
+        ill.src = baseStatic + encodeURIComponent(appearance);
+        ill.alt = appearance;
     }
 </script>
 </body>

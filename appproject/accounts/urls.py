@@ -97,4 +97,3 @@ urlpatterns = [
     path('block/delete/success/', views.block_delete_success, name='block_delete_success'),
     path('system/tutorial/', views.system_tutorial, name='system_tutorial'),
 ]
-

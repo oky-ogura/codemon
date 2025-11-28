@@ -58,7 +58,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     # Custom middleware to render friendly 500 page for DB/server errors
-    'appproject.middleware.system_error_middleware.SystemErrorMiddleware',
+    # 'appproject.middleware.system_error_middleware.SystemErrorMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -77,8 +77,9 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
+                 'django.template.context_processors.request',
+                 'django.contrib.auth.context_processors.auth',
+                 'accounts.context_processors.global_character_data',
                 'django.contrib.messages.context_processors.messages',
             ],
         },
@@ -267,7 +268,7 @@ LOGGING = {
 # AI integration settings (external API)
 AI_API_KEY = os.getenv('AI_API_KEY', '')
 # Default model to call for chat completions
-AI_MODEL = os.getenv('AI_MODEL', 'gpt-3.5-turbo')
+AI_MODEL = os.getenv('AI_MODEL', 'gemini-2.0-flash')
 # Development-time email backend: print emails to console so password-reset links are visible during development
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
