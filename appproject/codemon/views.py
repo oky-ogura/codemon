@@ -1324,6 +1324,14 @@ def ai_chat_api(request):
     message = (body.get("message") or "").strip()
     character = body.get("character") or "usagi"
     conv_id = body.get("conversation_id")
+    
+    # デバッグログ
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"=== AI Chat API Called ===")
+    logger.info(f"Received body: {body}")
+    logger.info(f"Character ID: {character}")
+    logger.info(f"Message: {message}")
 
     if not message:
         return JsonResponse({"error": "message required"}, status=400)

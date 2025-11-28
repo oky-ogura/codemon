@@ -336,6 +336,8 @@
     <img src="{% static 'codemon/images/characters/' %}{{ appearance|default:'イヌ.png' }}" 
          alt="AIキャラクター" 
          class="character-image"
+         id="characterImage"
+         data-character="{{ character|default:'inu' }}"
          onerror="this.src='{% static 'codemon/images/characters/イヌ.png' %}'">
   </div>
 
@@ -372,7 +374,7 @@
   <script>
     // チャット機能
     document.addEventListener('DOMContentLoaded', function() {
-      const character = document.querySelector('.character-image');
+      const character = document.getElementById('characterImage');
       const chatModal = document.getElementById('chatModal');
       const closeChatBtn = document.getElementById('closeChatBtn');
       const sendChatBtn = document.getElementById('sendChatBtn');
@@ -430,17 +432,27 @@
         // ローディング表示
         chatLoading.classList.add('active');
         
+        // デバッグ: キャラクターIDを確認
+        const characterElement = document.getElementById('characterImage');
+        const characterId = characterElement ? characterElement.dataset.character : null;
+        console.log('Character Element:', characterElement);
+        console.log('Character ID from dataset:', characterId);
+        console.log('All data attributes:', characterElement ? characterElement.dataset : null);
+        
         try {
+          const requestBody = {
+            message: message,
+            character: characterId || 'inu'
+          };
+          console.log('Sending request with body:', requestBody);
+          
           const response = await fetch('/codemon/api/ai/chat', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'X-CSRFToken': getCsrf()
             },
-            body: JSON.stringify({
-              message: message,
-              character: '{{ character|default:"inu" }}'
-            })
+            body: JSON.stringify(requestBody)
           });
           
           if (!response.ok) {

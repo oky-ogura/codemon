@@ -359,8 +359,8 @@ def karihome(request):
                     # .pngがついていない場合は追加
                     if not appearance.endswith('.png'):
                         appearance = appearance + '.png'
-                    # characterはファイル名から拡張子を除いたもの
-                    character = ai_config.appearance.replace('.png', '')
+                    # 外見からキャラクターIDを取得（APPEARANCE_TO_CHARACTERマッピングを使用）
+                    character = APPEARANCE_TO_CHARACTER.get(appearance, 'inu')
     except Exception as e:
         print(f"AI設定の取得エラー: {e}")
     
@@ -693,20 +693,32 @@ def get_system_elements(request):
     """
     指定されたシステムの要素データをJSON形式で返すAPIエンドポイント
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     system_id = request.GET.get('system_id')
+    logger.info(f"=== get_system_elements called ===")
+    logger.info(f"system_id: {system_id}")
+    
     if not system_id:
         return JsonResponse({'error': 'system_id is required'}, status=400)
 
     account = get_logged_account(request)
+    logger.info(f"account: {account}")
+    
     if not account:
         return JsonResponse({'error': 'Not authenticated'}, status=401)
 
     try:
         # システムの所有者確認
+        logger.info(f"Fetching system with system_id={system_id} for user={account.user_id}")
         system = System.objects.get(system_id=system_id, user=account)
+        logger.info(f"System found: {system.system_name}")
 
         # システム要素を取得
         elements = SystemElement.objects.filter(system=system).order_by('sort_order', 'element_id')
+        logger.info(f"Found {elements.count()} elements")
+        
         elements_list = []
         for elem in elements:
             elements_list.append({
@@ -727,8 +739,10 @@ def get_system_elements(request):
             'elements': elements_list
         })
     except System.DoesNotExist:
+        logger.error(f"System not found: system_id={system_id}, user={account.user_id}")
         return JsonResponse({'error': 'System not found'}, status=404)
     except Exception as e:
+        logger.error(f"Error in get_system_elements: {str(e)}", exc_info=True)
         return JsonResponse({'error': str(e)}, status=500)
 
 # ブロック作成保存
