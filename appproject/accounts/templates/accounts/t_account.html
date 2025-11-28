@@ -3,6 +3,14 @@
 {% load static %}
 
 {% block title %}アカウント（教員） - Codemon{% endblock %}
+
+{% block background_frame %}
+<img src="{% static 'codemon/images/frames/教員用アカウント画面 (2).png' %}" 
+     alt="" 
+     class="bg-frame"
+     onerror="this.style.display='none';">
+{% endblock %}
+
 {% block extra_css %}
     <style>
         
@@ -11,7 +19,7 @@
         /* メインカード */
         /* ヘッダーが固定表示のため、このページだけ上部に余白を確保する */
         /* 余白をやや大きめにしてヘッダーとの重なりを防止 */
-        .card { max-width:1000px; margin:160px auto 0; background:#fff; border:1px solid #ddd; padding:18px; box-shadow:0 6px 20px rgba(0,0,0,0.05); box-sizing:border-box; }
+        .card { max-width:1000px; margin:160px auto 40px; background:#fff; border:1px solid #ddd; padding:18px; box-shadow:0 6px 20px rgba(0,0,0,0.05); box-sizing:border-box; max-height:calc(100vh - 200px); overflow:visible; }
 
         .main { display:flex; gap:24px; align-items:flex-start; }
         .left { width:220px; text-align:center; }
@@ -52,16 +60,21 @@
         .logout-area { margin-top:14px; }
 
         .info { flex:1; }
-        .info-table { width:100%; border-collapse:collapse; }
-        .info-table td { padding:6px 8px; vertical-align:top; }
-        .info-table .label { width:140px; font-weight:700; color:#666; }
-        .info-table .value { color:#222; }
+        .info-table { border-collapse:collapse; }
+        .info-table td { padding:8px 12px; vertical-align:middle; }
+        .info-table .label { font-weight:700; color:#333; background:#fff; border:1px solid #ddd; border-right:none; border-radius:20px 0 0 20px; }
+        .info-table .value { color:#000; background:#5DD4F5; border:1px solid #5DD4F5; border-left:none; border-radius:0 20px 20px 0; }
 
         .top-row { display:flex; justify-content:space-between; align-items:center; gap:12px; }
         .id-box { font-size:18px; font-weight:700; color:#333; }
 
         /* グループリスト */
         .groups { margin-top:16px; display:flex; flex-direction:column; gap:10px; }
+        .groups-list { display:flex; flex-direction:column; gap:10px; max-height:200px; overflow-y:auto; padding-right:4px; margin-top:10px; padding-bottom:10px; }
+        .groups-list::-webkit-scrollbar { width:8px; }
+        .groups-list::-webkit-scrollbar-track { background:#f1f1f1; border-radius:4px; }
+        .groups-list::-webkit-scrollbar-thumb { background:#bbb; border-radius:4px; }
+        .groups-list::-webkit-scrollbar-thumb:hover { background:#999; }
         .group-row { display:flex; align-items:center; gap:12px; padding:8px; border-radius:6px; background:#f8f9fb; border:1px solid #e6e9ee; }
         .group-name { flex:1; font-weight:600; color:#222; }
         .group-meta { color:#666; font-size:13px; }
@@ -99,10 +112,6 @@
                 {% endwith %}
 
                 <div class="meta">
-                    <div>ID <strong>{{ account.user_id|default:user.id }}</strong></div>
-                    <div>名前 <strong>{{ account.user_name|default:user.get_full_name|default:"codemon" }}</strong></div>
-                    <div>年齢 {{ account.age|default:user.profile.age|default:"38歳" }}</div>
-
                     <div class="logout-area">
                         <form id="logout-form" method="post" action="{% url 'accounts:logout' %}">
                             {% csrf_token %}
@@ -114,16 +123,61 @@
 
             <div class="info">
                 <div class="top-row">
-                    <div class="id-box">名前: {{ account.user_name|default:user.get_full_name|default:"codemon" }}</div>
-                    <div style="text-align:right">
-                        <div>初めて会った日: <strong>{% if first_met %}{{ first_met|date:"Y/n/j" }}{% else %}---{% endif %}</strong></div>
-                        <div>累計日数: <strong>{{ total_days|default:"0日" }}</strong></div>
+                    <div style="flex:1;">
+                        <div style="display:flex;gap:50px;align-items:center;margin-top:12px;">
+                            <table class="info-table" style="flex-shrink:0;border-spacing:0 8px;min-width:280px;">
+                                <tr>
+                                    <td colspan="2" style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;">
+                                        <span style="width:90px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">ID</span>
+                                        <span style="flex:1;padding-right:20px;color:#000;font-size:15px;">{{ account.user_id|default:user.id }}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2" style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;">
+                                        <span style="width:90px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">名前</span>
+                                        <span style="flex:1;padding-right:20px;color:#000;font-size:15px;">{{ account.user_name|default:user.get_full_name|default:"codemon" }}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2" style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;">
+                                        <span style="width:90px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">年齢</span>
+                                        <span style="flex:1;padding-right:20px;color:#000;font-size:15px;">{{ account.age|default:user.profile.age|default:"38" }}歳</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2" style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;">
+                                        <span style="width:90px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">所属</span>
+                                        <span style="flex:1;padding-right:20px;color:#000;font-size:15px;">{{ account.account_type|default:user.profile.kyojin|default:"教員" }}</span>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- AI画像 -->
+                            <div style="text-align:center;flex-shrink:0;">
+                                {% if ai_config and ai_config.appearance %}
+                                    <img src="{% static 'codemon/images/characters/' %}{{ ai_config.appearance }}" 
+                                         alt="AI" 
+                                         style="width:180px;height:180px;object-fit:contain;display:block;"
+                                         onerror="this.src='{% static 'codemon/images/characters/イヌ.png' %}'">
+                                {% else %}
+                                    <div style="width:180px;height:180px;background:#f0f0f0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:48px;">⚪︎</div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- AI名前と日付情報 -->
+                            <div style="display:flex;flex-direction:column;gap:8px;">
+                                <div style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;min-width:280px;">
+                                    <span style="width:90px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">名前</span>
+                                    <span style="flex:1;padding-right:20px;color:#000;font-size:15px;">{{ ai_config.ai_name|default:"codemon" }}</span>
+                                </div>
+                                <div style="text-align:center;font-size:14px;color:#666;">
+                                    <div>初めて会った日　{% if first_met %}{{ first_met|date:"Y/m/d" }}{% else %}---{% endif %}</div>
+                                    <div style="margin-top:4px;">累計　{{ total_days|default:"0日" }}</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
-                <table class="info-table" style="margin-top:12px;">
-                    <tr><td class="label">所属</td><td class="value">{{ account.account_type|default:user.profile.kyojin|default:"教員" }}</td></tr>
-                </table>
 
                 <div class="groups">
                     <div class="groups-header" style="display:flex; align-items:center; justify-content:space-between;">
@@ -132,6 +186,7 @@
                             <a class="btn" href="{% url 'accounts:group_create' %}">新規作成</a>
                         </div>
                     </div>
+                    <div class="groups-list">
                         {% if groups %}
                             {% for g in groups %}
                                 <div class="group-row">
@@ -147,11 +202,7 @@
                         {% else %}
                             <div style="padding:10px 6px; color:#666;">グループはありません</div>
                         {% endif %}
-
-                        
-                        
                     </div>
-
                 </div>
 
             </div>

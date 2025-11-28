@@ -1,119 +1,151 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <title>システム作成</title>
-  <!-- Blockly CDN -->
-  <script src="https://unpkg.com/blockly/blockly.min.js"></script>
-  <script src="https://unpkg.com/blockly/javascript_compressed.js"></script>
-  <script src="https://unpkg.com/blockly/msg/ja.js"></script>
-  <style>
-    :root { --nav-height:56px; --primary:#1976d2; --bg:#f9f9fb; --muted:#666; }
-    .top-nav {
-      box-sizing:border-box;
-      width:100%;
-      max-width:980px;
-      height:var(--nav-height);
-      margin:16px auto 8px;
-      display:flex;
-      align-items:center;
-      gap:12px;
-      padding:6px 12px;
-      background:linear-gradient(180deg,#fff,#fafafa);
-      border-radius:10px;
-      box-shadow:0 1px 3px rgba(0,0,0,0.06);
-      border:1px solid #e6e6e9;
-    }
-    .nav-brand{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      margin-right:8px;
-      padding-right:8px;
-      border-right:1px solid #eee;
-    }
-    .nav-brand .logo{
-      width:36px;
-      height:36px;
-      border-radius:6px;
-      background:var(--primary);
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      color:#fff;
-      font-weight:700;
-      font-size:18px;
-    }
-    .nav-brand .title{
-      font-size:15px;
-      color:#111;
-      font-weight:600;
-    }
-    .nav-tabs{
-      display:flex;
-      justify-content: space-evenly;
-      align-items:center;
-      width:100%;
-    }
-    .nav-tab{
-      appearance:none;
-      border:0;
-      background:transparent;
-      padding:8px 12px;
-      border-radius:8px;
-      font-size:14px;
-      cursor:pointer;
-      color:var(--muted);
-      transition: all .12s ease;
-    }
-    .nav-tab:hover{
-      background:#f0f6ff;
-      color:var(--primary);
-      transform:translateY(-1px);
-    }
-    .nav-tab.active{
-      background:var(--primary);
-      color:#fff;
-      box-shadow:0 2px 6px rgba(25,118,210,0.18);
-    }
+{% extends 'base.html' %}
+{% load static %}
 
-    body {
-      font-family: sans-serif;
-      margin: 20px;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-    }
+{% block background_frame %}
+<img src="{% static 'codemon/images/frames/bg_frame_blue.png' %}" 
+     alt="" 
+     class="bg-frame"
+     onerror="this.style.display='none';">
+{% endblock %}
 
-    .button-bar {
-      width: 860px;
-      display: flex;
-      justify-content: flex-start;
-      align-items: center;
-      margin-bottom: 10px;
-    }
+{% block title %}システム作成 - Codemon{% endblock %}
 
-    .button-bar button {
-      margin-right: 10px;
-      font-size: 16px;
-      padding: 6px 18px;
-      border-radius: 4px;
-      border: 1px solid #bbb;
-      background: #f5f5f5;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .button-bar button:hover {
-      background: #e0e0e0;
-    }
+{% block extra_css %}
+<style>
+  /* Blocklyは外部スクリプトとして読み込む */
+  :root { --nav-height:56px; --primary:#1976d2; --bg:#f9f9fb; --muted:#666; }
 
-    .button-bar button.active {
-      background:#1976d2;
-      color:#fff;
-      box-shadow:0 6px 16px rgba(25,118,210,0.12);
-    }
+  /* ナビゲーション表示状態の制御 */
+  .top-tabs {
+    display: block; /* 常に表示 */
+  }
+
+  /* コンテンツ全体の配置 */
+  .content-wrapper {
+    display: flex;
+    flex-direction: row; /* 横並びに変更 */
+    align-items: flex-start;
+    justify-content: center;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-top: 60px; /* 編集フィールドの位置調整 */
+    padding-bottom: 40px;
+    min-height: auto;
+    overflow-y: visible;
+    gap: 20px;
+  }
+
+  /* 左側のボタンバー（縦並び） */
+  .button-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 180px;
+    flex-shrink: 0;
+    margin-top: 0; /* ボタンバーを上に移動 */
+  }
+
+  /* 矢印ボタンのコンテナ */
+  .undo-redo-btns {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 5px;
+  }
+
+  .undo-redo-btns button {
+    flex: 1;
+    font-size: 15px;
+    padding: 7px;
+    border-radius: 4px;
+    border: 1px solid #bbb;
+    background: #f5f5f5;
+    cursor: pointer;
+    transition: background 0.2s;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .undo-redo-btns button:hover {
+    background: #e0e0e0;
+  }
+
+  .button-bar button {
+    width: 100%;
+    font-size: 15px;
+    padding: 9px 16px;
+    border-radius: 4px;
+    border: 1px solid #bbb;
+    background: #f5f5f5;
+    cursor: pointer;
+    transition: background 0.2s;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .button-bar button:hover {
+    background: #e0e0e0;
+  }
+
+  .button-bar button.active {
+    background:#1976d2;
+    color:#fff;
+    box-shadow:0 6px 16px rgba(25,118,210,0.12);
+  }
+
+  /* 左側ボタンバー内のアクションボタンのスタイル */
+  .button-bar #saveBtn {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .button-bar #saveBtn img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .button-bar #saveBtn:hover {
+    opacity: 0.8;
+  }
+
+  .button-bar #executeBtn {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .button-bar #executeBtn img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .button-bar #executeBtn:hover {
+    opacity: 0.8;
+  }
+
+  /* 右側のメインエリア */
+  .main-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 860px;
+  }
 
     /* フォーム用ドロップダウン */
     .form-dropdown {
@@ -274,8 +306,9 @@
       position: relative;
       background-color: #fdfdfd;
       overflow: hidden;
-      margin: 0 auto;
+      margin: 0 auto 20px auto;
       display: block;
+      flex-shrink: 0;
     }
 
     .input-container {
@@ -613,25 +646,56 @@
       overflow:auto;
     }
 
+    /* ショートカットバー */
+    .shortcut-bar {
+      width: 100%;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
     @media (max-width:980px){
-      .button-bar, .shortcut-bar, #slideArea { width: 92%; max-width:860px; }
+      .content-wrapper {
+        flex-direction: column;
+        align-items: center;
+      }
+      .button-bar {
+        width: 100%;
+        max-width: 860px;
+      }
+      .main-area, .shortcut-bar, #slideArea { width: 92%; max-width:860px; }
       #previewSlideArea { width: calc(100vw - 8px); height: calc(100vh - 72px); }
       .create-options-panel { left: 8px; top: auto; }
     }
   </style>
-</head>
-<body>
-  <header class="top-nav" role="banner" aria-label="メインナビゲーション">
-    <nav class="nav-tabs" role="navigation" aria-label="タブメニュー">
-      <button type="button" class="nav-tab active" id="tab-system" aria-pressed="true" title="システム">システム</button>
-      <button type="button" class="nav-tab" id="tab-algorithm" aria-pressed="false" title="アルゴリズム">アルゴリズム</button>
-      <button type="button" class="nav-tab" id="tab-progress" aria-pressed="false" title="進捗確認">進捗確認</button>
-      <button type="button" class="nav-tab" id="tab-account" aria-pressed="false" title="アカウント">アカウント</button>
-    </nav>
-  </header>
+{% endblock %}
 
-  <h1>システム作成</h1>
+{% block extra_head %}
+  <!-- Blockly CDN -->
+  <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+  <script src="https://unpkg.com/blockly/javascript_compressed.js"></script>
+  <script src="https://unpkg.com/blockly/msg/ja.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+  <!-- 左側のボタンバー（縦並び） -->
   <div class="button-bar">
+    <!-- 矢印ボタン（元に戻す・やり直し） -->
+    <div class="undo-redo-btns">
+      <button id="undoBtn" title="元に戻す (Ctrl+Z)">←</button>
+      <button id="redoBtn" title="やり直し (Ctrl+Y)">→</button>
+    </div>
+
+    <!-- 実行、保存ボタン -->
+    <button id="executeBtn" aria-disabled="false">
+      <img src="{% static 'codemon/images/button/execution_button.png' %}" alt="実行">
+    </button>
+    <button id="saveBtn" aria-disabled="false">
+      <img src="{% static 'codemon/images/button/save_button.png' %}" alt="保存">
+    </button>
+
     <!-- フォームボタン + プルダウン -->
     <div class="form-dropdown" id="formDropdownWrap">
       <button id="formBtn" aria-haspopup="true" aria-expanded="false">フォーム ▾</button>
@@ -661,20 +725,13 @@
     <button id="addButtonBtn">ボタン追加</button>
   </div>
 
-  <div class="shortcut-bar">
-    <button id="undoBtn" title="元に戻す (Ctrl+Z)">←</button>
-    <button id="redoBtn" title="やり直し (Ctrl+Y)">→</button>
-
-    <div class="shortcut-btns" aria-hidden="false">
-      <button id="clearAllBtn" aria-disabled="false">全削除</button>
-      <button id="executeBtn" aria-disabled="false">実行</button>
-      <button id="saveBtn" aria-disabled="false">保存</button>
+  <!-- 右側のメインエリア -->
+  <div class="main-area">
+    <div id="slideArea">
+      <div id="trash" title="ここにドラッグで削除">🗑️</div>
     </div>
   </div>
-
-  <div id="slideArea">
-    <div id="trash" title="ここにドラッグで削除">🗑️</div>
-  </div>
+</div>
 
   <script>
     // 編集モードの場合、既存システム情報を保持
@@ -3104,5 +3161,4 @@
     }
   </script>
 
-</body>
-</html>
+{% endblock %}

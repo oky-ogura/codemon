@@ -77,7 +77,7 @@
               <td>{{ m.member.user_name }}</td>
               <td style="text-align:right">
                 <div class="actions">
-                  <a class="btn-check" href="#">チェックリスト閲覧</a>
+                  <a class="btn-check" href="{% url 'codemon:checklist_list' %}?user_id={{ m.member.user_id }}">チェックリスト閲覧</a>
                   {% comment %} 教員ロールのメンバーは削除ボタンを表示しない {% endcomment %}
                   {% if m.role|default:'' != 'teacher' %}
                       <form method="post" action="{% url 'codemon:group_remove_member' group_id m.member.user_id %}" class="delete-member-form" style="display:inline"
