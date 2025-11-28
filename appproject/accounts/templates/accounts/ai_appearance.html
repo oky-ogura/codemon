@@ -153,9 +153,21 @@ transition:opacity 0.2s;
             box-shadow:0 0 0 #00bfff;
         }
 
-        .nav-left,.nav-right{position:absolute;left:20px;top:50%;transform:translateY(-50%);cursor:pointer;transition:opacity 0.3s}
-        .nav-right{left:auto;right:20px}
+        .nav-left,.nav-right{position:absolute;left:25%;top:50%;transform:translateY(-50%);cursor:pointer;transition:opacity 0.3s;width:80px;height:80px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+        .nav-right{left:auto;right:25%}
         .nav-left:hover,.nav-right:hover{opacity:0.7}
+        .nav-left .nav-button{
+            border-top:20px solid transparent;
+            border-bottom:20px solid transparent;
+            border-right:30px solid #FFC857;
+            margin-right:5px;
+        }
+        .nav-right .nav-button{
+            border-top:20px solid transparent;
+            border-bottom:20px solid transparent;
+            border-left:30px solid #FFC857;
+            margin-left:5px;
+        }
         .controls{display:flex;justify-content:space-between;padding:10px 0}
         .btn{padding:12px 40px;border-radius:8px;border:none;cursor:pointer;font-size:16px;font-weight:bold;transition:all 0.3s}
         .btn.primary{background:#5dade2;color:#fff}
