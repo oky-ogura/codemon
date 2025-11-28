@@ -11,18 +11,28 @@
 /* ページ固有：ナビゲーションの高さ分だけコンテンツを下げる */
 .content-wrapper { padding-top: 140px !important; }
 
-/* ヒーロー画像 */
-.page-hero { text-align: center; margin-bottom: 12px; }
-.page-hero-img { max-width: 640px; width: 60%; height: auto; display: inline-block; }
+/* ページヘッダー用画像（フォーム上部の飾り） */
+.page-hero {
+  text-align: center;
+  margin-bottom: 12px;
+}
+.page-hero-img {
+  /* 幅をナビゲーション中段の「アルゴリズム」→「チェックリスト」区間に近づける */
+  width: min(26vw, 640px);
+  max-width: 640px;
+  height: auto;
+  display: block;
+  margin: 25px auto 22px; /* 中央に寄せつつ下の余白を広めに */
+}
 
-.checklist-edit-container { max-width: 700px; margin: 120px auto 160px; padding: 25px 30px; position: relative; z-index:20; background-color:#f9f9f9; border:1px solid #ddd; border-radius:10px; }
+.checklist-edit-container { max-width: 700px; margin: 120px auto 160px; padding: 25px 30px; position: relative; z-index:20; background-color: transparent; border: none; box-shadow: none; }
 .checklist-edit-container h2 { text-align:center; margin-bottom:25px; }
 
 /* 左側に縦並びのアクション（項目追加／保存／戻る）を配置 */
-.side-actions { position: absolute; left: -120px; top: 60px; display: flex; flex-direction: column; gap: 12px; }
+.side-actions { position: absolute; left: -280px; top: 230px; display: flex; flex-direction: column; gap: 12px; }
 .side-actions a, .side-actions button { display: inline-block; background: none; border: none; padding: 0; cursor: pointer; }
-.side-actions img { height: 56px; display: block; }
-.side-actions .btn-add img { height: 48px; }
+.side-actions img { height: 45px; display: block; }
+.side-actions .btn-add img { height: 45px; }
 
 @media (max-width: 800px) {
   .side-actions { left: 10px; position: relative; top: 0; flex-direction: row; gap: 8px; }
@@ -32,8 +42,15 @@
 
 /* 入力フィールド共通 */
 .form-group { margin-bottom: 20px; }
-label { display: block; margin-bottom: 6px; font-weight: bold; }
-input[type="text"], textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+label { display: block; margin-bottom: 10px; font-weight: bold; }
+input[type="text"], textarea { width: 100%; padding: 10px; box-sizing: border-box; background: transparent; border: none; border-radius: 0; }
+
+/* field-bg コンテナの白背景・枠を取り除く（必須） */
+.field-bg { background: transparent !important; border: none !important; box-shadow: none !important; }
+.field-bg input[type="text"], .field-bg textarea { background: transparent; border: none; }
+
+/* form 内のフォールバック保存ボタン用（画像以外のボタンがあれば透過） */
+.btn-save-fallback { background: transparent; border: none; box-shadow: none; }
 
 /* 項目用 */
 #checklist-items-container .checklist-item { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
@@ -47,6 +64,163 @@ input[type="text"], textarea { width: 100%; padding: 10px; border: 1px solid #cc
 .form-actions .btn-back, .form-actions .btn-save { display:inline-block; margin:0 8px; }
 .form-actions img { height:56px; max-width:220px; }
 @media (max-width:480px){ .form-actions img { height:44px; } }
+
+/* ===== 個別画像コンテナ用スタイル (調整は --img-* 変数で上書き) ===== */
+/* チェックリスト名 */
+.checklist-name {
+  position: relative;
+  --img-w: 290px;   /* 画像幅 */
+  --img-h: 70px;    /* 画像高さ */
+  --img-left: -160px;  /* 画像の左オフセット */
+  --img-top: 15px;   /* 画像の上オフセット */
+  width: 100%;
+  min-height: var(--img-h);
+}
+.checklist-name img {
+  position: absolute;
+  left: var(--img-left);
+  top: var(--img-top);
+  width: var(--img-w);
+  height: var(--img-h);
+  object-fit: contain;
+  display: block;
+}
+
+/* 画像上に表示用タイトルと入力欄を重ねる（位置は各 --*-* 変数で調整） */
+.checklist-name-title {
+  position: absolute;
+  /* デフォルトは画像内の白領域あたりに表示（画像内オフセット） */
+  left: var(--title-left, calc(var(--img-left) + 40px));
+  top: var(--title-top, calc(var(--img-top) + 12px));
+  color: var(--title-color, #000);
+  font-size: var(--title-size, 20px);
+  font-weight: bold;
+  z-index: 3;
+}
+
+.checklist-name-input {
+  position: absolute;
+  /* デフォルトは画像内の青いバー上に配置 */
+  left: var(--input-left, calc(var(--img-left) + 18px));
+  top: var(--input-top, calc(var(--img-top) + 36px));
+  width: var(--input-width, calc(var(--img-w) - 36px));
+  z-index: 2;
+}
+.checklist-name-input input[type="text"] {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: #000;
+  font-size: 18px;
+  padding: 6px 8px;
+  box-sizing: border-box;
+}
+
+/* チェックリスト概要 */
+.checklist-overview {
+  position: relative;
+  --img-w: 290px;
+  --img-h: 125px;
+  --img-left: -160px;
+  --img-top: 40px;
+  width: 100%;
+  min-height: var(--img-h);
+}
+.checklist-overview img {
+  position: absolute;
+  left: var(--img-left);
+  top: var(--img-top);
+  width: var(--img-w);
+  height: var(--img-h);
+  object-fit: contain;
+  display: block;
+}
+
+/* チェックリスト概要用のタイトルと入力オーバーレイ */
+.checklist-overview-title {
+  position: absolute;
+  /* デフォルトは画像内の白領域あたりに表示 */
+  left: var(--title-left, calc(var(--img-left) + 40px));
+  top: var(--title-top, calc(var(--img-top) + 12px));
+  color: var(--title-color, #000);
+  font-size: var(--title-size, 18px);
+  font-weight: bold;
+  z-index: 3;
+}
+
+.checklist-overview-input {
+  position: absolute;
+  /* デフォルトは画像内の青いエリア上に配置 */
+  left: var(--input-left, calc(var(--img-left) + 18px));
+  top: var(--input-top, calc(var(--img-top) + 60px));
+  width: var(--input-width, calc(var(--img-w) - 36px));
+  z-index: 2;
+}
+.checklist-overview-input textarea {
+  width: 100%;
+  height: var(--input-height, 60px);
+  background: transparent;
+  border: none;
+  color: #000;
+  font-size: 16px;
+  padding: 6px 8px;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+/* 項目 */
+.checklist-items {
+  position: relative;
+  --img-w: 420px;
+  --img-h: 220px;
+  --img-left: 140px;
+  --img-top: -180px;
+  width: 100%;
+  min-height: var(--img-h);
+}
+.checklist-items img {
+  position: absolute;
+  left: var(--img-left);
+  top: var(--img-top);
+  width: var(--img-w);
+  height: var(--img-h);
+  object-fit: contain;
+  display: block;
+}
+
+/* 項目エリアのタイトル（画像の白領域）と項目リスト（画像の青領域） */
+.checklist-items-title {
+  position: absolute;
+  left: var(--title-left, calc(var(--img-left) + 20px));
+  top: var(--title-top, calc(var(--img-top) + 12px));
+  color: var(--title-color, #000);
+  font-size: var(--title-size, 18px);
+  font-weight: bold;
+  z-index: 3;
+}
+
+/* 青い部分に配置する項目コンテナ（#items-container をここで配置） */
+#items-container {
+  position: absolute;
+  left: var(--items-left, calc(var(--img-left) + 16px));
+  top: var(--items-top, calc(var(--img-top) + 52px));
+  width: var(--items-width, calc(var(--img-w) - 32px));
+  height: var(--items-height, calc(var(--img-h) * 0.6));
+  z-index: 2;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#items-container .item-row { display: flex; gap: 8px; align-items: center; }
+#items-container .item-row input[type="text"] { flex: 1; background: transparent; border: none; color: #000; padding: 6px 8px; box-sizing: border-box; }
+#items-container .item-row input[type="checkbox"] { width: 18px; height: 18px; }
+#items-container .item-row .remove-item-btn { background: rgba(220,53,69,0.9); color: white; border: none; padding: 2px 8px; border-radius: 4px; cursor: pointer; }
+
+/* 使用例（HTML上で上書き）:
+   <div class="checklist-name" style="--img-w:180px; --img-left:-12px; --img-top:4px;"> ...</div>
+*/
 
 /* チャットボタン */
 .chat-ai-bubble { position: fixed; bottom: 20px; right: 20px; z-index:9999; }
@@ -66,24 +240,32 @@ input[type="text"], textarea { width: 100%; padding: 10px; border: 1px solid #cc
   <form method="POST" action="{% url 'codemon:checklist_save' pk=checklist.checklist_id %}">
   {% csrf_token %}
 
-  <div>
-    <label>チェックリスト名</label>
-    <input type="text" name="checklist_name" value="{{ checklist.checklist_name }}" required>
+  <div class="checklist-name">
+    <img src="{% static 'codemon/images/backgrounds/checklist_blue_bg1.png' %}" alt="チェックリスト名" onerror="this.style.display='none'">
+    <!-- 白い部分にタイトル表示 -->
+    <div class="checklist-name-title">チェックリスト名</div>
+    <!-- 青いバー上に入力欄（デフォルト幅/位置は CSS 変数で調整） -->
+    <div class="checklist-name-input">
+      <input type="text" name="checklist_name" value="{{ checklist.checklist_name }}" required>
+    </div>
   </div>
 
-  <div>
-    <label>概要</label>
-    <textarea name="checklist_description">{{ checklist.checklist_description }}</textarea>
+  <div class="checklist-overview">
+    <img src="{% static 'codemon/images/backgrounds/checklist_blue_bg2.png' %}" alt="チェックリスト概要" onerror="this.style.display='none'">
+    <!-- 白い部分にタイトル表示 -->
+    <div class="checklist-overview-title">チェックリスト概要</div>
+    <!-- 青いバー上に入力欄（デフォルト幅/位置は CSS 変数で調整） -->
+    <div class="checklist-overview-input">
+      <textarea name="checklist_overview" rows="3">{{ checklist.checklist_overview }}</textarea>
+    </div>
   </div>
 
-  <h3>項目</h3>
-  <div id="items-container">
-    {% for item in checklist.items.all %}
-      <div class="item-row">
-        <input type="text" name="item_{{ forloop.counter }}" value="{{ item.item_text }}">
-        <input type="checkbox" name="done_{{ forloop.counter }}" {% if item.is_done %}checked{% endif %}>
-      </div>
-    {% endfor %}
+  <div class="checklist-items">
+    <img src="{% static 'codemon/images/backgrounds/checklist_blue_bg3.png' %}" alt="項目" onerror="this.style.display='none'">
+    <!-- 白い部分にタイトル表示 -->
+    <div class="checklist-items-title">項目</div>
+    <!-- 青い部分に追加項目が入るコンテナ（JSがここに要素を追加します） -->
+    <div id="items-container" aria-live="polite"></div>
   </div>
 
   <!-- 左側の縦並びアクション（フォーム内部に入れて submit を有効にする） -->
@@ -134,12 +316,33 @@ document.addEventListener('DOMContentLoaded', function() {
     addBtn.addEventListener('click', function() {
       const div = document.createElement('div');
       div.className = 'item-row';
-      div.innerHTML = `
-        <input type="text" name="item_${itemIndex}" value="">
-        <input type="checkbox" name="done_${itemIndex}">
-        <button type="button" class="remove-item-btn" onclick="this.parentElement.remove()">削除</button>
-      `;
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.name = `item_${itemIndex}`;
+      input.value = '';
+      input.placeholder = '新しい項目';
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.name = `done_${itemIndex}`;
+
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'remove-item-btn';
+      del.textContent = '削除';
+      del.addEventListener('click', function() { div.remove(); });
+
+      div.appendChild(input);
+      div.appendChild(checkbox);
+      div.appendChild(del);
+
       container.appendChild(div);
+
+      // 追加直後に入力にフォーカスし、見えるようにスクロール
+      input.focus();
+      div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
       itemIndex++;
     });
   }
