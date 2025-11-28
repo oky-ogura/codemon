@@ -189,7 +189,17 @@
                     </div>
                     <div class="info-row">
                         <div class="info-label">年齢</div>
-                        <div class="info-value">{{ request.user.age|default:"未設定" }} 歳</div>
+                        <div class="info-value">
+                            {% if request.user.age %}
+                                {{ request.user.age }} 歳
+                            {% elif request.session.account_age %}
+                                {{ request.session.account_age }} 歳
+                            {% elif request.session.pending_account_age %}
+                                {{ request.session.pending_account_age }} 歳
+                            {% else %}
+                                未設定
+                            {% endif %}
+                        </div>
                     </div>
                     <div class="info-row">
                         <div class="info-label">メールアドレス</div>

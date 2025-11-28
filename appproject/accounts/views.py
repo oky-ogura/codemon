@@ -389,7 +389,7 @@ def ai_appearance(request):
         # 外見選択後は初期設定画面へ遷移させる
         return redirect('accounts:ai_initial')
 
-    appearances = ['イヌ.png', 'ウサギ.png', 'キツネ.png', 'ネコ.png', 'パンダ.png', 'フクロウ.png', 'リス.png']
+    appearances = ['イヌ.png', 'ウサギ.png', 'キツネ.png', 'ネコ.png', 'パンダ.png', 'フクロウ.png', 'リス.png', 'アルパカ.png']
     return render(request, 'accounts/ai_appearance.html', {'appearances': appearances})
 
 
@@ -409,6 +409,7 @@ def ai_initial_settings(request):
         'パンダ.png': {'personality': '元気', 'speech': 'だよ'},
         'フクロウ.png': {'personality': '冷静', 'speech': 'ですな'},
         'リス.png': {'personality': '元気', 'speech': 'なのだ'},
+        'アルパカ.png': {'personality': '穏やか', 'speech': 'もふ'},
     }
 
     # POST は基本的に確認画面へ遷移するためのデータ送信に使い、
@@ -2084,13 +2085,13 @@ def account_entry(request):
     with connection.cursor() as cursor:
         if user_id:
             cursor.execute(
-                "SELECT user_id, user_name, email, account_type, age, group_id, created_at "
+                "SELECT user_id, user_name, email, account_type, age, group_id, created_at, avatar "
                 "FROM account WHERE user_id = %s",
                 [user_id]
             )
         else:
             cursor.execute(
-                "SELECT user_id, user_name, email, account_type, age, group_id, created_at "
+                "SELECT user_id, user_name, email, account_type, age, group_id, created_at, avatar "
                 "FROM account WHERE email = %s",
                 [email]
             )
@@ -2105,6 +2106,7 @@ def account_entry(request):
             'age': row[4],
             'group_id': row[5],
             'created_at': row[6],
+            'avatar': row[7],
         }
 
     # created_at -> 初めて会った日（datetime）と累計日数（文字列）を計算
