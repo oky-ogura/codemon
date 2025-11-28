@@ -3,6 +3,14 @@
 {% load static %}
 
 {% block title %}アカウント（教員） - Codemon{% endblock %}
+
+{% block background_frame %}
+<img src="{% static 'codemon/images/frames/教員用アカウント画面 (2).png' %}" 
+     alt="" 
+     class="bg-frame"
+     onerror="this.style.display='none';">
+{% endblock %}
+
 {% block extra_css %}
     <style>
         
@@ -117,29 +125,29 @@
                 <div class="top-row">
                     <div style="flex:1;">
                         <div style="display:flex;gap:50px;align-items:center;margin-top:12px;">
-                            <table class="info-table" style="flex-shrink:0;border-spacing:0 6px;">
+                            <table class="info-table" style="flex-shrink:0;border-spacing:0 8px;min-width:280px;">
                                 <tr>
-                                    <td colspan="2" style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/contain;height:40px;border-radius:20px;display:flex;align-items:center;">
-                                        <span style="width:80px;padding-left:12px;font-weight:700;color:#333;">ID</span>
-                                        <span style="flex:1;padding-right:12px;color:#000;">{{ account.user_id|default:user.id }}</span>
+                                    <td colspan="2" style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;">
+                                        <span style="width:90px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">ID</span>
+                                        <span style="flex:1;padding-right:20px;color:#000;font-size:15px;">{{ account.user_id|default:user.id }}</span>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td colspan="2" style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/contain;height:40px;border-radius:20px;display:flex;align-items:center;">
-                                        <span style="width:80px;padding-left:12px;font-weight:700;color:#333;">名前</span>
-                                        <span style="flex:1;padding-right:12px;color:#000;">{{ account.user_name|default:user.get_full_name|default:"codemon" }}</span>
+                                    <td colspan="2" style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;">
+                                        <span style="width:90px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">名前</span>
+                                        <span style="flex:1;padding-right:20px;color:#000;font-size:15px;">{{ account.user_name|default:user.get_full_name|default:"codemon" }}</span>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td colspan="2" style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/contain;height:40px;border-radius:20px;display:flex;align-items:center;">
-                                        <span style="width:80px;padding-left:12px;font-weight:700;color:#333;">年齢</span>
-                                        <span style="flex:1;padding-right:12px;color:#000;">{{ account.age|default:user.profile.age|default:"38" }}歳</span>
+                                    <td colspan="2" style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;">
+                                        <span style="width:90px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">年齢</span>
+                                        <span style="flex:1;padding-right:20px;color:#000;font-size:15px;">{{ account.age|default:user.profile.age|default:"38" }}歳</span>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td colspan="2" style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/contain;height:40px;border-radius:20px;display:flex;align-items:center;">
-                                        <span style="width:80px;padding-left:12px;font-weight:700;color:#333;">所属</span>
-                                        <span style="flex:1;padding-right:12px;color:#000;">{{ account.account_type|default:user.profile.kyojin|default:"教員" }}</span>
+                                    <td colspan="2" style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;">
+                                        <span style="width:90px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">所属</span>
+                                        <span style="flex:1;padding-right:20px;color:#000;font-size:15px;">{{ account.account_type|default:user.profile.kyojin|default:"教員" }}</span>
                                     </td>
                                 </tr>
                             </table>
@@ -158,8 +166,9 @@
                             
                             <!-- AI名前と日付情報 -->
                             <div style="display:flex;flex-direction:column;gap:8px;">
-                                <div style="background:#5DD4F5;color:#000;padding:12px 24px;border-radius:20px;font-size:16px;white-space:nowrap;">
-                                    名前　{{ ai_config.ai_name|default:"codemon" }}
+                                <div style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;min-width:280px;">
+                                    <span style="width:90px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">名前</span>
+                                    <span style="flex:1;padding-right:20px;color:#000;font-size:15px;">{{ ai_config.ai_name|default:"codemon" }}</span>
                                 </div>
                                 <div style="text-align:center;font-size:14px;color:#666;">
                                     <div>初めて会った日　{% if first_met %}{{ first_met|date:"Y/m/d" }}{% else %}---{% endif %}</div>

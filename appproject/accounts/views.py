@@ -255,6 +255,10 @@ def teacher_login(request):
                     messages.error(request, 'ユーザー名またはパスワードが違います')
             except Exception:
                 messages.error(request, 'ユーザー名またはパスワードが違います')
+    else:
+        # GETリクエスト時はメッセージをクリア
+        storage = messages.get_messages(request)
+        storage.used = True
 
     # GET または認証失敗時はログインフォームを表示
     return render(request, 'accounts/t_login.html')
@@ -289,6 +293,10 @@ def student_login(request):
             return redirect('accounts:karihome')
         else:
             messages.error(request, 'ユーザー名またはパスワードが間違っています')
+    else:
+        # GETリクエスト時はメッセージをクリア
+        storage = messages.get_messages(request)
+        storage.used = True
     return render(request, 'accounts/s_login.html')
 
 
@@ -365,6 +373,9 @@ def karihome(request):
 
 def login_choice(request):
     """ログイン種別の選択ページ（教師 or 生徒）を表示する簡易ビュー"""
+    # ログイン選択画面でも前回のメッセージをクリア
+    storage = messages.get_messages(request)
+    storage.used = True
     # 単純な選択ページを表示するだけ。テンプレート内でそれぞれのログインページへ遷移する。
     return render(request, 'accounts/login_choice.html')
 
@@ -488,6 +499,9 @@ def ai_initial_confirm(request):
 
 def login_choice(request):
     """ログイン種別の選択ページ（教師 or 生徒）を表示する簡易ビュー"""
+    # ログイン選択画面でも前回のメッセージをクリア
+    storage = messages.get_messages(request)
+    storage.used = True
     # 単純な選択ページを表示するだけ。テンプレート内でそれぞれのログインページへ遷移する。
     return render(request, 'accounts/login_choice.html')
 

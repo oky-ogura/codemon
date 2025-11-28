@@ -1,4 +1,4 @@
-﻿"""
+"""
 Auto-generated placeholder migration to restore migration graph integrity.
 
 This migration intentionally contains no operations. It exists solely so that

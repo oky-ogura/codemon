@@ -62,7 +62,7 @@ def _get_write_owner(request):
     # If Django auth is present, try to return the linked Account
     if getattr(request, 'user', None) and getattr(request.user, 'is_authenticated', False):
         try:
-            acct = Account.objects.get(user=request.user)
+            acct = Account.objects.get(user_id=request.user.id)
             return acct
         except Account.DoesNotExist:
             # fall back to Django user object
@@ -554,15 +554,37 @@ def checklist_selection(request):
 
 def checklist_list(request):
     """作成済みチェックリストの一覧を表示"""
+    # user_idパラメータがある場合は、そのユーザーのチェックリストを表示
+    target_user_id = request.GET.get('user_id')
+    
     if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
-        checklists = Checklist.objects.all().order_by('-updated_at')
+        if target_user_id:
+            # 特定ユーザーのチェックリストを表示
+            try:
+                target_user = Account.objects.get(user_id=target_user_id)
+                checklists = Checklist.objects.filter(user=target_user).order_by('-updated_at')
+            except Account.DoesNotExist:
+                checklists = Checklist.objects.none()
+        else:
+            checklists = Checklist.objects.all().order_by('-updated_at')
     else:
         owner = _get_write_owner(request)
         if owner is None:
             login_url = reverse('accounts:student_login') + '?next=' + request.path
             messages.error(request, 'チェックリストの閲覧にはログインが必要です')
             return redirect(login_url)
-        checklists = Checklist.objects.filter(user=owner).order_by('-updated_at')
+        
+        if target_user_id:
+            # 教員が生徒のチェックリストを閲覧する場合
+            try:
+                target_user = Account.objects.get(user_id=target_user_id)
+                checklists = Checklist.objects.filter(user=target_user).order_by('-updated_at')
+            except Account.DoesNotExist:
+                checklists = Checklist.objects.none()
+        else:
+            # 自分のチェックリストを表示
+            checklists = Checklist.objects.filter(user=owner).order_by('-updated_at')
+    
     return render(request, 'codemon/checklist_list.html', {'checklists': checklists})
 
 def checklist_create(request):

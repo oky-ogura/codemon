@@ -13,6 +13,7 @@ class Account(models.Model):
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True, verbose_name='アバター画像')
     group_id = models.IntegerField(blank=True, null=True, verbose_name='参加グループID')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='登録日時')
+    group_id = models.IntegerField(blank=True, null=True, verbose_name='グループID')
     
     # 互換性のために `type` プロパティを提供する
     @property

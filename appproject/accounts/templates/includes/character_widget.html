@@ -1,37 +1,75 @@
-{% extends 'base.html' %}
 {% load static %}
 
-{% block title %}ホーム - Codemon{% endblock %}
-
-{% block body_class %} class="no-scroll"{% endblock %}
-
-{% block background_frame %}
-<!-- karihome用外枠（黄色） -->
-<img src="{% static 'codemon/images/frames/bg_frame_yellow.png' %}" 
-     alt="" 
-     class="bg-frame frame-yellow"
-     onerror="this.style.display='none';">
-{% endblock %}
-
-{% block extra_css %}
+<div class="karihome-container global-widget">
+  <div class="speech-bubble-container">
+    <div class="speech-bubble">
+      <p class="text-fun" id="characterMumble" style="margin: 0;"></p>
+    </div>
+  </div>
+  <button class="chat-trigger-btn" id="chatTriggerBtn">
+    💬 話しかける
+    <span class="sparkle">✨</span>
+    <span class="sparkle">⭐</span>
+    <span class="sparkle">✨</span>
+    <span class="sparkle">⭐</span>
+  </button>
+  <div class="character-container">
+    <img src="{% if character_img %}{{ character_img }}{% else %}{% static 'codemon/images/characters/inu.png' %}{% endif %}" 
+         alt="AIキャラクター" 
+         class="character-image"
+         onerror="this.onerror=null;this.src='{% static 'codemon/images/characters/inu.png' %}';">
+  </div>
+</div>
+<div class="chat-modal" id="chatModal">
+  <div class="chat-window">
+    <div class="chat-header">
+      <h2 id="chatHeaderTitle">🐶 {{ ai_name|default:'うたー' }} と おはなし</h2>
+      <button class="chat-close-btn" id="closeChatBtn">×</button>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-message ai">
+        <div class="chat-message-content">
+          こんにちは！ぼくは{{ ai_name|default:'うたー' }}だよ！<br>
+          なんでもきいてね！✨
+        </div>
+      </div>
+    </div>
+    <div class="chat-loading" id="chatLoading">
+      {{ ai_name|default:'うたー' }}が考え中...🤔
+    </div>
+    <div class="chat-input-area">
+      <input type="text" class="chat-input" id="chatInput" placeholder="メッセージを入力してね！">
+      <button class="chat-send-btn" id="sendChatBtn">送信</button>
+    </div>
+  </div>
+</div>
 <link rel="stylesheet" href="{% static 'codemon/css/redesign.css' %}">
 <style>
-  /* karihome 専用スタイル */
+  /* karihome 専用スタイル（復元） */
+  .global-widget {
+    pointer-events: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 100;
+  }
+  .character-container, .chat-trigger-btn, .speech-bubble-container {
+    pointer-events: auto;
+  }
   .content-wrapper {
     padding: 0 !important;
-    overflow: visible !important; /* visible に変更 */
+    overflow: visible !important;
     height: calc(100vh - 120px);
     position: relative;
   }
-  
   .karihome-container {
     position: relative;
     width: 100%;
     height: 100%;
-    overflow: visible; /* visible に変更 */
+    overflow: visible;
   }
-  
-  /* キャラクターを画面中央右寄りに配置 */
   .character-container {
     position: fixed !important;
     right: 15%;
@@ -41,7 +79,6 @@
     display: flex;
     align-items: flex-end;
   }
-  
   .character-image {
     max-width: 400px !important;
     max-height: 500px !important;
@@ -53,18 +90,13 @@
     outline: none !important;
     box-shadow: none !important;
   }
-  
   .character-container img {
     border: none !important;
     outline: none !important;
   }
-  
-  /* ホバー時に傾く */
   .character-image:hover {
     transform: scale(1.05) rotate(2deg) !important;
   }
-  
-  /* 吹き出しを左側に配置 */
   .speech-bubble-container {
     position: fixed !important;
     left: 25%;
@@ -75,7 +107,6 @@
     display: flex;
     justify-content: flex-end;
   }
-  
   .speech-bubble {
     background: white;
     border-radius: 30px;
@@ -88,8 +119,6 @@
     border: 3px solid #FFD700;
     animation: bubbleFloat 2s ease-in-out infinite;
   }
-  
-  /* 吹き出しアニメーション */
   @keyframes bubbleFloat {
     0%, 100% {
       transform: translateY(0);
@@ -98,8 +127,6 @@
       transform: translateY(-10px);
     }
   }
-  
-  /* 吹き出しの三角部分 */
   .speech-bubble::after {
     content: '';
     position: absolute;
@@ -112,8 +139,6 @@
     border-top: 20px solid transparent;
     border-bottom: 20px solid transparent;
   }
-  
-  /* キラキラエフェクト */
   .sparkle {
     position: absolute;
     font-size: 24px;
@@ -121,12 +146,10 @@
     opacity: 0;
     transition: opacity 0.3s;
   }
-  
   .chat-trigger-btn:hover .sparkle {
     opacity: 1;
     animation: sparkleFloat 1.5s ease-in-out infinite;
   }
-  
   @keyframes sparkleFloat {
     0%, 100% {
       opacity: 0;
@@ -137,13 +160,10 @@
       transform: translateY(-20px) scale(1);
     }
   }
-  
   .sparkle:nth-child(1) { top: -10px; left: -10px; animation-delay: 0s; }
   .sparkle:nth-child(2) { top: -10px; right: -10px; animation-delay: 0.2s; }
   .sparkle:nth-child(3) { bottom: -10px; left: -10px; animation-delay: 0.4s; }
   .sparkle:nth-child(4) { bottom: -10px; right: -10px; animation-delay: 0.6s; }
-  
-  /* 話しかけるボタン */
   .chat-trigger-btn {
     position: fixed;
     left: 31%;
@@ -163,28 +183,13 @@
     gap: 10px;
     transition: all 0.3s;
   }
-  
   .chat-trigger-btn .sparkle {
     position: absolute;
   }
-  
   .chat-trigger-btn:hover {
     transform: scale(1.1);
     box-shadow: 0 8px 20px rgba(255, 165, 0, 0.6);
   }
-  
-  /* キャラクターコンテナ */
-  .character-container {
-    position: fixed !important;
-    right: 25%;
-    bottom: 0;
-    transform: none;
-    z-index: 100 !important;
-    display: flex;
-    align-items: flex-end;
-  }
-  
-  /* ==================== チャットモーダル ==================== */
   .chat-modal {
     display: none;
     position: fixed !important;
@@ -197,11 +202,9 @@
     justify-content: center;
     align-items: center;
   }
-  
   .chat-modal.active {
     display: flex;
   }
-  
   .chat-window {
     background: white;
     border-radius: 30px;
@@ -217,7 +220,6 @@
     position: relative !important;
     z-index: 100000 !important;
   }
-  
   @keyframes modalSlideIn {
     from {
       transform: scale(0.8) translateY(-50px);
@@ -228,7 +230,6 @@
       opacity: 1;
     }
   }
-  
   .chat-header {
     background: linear-gradient(135deg, #FFD700, #FFA500);
     padding: 20px 30px;
@@ -237,14 +238,12 @@
     align-items: center;
     border-bottom: 3px solid #FF8C00;
   }
-  
   .chat-header h2 {
     margin: 0;
     color: white;
     font-size: 24px;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
   }
-  
   .chat-close-btn {
     background: white;
     border: none;
@@ -260,25 +259,21 @@
     color: #FF8C00;
     font-weight: bold;
   }
-  
   .chat-close-btn:hover {
     transform: rotate(90deg) scale(1.1);
     background: #FFE4B5;
   }
-  
   .chat-messages {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
     background: #FFF9E6;
   }
-  
   .chat-message {
     display: flex;
     margin-bottom: 15px;
     animation: messageSlideIn 0.3s ease-out;
   }
-  
   @keyframes messageSlideIn {
     from {
       transform: translateY(20px);
@@ -289,12 +284,10 @@
       opacity: 1;
     }
   }
-  
   .chat-message.user {
     flex-direction: row-reverse;
     background: none !important;
   }
-  
   .chat-message-content {
     max-width: 70%;
     padding: 15px 20px;
@@ -302,13 +295,11 @@
     font-size: 16px;
     line-height: 1.5;
   }
-  
   .chat-message.ai .chat-message-content {
     background: white;
     border: 3px solid #FFD700;
     color: #333;
   }
-  
   .chat-message.user .chat-message-content {
     background: #FFD700 !important;
     color: #333;
@@ -316,7 +307,6 @@
     border: none !important;
     box-shadow: none !important;
   }
-  
   .chat-input-area {
     padding: 20px;
     background: white;
@@ -324,7 +314,6 @@
     display: flex;
     gap: 10px;
   }
-  
   .chat-input {
     flex: 1;
     padding: 15px 20px;
@@ -334,12 +323,10 @@
     outline: none;
     transition: all 0.3s;
   }
-  
   .chat-input:focus {
     border-color: #FFA500;
     box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
   }
-  
   .chat-send-btn {
     background: linear-gradient(135deg, #FFD700, #FFA500);
     border: none;
@@ -352,96 +339,25 @@
     transition: all 0.3s;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
   }
-  
   .chat-send-btn:hover {
     transform: scale(1.05);
     box-shadow: 0 5px 15px rgba(255, 165, 0, 0.4);
   }
-  
   .chat-send-btn:active {
     transform: scale(0.98);
   }
-  
   .chat-loading {
     display: none;
     text-align: center;
     padding: 10px;
     color: #666;
   }
-  
   .chat-loading.active {
     display: block;
   }
-
 </style>
-{% endblock %}
-
-{% block content %}
-<div class="karihome-container">
-  <!-- 吹き出し（画面左側） -->
-  <div class="speech-bubble-container">
-    <div class="speech-bubble">
-      <p class="text-fun" id="characterMumble" style="margin: 0;">
-        <!-- JavaScriptで性格に合わせた独り言を表示 -->
-      </p>
-    </div>
-  </div>
-
-  <!-- 話しかけるボタン -->
-  <button class="chat-trigger-btn" id="chatTriggerBtn">
-    💬 話しかける
-    <!-- キラキラエフェクト -->
-    <span class="sparkle">✨</span>
-    <span class="sparkle">⭐</span>
-    <span class="sparkle">✨</span>
-    <span class="sparkle">⭐</span>
-  </button>
-
-  <!-- キャラクター立ち絵(画面右下) -->
-  <div class="character-container">
-    <img src="{% static 'codemon/images/characters/' %}{{ appearance|default:'イヌ' }}" 
-         alt="AIキャラクター" 
-         class="character-image"
-         id="characterImage">
-  </div>
-</div>
-
-<!-- チャットモーダル -->
-<div class="chat-modal" id="chatModal">
-  <div class="chat-window">
-    <div class="chat-header">
-      <h2 id="chatHeaderTitle">🐶 {{ ai_name|default:'うたー' }} と おはなし</h2>
-      <button class="chat-close-btn" id="closeChatBtn">×</button>
-    </div>
-    
-    <div class="chat-messages" id="chatMessages">
-      <div class="chat-message ai">
-        <div class="chat-message-content">
-          こんにちは！ぼくは{{ ai_name|default:'うたー' }}だよ！<br>
-          なんでもきいてね！✨
-        </div>
-      </div>
-    </div>
-    
-    <div class="chat-loading" id="chatLoading">
-      うたーが考え中...🤔
-    </div>
-    
-    <div class="chat-input-area">
-      <input type="text" 
-             class="chat-input" 
-             id="chatInput" 
-             placeholder="メッセージを入力してね！">
-      <button class="chat-send-btn" id="sendChatBtn">送信</button>
-    </div>
-  </div>
-</div>
-{% endblock %}
-
-{% block extra_js %}
 <script src="{% static 'codemon/js/interactions.js' %}"></script>
 <script>
-  // karihome専用: チャット機能とキャラクターエフェクト
   document.addEventListener('DOMContentLoaded', function() {
     const character = document.querySelector('.character-image');
     const chatModal = document.getElementById('chatModal');
@@ -452,8 +368,8 @@
     const chatLoading = document.getElementById('chatLoading');
     const chatTriggerBtn = document.getElementById('chatTriggerBtn');
     const characterMumble = document.getElementById('characterMumble');
-    
-    // 性格に合わせた独り言リスト（AIの性格に応じて変更可能）
+
+    // 吹き出し用会話リスト
     const mumbles = [
       '眠いなぁ...💤',
       '暇だな～ 🎵',
@@ -464,178 +380,102 @@
       '誰か来ないかな？ 👀',
       'たいくつだわん 🐾'
     ];
-    
-    // ランダムな独り言を表示
-    function showRandomMumble() {
+    let mumbleIndex = 0;
+
+    // 吹き出し自動再生
+    function showMumble(idx) {
       if (characterMumble) {
-        const randomMumble = mumbles[Math.floor(Math.random() * mumbles.length)];
-        characterMumble.textContent = randomMumble;
+        characterMumble.textContent = mumbles[idx % mumbles.length];
       }
     }
-    
-    // 初回表示
-    showRandomMumble();
-    
-    // 5秒ごとに独り言を変更
-    setInterval(showRandomMumble, 5000);
-    
-    // チャットを開く関数
+    showMumble(mumbleIndex);
+    setInterval(function() {
+      mumbleIndex++;
+      showMumble(mumbleIndex);
+    }, 5000);
+
+    // キャラクタークリックで次の会話
+    if (character) {
+      character.style.cursor = 'pointer';
+      character.addEventListener('click', function() {
+        mumbleIndex++;
+        showMumble(mumbleIndex);
+      });
+      // ホバー時のtransformのみ変更
+      character.addEventListener('mouseenter', function() {
+        this.style.transform = 'scale(1.05) rotate(2deg)';
+      });
+      character.addEventListener('mouseleave', function() {
+        this.style.transform = 'scale(1) rotate(0deg)';
+      });
+    }
+
+    // チャット表示
     function openChat() {
       chatModal.classList.add('active');
       chatInput.focus();
-      
-      // ナビゲーションバーを非表示にする
+      // ナビゲーションバーを非表示
       const navBar = document.querySelector('.top-tabs');
-      if (navBar) {
-        navBar.style.display = 'none';
-      }
+      if (navBar) navBar.style.display = 'none';
     }
-    
-    // チャットを閉じる関数
     function closeChat() {
       chatModal.classList.remove('active');
-      
       // ナビゲーションバーを再表示
       const navBar = document.querySelector('.top-tabs');
-      if (navBar) {
-        navBar.style.display = '';
-      }
+      if (navBar) navBar.style.display = '';
     }
-    
-    if (character) {
-      character.style.cursor = 'pointer';
-      
-      // interactions.jsのイベントリスナーを削除
-      const newCharacter = character.cloneNode(true);
-      character.parentNode.replaceChild(newCharacter, character);
-      
-      // 新しいキャラクターに対してイベントを設定
-      const freshCharacter = document.querySelector('.character-image');
-      
-      // ホバーイベント（位置を固定）
-      freshCharacter.addEventListener('mouseenter', function() {
-        this.style.transform = 'scale(1.05) rotate(2deg)';
-      });
-      
-      freshCharacter.addEventListener('mouseleave', function() {
-        this.style.transform = 'scale(1) rotate(0deg)';
-      });
-      
-      // クリック時にチャットモーダルを開く
-      freshCharacter.addEventListener('click', openChat);
-    }
-    
-    // 話しかけるボタンでもチャットを開く
     if (chatTriggerBtn) {
       chatTriggerBtn.addEventListener('click', openChat);
     }
-    
-    // チャットモーダルを閉じる
-    closeChatBtn.addEventListener('click', closeChat);
-    
-    // 背景クリックで閉じる
+    if (closeChatBtn) {
+      closeChatBtn.addEventListener('click', closeChat);
+    }
     chatModal.addEventListener('click', function(e) {
-      if (e.target === chatModal) {
-        closeChat();
-      }
+      if (e.target === chatModal) closeChat();
     });
-    
-    // メッセージ送信
-    async function sendMessage() {
-      const message = chatInput.value.trim();
-      if (!message) return;
-      
-      // ユーザーメッセージを追加
-      addMessage(message, 'user');
-      chatInput.value = '';
-      
-      // ローディング表示
-      chatLoading.classList.add('active');
-      
-      try {
-        console.log('Sending message to AI:', message);
-        console.log('Character:', '{{ character }}');
-        
-        // AI APIにメッセージを送信
-        const response = await fetch('/codemon/api/ai/chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-          },
-          body: JSON.stringify({
-            message: message,
-            character: '{{ character }}' || 'inu'
-          })
-        });
-        
-        console.log('Response status:', response.status);
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Error response:', errorText);
-          throw new Error('通信エラーが発生しました');
-        }
-        
-        const data = await response.json();
-        console.log('Response data:', data);
-        
-        // AIの返答を表示
-        if (data.reply) {
-          addMessage(data.reply, 'ai');
-        } else {
-          addMessage('ごめんね、今は答えられないみたい...', 'ai');
-        }
-      } catch (error) {
-        console.error('エラー:', error);
-        addMessage('エラーが発生しました。もう一度試してみてね！', 'ai');
-      } finally {
-        chatLoading.classList.remove('active');
-      }
-    }
-    
-    // CSRFトークン取得関数
-    function getCookie(name) {
-      let cookieValue = null;
-      if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-          const cookie = cookies[i].trim();
-          if (cookie.substring(0, name.length + 1) === (name + '=')) {
-            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-            break;
-          }
-        }
-      }
-      return cookieValue;
-    }
-    
-    // メッセージを追加
+
+    // メッセージ送信（ダミー）
     function addMessage(text, type) {
       const messageDiv = document.createElement('div');
       messageDiv.className = `chat-message ${type}`;
-      
       const contentDiv = document.createElement('div');
       contentDiv.className = 'chat-message-content';
       contentDiv.textContent = text;
-      
       messageDiv.appendChild(contentDiv);
       chatMessages.appendChild(messageDiv);
-      
-      // 最新メッセージまでスクロール
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
-    
-    // 送信ボタンクリック
-    sendChatBtn.addEventListener('click', sendMessage);
-    
-    // Enterキーで送信
+    sendChatBtn.addEventListener('click', function() {
+      const message = chatInput.value.trim();
+      if (!message) return;
+      addMessage(message, 'user');
+      chatInput.value = '';
+      chatLoading.classList.add('active');
+      // AIチャットAPIにPOST
+      fetch('/accounts/ai_chat_api/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: `message=${encodeURIComponent(message)}`
+      })
+      .then(response => response.json())
+      .then(data => {
+        let reply = data.reply || 'エラー: 返答がありません';
+        addMessage(reply, 'ai');
+        chatLoading.classList.remove('active');
+      })
+      .catch(err => {
+        addMessage('エラー: AIとの通信に失敗しました', 'ai');
+        chatLoading.classList.remove('active');
+      });
+    });
     chatInput.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        sendMessage();
+        sendChatBtn.click();
       }
     });
   });
 </script>
-{% endblock %}
