@@ -233,10 +233,7 @@ def chat_gemini(user_text: str, history_pairs: List[Tuple[str, str]], character_
     genai.configure(api_key=api_key)
 
     # Prefer settings.AI_MODEL, then GEMINI_MODEL env var, then default Gemini model
-    model_name = getattr(settings, 'AI_MODEL', '') or os.getenv('GEMINI_MODEL', 'gemini-2.0-flash-exp')
-    # モデル名に models/ プレフィックスを追加（Gemini の形式）
-    if not model_name.startswith('models/'):
-        model_name = f'models/{model_name}'
+    model_name = getattr(settings, 'AI_MODEL', '') or os.getenv('GEMINI_MODEL', 'gemini-2.0-flash')
 
     generation_config = {
         "temperature": 0.7,
@@ -261,8 +258,8 @@ def chat_gemini(user_text: str, history_pairs: List[Tuple[str, str]], character_
 
     chat = gm.start_chat(history=history_for_gemini)
 
-    # 簡易リトライ（429など）
-    max_retries = 3
+    # 簡易リトライ(429など)
+    max_retries = 2
     for attempt in range(max_retries):
         try:
             resp = chat.send_message(user_text, stream=False)
@@ -271,8 +268,8 @@ def chat_gemini(user_text: str, history_pairs: List[Tuple[str, str]], character_
             err = str(e)
             if "429" in err or "Resource exhausted" in err:
                 if attempt < max_retries - 1:
-                    time.sleep(60)
+                    time.sleep(2)  # 2秒待機に短縮
                     continue
-                return "[レート制限] 少し待ってから再試行してください。"
+                return "[レート制限] 少し待ってから再試行してください。APIの制限に達しました。"
             return f"[Geminiエラー] {err}"
     return "[失敗] リトライ上限"

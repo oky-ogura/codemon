@@ -1,31 +1,207 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<!-- ...existing code... -->
-</head>
-<body>
-  <div class="container">
-    <!-- ...existing code... -->
+{% extends 'base.html' %}
+{% load static %}
 
-      <div class="form-row" style="align-items:flex-start">
-        <div class="label">グループ作成</div>
-          <form method="post" action="{% url 'accounts:group_create' %}">
-            {% csrf_token %}
-            <div class="form-row" style="align-items:flex-start">
-              <div class="label">グループ情報</div>
-              <div>
-                <div style="display:flex;gap:8px;align-items:center">
-                  <input type="text" name="group_name" id="group_name" placeholder="グループ名" style="width:240px;padding:8px;border:1px solid #999;border-radius:4px" required>
-                  <input type="password" name="group_password" id="group_password" placeholder="パスワード" style="width:160px;padding:8px;border:1px solid #999;border-radius:4px">
-                  <button type="submit" class="add-btn">グループを作成</button>
-                </div>
-              </div>
-            </div>
-          </form>  
+{% block title %}グループ作成 - Codemon{% endblock %}
+
+{% block background_frame %}
+<img src="{% static 'codemon/images/frames/教員用アカウント画面 (2).png' %}" 
+     alt="" 
+     class="bg-frame"
+     onerror="this.style.display='none';">
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .card { 
+    max-width:1200px; 
+    margin:180px auto 40px; 
+    background:transparent; 
+    border:none; 
+    padding:24px; 
+    box-shadow:none; 
+    box-sizing:border-box; 
+    overflow:visible;
+  }
+  
+  .form-section {
+    margin-bottom:24px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  
+  .title-image {
+    max-width:500px;
+    width:100%;
+    height:auto;
+    margin-bottom:40px;
+    display:block;
+  }
+  
+  .form-group {
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+    align-items:center;
+    margin-bottom:12px;
+    justify-content:center;
+  }
+  
+  .input-wrapper {
+    display:flex;
+    align-items:center;
+    margin:8px 0;
+    gap:30px;
+    width:100%;
+    max-width:800px;
+    justify-content:center;
+  }
+  
+  .input-label {
+    background:#ffffff;
+    padding:12px 30px;
+    border-radius:50px;
+    font-size:20px;
+    font-weight:600;
+    color:#333;
+    flex-shrink:0;
+    box-shadow:0 3px 8px rgba(0,0,0,0.12);
+    min-width:200px;
+    text-align:center;
+  }
+  
+  .form-group input {
+    background:#5BD4F0;
+    border:none;
+    border-radius:50px;
+    padding:12px 24px;
+    height:50px;
+    font-size:18px;
+    outline:none;
+    width:400px;
+    color:#fff;
+  }
+  
+  .form-group input::placeholder {
+    color:rgba(255,255,255,0.8);
+  }
+  
+  .form-group input:focus {
+    background:#4AC5E0;
+    box-shadow:0 0 0 3px rgba(91,212,240,0.3);
+  }
+  
+  .form-group input[type="text"] {
+    width:400px;
+  }
+  
+  .form-group input[type="password"] {
+    width:400px;
+  }
+  
+  .btn {
+    font-size:20px;
+    color:#000000;
+    padding:12px 40px;
+    border-radius:50px;
+    border:3px solid #00BFFF;
+    background:#ffffff;
+    box-shadow:0 4px 10px rgba(0,191,255,0.3);
+    cursor:pointer;
+    margin:40px 0;
+    font-weight:bold;
+    transition:transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  .btn:hover {
+    background:#f0f8ff;
+    transform:translateY(-2px);
+    box-shadow:0 6px 15px rgba(0,191,255,0.4);
+  }
+  
+  .btn-primary {
+    /* 統一されたボタンスタイル */
+  }
+  
+  .members-section {
+    margin-top:24px;
+  }
+  
+  .members-section h3 {
+    font-size:16px;
+    font-weight:600;
+    color:#333;
+    margin-bottom:12px;
+  }
+  
+  .members-list {
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    min-height:50px;
+    padding:12px;
+    border:1px solid #ddd;
+    border-radius:6px;
+    background:#f9f9f9;
+  }
+  
+  .member-chip {
+    display:inline-flex;
+    align-items:center;
+    padding:6px 12px;
+    background:#e8f0ff;
+    border:1px solid #9cc0ff;
+    border-radius:16px;
+    font-size:13px;
+    color:#333;
+    cursor:pointer;
+    transition:background 0.2s ease;
+  }
+  
+  .member-chip:hover {
+    background:#d0e4ff;
+  }
+  
+  @media(max-width:720px){
+    .card {
+      margin-top:120px;
+    }
+    .input-wrapper {
+      flex-direction:column;
+      align-items:stretch;
+      gap:8px;
+    }
+    .input-label {
+      min-width:auto;
+      text-align:center;
+    }
+    .form-group input {
+      width:100% !important;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="form-section">
+    <img src="{% static 'codemon/images/nav/group_create.png' %}" alt="グループ作成" style="max-width:400px;width:100%;height:auto;margin-bottom:40px;display:block;">
+    <form method="post" action="{% url 'accounts:group_create' %}">
+      {% csrf_token %}
+      <div class="form-group">
+        <div class="input-wrapper">
+          <label for="group_name" class="input-label">グループ名</label>
+          <input type="text" name="group_name" id="group_name" placeholder="グループ名を入力" required>
+        </div>
+        <div class="input-wrapper">
+          <label for="group_password" class="input-label">パスワード</label>
+          <input type="password" name="group_password" id="group_password" placeholder="パスワードを入力">
+        </div>
+        <button type="submit" class="btn btn-primary">グループを作成</button>
       </div>
-
-    <!-- ...existing code (members list, hiddenMembers, controls) ... -->
+    </form>
   </div>
+</div>
 
 <script>
 (function(){
@@ -84,5 +260,28 @@
 })();
 </script>
 
-</body>
-</html>
+<script>
+(function(){
+    function adjustCardMargin(){
+        try{
+            var header = document.querySelector('.top-tabs');
+            var card = document.querySelector('.card');
+            if(!header || !card) return;
+            var rect = header.getBoundingClientRect();
+            var bottom = rect.bottom || 0;
+            var extra = 20; // ヘッダーと本文の余裕
+            var pad = Math.ceil(bottom + extra);
+            // inline style で確実に上マージンを適用
+            card.style.marginTop = pad + 'px';
+        }catch(e){ console.error('adjustCardMargin error', e); }
+    }
+
+    document.addEventListener('DOMContentLoaded', adjustCardMargin);
+    window.addEventListener('load', adjustCardMargin);
+    window.addEventListener('resize', adjustCardMargin);
+    // 遅延レイアウト変化にも対応
+    setTimeout(adjustCardMargin, 300);
+    setTimeout(adjustCardMargin, 1000);
+})();
+</script>
+{% endblock %}

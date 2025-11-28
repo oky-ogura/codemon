@@ -1,22 +1,53 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="utf-8">
-<title>グループメニュー</title>
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}グループメニュー - Codemon{% endblock %}
+
+{% block background_frame %}
+<img src="{% static 'codemon/images/frames/教員用アカウント画面 (2).png' %}" 
+     alt="" 
+     class="bg-frame"
+     onerror="this.style.display='none';">
+{% endblock %}
+
+{% block extra_css %}
 <style>
-  body{font-family:"Segoe UI",sans-serif;background:#f7f7f7;margin:0;padding:24px}
-  .container{width:920px;margin:12px auto;background:#fff;border:2px solid #000;padding:20px;box-sizing:border-box}
-  .tabs{display:flex;gap:8px;margin-bottom:18px}
-  .tab{padding:8px 18px;border:1px solid #000;background:#fff}
+  .container{width:920px;margin:160px auto 40px;background:#fff;border:1px solid #ddd;padding:20px;box-sizing:border-box;box-shadow:0 6px 20px rgba(0,0,0,0.05);max-height:calc(100vh - 200px);overflow:visible;}
   .header-row{display:flex;align-items:center;justify-content:space-between;margin:18px 0}
-  .group-info{font-size:18px}
+  .group-info{
+    padding:0;
+    background:url('{% static "codemon/images/nav/red_label.png" %}') no-repeat center/100% 100%;
+    height:50px;
+    border-radius:25px;
+    display:flex;
+    align-items:center;
+    min-width:400px;
+  }
+  .group-info .group-name{
+    width:200px;
+    padding-left:40px;
+    font-weight:700;
+    color:#333;
+    font-size:16px;
+  }
+  .group-info .member-count{
+    flex:1;
+    padding-right:20px;
+    font-weight:700;
+    color:#333;
+    font-size:16px;
+    text-align:right;
+  }
   .add-member{background:#cfe6ff;color:#000;padding:8px 14px;border-radius:8px;border:none;text-decoration:none}
   table{width:100%;border-collapse:collapse;margin-top:12px}
-  th,td{padding:12px 8px;border-bottom:1px solid #ddd;text-align:left}
-  th{border-top:2px solid #000}
-  .actions{display:flex;gap:12px;justify-content:flex-end}
-  .btn-check{background:#d6eaff;padding:8px 12px;border-radius:8px;border:none}
-  .btn-delete{background:#f5c6c6;padding:8px 12px;border-radius:8px;border:none}
+  th,td{padding:8px 4px;border-bottom:1px solid #ddd;text-align:center}
+  th{border-top:none;border-bottom:2px solid #000;padding-bottom:6px}
+  tbody tr{background:url('{% static "codemon/images/nav/white_label.png" %}') no-repeat center/100% 100%}
+  .actions{display:flex;gap:2px;justify-content:center;align-items:center}
+  .btn-check{background:transparent;padding:0;border:none;transition:transform 0.2s ease, opacity 0.2s ease}
+  .btn-check:hover{transform:scale(1.1);opacity:0.8}
+  .btn-delete{background:transparent;padding:0;border:none;cursor:pointer;transition:transform 0.2s ease, opacity 0.2s ease}
+  .btn-delete:hover{transform:scale(1.1);opacity:0.8}
   .no-data{padding:40px;text-align:center;color:#666}
   /* モーダルスタイル */
   .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.35);display:none;align-items:center;justify-content:center;z-index:9999}
@@ -39,21 +70,20 @@
   .success-btn{padding:10px 16px;border-radius:8px;border:none;cursor:pointer}
   .success-btn.left{background:transparent;color:#08323b}
   .success-btn.right{background:#0b78ff;color:#fff}
+  
+  /* レスポンシブ */
+  @media(max-width:720px){
+    .container{margin-top:120px;}
+  }
 </style>
-</head>
-<body>
-  <div class="container">
-    <div class="tabs">
-      <div class="tab">システムタブ</div>
-      <div class="tab">アルゴリズムタブ</div>
-      <div class="tab"><a href="{% url 'codemon:checklist_selection' %}">進捗管理タブ</a></div>
-      <div class="tab"><a href="{% url 'accounts:account_entry' %}">アカウント</a></div>
-    </div>
+{% endblock %}
 
+{% block content %}
+  <div class="container">
     <div class="header-row">
       <div class="group-info">
-        <strong>{% if group %}{{ group.group_name }}{% else %}グループ{% endif %}</strong>
-       　・　メンバー数 <strong>{% if member_count is not None %}{{ member_count }}人{% else %}0人{% endif %}</strong>
+        <div class="group-name">{% if group %}{{ group.group_name }}{% else %}グループ{% endif %}</div>
+        <div class="member-count">{% if member_count is not None %}{{ member_count }}人{% else %}0人{% endif %}</div>
       </div>
     <div>
       <!-- 削除確認モーダル -->
@@ -64,8 +94,8 @@
       <thead>
         <tr>
           <th style="width:20%">ID</th>
-          <th style="width:60%">名前</th>
-          <th style="width:20%;text-align:right">操作</th>
+          <th style="width:35%">名前</th>
+          <th style="width:45%"></th>
         </tr>
       </thead>
       <tbody>
@@ -75,9 +105,11 @@
             <tr>
               <td>{{ m.member.user_id }}</td>
               <td>{{ m.member.user_name }}</td>
-              <td style="text-align:right">
+              <td>
                 <div class="actions">
-                  <a class="btn-check" href="{% url 'codemon:checklist_list' %}?user_id={{ m.member.user_id }}">チェックリスト閲覧</a>
+                  <a class="btn-check" href="{% url 'codemon:checklist_list' %}?user_id={{ m.member.user_id }}">
+                    <img src="{% static 'codemon/images/buttons/checklist_view.png' %}" alt="チェックリスト閲覧" style="height:40px;display:block;">
+                  </a>
                   {% comment %} 教員ロールのメンバーは削除ボタンを表示しない {% endcomment %}
                   {% if m.role|default:'' != 'teacher' %}
                       <form method="post" action="{% url 'codemon:group_remove_member' group_id m.member.user_id %}" class="delete-member-form" style="display:inline"
@@ -85,7 +117,9 @@
                         data-member-name="{{ m.member.user_name }}"
                         data-member-start="{% if m.joined_at %}{{ m.joined_at|date:'Y/m/d' }}{% elif m.member.created_at %}{{ m.member.created_at|date:'Y/m/d' }}{% else %}{% endif %}">
                       {% csrf_token %}
-                      <button type="submit" class="btn-delete">削除</button>
+                      <button type="submit" class="btn-delete">
+                        <img src="{% static 'codemon/images/nav/delete.png' %}" alt="削除" style="height:40px;display:block;">
+                      </button>
                     </form>
                   {% endif %}
                 </div>
@@ -189,16 +223,14 @@
               const tr = pendingForm.closest('tr');
               if(tr) tr.remove();
               // member_count 表示を更新（現在の値から1減らす）
-              const mcSpan = document.querySelector('.group-info strong:nth-of-type(2)') || null;
-              // 上のセレクタは環境によりマッチしないことがあるためフォールバック
-              const headerCount = document.querySelector('.group-info');
-              if(headerCount){
-                const strongs = headerCount.querySelectorAll('strong');
-                if(strongs.length >= 2){
-                  const text = strongs[1].textContent || '';
-                  const num = parseInt(text, 10);
-                  if(!isNaN(num)){
-                    strongs[1].textContent = (num - 1) + '人';
+              const memberCountEl = document.querySelector('.member-count');
+              if(memberCountEl){
+                const text = memberCountEl.textContent || '';
+                const match = text.match(/(\d+)/);
+                if(match){
+                  const num = parseInt(match[1], 10);
+                  if(!isNaN(num) && num > 0){
+                    memberCountEl.textContent = (num - 1) + '人';
                   }
                 }
               }
@@ -264,5 +296,28 @@
     })();
     </script>
   </div>
-</body>
-</html>
+
+  <!-- ページ専用: ヘッダー高さに合わせてカードの上マージンを調整 -->
+  <script>
+  (function(){
+      function adjustCardMargin(){
+          try{
+              var header = document.querySelector('.top-tabs');
+              var card = document.querySelector('.container');
+              if(!header || !card) return;
+              var rect = header.getBoundingClientRect();
+              var bottom = rect.bottom || 0;
+              var extra = 20;
+              var pad = Math.ceil(bottom + extra);
+              card.style.marginTop = pad + 'px';
+          }catch(e){ console.error('adjustCardMargin error', e); }
+      }
+
+      document.addEventListener('DOMContentLoaded', adjustCardMargin);
+      window.addEventListener('load', adjustCardMargin);
+      window.addEventListener('resize', adjustCardMargin);
+      setTimeout(adjustCardMargin, 300);
+      setTimeout(adjustCardMargin, 1000);
+  })();
+  </script>
+{% endblock %}
