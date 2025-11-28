@@ -75,6 +75,229 @@
 
     /* 右側の説明エリア（削除） */
 
+    /* AIキャラクター表示（右下固定） */
+    .character-container {
+      position: fixed !important;
+      right: 5%;
+      bottom: 0;
+      z-index: 100 !important;
+      display: flex;
+      align-items: flex-end;
+      pointer-events: none;
+    }
+    
+    .character-image {
+      max-width: 280px !important;
+      max-height: 350px !important;
+      pointer-events: auto;
+      transition: transform 0.3s ease;
+      transform-origin: bottom center;
+      display: block;
+      border: none !important;
+      outline: none !important;
+      box-shadow: none !important;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+    }
+    
+    .character-container img {
+      border: none !important;
+      outline: none !important;
+    }
+    
+    /* ホバー時に軽く動く */
+    .character-image:hover {
+      transform: scale(1.05) rotate(2deg) !important;
+      cursor: pointer;
+    }
+
+    /* ==================== チャットモーダル ==================== */
+    .chat-modal {
+      display: none;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 99999 !important;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .chat-modal.active {
+      display: flex;
+    }
+    
+    .chat-window {
+      background: white;
+      border-radius: 30px;
+      width: 90%;
+      max-width: 800px;
+      height: 80%;
+      max-height: 600px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: modalSlideIn 0.3s ease-out;
+      position: relative !important;
+      z-index: 100000 !important;
+    }
+    
+    @keyframes modalSlideIn {
+      from {
+        transform: scale(0.8) translateY(-50px);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+      }
+    }
+    
+    .chat-header {
+      background: linear-gradient(135deg, #FFD700, #FFA500);
+      padding: 20px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 3px solid #FF8C00;
+    }
+    
+    .chat-header h2 {
+      margin: 0;
+      color: white;
+      font-size: 24px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    .chat-close-btn {
+      background: white;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+      color: #FF8C00;
+      font-weight: bold;
+    }
+    
+    .chat-close-btn:hover {
+      transform: rotate(90deg) scale(1.1);
+      background: #FFE4B5;
+    }
+    
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background: white;
+    }
+    
+    .chat-message {
+      display: flex;
+      margin-bottom: 15px;
+      animation: messageSlideIn 0.3s ease-out;
+    }
+    
+    @keyframes messageSlideIn {
+      from {
+        transform: translateY(20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    
+    .chat-message.user {
+      flex-direction: row-reverse;
+    }
+    
+    .chat-message-content {
+      max-width: 70%;
+      padding: 15px 20px;
+      border-radius: 20px;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    
+    .chat-message.ai .chat-message-content {
+      background: white;
+      border: 3px solid #FFD700;
+      color: #333;
+    }
+    
+    .chat-message.user .chat-message-content {
+      background: #FFD700 !important;
+      color: #333;
+      font-weight: bold;
+      border: none !important;
+      box-shadow: none !important;
+    }
+    
+    .chat-input-area {
+      padding: 20px;
+      background: white;
+      border-top: 3px solid #FFD700;
+      display: flex;
+      gap: 10px;
+    }
+    
+    .chat-input {
+      flex: 1;
+      padding: 15px 20px;
+      border: 3px solid #FFD700;
+      border-radius: 25px;
+      font-size: 16px;
+      outline: none;
+      transition: all 0.3s;
+    }
+    
+    .chat-input:focus {
+      border-color: #FFA500;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+    }
+    
+    .chat-send-btn {
+      background: linear-gradient(135deg, #FFD700, #FFA500);
+      border: none;
+      padding: 15px 30px;
+      border-radius: 25px;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    }
+    
+    .chat-send-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 5px 15px rgba(255, 165, 0, 0.4);
+    }
+    
+    .chat-send-btn:active {
+      transform: scale(0.98);
+    }
+    
+    .chat-loading {
+      display: none;
+      text-align: center;
+      padding: 10px;
+      color: #666;
+    }
+    
+    .chat-loading.active {
+      display: block;
+    }
+
     .helper { margin-top:8px; color:#777; font-size:13px; text-align:center; }
     .note { margin-top:12px; color:#444; font-size:13px; text-align:center; }
     @media (max-width:880px){
@@ -108,7 +331,192 @@
 
   </main>
 
+  <!-- AIキャラクター立ち絵(画面右下) -->
+  <div class="character-container">
+    <img src="{% static 'codemon/images/characters/' %}{{ appearance|default:'イヌ.png' }}" 
+         alt="AIキャラクター" 
+         class="character-image"
+         onerror="this.src='{% static 'codemon/images/characters/イヌ.png' %}'">
+  </div>
+
+  <!-- チャットモーダル -->
+  <div class="chat-modal" id="chatModal">
+    <div class="chat-window">
+      <div class="chat-header">
+        <h2 id="chatHeaderTitle">🐶 {{ ai_name|default:'うたー' }} と おはなし</h2>
+        <button class="chat-close-btn" id="closeChatBtn">×</button>
+      </div>
+      
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-message ai">
+          <div class="chat-message-content">
+            こんにちは！何か手伝えることはある？
+          </div>
+        </div>
+      </div>
+      
+      <div class="chat-loading" id="chatLoading">
+        {{ ai_name|default:'うたー' }}が考え中...🤔
+      </div>
+      
+      <div class="chat-input-area">
+        <input type="text" 
+               id="chatInput"
+               class="chat-input" 
+               placeholder="メッセージを入力してね！">
+        <button class="chat-send-btn" id="sendChatBtn">送信</button>
+      </div>
+    </div>
+  </div>
+
   <script>
+    // チャット機能
+    document.addEventListener('DOMContentLoaded', function() {
+      const character = document.querySelector('.character-image');
+      const chatModal = document.getElementById('chatModal');
+      const closeChatBtn = document.getElementById('closeChatBtn');
+      const sendChatBtn = document.getElementById('sendChatBtn');
+      const chatInput = document.getElementById('chatInput');
+      const chatMessages = document.getElementById('chatMessages');
+      const chatLoading = document.getElementById('chatLoading');
+      
+      // キャラクターをクリックでチャットモーダルを開く
+      if (character) {
+        character.addEventListener('click', openChat);
+      }
+      
+      // チャットを開く
+      function openChat() {
+        chatModal.classList.add('active');
+        chatInput.focus();
+        
+        // ナビゲーションバーを非表示にする
+        const navBar = document.querySelector('.top-tabs');
+        if (navBar) {
+          navBar.style.display = 'none';
+        }
+      }
+      
+      // チャットを閉じる
+      function closeChat() {
+        chatModal.classList.remove('active');
+        
+        // ナビゲーションバーを再表示
+        const navBar = document.querySelector('.top-tabs');
+        if (navBar) {
+          navBar.style.display = 'block';
+        }
+      }
+      
+      // 閉じるボタン
+      closeChatBtn.addEventListener('click', closeChat);
+      
+      // 背景クリックで閉じる
+      chatModal.addEventListener('click', function(e) {
+        if (e.target === chatModal) {
+          closeChat();
+        }
+      });
+      
+      // メッセージ送信
+      async function sendMessage() {
+        const message = chatInput.value.trim();
+        if (!message) return;
+        
+        // ユーザーメッセージを追加
+        addMessage(message, 'user');
+        chatInput.value = '';
+        
+        // ローディング表示
+        chatLoading.classList.add('active');
+        
+        try {
+          const response = await fetch('/codemon/api/ai/chat', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCsrf()
+            },
+            body: JSON.stringify({
+              message: message,
+              character: '{{ character|default:"inu" }}'
+            })
+          });
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Server error:', response.status, errorText);
+            throw new Error(`サーバーエラー: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          console.log('API Response:', data);
+          
+          if (data.error) {
+            console.error('API Error:', data.error);
+            addMessage(`エラー: ${data.error}`, 'ai');
+          } else if (data.reply) {
+            addMessage(data.reply, 'ai');
+          } else {
+            addMessage('すみません、うまく答えられませんでした。', 'ai');
+          }
+        } catch (error) {
+          console.error('Chat error:', error);
+          addMessage('エラーが発生しました。もう一度試してみてね！ (詳細はコンソールを確認)', 'ai');
+        } finally {
+          chatLoading.classList.remove('active');
+        }
+      }
+      
+      // CSRFトークン取得
+      function getCsrf() {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, 10) === 'csrftoken=') {
+              cookieValue = decodeURIComponent(cookie.substring(10));
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
+      
+      // メッセージを追加
+      function addMessage(text, type) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `chat-message ${type}`;
+        
+        // ユーザーメッセージの場合、背景色を削除
+        if (type === 'user') {
+          messageDiv.style.background = 'none';
+        }
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'chat-message-content';
+        contentDiv.textContent = text;
+        
+        messageDiv.appendChild(contentDiv);
+        chatMessages.appendChild(messageDiv);
+        
+        // 最新メッセージまでスクロール
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+      
+      // 送信ボタンクリック
+      sendChatBtn.addEventListener('click', sendMessage);
+      
+      // Enterキーで送信
+      chatInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+    });
+
     // タブ見た目切替および一部タブで遷移（画面構成は変更しない）
     document.querySelectorAll('.nav-tab').forEach(tab=>{
       tab.addEventListener('click', function(e){

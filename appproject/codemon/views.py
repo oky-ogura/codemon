@@ -1368,7 +1368,16 @@ def ai_chat_api(request):
     AIMessage.objects.create(conversation=conv, role="user", content=message)
 
     from .services import chat_gemini
-    reply = chat_gemini(message, pairs, character_id=character)
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        logger.info(f"Calling chat_gemini with character={character}, message={message[:50]}...")
+        reply = chat_gemini(message, pairs, character_id=character)
+        logger.info(f"Got reply: {reply[:100]}...")
+    except Exception as e:
+        logger.error(f"Error in chat_gemini: {str(e)}", exc_info=True)
+        reply = f"[エラー] {str(e)}"
 
     AIMessage.objects.create(conversation=conv, role="assistant", content=reply)
 

@@ -69,8 +69,8 @@
         .id-box { font-size:18px; font-weight:700; color:#333; }
 
         /* グループリスト */
-        .groups { margin-top:16px; display:flex; flex-direction:column; gap:10px; }
-        .groups-list { display:flex; flex-direction:column; gap:10px; max-height:200px; overflow-y:auto; padding-right:4px; margin-top:10px; padding-bottom:10px; }
+        .groups { margin-top:-20px; display:flex; flex-direction:column; gap:10px; }
+        .groups-list { display:flex; flex-direction:column; gap:10px; max-height:200px; overflow-y:auto; padding-right:4px; margin-top:-20px; padding-bottom:10px; }
         .groups-list::-webkit-scrollbar { width:8px; }
         .groups-list::-webkit-scrollbar-track { background:#f1f1f1; border-radius:4px; }
         .groups-list::-webkit-scrollbar-thumb { background:#bbb; border-radius:4px; }
@@ -79,9 +79,14 @@
         .group-name { flex:1; font-weight:600; color:#222; }
         .group-meta { color:#666; font-size:13px; }
         .btn { padding:6px 10px; border-radius:6px; border:1px solid #bbb; background:#f0f2f5; cursor:pointer; font-size:13px; }
-        .btn.detail { background:#e8f0ff; border-color:#9cc0ff; }
-        .btn.del { background:#ffecec; border-color:#ffa6a6; }
-        .btn.logout { background:#2b8cff; color:#fff; border:none; padding:10px 18px; border-radius:8px; }
+        .btn.detail { background:transparent; border:none; padding:4px; transition:transform 0.2s ease, opacity 0.2s ease; }
+        .btn.detail:hover { transform:scale(1.1); opacity:0.7; }
+        .btn.del { background:transparent; border:none; padding:4px; transition:transform 0.2s ease, opacity 0.2s ease; }
+        .btn.del:hover { transform:scale(1.1); opacity:0.7; }
+        .btn.create { background:transparent; border:none; padding:4px; transition:transform 0.2s ease, opacity 0.2s ease; }
+        .btn.create:hover { transform:scale(1.1); opacity:0.7; }
+        .btn.logout { background:transparent; border:none; padding:4px; cursor:pointer; transition:transform 0.2s ease, opacity 0.2s ease; }
+        .btn.logout:hover { transform:scale(1.1); opacity:0.7; }
 
         /* レスポンシブ */
         @media(max-width:720px){
@@ -115,7 +120,9 @@
                     <div class="logout-area">
                         <form id="logout-form" method="post" action="{% url 'accounts:logout' %}">
                             {% csrf_token %}
-                            <button type="button" id="logout-btn" class="btn logout">ログアウト</button>
+                            <button type="button" id="logout-btn" class="btn logout">
+                                <img src="{% static 'codemon/images/nav/教員用アカウント画面 (17).png' %}" alt="ログアウト" style="height:40px; display:block;">
+                            </button>
                         </form>
                     </div>
                 </div>
@@ -183,7 +190,9 @@
                     <div class="groups-header" style="display:flex; align-items:center; justify-content:space-between;">
                         <div style="font-weight:700; color:#444;">グループ</div>
                         <div class="groups-actions" style="margin-left:12px;">
-                            <a class="btn" href="{% url 'accounts:group_create' %}">新規作成</a>
+                            <a class="btn create" href="{% url 'accounts:group_create' %}" aria-label="新規作成">
+                                <img src="{% static 'codemon/images/nav/教員用アカウント画面 (11).png' %}" alt="新規作成" style="height:40px; display:block;">
+                            </a>
                         </div>
                     </div>
                     <div class="groups-list">
@@ -193,10 +202,12 @@
                                     <div class="group-name">{{ g.name }}</div>
                                     <div class="group-meta">{{ g.member_count }}人</div>
                                     <a class="btn detail" href="{% url 'accounts:group_menu' g.group_id %}" aria-label="詳細">
-                                        <img src="{% static 'codemon/images/nav/教員用アカウント画面 (14).png' %}" alt="詳細" style="height:28px; display:block;">
+                                        <img src="{% static 'codemon/images/nav/教員用アカウント画面 (14).png' %}" alt="詳細" style="height:40px; display:block;">
                                     </a>
                                     <!-- 削除はページ内確認モーダルを表示してから遷移します -->
-                                    <button type="button" class="btn del" data-delete-url="{% url 'accounts:group_delete' g.group_id %}">削除</button>
+                                    <button type="button" class="btn del" data-delete-url="{% url 'accounts:group_delete' g.group_id %}" aria-label="削除">
+                                        <img src="{% static 'codemon/images/nav/教員用アカウント画面 (15).png' %}" alt="削除" style="height:40px; display:block;">
+                                    </button>
                                 </div>
                             {% endfor %}
                         {% else %}
