@@ -27,11 +27,12 @@ from django.conf import settings
 from django import forms
 from django.http import HttpResponseRedirect, HttpResponseForbidden, FileResponse, JsonResponse
 from .forms import TeacherSignupForm, StudentSignupForm, ProfileEditForm
-from .models import Account, Group, GroupMember
+
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.core import signing
 from django.template.loader import render_to_string
+
 from django.db import connection, transaction
 from django.utils import timezone
 from django.contrib.messages import get_messages
@@ -41,6 +42,7 @@ import datetime
 from codemon.models import System, Algorithm, SystemElement
 import json
 from types import SimpleNamespace
+from .models import Account, Group, GroupMember
 try:
     from codemon.views import _get_write_owner
 except Exception:
@@ -56,6 +58,11 @@ except Exception:
         if getattr(request, 'user', None) and getattr(request.user, 'is_authenticated', False):
             return request.user
         return None
+
+from django.db import connection, transaction
+from django.utils import timezone
+import logging
+from django.contrib.auth.hashers import make_password
 
 
 
@@ -331,13 +338,14 @@ def account_session_required(view_func):
 
 @account_session_required
 def karihome(request):
+
     print(f"DEBUG karihome view: session_key={request.session.session_key} data={dict(request.session)}")
     
     # AI設定を取得してAI名前とキャラクターをテンプレートに渡す
     from .models import AiConfig
     ai_name = 'うたー'  # デフォルト値
     character = 'inu'  # デフォルト値（イヌ）
-    appearance = 'イヌ.png'  # デフォルト値
+    appearance = 'イヌ.png'  # デフォルト値（実際のファイル名）
     try:
         acc = get_logged_account(request)
         if acc:
@@ -346,32 +354,13 @@ def karihome(request):
                 if ai_config.ai_name:
                     ai_name = ai_config.ai_name
                 if ai_config.appearance:
+                    # appearanceはそのまま使用（例: イヌ.png, ウサギ.png）
                     appearance = ai_config.appearance
-                    # appearanceからキャラクターIDを決定
-                    # appearance値がファイル名形式(例: dog.png)の場合に対応
-                    appearance_lower = ai_config.appearance.lower().replace('.png', '')
-                    appearance_map = {
-                        'dog': 'inu',
-                        'cat': 'neko',
-                        'rabbit': 'usagi',
-                        'panda': 'panda',
-                        'fox': 'kitsune',
-                        'squirrel': 'risu',
-                        'owl': 'fukurou',
-                        'alpaca': 'arupaka',
-                        'イヌ': 'inu',
-                        'ネコ': 'neko',
-                        'ウサギ': 'usagi',
-                        'パンダ': 'panda',
-                        'キツネ': 'kitsune',
-                        'リス': 'risu',
-                        'フクロウ': 'fukurou',
-                        'アルパカ': 'arupaka',
-                        '犬': 'inu',
-                        '猫': 'neko',
-                        '兎': 'usagi',
-                    }
-                    character = appearance_map.get(appearance_lower, appearance_map.get(ai_config.appearance, 'inu'))
+                    # .pngがついていない場合は追加
+                    if not appearance.endswith('.png'):
+                        appearance = appearance + '.png'
+                    # 外見からキャラクターIDを取得（APPEARANCE_TO_CHARACTERマッピングを使用）
+                    character = APPEARANCE_TO_CHARACTER.get(appearance, 'inu')
     except Exception as e:
         print(f"AI設定の取得エラー: {e}")
     
@@ -380,6 +369,7 @@ def karihome(request):
         'character': character,
         'appearance': appearance
     })
+
 
 def login_choice(request):
     """ログイン種別の選択ページ（教師 or 生徒）を表示する簡易ビュー"""
@@ -410,7 +400,7 @@ def ai_appearance(request):
         # 外見選択後は初期設定画面へ遷移させる
         return redirect('accounts:ai_initial')
 
-    appearances = ['イヌ.png', 'ウサギ.png', 'キツネ.png', 'ネコ.png', 'パンダ.png', 'フクロウ.png', 'リス.png']
+    appearances = ['イヌ.png', 'ウサギ.png', 'キツネ.png', 'ネコ.png', 'パンダ.png', 'フクロウ.png', 'リス.png', 'アルパカ.png']
     return render(request, 'accounts/ai_appearance.html', {'appearances': appearances})
 
 
@@ -430,6 +420,7 @@ def ai_initial_settings(request):
         'パンダ.png': {'personality': '元気', 'speech': 'だよ'},
         'フクロウ.png': {'personality': '冷静', 'speech': 'ですな'},
         'リス.png': {'personality': '元気', 'speech': 'なのだ'},
+        'アルパカ.png': {'personality': '穏やか', 'speech': 'もふ'},
     }
 
     # POST は基本的に確認画面へ遷移するためのデータ送信に使い、
@@ -631,7 +622,7 @@ def system_index(request):
     # ログインユーザーの他のシステム一覧を取得
     account = get_logged_account(request)
     other_systems_json = '[]'
-    algorithms_json = '[]'
+    algorithms_json = '[]'  # アルゴリズム一覧を追加
     
     if account:
         try:
@@ -667,7 +658,7 @@ def system_index(request):
             pass
 
     context['other_systems_json'] = other_systems_json
-    context['algorithms_json'] = algorithms_json
+    context['algorithms_json'] = algorithms_json  # コンテキストに追加
 
     if system_id:
         try:
@@ -702,20 +693,32 @@ def get_system_elements(request):
     """
     指定されたシステムの要素データをJSON形式で返すAPIエンドポイント
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     system_id = request.GET.get('system_id')
+    logger.info(f"=== get_system_elements called ===")
+    logger.info(f"system_id: {system_id}")
+    
     if not system_id:
         return JsonResponse({'error': 'system_id is required'}, status=400)
 
     account = get_logged_account(request)
+    logger.info(f"account: {account}")
+    
     if not account:
         return JsonResponse({'error': 'Not authenticated'}, status=401)
 
     try:
         # システムの所有者確認
+        logger.info(f"Fetching system with system_id={system_id} for user={account.user_id}")
         system = System.objects.get(system_id=system_id, user=account)
+        logger.info(f"System found: {system.system_name}")
 
         # システム要素を取得
         elements = SystemElement.objects.filter(system=system).order_by('sort_order', 'element_id')
+        logger.info(f"Found {elements.count()} elements")
+        
         elements_list = []
         for elem in elements:
             elements_list.append({
@@ -736,8 +739,10 @@ def get_system_elements(request):
             'elements': elements_list
         })
     except System.DoesNotExist:
+        logger.error(f"System not found: system_id={system_id}, user={account.user_id}")
         return JsonResponse({'error': 'System not found'}, status=404)
     except Exception as e:
+        logger.error(f"Error in get_system_elements: {str(e)}", exc_info=True)
         return JsonResponse({'error': str(e)}, status=500)
 
 # ブロック作成保存
@@ -750,9 +755,45 @@ def system_save(request):
     # 必要なら POST 処理をここに追加（保存処理など）
     return render(request, 'system/save.html')
 
+# 外見ファイル名からキャラクターIDへの変換マッピング
+APPEARANCE_TO_CHARACTER = {
+    'イヌ.png': 'inu',
+    'ウサギ.png': 'usagi',
+    'キツネ.png': 'kitsune',
+    'ネコ.png': 'neko',
+    'パンダ.png': 'panda',
+    'リス.png': 'risu',
+    'フクロウ.png': 'fukurou',
+    'アルパカ.png': 'arupaka',
+}
+
 # システム選択画面
 def system_choice(request):
-    return render(request, 'system/system_choice.html')
+    # ログインユーザーのAI設定を取得
+    account = get_logged_account(request)
+    appearance = 'イヌ.png'
+    ai_name = 'うたー'
+    
+    if account:
+        try:
+            from .models import AiConfig
+            ai_config = AiConfig.objects.filter(user_id=account.user_id).first()
+            if ai_config:
+                appearance = ai_config.appearance or 'イヌ.png'
+                ai_name = ai_config.ai_name or 'うたー'
+        except Exception:
+            pass
+    
+    # 外見からキャラクターIDを取得
+    character = APPEARANCE_TO_CHARACTER.get(appearance, 'inu')
+    
+    context = {
+        'appearance': appearance,
+        'ai_name': ai_name,
+        'character': character,
+    }
+    
+    return render(request, 'system/system_choice.html', context)
 
 # システム新規作成画面（システム名、システムの詳細入力など）
 def system_create(request):
@@ -1452,7 +1493,7 @@ def group_create(request):
                 # 多くの既存 DB スキーマでは group.password が NOT NULL の場合があるため
                 # raw SQL で確実に挿入する
                 with connection.cursor() as cursor:
-                    cursor.execute('INSERT INTO "group" (group_name, user_id, password, owner_id, is_active, created_at, updated_at) VALUES (%s, %s, %s, %s, %s, now(), now())', [group_name, user_id, hashed or '', user_id, True])
+                    cursor.execute('INSERT INTO "group" (group_name, user_id, password, is_active, created_at, updated_at) VALUES (%s, %s, %s, %s, now(), now())', [group_name, user_id, hashed or '', True])
                     # 挿入した行を取得（group_name と user_id の組で最新のものを選ぶ）
                     cursor.execute('SELECT group_id FROM "group" WHERE group_name = %s AND user_id = %s ORDER BY group_id DESC LIMIT 1', [group_name, user_id])
                     row = cursor.fetchone()
@@ -1912,11 +1953,8 @@ def group_join_confirm(request):
             pass
 
         messages.success(request, 'グループに参加しました。')
-        # 加入後は生徒向けアカウント画面へ戻す
-        try:
-            return redirect('accounts:s_account')
-        except Exception:
-            return redirect('accounts:account_entry')
+        # 加入後はkarihomeへ遷移
+        return redirect('accounts:karihome')
 
     # デフォルト: キャンセル等はアカウント画面へ
     return redirect('accounts:account_entry')
@@ -2108,13 +2146,13 @@ def account_entry(request):
     with connection.cursor() as cursor:
         if user_id:
             cursor.execute(
-                "SELECT user_id, user_name, email, account_type, age, group_id, created_at "
+                "SELECT user_id, user_name, email, account_type, age, group_id, created_at, avatar "
                 "FROM account WHERE user_id = %s",
                 [user_id]
             )
         else:
             cursor.execute(
-                "SELECT user_id, user_name, email, account_type, age, group_id, created_at "
+                "SELECT user_id, user_name, email, account_type, age, group_id, created_at, avatar "
                 "FROM account WHERE email = %s",
                 [email]
             )
@@ -2129,6 +2167,7 @@ def account_entry(request):
             'age': row[4],
             'group_id': row[5],
             'created_at': row[6],
+            'avatar': row[7],
         }
 
     # created_at -> 初めて会った日（datetime）と累計日数（文字列）を計算
@@ -2356,20 +2395,19 @@ def group_invite(request, group_id):
         return redirect('accounts:group_menu', group_id=group_id)
 
 
-def group_remove_member(request, group_id):
+def group_remove_member(request, group_id, member_id):
     """グループからメンバーを削除（教師のみ）"""
     owner = _get_write_owner(request)
     if owner is None or owner.type != 'teacher':
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'error': '教師権限が必要です'}, status=403)
         return HttpResponseForbidden('教師権限が必要です')
 
     group = get_object_or_404(Group, group_id=group_id, is_active=True)
     if group.owner != owner:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'error': 'グループのオーナーのみメンバーを削除できます'}, status=403)
         return HttpResponseForbidden('グループのオーナーのみメンバーを削除できます')
-
-    member_id = request.POST.get('member_id')
-    if not member_id:
-        messages.error(request, 'メンバーIDが指定されていません')
-        return redirect('accounts:group_menu', group_id=group_id)
 
     try:
         membership = GroupMember.objects.get(
@@ -2377,14 +2415,42 @@ def group_remove_member(request, group_id):
             member_id=member_id
         )
         if membership.member == group.owner:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'error': 'グループのオーナーは削除できません'}, status=400)
             messages.error(request, 'グループのオーナーは削除できません')
         else:
             member_name = membership.member.user_name
-            membership.delete()
+            joined_at = membership.joined_at.strftime('%Y/%m/%d') if hasattr(membership, 'joined_at') and membership.joined_at else ''
+            
+            # トランザクション内で確実に両方のテーブルから削除
+            with transaction.atomic():
+                # accountテーブルのgroup_idをクリア
+                try:
+                    member_account = Account.objects.get(user_id=member_id)
+                    member_account.group_id = None
+                    member_account.save()
+                except Account.DoesNotExist:
+                    pass  # アカウントが見つからない場合は無視
+                
+                # group_memberテーブルから削除
+                membership.delete()
+            
+            # AJAXリクエストの場合はJSONで応答
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'status': 'ok',
+                    'message': f'{member_name}をグループから削除しました',
+                    'member_id': member_id,
+                    'member_name': member_name,
+                    'joined_at': joined_at
+                })
+            
             messages.success(request, f'{member_name}をグループから削除しました')
 
         return redirect('accounts:group_menu', group_id=group_id)
 
     except GroupMember.DoesNotExist:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'error': '指定されたメンバーが見つかりません'}, status=404)
         messages.error(request, '指定されたメンバーが見つかりません')
         return redirect('accounts:group_menu', group_id=group_id)

@@ -1,161 +1,163 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="utf-8">
-<title>アカウント</title>
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}アカウント{% endblock %}
+
+{% block background_frame %}
+<img src="{% static 'codemon/images/frames/生徒用アカウント画面 (2).png' %}" 
+     alt="" 
+     class="bg-frame">
+{% endblock %}
+
+{% block extra_css %}
 <style>
-  body{font-family:"Segoe UI",sans-serif;background:#f7f7f7;margin:0;padding:24px}
-  .frame{width:920px;margin:12px auto;background:#fff;border:2px solid #000;padding:20px;box-sizing:border-box}
-  .tabs{display:flex;gap:8px;margin-bottom:18px}
-  .tab{padding:8px 18px;border:1px solid #000;background:#fff}
-  .profile{display:flex;gap:24px;align-items:flex-start}
-  .avatar{width:120px;height:120px;border-radius:50%;border:4px solid #ddd;background:#eee;display:flex;align-items:center;justify-content:center;font-size:14px;color:#666}
-
-  /* イニシャルごとの背景色（A-Z） */
-  .avatar.initial-A { background:#1abc9c; color:#fff; }
-  .avatar.initial-B { background:#2ecc71; color:#fff; }
-  .avatar.initial-C { background:#3498db; color:#fff; }
-  .avatar.initial-D { background:#9b59b6; color:#fff; }
-  .avatar.initial-E { background:#34495e; color:#fff; }
-  .avatar.initial-F { background:#16a085; color:#fff; }
-  .avatar.initial-G { background:#27ae60; color:#fff; }
-  .avatar.initial-H { background:#2980b9; color:#fff; }
-  .avatar.initial-I { background:#8e44ad; color:#fff; }
-  .avatar.initial-J { background:#2c3e50; color:#fff; }
-  .avatar.initial-K { background:#f39c12; color:#fff; }
-  .avatar.initial-L { background:#d35400; color:#fff; }
-  .avatar.initial-M { background:#c0392b; color:#fff; }
-  .avatar.initial-N { background:#7f8c8d; color:#fff; }
-  .avatar.initial-O { background:#e67e22; color:#fff; }
-  .avatar.initial-P { background:#e74c3c; color:#fff; }
-  .avatar.initial-Q { background:#1f618d; color:#fff; }
-  .avatar.initial-R { background:#117a65; color:#fff; }
-  .avatar.initial-S { background:#9b59b6; color:#fff; }
-  .avatar.initial-T { background:#2e86c1; color:#fff; }
-  .avatar.initial-U { background:#17a589; color:#fff; }
-  .avatar.initial-V { background:#b03a2e; color:#fff; }
-  .avatar.initial-W { background:#45b39d; color:#fff; }
-  .avatar.initial-X { background:#5dade2; color:#fff; }
-  .avatar.initial-Y { background:#f5b041; color:#fff; }
-  .avatar.initial-Z { background:#a569bd; color:#fff; }
-
-  .initial-text { font-size:48px; line-height:1; font-weight:700; color:inherit; }
-  .info{flex:1}
-  .info .row{margin-bottom:8px}
-  .label{display:inline-block;width:80px;color:#333}
-  .meta{margin-top:18px;display:flex;gap:24px;align-items:flex-start}
-  .stick{width:120px;text-align:center;color:#444}
-  .stick .figure{font-size:48px;line-height:1}
-  .btn-logout{background:#cfe6ff;padding:12px 18px;border-radius:8px;border:none;text-decoration:none;color:#000;display:inline-block;margin-top:12px;cursor:pointer}
-  .small{color:#666;font-size:13px}
+  .account-container{
+    position:relative;
+    width:100%;
+    height:calc(100vh - 120px);
+    margin-top:100px;
+    padding:20px 60px;
+    box-sizing:border-box;
+  }
+  
+  /* 左側：ユーザー情報エリア */
+  .user-info-area{
+    position:absolute;
+    left:15%;
+    top:50%;
+    transform:translateY(-50%);
+  }
+  
+  /* ユーザー名アイコン */
+  .user-icon{
+    width:80px;
+    height:80px;
+    border-radius:50%;
+    border:3px solid #4fc3f7;
+    margin-bottom:20px;
+    background:#4fc3f7;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:32px;
+    font-weight:bold;
+    color:#fff;
+  }
+  
+  .info .row{margin-bottom:20px;display:flex;align-items:center;gap:20px}
+  .label{display:inline-block;min-width:60px;color:#333;font-weight:500;text-align:right;font-size:16px}
+  .value-box{background:#4fc3f7;color:#000;padding:10px 40px;border-radius:30px;font-weight:bold;min-width:150px;text-align:left;display:inline-block;font-size:16px}
+  
+  /* 右側：AI情報エリア */
+  .ai-info-area{
+    position:absolute;
+    left:50%;
+    top:60%;
+    transform:translate(-50%, -50%);
+    text-align:center;
+  }
+  
+  .ai-character{
+    width:200px;
+    height:200px;
+    object-fit:contain;
+    margin-bottom:15px;
+  }
+  
+  .ai-details{
+    text-align:right;
+    color:#666;
+    font-size:14px;
+    line-height:1.8;
+  }
+  
+  /* ログアウトボタン：左下 */
+  .logout-area{
+    position:absolute;
+    left:15%;
+    bottom:15%;
+  }
+  
+  .btn-logout{
+    font-size:1rem;
+    color:#000000;
+    padding:8px 20px;
+    border-radius:10px;
+    border-top:2px solid #ff8c00;
+    border-left:2px solid #ff8c00;
+    border-right:2px solid #fafafa;
+    border-bottom:2px solid #fafafa;
+    background:#ffffff;
+    box-shadow:5px 5px 0 #00bfff;
+    cursor:pointer;
+    text-decoration:none;
+    display:inline-block;
+  }
+  .btn-logout:hover{
+    opacity:0.9;
+  }
 
 /* モーダル */
-#confirm-modal{position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.4);display:none;align-items:center;justify-content:center}
+#confirm-modal{position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.4);display:none;align-items:center;justify-content:center;z-index:9999}
 #confirm-modal .box{background:#fff;padding:20px;border-radius:8px;min-width:320px;text-align:center}
 #confirm-modal .buttons{margin-top:16px;display:flex;gap:12px;justify-content:center}
 #confirm-modal .btn{padding:8px 14px;border-radius:6px;border:none;cursor:pointer}
 #confirm-modal .yes{background:#f46b6b;color:#fff}
 #confirm-modal .no{background:#e0e6ef}
 </style>
-</head>
-<body>
-  <div class="frame">
-    <div class="tabs">
-      <div class="tab">システムタブ</div>
-      <div class="tab">アルゴリズムタブ</div>
-      <div class="tab"><a href="{% url 'codemon:checklist_selection' %}">進捗管理タブ</a></div>
-      <div class="tab"><a href="{% url 'accounts:karihome' %}">ホーム</a></div>
-      
-    </div>
+{% endblock %}
 
-    <div class="profile">
-      <div>
-        {% with display_name=account.user_name|default:"ゲスト" %}
-          {% with initial=display_name|slice:":1" %}
-            {% if user and user.is_authenticated and user.profile.avatar %}
-              <div class="avatar">
-                <img src="{{ user.profile.avatar.url }}" alt="avatar" style="width:100%;height:100%;border-radius:50%;">
-              </div>
-            {% else %}
-              <div class="avatar initial-{{ initial|upper }}">
-                <span class="initial-text">{{ initial|upper }}</span>
-              </div>
-            {% endif %}
-          {% endwith %}
-        {% endwith %}
+{% block content %}
+  <div class="account-container">
+    <!-- 左側：ユーザー情報 -->
+    <div class="user-info-area">
+      <!-- ユーザー名アイコン -->
+      <div class="user-icon">
+        {% if account and account.user_name %}{{ account.user_name|slice:":1" }}{% else %}?{% endif %}
       </div>
-
       <div class="info">
-<div class="row">
-  <span class="label">ID</span>
-  <span>{% if account %}{{ account.user_id }}{% else %}---{% endif %}</span>
-</div>
+        <div class="row">
+          <span class="label">ID</span>
+          <span class="value-box">{% if account %}{{ account.user_id }}{% else %}---{% endif %}</span>
+        </div>
 
-<div class="row">
-  <span class="label">名前</span>
-  <strong>{% if account %}{{ account.user_name }}{% else %}ゲスト{% endif %}</strong>
-</div>
+        <div class="row">
+          <span class="label">名前</span>
+          <span class="value-box">{% if account %}{{ account.user_name }}{% else %}ゲスト{% endif %}</span>
+        </div>
 
-<div class="row">
-  <span class="label">年齢</span>
-  <span>{% if account and account.age is not None %}{{ account.age }}歳{% else %}--{% endif %}</span>
-</div>
-
-<div class="row">
-  <span class="label">参加グループ</span>
-  <span>
-    {% if joined_group %}
-      {% if joined_group.detail_url %}
-        <a href="{{ joined_group.detail_url }}">{{ joined_group.group_name }}</a>
-      {% else %}
-        {{ joined_group.group_name }}
-      {% endif %}
-    {% else %}
-      未参加
-      <!-- 未参加時はグループ参加ボタンを表示 -->
-      <form method="get" action="{% url 'accounts:group_join_confirm' %}" style="display:inline;margin-left:12px">
-        <button type="submit" class="btn-logout">グループに参加</button>
-      </form>
-    {% endif %}
-  </span>
-</div>
-
-{% load static %}
-<div class="meta">
-  <div class="stick">
-    <!-- AI画像を表示 -->
-    {% if ai_config and ai_config.appearance %}
-      <img src="{% static 'codemon/images/characters/' %}{{ ai_config.appearance }}" 
-           alt="AI" 
-           style="width:120px;height:120px;object-fit:contain;margin-bottom:8px;"
-           onerror="this.src='{% static 'codemon/images/characters/イヌ.png' %}'">
-    {% else %}
-      <div class="figure">⚪︎</div>
-    {% endif %}
-
-    <!-- AI名前のみ表示 -->
-    <div class="small">名前 {{ ai_config.ai_name|default:"codemon" }}</div>
-
-    <!-- main ブランチのメタ情報（日時や累計日数） -->
-    <div class="small">初めて会った日 {% if first_met %}{{ first_met|date:"Y/n/d" }}{% else %}--{% endif %}</div>
-    <div class="small">累計日数 {% if total_days %}{{ total_days }}{% else %}0日{% endif %}</div>
-  </div>
-</div>
-
-          </div>
-
-          <div>
-            
-
-            <!-- ログアウト: POSTフォーム + 確認モーダル起動ボタン -->
-            <form id="logout-form" method="post" action="{% url 'accounts:logout' %}" style="display:inline">
-              {% csrf_token %}
-              <button type="button" id="logout-btn" class="btn-logout">ログアウトボタン</button>
-            </form>
-
-          </div>
+        <div class="row">
+          <span class="label">年齢</span>
+          <span class="value-box">{% if account and account.age is not None %}{{ account.age }}歳{% else %}--{% endif %}</span>
         </div>
       </div>
+    </div>
+
+    <!-- 右側：AI情報 -->
+    <div class="ai-info-area">
+      {% if ai_config and ai_config.appearance %}
+        <img src="{% static 'codemon/images/characters/' %}{{ ai_config.appearance }}" 
+             alt="AI" 
+             class="ai-character"
+             onerror="this.src='{% static 'codemon/images/characters/イヌ.png' %}'">
+      {% else %}
+        <img src="{% static 'codemon/images/characters/イヌ.png' %}" 
+             alt="AI" 
+             class="ai-character">
+      {% endif %}
+      <div class="ai-details">
+        <div>名前　{{ ai_config.ai_name|default:"CodeMon" }}</div>
+        <div>初めて会った日　{% if first_met %}{{ first_met|date:"Y/m/d" }}{% else %}--{% endif %}</div>
+        <div>累計　{% if total_days %}{{ total_days }}{% else %}0日{% endif %}</div>
+      </div>
+    </div>
+
+    <!-- 左下：ログアウトボタン -->
+    <div class="logout-area">
+      <form id="logout-form" method="post" action="{% url 'accounts:logout' %}" style="display:inline">
+        {% csrf_token %}
+        <button type="submit" id="logout-btn" class="btn-logout">ログアウト</button>
+      </form>
     </div>
   </div>
 
@@ -169,11 +171,4 @@
       </div>
     </div>
   </div>
-
-<script>
-document.getElementById('logout-btn').addEventListener('click', function(){ document.getElementById('confirm-modal').style.display = 'flex'; });
-document.getElementById('confirm-no').addEventListener('click', function(){ document.getElementById('confirm-modal').style.display = 'none'; });
-document.getElementById('confirm-yes').addEventListener('click', function(){ document.getElementById('logout-form').submit(); });
-</script>
-</body>
-</html>
+{% endblock %}

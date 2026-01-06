@@ -1324,6 +1324,14 @@ def ai_chat_api(request):
     message = (body.get("message") or "").strip()
     character = body.get("character") or "usagi"
     conv_id = body.get("conversation_id")
+    
+    # デバッグログ
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"=== AI Chat API Called ===")
+    logger.info(f"Received body: {body}")
+    logger.info(f"Character ID: {character}")
+    logger.info(f"Message: {message}")
 
     if not message:
         return JsonResponse({"error": "message required"}, status=400)
@@ -1368,7 +1376,16 @@ def ai_chat_api(request):
     AIMessage.objects.create(conversation=conv, role="user", content=message)
 
     from .services import chat_gemini
-    reply = chat_gemini(message, pairs, character_id=character)
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        logger.info(f"Calling chat_gemini with character={character}, message={message[:50]}...")
+        reply = chat_gemini(message, pairs, character_id=character)
+        logger.info(f"Got reply: {reply[:100]}...")
+    except Exception as e:
+        logger.error(f"Error in chat_gemini: {str(e)}", exc_info=True)
+        reply = f"[エラー] {str(e)}"
 
     AIMessage.objects.create(conversation=conv, role="assistant", content=reply)
 

@@ -39,6 +39,11 @@ class SystemElement(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新日時')
 
+    class Meta:
+        db_table = 'system_element'
+        verbose_name = 'システム要素'
+        verbose_name_plural = 'システム要素'
+
 
 class Algorithm(models.Model):
     # algorithm_id は PostgreSQL のシーケンスで管理（5000001 から開始）

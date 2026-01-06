@@ -34,7 +34,7 @@
   /* キャラクターを画面中央右寄りに配置 */
   .character-container {
     position: fixed !important;
-    right: 20%;
+    right: 15%;
     bottom: 0;
     transform: none;
     z-index: 100 !important;
@@ -43,8 +43,8 @@
   }
   
   .character-image {
-    max-width: 350px !important;
-    max-height: 450px !important;
+    max-width: 400px !important;
+    max-height: 500px !important;
     pointer-events: auto;
     transition: transform 0.3s ease;
     transform-origin: bottom center;
@@ -399,10 +399,10 @@
 
   <!-- キャラクター立ち絵(画面右下) -->
   <div class="character-container">
-    <img src="{% static 'codemon/images/characters/' %}{{ appearance|default:'イヌ.png' }}" 
+    <img src="{% static 'codemon/images/characters/' %}{{ appearance|default:'イヌ' }}" 
          alt="AIキャラクター" 
          class="character-image"
-         onerror="this.src='{% static 'codemon/images/characters/イヌ.png' %}'">
+         id="characterImage">
   </div>
 </div>
 
@@ -457,12 +457,12 @@
     const mumbles = [
       '眠いなぁ...💤',
       '暇だな～ 🎵',
-      'お腹すいたわん 🍖',
-      '遊びたいな！✨',
+      'お腹すいた 🍖',
+      '遊びたいな✨',
       'なんかないかな～ 🤔',
-      'ねむねむだわん... 😴',
+      'ねむねむだ... 😴',
       '誰か来ないかな？ 👀',
-      'たいくつだわん 🐾'
+      'たいくつだな'
     ];
     
     // ランダムな独り言を表示
