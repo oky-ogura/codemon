@@ -19,7 +19,7 @@
         /* メインカード */
         /* ヘッダーが固定表示のため、このページだけ上部に余白を確保する */
         /* 余白をやや大きめにしてヘッダーとの重なりを防止 */
-        .card { max-width:1000px; margin:160px auto 40px; background:#fff; border:1px solid #ddd; padding:18px; box-shadow:0 6px 20px rgba(0,0,0,0.05); box-sizing:border-box; max-height:calc(100vh - 200px); overflow:visible; }
+        .card { max-width:1000px; margin:160px auto 40px; background:transparent; border:none; padding:18px; box-shadow:none; box-sizing:border-box; max-height:calc(100vh - 200px); overflow:visible; }
 
         .main { display:flex; gap:24px; align-items:flex-start; }
         .left { width:220px; text-align:center; }
@@ -85,8 +85,9 @@
         .btn.del:hover { transform:scale(1.1); opacity:0.7; }
         .btn.create { background:transparent; border:none; padding:4px; transition:transform 0.2s ease, opacity 0.2s ease; }
         .btn.create:hover { transform:scale(1.1); opacity:0.7; }
-        .btn.logout { background:transparent; border:none; padding:4px; cursor:pointer; transition:transform 0.2s ease, opacity 0.2s ease; }
+        .btn.logout { background:transparent; border:none; padding:4px; cursor:pointer; transition:transform 0.2s ease, opacity 0.2s ease; outline:none; }
         .btn.logout:hover { transform:scale(1.1); opacity:0.7; }
+        .btn.logout:focus { outline:none; }
 
         /* レスポンシブ */
         @media(max-width:720px){
@@ -220,8 +221,8 @@
     </div>
 
   <!-- 確認モーダル（s_account と同じ構成） -->
-  <div id="confirm-modal" aria-hidden="true" style="display:none; position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.4);align-items:center;justify-content:center">
-    <div class="box" role="dialog" aria-modal="true" aria-labelledby="confirm-title" style="background:#fff;padding:20px;border-radius:8px;min-width:320px;text-align:center">
+  <div id="confirm-modal" aria-hidden="true" style="display:none; position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;z-index:10000 !important;">
+    <div class="box" role="dialog" aria-modal="true" aria-labelledby="confirm-title" style="background:#fff;padding:20px;border-radius:8px;min-width:320px;text-align:center;z-index:10001 !important;">
       <div id="confirm-title">ログアウトしますか？</div>
       <div class="buttons" style="margin-top:16px;display:flex;gap:12px;justify-content:center">
         <button class="btn yes" id="confirm-yes" style="padding:8px 14px;border-radius:6px;border:none;background:#f46b6b;color:#fff">はい</button>
