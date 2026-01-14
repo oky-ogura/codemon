@@ -1558,7 +1558,7 @@ def group_menu(request, group_id):
     # 最低限のコンテキストをテンプレートへ渡す（必要なら詳細情報を増やす）
     try:
         group = get_object_or_404(Group, group_id=group_id, is_active=True)
-        # group_member テーブルに is_active カラムがない環境もあるため、存在に依らず単純に取得する
+        # 物理削除を使用しているため、is_activeフィルタリングは不要
         members_qs = GroupMember.objects.filter(group=group).select_related('member')
         member_count = members_qs.count()
         members = list(members_qs)
@@ -1739,22 +1739,29 @@ def group_remove_member(request, group_id, member_id):
             if int(current_user_id) != int(owner_id) and int(current_user_id) != int(member_id):
                 return HttpResponseForbidden('この操作を行う権限がありません')
 
-            # 論理削除フラグがある場合は更新、なければ削除
-            try:
-                cursor.execute('UPDATE group_member SET is_active = FALSE WHERE group_id = %s AND member_user_id = %s', [group_id, member_id])
-            except Exception:
-                # fallback: attempt delete
-                try:
-                    cursor.execute('DELETE FROM group_member WHERE group_id = %s AND member_user_id = %s', [group_id, member_id])
-                except Exception as e:
-                    messages.error(request, f'メンバー削除に失敗しました: {e}')
-                    return redirect('accounts:group_detail', group_id=group_id)
+            # トランザクション内で両方のテーブルを更新
+            with transaction.atomic():
+                # accountテーブルのgroup_idをNULLに設定
+                cursor.execute('UPDATE account SET group_id = NULL WHERE user_id = %s', [member_id])
+                
+                # group_memberテーブルから物理削除（論理削除ではなく完全削除）
+                cursor.execute('DELETE FROM group_member WHERE group_id = %s AND member_user_id = %s', [group_id, member_id])
 
+        # AJAXリクエストの場合はJSONで応答
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'status': 'ok',
+                'message': 'メンバーをグループから削除しました',
+                'member_id': member_id
+            })
+        
         messages.success(request, 'メンバーをグループから削除しました')
-        return redirect('accounts:group_detail', group_id=group_id)
+        return redirect('accounts:group_menu', group_id=group_id)
     except Exception as e:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'error': f'メンバー削除に失敗しました: {e}'}, status=500)
         messages.error(request, f'メンバー削除に失敗しました: {e}')
-        return redirect('accounts:group_detail', group_id=group_id)
+        return redirect('accounts:group_menu', group_id=group_id)
 
 
 def group_invite(request, group_id):
@@ -2087,9 +2094,14 @@ def t_account(request):
                 )
                 rows = cursor.fetchall()
                 for r in rows:
-                    # メンバー数を取得
+                    # メンバー数を取得（is_activeカラムが存在する場合は考慮）
                     with connection.cursor() as c2:
-                        c2.execute('SELECT COUNT(*) FROM group_member WHERE group_id = %s', [r[0]])
+                        try:
+                            # is_activeカラムが存在する場合
+                            c2.execute('SELECT COUNT(*) FROM group_member WHERE group_id = %s AND is_active = TRUE', [r[0]])
+                        except Exception:
+                            # is_activeカラムが存在しない場合（物理削除のみ）
+                            c2.execute('SELECT COUNT(*) FROM group_member WHERE group_id = %s', [r[0]])
                         count_row = c2.fetchone()
                         member_count = count_row[0] if count_row else 0
                     groups.append({
