@@ -1,46 +1,48 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8" />
-  <title>アルゴリズム削除完了</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    :root{ --nav-height:56px; --primary:#1976d2; --muted:#666; --bg:#f9f9fb; }
-    body{
-      font-family: -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "メイリオ", sans-serif;
-      margin:20px; background:var(--bg); color:#111;
-    }
-    .top-nav{
-      box-sizing:border-box;
-      width:100%;
-      max-width:980px;
-      height:var(--nav-height);
-      margin:16px auto 12px;
-      display:flex;
-      align-items:center;
-      gap:12px;
-      padding:6px 12px;
-      background:linear-gradient(180deg,#fff,#fafafa);
-      border-radius:10px;
-      box-shadow:0 1px 3px rgba(0,0,0,0.06);
-      border:1px solid #e6e6e9;
-    }
-    .nav-brand{ display:flex; align-items:center; gap:8px; padding-right:8px; border-right:1px solid #eee; }
-    .nav-brand .logo{ width:36px; height:36px; border-radius:6px; background:var(--primary); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:18px; }
-    .nav-brand .title{ font-size:15px; color:#111; font-weight:600; }
-    .nav-tabs{ display:flex; justify-content: space-evenly; width:100%; align-items:center; gap:0; margin:0; }
-    .nav-tab{
-      appearance:none; border:0; background:transparent; padding:8px 12px; border-radius:8px;
-      font-size:14px; cursor:pointer; color:var(--muted); transition: all .12s ease;
-    }
-    .nav-tab:hover{ background:#f0f6ff; color:var(--primary); transform:translateY(-1px); }
-    .nav-tab.active{ background:var(--primary); color:#fff; box-shadow:0 2px 6px rgba(25,118,210,0.18); }
+{% extends 'base.html' %}
+{% load static %}
 
-    main{ width:100%; max-width:980px; margin:6px auto; box-sizing:border-box; }
-    h1{ text-align:center; margin-top:8px; color:#4caf50; }
+{% block background_frame %}
+<img src="{% static 'codemon/images/frames/bg_frame_purple.png' %}" 
+     alt="" 
+     class="bg-frame"
+     onerror="this.style.display='none';">
+{% endblock %}
+
+{% block title %}アルゴリズム削除完了 - Codemon{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ナビゲーション表示状態の制御 */
+  .top-tabs {
+    display: block;
+  }
+
+  main {
+    margin: 200px auto 20px auto !important;
+    max-width: 980px;
+    box-sizing: border-box;
+  }
+    h1 {
+      text-align: center;
+      color: #2e7d32;
+      margin-top: 130px !important;
+      margin-bottom: 0 !important;
+    }
     .card {
-      background:#fff; border-radius:10px; padding:40px 24px; box-shadow:0 6px 18px rgba(10,10,10,0.04);
-      border:1px solid #eef2f6; margin:18px auto; max-width:820px; text-align:center;
+      background: url("{% static 'codemon/images/backgrounds/system_save.png' %}") no-repeat center center;
+      background-size: 100% 100%;
+      border-radius:10px; 
+      padding:40px 24px; 
+      box-shadow:0 6px 18px rgba(10,10,10,0.04);
+      border:none;
+      margin:18px auto; 
+      max-width:820px; 
+      text-align:center;
+      margin-top: 8px !important;
+      min-height: 300px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
 
     .success-icon {
@@ -48,7 +50,7 @@
       display:flex; align-items:center; justify-content:center; color:#fff; font-size:48px; font-weight:bold;
     }
 
-    p{ color:#666; font-size:14px; line-height:1.6; margin-bottom:32px; }
+    p{ color:#666; font-size:18px; line-height:1.6; margin-bottom:32px; }
 
     .card-actions{ display:flex; justify-content:center; gap:12px; flex-wrap:wrap; }
     .btn{
@@ -72,19 +74,10 @@
     .btn-ghost:hover {
       background:#f5f5f5;
     }
-  </style>
-</head>
-<body>
-  <header class="top-nav" role="banner" aria-label="メインナビゲーション">
-    <nav class="nav-tabs" role="navigation" aria-label="タブメニュー">
-      <button type="button" class="nav-tab" id="tab-system" aria-pressed="false" title="システム">システム</button>
-      <button type="button" class="nav-tab active" id="tab-algorithm" aria-pressed="true" title="アルゴリズム">アルゴリズム</button>
-      <button type="button" class="nav-tab" id="tab-progress" aria-pressed="false" title="進捗確認">進捗確認</button>
-      <button type="button" class="nav-tab" id="tab-account" aria-pressed="false" title="アカウント">アカウント</button>
-    </nav>
-  </header>
+</style>
+{% endblock %}
 
-  <main>
+{% block content %}
     <h1>アルゴリズム削除完了</h1>
 
     <div class="card">
@@ -95,9 +88,10 @@
         <button class="btn btn-ghost" id="btn-main">メイン画面に戻る</button>
       </div>
     </div>
-  </main>
+{% endblock %}
 
-  <script>
+{% block extra_js %}
+<script>
     // ナビタブ見た目切替 + 遷移
     document.querySelectorAll('.nav-tab').forEach(tab=>{
       tab.addEventListener('click', function(e){
@@ -130,7 +124,10 @@
       window.location.href = '/accounts/block/list/';
     });
 
-    // メイン画面に戻るボタンは表示のみ（遷移しない）
-  </script>
-</body>
+    // メイン画面に戻るボタン
+    document.getElementById('btn-main').addEventListener('click', function(){
+      window.location.href = '/accounts/karihome/';
+    });
+</script>
+{% endblock %}
 </html>
