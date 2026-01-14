@@ -1,108 +1,53 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<title>アルゴリズム保存</title>
+{% extends 'base.html' %}
+{% load static %}
+
+{% block background_frame %}
+<img src="{% static 'codemon/images/frames/bg_frame_orange.png' %}" 
+     alt="" 
+     class="bg-frame"
+     onerror="this.style.display='none';">
+{% endblock %}
+
+{% block title %}アルゴリズム保存完了 - Codemon{% endblock %}
+
+{% block extra_css %}
 <style>
-  :root{
-    --nav-height:56px;
-    --primary:#1976d2;
-    --bg:#f9f9f9;
-    --muted:#666;
-    --danger:#e15554;
-    --card:#fff;
-  }
-  body{
-    margin:0;
-    font-family:"Yu Gothic","Hiragino Kaku Gothic ProN","Segoe UI",sans-serif;
-    background:var(--bg);
-    color:#222;
-  }
-  .top-nav{
-    box-sizing:border-box;
-    width:100%;
-    max-width:1180px;
-    height:var(--nav-height);
-    margin:12px auto;
-    display:flex;
-    align-items:center;
-    padding:6px 12px;
-    background:linear-gradient(180deg,#fff,#fafafa);
-    border-radius:10px;
-    box-shadow:0 1px 3px rgba(0,0,0,0.06);
-    border:1px solid #e6e6e9;
+  /* ナビゲーション表示状態の制御 */
+  .top-tabs {
+    display: block;
   }
 
-  /* nav styles copied to match index.html */
-  .nav-brand{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    margin-right:12px;
-    padding-right:8px;
-    border-right:1px solid #eee;
-  }
-  .nav-brand .logo{
-    width:36px;
-    height:36px;
-    border-radius:6px;
-    background:var(--primary);
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    color:#fff;
-    font-weight:700;
-    font-size:18px;
-  }
-  .nav-brand .title{
-    font-size:15px;
-    color:#111;
-    font-weight:600;
-  }
-  .nav-tabs{
-    display:flex;
-    justify-content: space-evenly;
-    align-items:center;
-    width:100%;
-  }
-  .nav-tab{
-    appearance:none;
-    border:0;
-    background:transparent;
-    padding:8px 12px;
-    border-radius:8px;
-    font-size:14px;
-    cursor:pointer;
-    color:var(--muted);
-    transition: all .12s ease;
-  }
-  .nav-tab:hover{
-    background:#f0f6ff;
-    color:var(--primary);
-    transform:translateY(-1px);
-  }
-  .nav-tab.active{
-    background:var(--primary);
-    color:#fff;
-    box-shadow:0 2px 6px rgba(25,118,210,0.18);
-  }
-
-  .page-wrap{
-    max-width:1180px;
-    margin:20px auto;
-    padding:12px;
-    box-sizing:border-box;
+  main {
+    margin: 100px auto 20px auto;
+    max-width: 1180px;
+    padding: 12px;
+    box-sizing: border-box;
   }
 
   .card{
-    background:var(--card);
-    padding:18px;
-    border-radius:8px;
-    border:1px solid #e6e6e9;
-    box-shadow:0 1px 3px rgba(0,0,0,0.04);
+    background: transparent;
+    padding: 18px;
+    border-radius: 8px;
+    box-shadow: none;
   }
 
-  /* レイアウト：中央に縦並び（矢印を上に配置） */
+  /* 保存完了メッセージエリアの背景画像 */
+  .save-complete-message {
+    text-align: center;
+    padding: 0;
+    background-image: url("{% static 'codemon/images/backgrounds/system_save.png' %}");
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 8px;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* レイアウト：中央に縦並び */
   .save-layout{
     display:flex;
     justify-content:center;
@@ -118,41 +63,6 @@
     width:320px;
   }
 
-  .back-icon {
-    width:56px;
-    height:56px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    cursor:pointer;
-    border-radius:8px;
-    background:transparent;
-    border:2px solid transparent;
-    margin-bottom:6px;
-    /* 目立たせるために軽い影と背景を追加 */
-    background: linear-gradient(180deg, rgba(0,0,0,0.02), transparent);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-    transition: transform .12s ease, box-shadow .12s ease;
-  }
-  .back-icon:hover{
-    transform: translateY(-2px);
-    box-shadow: 0 6px 18px rgba(0,0,0,0.10);
-  }
-  .back-icon[aria-disabled="true"] { opacity:0.6; cursor:default; }
-
-  /* 矢印文字の見た目（太く／黒縁で目立たせる） */
-  .arrow-char{
-    font-size:34px;
-    line-height:1;
-    font-weight:900;
-    color:#111;
-    -webkit-text-stroke: 1.6px rgba(0,0,0,0.15);
-    text-shadow: 0 1px 0 rgba(255,255,255,0.6), 0 2px 6px rgba(0,0,0,0.08);
-    user-select:none;
-    display:inline-block;
-    transform: translateY(1px);
-  }
-
   .big-btn{
     width:100%;
     padding:18px 22px;
@@ -162,12 +72,6 @@
     cursor:pointer;
     box-shadow:0 6px 20px rgba(0,0,0,0.06);
   }
-  .btn-save{
-    background:linear-gradient(180deg,#cfe7ff,#b6d9ff);
-    color:#0a3b6e;
-    font-weight:600;
-    border:1px solid rgba(10,59,110,0.08);
-  }
   .btn-back{
     background:linear-gradient(180deg,#ffdede,#ffbdbd);
     color:#7a1313;
@@ -175,7 +79,6 @@
     border:1px solid rgba(122,19,19,0.08);
   }
 
-  /* 表示はするが押しても遷移しないボタンの視覚表現 */
   .big-btn[aria-disabled="true"]{
     opacity:0.85;
     cursor:not-allowed;
@@ -183,43 +86,30 @@
     transform:none;
   }
 
-  .note{ color:#555; margin-top:12px; text-align:center; }
-
   @media (max-width:520px){
     .save-layout{ flex-direction:column; align-items:flex-start; }
     .action-column{ width:100%; }
-    .save-layout { padding: 8px; }
   }
 </style>
-</head>
-<body>
-  <header class="top-nav" role="banner" aria-label="メインナビゲーション">
-    <nav class="nav-tabs" role="navigation" aria-label="タブメニュー">
-      <button class="nav-tab" id="tab-system" aria-pressed="false" title="システム">システム</button>
-      <button class="nav-tab active" id="tab-algorithm" aria-pressed="true" title="アルゴリズム">アルゴリズム</button>
-      <button class="nav-tab" id="tab-progress" aria-pressed="false" title="進捗確認">進捗確認</button>
-      <button class="nav-tab" id="tab-account" aria-pressed="false" title="アカウント">アカウント</button>
-    </nav>
-  </header>
+{% endblock %}
 
-  <main class="page-wrap" role="main">
-    <div class="card">
-      <h1>アルゴリズム保存</h1>
-      <div style="text-align: center; padding: 40px 20px;">
-        <p style="font-size: 20px; font-weight: 600; color: #28a745; margin-bottom: 30px;">
-          ✓ アルゴリズムの保存が完了しました
-        </p>
-        <div class="save-layout" aria-label="保存操作">
-          <div class="action-column" role="group" aria-label="ナビゲーション">
-            <button id="toListBtn" class="big-btn btn-back" aria-label="アルゴリズム一覧画面に戻る">アルゴリズム一覧画面に戻る</button>
-          </div>
+{% block content %}
+<main role="main">
+  <div class="card">
+    <div class="save-complete-message">
+      <p style="font-size: 20px; font-weight: 600; color: #28a745; margin-bottom: 30px;">
+        ✓ アルゴリズムの保存が完了しました
+      </p>
+      <div class="save-layout" aria-label="保存操作">
+        <div class="action-column" role="group" aria-label="ナビゲーション">
+          <button id="toListBtn" class="big-btn btn-back" aria-label="アルゴリズム一覧画面に戻る">アルゴリズム一覧画面に戻る</button>
         </div>
       </div>
     </div>
-  </main>
+  </div>
+</main>
 
 <script>
-/* ---------------------- ナビタブ（index.html と同じ挙動、遷移先を変更） ---------------------- */
 (function(){
   try{
     const tabs = document.querySelectorAll('.nav-tab');
@@ -232,18 +122,15 @@
           });
           tab.classList.add('active');
           tab.setAttribute('aria-pressed','true');
-          if(typeof tab.blur === 'function') tab.blur();
 
           if(tab.id === 'tab-system'){
-            window.location.href = '/accounts/system/';
+            window.location.href = '/accounts/system/choice/';
             return;
           }
-          // 変更: アルゴリズムタブ押下で block/choice へ遷移
           if(tab.id === 'tab-algorithm'){
             window.location.href = '/accounts/block/choice';
             return;
           }
-          // 他タブは現状見た目のみ（遷移未実装）
         }catch(err){
           console.error('tab click handler error', err);
         }
@@ -254,9 +141,8 @@
   }
 })();
 
-/* ---------------------- 保存完了画面用スクリプト ---------------------- */
+// アルゴリズム一覧画面に戻るボタン
 (function(){
-  // 「アルゴリズム一覧画面に戻る」ボタン：直接遷移
   const toListBtn = document.getElementById('toListBtn');
   if(toListBtn){
     toListBtn.addEventListener('click', function(e){
@@ -266,5 +152,4 @@
   }
 })();
 </script>
-</body>
-</html>
+{% endblock %}

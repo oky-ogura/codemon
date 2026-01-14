@@ -1,74 +1,75 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>アルゴリズム一覧</title>
-<style>
-  /* ----- 上部ナビゲーション ----- */
-  :root { --nav-height:56px; --primary:#1976d2; --muted:#666; --bg:#f9f9fb; }
-    body{
-      font-family: -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "メイリオ", sans-serif;
-      margin:20px;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      min-height:100vh;
-      background:var(--bg);
-      color:#111;
-    }
-    .top-nav {
-      box-sizing:border-box;
-      width:100%;
-      max-width:980px;
-      height:var(--nav-height);
-      margin:16px auto 12px;
-      display:flex;
-      align-items:center;
-      gap:12px;
-      padding:6px 12px;
-      background:linear-gradient(180deg,#fff,#fafafa);
-      border-radius:10px;
-      box-shadow:0 1px 3px rgba(0,0,0,0.06);
-      border:1px solid #e6e6e9;
-    }
-    .nav-brand { display:flex; align-items:center; gap:8px; padding-right:8px; border-right:1px solid #eee; }
-    .nav-brand .logo { width:36px; height:36px; border-radius:6px; background:var(--primary); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:18px; }
-    .nav-brand .title { font-size:15px; color:#111; font-weight:600; }
-    .nav-tabs {
-      display:flex;
-      justify-content: space-evenly;
-      width:100%;
-      align-items:center;
-      gap:0;
-      margin:0;
-    }
-    .nav-tab {
-      appearance:none; border:0; background:transparent; padding:8px 12px; border-radius:8px;
-      font-size:14px; cursor:pointer; color:var(--muted); transition: all .12s ease;
-    }
-    .nav-tab:hover { background:#f0f6ff; color:var(--primary); transform:translateY(-1px); }
-    .nav-tab.active { background:var(--primary); color:#fff; box-shadow:0 2px 6px rgba(25,118,210,0.18); }
+{% extends 'base.html' %}
+{% load static %}
 
-    main { width:100%; max-width:980px; margin:6px auto; box-sizing:border-box; }
-    h1 { margin:2px 0 12px 0; font-size:20px; text-align:center; }
+{% block background_frame %}
+<img src="{% static 'codemon/images/frames/bg_frame_purple.png' %}"
+  alt=""
+  class="bg-frame"
+  onerror="this.style.display='none';">
+{% endblock %}
+
+{% block title %}アルゴリズム一覧 - Codemon{% endblock %}
+
+{% block extra_css %}
+<style>
+    main { 
+      width:100%; 
+      max-width:1000px; 
+      margin:6px auto; 
+      margin-top:82px;
+      box-sizing:border-box;
+    }
 
     .list-card {
-      background:#fff;
+      background: transparent;
       border-radius:10px;
       padding:16px;
-      box-shadow:0 6px 18px rgba(10,10,10,0.04);
-      border:1px solid #eef2f6;
+      padding-bottom:80px;
+      box-shadow: none;
+      border: none;
+      max-width:1000px;
+      margin:0 auto;
     }
-    .list-empty { color:#666; padding:28px; text-align:center; min-width:420px; }
+    .list-empty { color:#666; padding:28px; text-align:center; }
+    
+    /* アルゴリズム一覧項目の背景画像 */
+    #algorithmsList li {
+      background: url("{% static 'codemon/images/backgrounds/system_list_bg.png' %}") no-repeat center center !important;
+      background-size: contain !important;
+      border: none !important;
+      min-height: 70px;
+    }
+    
+    /* 詳細ボタンの画像スタイル */
+    .algorithm-detail-btn {
+      background: url("{% static 'codemon/images/button/algorithm_list_button.png' %}") no-repeat center center !important;
+      background-size: contain !important;
+      background-color: transparent !important;
+      border: none !important;
+      color: transparent !important;
+      box-shadow: none !important;
+      width: 110px;
+      height: 55px;
+      cursor: pointer;
+      padding: 0 !important;
+      flex-shrink: 0;
+    }
     
     /* ページネーション */
     .pagination {
       display:flex;
-      justify-content:center;
+      justify-content:space-between;
       align-items:center;
-      gap:16px;
       margin:16px 0 12px 0;
+      position:relative;
+    }
+    .pagination-controls {
+      display:flex;
+      gap:16px;
+      align-items:center;
+      position:absolute;
+      left:50%;
+      transform:translateX(-50%);
     }
     .pagination-info {
       color:#666;
@@ -93,6 +94,46 @@
       cursor:not-allowed;
     }
     
+    /* 検索機能 */
+    .search-container {
+      display:flex;
+      gap:8px;
+      align-items:center;
+      margin-left:auto;
+    }
+    #searchInput {
+      padding:8px 12px;
+      border-radius:8px;
+      border:1px solid #d0d7de;
+      font-size:14px;
+      width:200px;
+      transition: all .12s ease;
+    }
+    #searchInput:focus {
+      outline:none;
+      border-color:var(--primary);
+      box-shadow:0 0 0 3px rgba(7,55,99,0.1);
+    }
+    #clearSearchBtn {
+      padding:6px 10px;
+      border-radius:6px;
+      border:1px solid #d0d7de;
+      background:#fff;
+      cursor:pointer;
+      font-size:16px;
+      color:#666;
+      transition: all .12s ease;
+      display:none;
+    }
+    #clearSearchBtn.visible {
+      display:block;
+    }
+    #clearSearchBtn:hover {
+      background:#f0f6ff;
+      color:var(--primary);
+      border-color:var(--primary);
+    }
+    
     .actions { display:flex; gap:12px; margin-top:12px; justify-content:center; }
     .btn {
       padding:10px 14px;
@@ -108,7 +149,7 @@
       box-shadow:0 8px 18px rgba(10,59,110,0.06);
     }
     .btn-ghost {
-      background:transparent;
+      background: #fff;
       color:#444;
       border:1px solid #e6e9ee;
     }
@@ -116,49 +157,39 @@
     @media (max-width:640px){
       .list-empty { padding:18px; }
     }
-
 </style>
-</head>
-<body>
-  <header class="top-nav" role="banner" aria-label="メインナビゲーション">
+{% endblock %}
 
-    <nav class="nav-tabs" role="navigation" aria-label="タブメニュー">
-      <button type="button" class="nav-tab" id="tab-system" aria-pressed="false" title="システム">システム</button>
-      <button type="button" class="nav-tab active" id="tab-algorithm" aria-pressed="true" title="アルゴリズム">アルゴリズム</button>
-      <button type="button" class="nav-tab" id="tab-progress" aria-pressed="false" title="進捗確認">進捗確認</button>
-      <button type="button" class="nav-tab" id="tab-account" aria-pressed="false" title="アカウント">アカウント</button>
-    </nav>
-  </header>
-
-  <main class="page-wrap" role="main">
-    <h1>アルゴリズム一覧</h1>
-
+{% block content %}
+<main class="page-wrap" role="main">
     <div class="list-card" role="region" aria-label="アルゴリズム一覧">
       <!-- ページネーション（上部） -->
       <div class="pagination" id="topPagination">
-        <button class="pagination-btn" id="prevBtn" disabled>← 前へ</button>
-        <span class="pagination-info" id="pageInfo">1 / 1</span>
-        <button class="pagination-btn" id="nextBtn" disabled>次へ →</button>
+        <div class="pagination-controls">
+          <button class="pagination-btn" id="prevBtn" disabled>← 前へ</button>
+          <span class="pagination-info" id="pageInfo">1 / 1</span>
+          <button class="pagination-btn" id="nextBtn" disabled>次へ →</button>
+        </div>
+        <div class="search-container">
+          <input type="text" id="searchInput" placeholder="アルゴリズムを検索..." />
+          <button id="clearSearchBtn">×</button>
+        </div>
       </div>
 
       <div id="algorithmsContainer">
         {% if algorithms %}
         <div class="algorithm-list">
-          <ul id="algorithmsList" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px;">
+          <ul id="algorithmsList" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:3px;">
             {% for a in algorithms %}
-            <li data-id="{{ a.algorithm_id }}" style="background:#fbfdff;border-radius:8px;padding:12px 14px;border:1px solid #eef4fb;display:flex;justify-content:space-between;align-items:center;gap:12px;">
-              <div style="flex:1;">
-                <div style="font-weight:700;font-size:15px;color:#0b2f5a;">{{ a.algorithm_name }}</div>
-                {% if a.algorithm_description %}
-                <div style="color:#666;font-size:13px;margin-top:4px;">{{ a.algorithm_description }}</div>
-                {% endif %}
-                {% if a.updated_at|date:"Y-m-d H:i" != a.created_at|date:"Y-m-d H:i" %}
-                <div style="color:#999;font-size:12px;margin-top:4px;">更新日: {{ a.updated_at|date:"Y年n月j日 H:i" }}</div>
-                {% else %}
-                <div style="color:#999;font-size:12px;margin-top:4px;">{{ a.created_at|date:"Y年n月j日 H:i" }}</div>
-                {% endif %}
-              </div>
-              <button class="btn btn-primary algorithm-detail-btn" data-algorithm-id="{{ a.algorithm_id }}" style="white-space:nowrap;padding:8px 16px;font-size:13px;">詳細</button>
+            <li data-id="{{ a.algorithm_id }}" style="border-radius:8px;padding:12px 14px;display:flex;align-items:center;gap:16px;">
+              <div style="flex:1;min-width:0;font-weight:700;font-size:15px;color:#0b2f5a;">{{ a.algorithm_name }}</div>
+              <div style="flex:1;min-width:0;color:#666;font-size:13px;">作成日: {{ a.created_at|date:"Y年n月j日 H:i" }}</div>
+              {% if a.created_at != a.updated_at %}
+              <div style="flex:1;min-width:0;color:#666;font-size:13px;">更新日: {{ a.updated_at|date:"Y年n月j日 H:i" }}</div>
+              {% else %}
+              <div style="flex:1;min-width:0;color:#666;font-size:13px;">更新日:</div>
+              {% endif %}
+              <button class="algorithm-detail-btn" data-algorithm-id="{{ a.algorithm_id }}">詳細</button>
             </li>
             {% endfor %}
           </ul>
@@ -173,7 +204,6 @@
 
       <div class="actions" aria-hidden="false">
         <button class="btn btn-primary" id="btn-new">新しいアルゴリズムを作成</button>
-        <button class="btn btn-ghost" id="btn-refresh">一覧を更新</button>
         <button class="btn btn-ghost" id="btn-back">戻る</button>
       </div>
     </div>
@@ -181,9 +211,11 @@
 
 <script>
     // ページネーション設定
-    const ITEMS_PER_PAGE = 5;
+    const ITEMS_PER_PAGE = 4;
     let currentPage = 1;
     let allAlgorithms = [];
+    let filteredAlgorithms = [];
+    let searchQuery = '';
 
     // 初期データの読み込み
     (function initializeAlgorithms() {
@@ -194,14 +226,13 @@
         allAlgorithms = Array.from(items).map(item => {
           const algorithmId = item.getAttribute('data-id');
           const nameElement = item.querySelector('div[style*="font-weight:700"]');
-          const descElement = item.querySelector('div[style*="color:#666"]');
-          const dateElement = item.querySelector('div[style*="color:#999"]');
+          const dateElements = item.querySelectorAll('div[style*="color:#666"]');
           
           return {
             algorithm_id: algorithmId,
             algorithm_name: nameElement ? nameElement.textContent : '',
-            algorithm_description: descElement ? descElement.textContent : '',
-            date_display: dateElement ? dateElement.textContent : ''
+            created_at: dateElements[0] ? dateElements[0].textContent : '',
+            updated_at: dateElements[1] ? dateElements[1].textContent : ''
           };
         });
         
@@ -218,24 +249,35 @@
       const container = document.getElementById('algorithmsContainer');
       if (!container) return;
 
-      if (!allAlgorithms || allAlgorithms.length === 0) {
-        container.innerHTML = `
-          <div class="list-empty">作成済みのアルゴリズムはまだありません。<br />「新しいアルゴリズムを作成」ボタンで作成を開始できます。</div>`;
+      const displayAlgorithms = searchQuery ? filteredAlgorithms : allAlgorithms;
+
+      if (!displayAlgorithms || displayAlgorithms.length === 0) {
+        if (searchQuery) {
+          container.innerHTML = `
+            <div class="list-empty">「${escapeHtml(searchQuery)}」に一致するアルゴリズムが見つかりませんでした。</div>`;
+        } else {
+          container.innerHTML = `
+            <div class="list-empty">作成済みのアルゴリズムはまだありません。<br />「新しいアルゴリズムを作成」ボタンで作成を開始できます。</div>`;
+        }
         updatePaginationButtons();
         return;
       }
 
       const startIndex = (page - 1) * ITEMS_PER_PAGE;
       const endIndex = startIndex + ITEMS_PER_PAGE;
-      const pageAlgorithms = allAlgorithms.slice(startIndex, endIndex);
+      const pageAlgorithms = displayAlgorithms.slice(startIndex, endIndex);
 
-      let html = '<div class="algorithm-list"><ul id="algorithmsList" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px;">';
+      let html = '<div class="algorithm-list"><ul id="algorithmsList" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:3px;">';
       for (const a of pageAlgorithms) {
-        html += `<li data-id="${a.algorithm_id}" style="background:#fbfdff;border-radius:8px;padding:12px 14px;border:1px solid #eef4fb;display:flex;justify-content:space-between;align-items:center;gap:12px;">`;
-        html += `<div style="flex:1;"><div style="font-weight:700;font-size:15px;color:#0b2f5a;">${escapeHtml(a.algorithm_name)}</div>`;
-        if (a.algorithm_description) html += `<div style="color:#666;font-size:13px;margin-top:4px;">${escapeHtml(a.algorithm_description)}</div>`;
-        html += `<div style="color:#999;font-size:12px;margin-top:4px;">${escapeHtml(a.date_display)}</div></div>`;
-        html += `<button class="btn btn-primary algorithm-detail-btn" data-algorithm-id="${a.algorithm_id}" style="white-space:nowrap;padding:8px 16px;font-size:13px;">詳細</button>`;
+        html += `<li data-id="${a.algorithm_id}" style="border-radius:8px;padding:12px 14px;display:flex;align-items:center;gap:16px;">`;
+        html += `<div style="flex:1;min-width:0;font-weight:700;font-size:15px;color:#0b2f5a;">${escapeHtml(a.algorithm_name)}</div>`;
+        html += `<div style="flex:1;min-width:0;color:#666;font-size:13px;">${escapeHtml(a.created_at)}</div>`;
+        if (a.updated_at && a.updated_at !== '更新日:') {
+          html += `<div style="flex:1;min-width:0;color:#666;font-size:13px;">${escapeHtml(a.updated_at)}</div>`;
+        } else {
+          html += `<div style="flex:1;min-width:0;color:#666;font-size:13px;">更新日:</div>`;
+        }
+        html += `<button class="algorithm-detail-btn" data-algorithm-id="${a.algorithm_id}">詳細</button>`;
         html += `</li>`;
       }
       html += '</ul></div>';
@@ -249,7 +291,8 @@
     }
 
     function updatePaginationButtons() {
-      const totalPages = Math.ceil(allAlgorithms.length / ITEMS_PER_PAGE) || 1;
+      const displayAlgorithms = searchQuery ? filteredAlgorithms : allAlgorithms;
+      const totalPages = Math.ceil(displayAlgorithms.length / ITEMS_PER_PAGE) || 1;
       const prevBtn = document.getElementById('prevBtn');
       const nextBtn = document.getElementById('nextBtn');
       const pageInfo = document.getElementById('pageInfo');
@@ -274,47 +317,48 @@
     });
 
     document.getElementById('nextBtn')?.addEventListener('click', function() {
-      const totalPages = Math.ceil(allAlgorithms.length / ITEMS_PER_PAGE);
+      const displayAlgorithms = searchQuery ? filteredAlgorithms : allAlgorithms;
+      const totalPages = Math.ceil(displayAlgorithms.length / ITEMS_PER_PAGE);
       if (currentPage < totalPages) {
         renderPage(currentPage + 1);
       }
     });
 
-    // 「一覧を更新」: サーバから最新データを取得して DOM を更新する
-    const btnRefresh = document.getElementById('btn-refresh');
-    async function loadAlgorithmsFromServer() {
-      try {
-        const res = await fetch('/accounts/block/list/data/');
-        if (!res.ok) throw new Error('Network response was not ok');
-        const data = await res.json();
-        
-        // サーバーから取得したデータを allAlgorithms に格納
-        allAlgorithms = (data.algorithms || []).map(a => ({
-          algorithm_id: a.algorithm_id,
-          algorithm_name: a.algorithm_name,
-          algorithm_description: a.algorithm_description,
-          created_at: a.created_at,
-          updated_at: a.updated_at,
-          // 更新されたアルゴリズムは「更新日:」を表示、それ以外は作成日を表示
-          date_display: (a.updated_at && a.created_at && a.updated_at !== a.created_at) 
-            ? `更新日: ${a.updated_at}` 
-            : a.created_at
-        }));
-        
-        // 1ページ目を表示
-        renderPage(1);
-      } catch (err) {
-        console.error(err);
-        alert('一覧の取得に失敗しました。');
+    // 検索機能
+    function performSearch(query) {
+      searchQuery = query.toLowerCase().trim();
+      const clearBtn = document.getElementById('clearSearchBtn');
+      
+      if (searchQuery) {
+        filteredAlgorithms = allAlgorithms.filter(algorithm => {
+          return algorithm.algorithm_name.toLowerCase().includes(searchQuery);
+        });
+        if (clearBtn) clearBtn.classList.add('visible');
+      } else {
+        filteredAlgorithms = [];
+        if (clearBtn) clearBtn.classList.remove('visible');
       }
+      
+      renderPage(1);
     }
 
-    if (btnRefresh) {
-      btnRefresh.addEventListener('click', async function(e){
-        e.preventDefault();
-        btnRefresh.disabled = true;
-        await loadAlgorithmsFromServer();
-        btnRefresh.disabled = false;
+    // 検索入力イベント
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', function(e) {
+        performSearch(e.target.value);
+      });
+    }
+
+    // 検索クリアボタン
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    if (clearSearchBtn) {
+      clearSearchBtn.addEventListener('click', function() {
+        if (searchInput) {
+          searchInput.value = '';
+          performSearch('');
+          searchInput.focus();
+        }
       });
     }
 
@@ -362,6 +406,19 @@
       });
     });
 
+    // ページ読み込み時にアルゴリズムタブをアクティブに設定
+    (function setActiveTab(){
+      const algorithmTab = document.getElementById('tab-algorithm');
+      if (algorithmTab) {
+        document.querySelectorAll('.nav-tab').forEach(t => {
+          t.classList.remove('active');
+          t.setAttribute('aria-pressed', 'false');
+        });
+        algorithmTab.classList.add('active');
+        algorithmTab.setAttribute('aria-pressed', 'true');
+      }
+    })();
+
     // 「新しいアルゴリズムを作成」ボタンは index.html へ遷移
     const btnNew = document.getElementById('btn-new');
     if (btnNew) {
@@ -381,5 +438,5 @@
     }
 
 </script>
-</body>
-</html>
+</main>
+{% endblock %}

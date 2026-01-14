@@ -1,43 +1,24 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>アルゴリズム詳細</title>
-<style>
-  /* ----- 上部ナビゲーション ----- */
-  :root{ --nav-height:56px; --primary:#1976d2; --muted:#666; --bg:#f9f9fb; }
-    body{
-      font-family: -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "メイリオ", sans-serif;
-      margin:20px; background:var(--bg); color:#111;
-    }
-    .top-nav{
-      box-sizing:border-box;
-      width:100%;
-      max-width:980px;
-      height:var(--nav-height);
-      margin:16px auto 12px;
-      display:flex;
-      align-items:center;
-      gap:12px;
-      padding:6px 12px;
-      background:linear-gradient(180deg,#fff,#fafafa);
-      border-radius:10px;
-      box-shadow:0 1px 3px rgba(0,0,0,0.06);
-      border:1px solid #e6e6e9;
-    }
-    .nav-brand{ display:flex; align-items:center; gap:8px; padding-right:8px; border-right:1px solid #eee; }
-    .nav-brand .logo{ width:36px; height:36px; border-radius:6px; background:var(--primary); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:18px; }
-    .nav-brand .title{ font-size:15px; color:#111; font-weight:600; }
-    .nav-tabs{ display:flex; justify-content: space-evenly; width:100%; align-items:center; gap:0; margin:0; }
-    .nav-tab{
-      appearance:none; border:0; background:transparent; padding:8px 12px; border-radius:8px;
-      font-size:14px; cursor:pointer; color:var(--muted); transition: all .12s ease;
-    }
-    .nav-tab:hover{ background:#f0f6ff; color:var(--primary); transform:translateY(-1px); }
-    .nav-tab.active{ background:var(--primary); color:#fff; box-shadow:0 2px 6px rgba(25,118,210,0.18); }
+{% extends 'base.html' %}
+{% load static %}
 
-    main{ width:100%; max-width:980px; margin:6px auto; box-sizing:border-box; }
+{% block background_frame %}
+<img src="{% static 'codemon/images/frames/bg_frame_purple.png' %}"
+  alt=""
+  class="bg-frame"
+  onerror="this.style.display='none';">
+{% endblock %}
+
+{% block title %}アルゴリズム詳細 - Codemon{% endblock %}
+
+{% block extra_css %}
+<style>
+    main{ 
+      width:100%; 
+      max-width:980px; 
+      margin:6px auto; 
+      margin-top:100px;
+      box-sizing:border-box; 
+    }
     h1{ text-align:center; margin-top:8px; }
     .card {
       background:#fff; border-radius:10px; padding:18px; box-shadow:0 6px 18px rgba(10,10,10,0.04);
@@ -62,24 +43,68 @@
     .btn{
       padding:8px 12px; border-radius:8px; border:1px solid #d0d7de; background:#fff; cursor:pointer; font-size:14px;
     }
-    .btn.primary{ background:var(--primary); color:#fff; border-color:transparent; box-shadow:0 4px 10px rgba(25,118,210,0.12); }
-    .btn.warn{ background:#fff; color:#d32f2f; border-color:#f2c6c6; }
-    .btn.ghost{ background:transparent; color:var(--muted); border-color:transparent; }
-
+    .btn.primary{ 
+      background:transparent; 
+      border:none; 
+      padding:0; 
+      cursor:pointer;
+      width: auto;
+      height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn.primary img {
+      height: 100%;
+      width: auto;
+      object-fit: contain;
+    }
+    .btn.primary:hover {
+      opacity: 0.8;
+    }
+    .btn.warn{ 
+      background:transparent; 
+      border:none; 
+      padding:0; 
+      cursor:pointer;
+      width: auto;
+      height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn.warn img {
+      height: 100%;
+      width: auto;
+      object-fit: contain;
+    }
+    .btn.warn:hover {
+      opacity: 0.8;
+    }
+    .btn.ghost{ 
+      background:transparent; 
+      border:none; 
+      padding:0; 
+      cursor:pointer;
+      width: auto;
+      height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn.ghost img {
+      height: 100%;
+      width: auto;
+      object-fit: contain;
+    }
+    .btn.ghost:hover {
+      opacity: 0.8;
+    }
 </style>
-</head>
-<body>
-  <header class="top-nav" role="banner" aria-label="メインナビゲーション">
+{% endblock %}
 
-    <nav class="nav-tabs" role="navigation" aria-label="タブメニュー">
-      <button type="button" class="nav-tab" id="tab-system" aria-pressed="false" title="システム">システム</button>
-      <button type="button" class="nav-tab active" id="tab-algorithm" aria-pressed="true" title="アルゴリズム">アルゴリズム</button>
-      <button type="button" class="nav-tab" id="tab-progress" aria-pressed="false" title="進捗確認">進捗確認</button>
-      <button type="button" class="nav-tab" id="tab-account" aria-pressed="false" title="アカウント">アカウント</button>
-    </nav>
-  </header>
-
-  <main class="page-wrap" role="main">
+{% block content %}
+<main class="page-wrap" role="main">
     <h1>アルゴリズム詳細</h1>
 
     <div class="card" role="region" aria-label="アルゴリズム詳細内容">
@@ -91,7 +116,7 @@
         </div>
 
         <div class="form-row">
-          <label for="block-summary">アルゴリズム概要</label>
+          <label for="block-summary">アルゴリズムの詳細</label>
           <textarea id="block-summary" rows="6" readonly style="background:#fafbff;cursor:default;resize:none;">{{ algorithm.algorithm_description }}</textarea>
         </div>
 
@@ -102,9 +127,15 @@
 
         <!-- 下部の操作ボタン -->
         <div class="card-actions" role="group" aria-label="操作">
-          <button type="button" class="btn ghost" id="btn-back" title="一覧に戻る">戻る</button>
-          <button type="button" class="btn warn" id="btn-delete" title="削除">削除</button>
-          <button type="button" class="btn primary" id="btn-edit" title="編集">編集</button>
+          <button type="button" class="btn ghost" id="btn-back" title="一覧に戻る">
+            <img src="{% static 'codemon/images/buttons/back.png' %}" alt="戻る">
+          </button>
+          <button type="button" class="btn warn" id="btn-delete" title="削除">
+            <img src="{% static 'codemon/images/buttons/delete.png' %}" alt="削除">
+          </button>
+          <button type="button" class="btn primary" id="btn-edit" title="編集">
+            <img src="{% static 'codemon/images/buttons/edit.png' %}" alt="編集">
+          </button>
         </div>
       </form>
     </div>
@@ -166,5 +197,5 @@
     }
 
 </script>
-</body>
-</html>
+</main>
+{% endblock %}

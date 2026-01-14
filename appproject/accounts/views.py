@@ -747,7 +747,8 @@ def get_system_elements(request):
 
 # ブロック作成保存
 def block_save(request):
-    # 必要なら POST 処理をここに追加（保存処理など）
+    # POST処理は block_create で行い、保存成功後にリダイレクトされる
+    # この画面は保存完了メッセージを表示するだけ
     return render(request, 'block/save.html')
 
 # システム作成保存
@@ -1063,6 +1064,7 @@ def block_create(request):
                 if blockly_xml:
                     algorithm.blockly_xml = blockly_xml
                 algorithm.save()
+                messages.success(request, f'アルゴリズム「{algorithm_name}」を更新しました。')
             else:
                 # 新規作成
                 Algorithm.objects.create(
@@ -1071,9 +1073,10 @@ def block_create(request):
                     algorithm_description=algorithm_description,
                     blockly_xml=blockly_xml if blockly_xml else None
                 )
+                messages.success(request, f'アルゴリズム「{algorithm_name}」を保存しました。')
 
-            # 保存成功後はsave.htmlを表示
-            return render(request, 'block/save.html')
+            # 保存成功後はsave画面にリダイレクト
+            return redirect('accounts:block_save')
 
         except Algorithm.DoesNotExist:
             messages.error(request, '指定されたアルゴリズムが見つかりません。')
