@@ -1,40 +1,198 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="utf-8">
-<title>グループを検索して参加</title>
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}グループを検索して参加{% endblock %}
+
+{% block background_frame %}
+<img src="{% static 'codemon/images/frames/bg_frame_yellow.png' %}" 
+     alt="" 
+     class="bg-frame">
+{% endblock %}
+
+{% block extra_css %}
 <style>
-  body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;padding:24px}
-  .box{width:760px;margin:40px auto;background:#fff;border:1px solid #ddd;padding:32px;border-radius:8px;text-align:center}
-  h1{font-size:20px;margin-bottom:12px}
-  .form-row{display:flex;flex-direction:column;gap:12px;align-items:center;margin-top:18px}
-  label{width:120px;text-align:right;display:inline-block;margin-right:12px}
-  input[type=text], input[type=password]{width:240px;padding:8px;border:1px solid #bbb;border-radius:6px}
-  .controls{display:flex;justify-content:center;gap:40px;margin-top:36px}
-  .btn{padding:14px 36px;border-radius:12px;border:none;cursor:pointer;font-size:16px}
-  .btn-back{background:#f6c6c6}
-  .btn-search{background:#cfe6ff}
-  .row{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:8px}
+  /* ナビゲーションを非表示 */
+  .top-tabs {
+    display: none !important;
+  }
+
+  /* グループ検索コンテナ */
+  .search-container {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+
+  .box {
+    width: 760px;
+    max-width: 90%;
+    background: #fff;
+    border: 1px solid #ddd;
+    padding: 32px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    z-index: 10;
+  }
+
+  .box h1 {
+    font-size: 20px;
+    margin-bottom: 12px;
+    color: #333;
+  }
+
+  p.question {
+    font-size: 16px;
+    color: #555;
+    margin: 18px 0;
+  }
+
+  .form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+    margin-top: 18px;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 8px;
+    width: 100%;
+  }
+
+  label {
+    width: 120px;
+    text-align: right;
+    display: inline-block;
+    margin-right: 12px;
+    font-weight: 600;
+    color: #333;
+  }
+
+  input[type=text], 
+  input[type=password] {
+    width: 240px;
+    padding: 8px;
+    border: 1px solid #bbb;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+
+  input[type=text]:focus, 
+  input[type=password]:focus {
+    outline: none;
+    border-color: #667eea;
+  }
+
+  .controls {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-top: 36px;
+  }
+
+  .btn {
+    padding: 14px 36px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  }
+
+  .btn-back {
+    background: #f6c6c6;
+    color: #333;
+    display: inline-block;
+    text-decoration: none;
+    line-height: 36px;
+  }
+
+  .btn-back:hover {
+    background: #f0b0b0;
+  }
+
+  .btn-search {
+    background: #cfe6ff;
+    color: #333;
+  }
+
+  .btn-search:hover {
+    background: #b0d4ff;
+  }
+
+  @media (max-width: 600px) {
+    .row {
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    label {
+      width: auto;
+      text-align: center;
+      margin-right: 0;
+    }
+
+    input[type=text], 
+    input[type=password] {
+      width: 100%;
+      max-width: 300px;
+    }
+
+    .controls {
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .btn {
+      width: 100%;
+      max-width: 250px;
+    }
+  }
 </style>
-</head>
-<body>
+{% endblock %}
+
+{% block content %}
+<div class="search-container">
   <div class="box">
     <h1>グループを検索して参加</h1>
     <p class="question">グループ名とパスワード（必要なら）を入力して検索してください</p>
 
-  <form method="post" action="{% url 'accounts:group_join_confirm' %}" style="margin-top:18px">
+    <form method="post" action="{% url 'accounts:group_join_confirm' %}" style="margin-top:18px">
       {% csrf_token %}
       <input type="hidden" name="action" value="search">
       <div class="form-row">
-        <div class="row"><label for="group_name">グループ名</label><input type="text" id="group_name" name="group_name" placeholder="グループ名を入力"></div>
-        <div class="row"><label for="group_password">パスワード</label><input type="password" id="group_password" name="group_password" placeholder="任意"></div>
+        <div class="row">
+          <label for="group_name">グループ名</label>
+          <input type="text" id="group_name" name="group_name" placeholder="グループ名を入力">
+        </div>
+        <div class="row">
+          <label for="group_password">パスワード</label>
+          <input type="password" id="group_password" name="group_password" placeholder="任意">
+        </div>
       </div>
 
       <div class="controls">
-        <a href="{% url 'accounts:account_entry' %}" class="btn btn-back" style="display:inline-block;text-decoration:none;color:inherit;line-height:36px">戻る</a>
+        <a href="{% url 'accounts:account_entry' %}" class="btn btn-back">戻る</a>
         <button type="submit" class="btn btn-search">検索</button>
       </div>
     </form>
   </div>
-</body>
-</html>
+</div>
+{% endblock %}
