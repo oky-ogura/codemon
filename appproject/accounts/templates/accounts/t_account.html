@@ -19,7 +19,8 @@
         /* メインカード */
         /* ヘッダーが固定表示のため、このページだけ上部に余白を確保する */
         /* 余白をやや大きめにしてヘッダーとの重なりを防止 */
-        .card { max-width:1100px; margin:160px auto 40px; background:#fff; border:1px solid #ddd; padding:24px 30px; box-shadow:0 6px 20px rgba(0,0,0,0.05); box-sizing:border-box; overflow:hidden; }
+
+        .card { max-width:1000px; margin:160px auto 40px; background:transparent; border:none; padding:18px; box-shadow:none; box-sizing:border-box; max-height:calc(100vh - 200px); overflow:visible; }
 
         .main { display:flex; gap:24px; align-items:flex-start; }
         .left { width:180px; flex-shrink:0; text-align:center; }
@@ -69,8 +70,8 @@
         .id-box { font-size:18px; font-weight:700; color:#333; }
 
         /* グループリスト */
-        .groups { margin-top:16px; display:flex; flex-direction:column; gap:10px; }
-        .groups-list { display:flex; flex-direction:column; gap:10px; max-height:200px; overflow-y:auto; padding-right:4px; margin-top:10px; padding-bottom:10px; }
+        .groups { margin-top:-20px; display:flex; flex-direction:column; gap:10px; }
+        .groups-list { display:flex; flex-direction:column; gap:10px; max-height:200px; overflow-y:auto; padding-right:4px; margin-top:-20px; padding-bottom:10px; }
         .groups-list::-webkit-scrollbar { width:8px; }
         .groups-list::-webkit-scrollbar-track { background:#f1f1f1; border-radius:4px; }
         .groups-list::-webkit-scrollbar-thumb { background:#bbb; border-radius:4px; }
@@ -79,9 +80,15 @@
         .group-name { flex:1; font-weight:600; color:#222; }
         .group-meta { color:#666; font-size:13px; }
         .btn { padding:6px 10px; border-radius:6px; border:1px solid #bbb; background:#f0f2f5; cursor:pointer; font-size:13px; }
-        .btn.detail { background:#e8f0ff; border-color:#9cc0ff; }
-        .btn.del { background:#ffecec; border-color:#ffa6a6; }
-        .btn.logout { background:#2b8cff; color:#fff; border:none; padding:10px 18px; border-radius:8px; }
+        .btn.detail { background:transparent; border:none; padding:4px; transition:transform 0.2s ease, opacity 0.2s ease; }
+        .btn.detail:hover { transform:scale(1.1); opacity:0.7; }
+        .btn.del { background:transparent; border:none; padding:4px; transition:transform 0.2s ease, opacity 0.2s ease; }
+        .btn.del:hover { transform:scale(1.1); opacity:0.7; }
+        .btn.create { background:transparent; border:none; padding:4px; transition:transform 0.2s ease, opacity 0.2s ease; }
+        .btn.create:hover { transform:scale(1.1); opacity:0.7; }
+        .btn.logout { background:transparent; border:none; padding:4px; cursor:pointer; transition:transform 0.2s ease, opacity 0.2s ease; outline:none; }
+        .btn.logout:hover { transform:scale(1.1); opacity:0.7; }
+        .btn.logout:focus { outline:none; }
 
         /* レスポンシブ */
         @media(max-width:720px){
@@ -115,7 +122,9 @@
                     <div class="logout-area">
                         <form id="logout-form" method="post" action="{% url 'accounts:logout' %}">
                             {% csrf_token %}
-                            <button type="button" id="logout-btn" class="btn logout">ログアウト</button>
+                            <button type="button" id="logout-btn" class="btn logout">
+                                <img src="{% static 'codemon/images/nav/教員用アカウント画面 (17).png' %}" alt="ログアウト" style="height:40px; display:block;">
+                            </button>
                         </form>
                     </div>
                 </div>
@@ -183,7 +192,9 @@
                     <div class="groups-header" style="display:flex; align-items:center; justify-content:space-between;">
                         <div style="font-weight:700; color:#444;">グループ</div>
                         <div class="groups-actions" style="margin-left:12px;">
-                            <a class="btn" href="{% url 'accounts:group_create' %}">新規作成</a>
+                            <a class="btn create" href="{% url 'accounts:group_create' %}" aria-label="新規作成">
+                                <img src="{% static 'codemon/images/nav/教員用アカウント画面 (11).png' %}" alt="新規作成" style="height:40px; display:block;">
+                            </a>
                         </div>
                     </div>
                     <div class="groups-list">
@@ -193,10 +204,12 @@
                                     <div class="group-name">{{ g.name }}</div>
                                     <div class="group-meta">{{ g.member_count }}人</div>
                                     <a class="btn detail" href="{% url 'accounts:group_menu' g.group_id %}" aria-label="詳細">
-                                        <img src="{% static 'codemon/images/nav/教員用アカウント画面 (14).png' %}" alt="詳細" style="height:28px; display:block;">
+                                        <img src="{% static 'codemon/images/nav/教員用アカウント画面 (14).png' %}" alt="詳細" style="height:40px; display:block;">
                                     </a>
                                     <!-- 削除はページ内確認モーダルを表示してから遷移します -->
-                                    <button type="button" class="btn del" data-delete-url="{% url 'accounts:group_delete' g.group_id %}">削除</button>
+                                    <button type="button" class="btn del" data-delete-url="{% url 'accounts:group_delete' g.group_id %}" aria-label="削除">
+                                        <img src="{% static 'codemon/images/nav/教員用アカウント画面 (15).png' %}" alt="削除" style="height:40px; display:block;">
+                                    </button>
                                 </div>
                             {% endfor %}
                         {% else %}
@@ -209,8 +222,8 @@
     </div>
 
   <!-- 確認モーダル（s_account と同じ構成） -->
-  <div id="confirm-modal" aria-hidden="true" style="display:none; position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.4);align-items:center;justify-content:center">
-    <div class="box" role="dialog" aria-modal="true" aria-labelledby="confirm-title" style="background:#fff;padding:20px;border-radius:8px;min-width:320px;text-align:center">
+  <div id="confirm-modal" aria-hidden="true" style="display:none; position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;z-index:10000 !important;">
+    <div class="box" role="dialog" aria-modal="true" aria-labelledby="confirm-title" style="background:#fff;padding:20px;border-radius:8px;min-width:320px;text-align:center;z-index:10001 !important;">
       <div id="confirm-title">ログアウトしますか？</div>
       <div class="buttons" style="margin-top:16px;display:flex;gap:12px;justify-content:center">
         <button class="btn yes" id="confirm-yes" style="padding:8px 14px;border-radius:6px;border:none;background:#f46b6b;color:#fff">はい</button>

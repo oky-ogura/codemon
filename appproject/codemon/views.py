@@ -1128,36 +1128,61 @@ def group_remove_member(request, group_id, member_id):
     """グループからメンバーを削除（教師のみ）"""
     owner = _get_write_owner(request)
     if owner is None or owner.type != 'teacher':
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'error': '教師権限が必要です'}, status=403)
         return HttpResponseForbidden('教師権限が必要です')
 
     group = get_object_or_404(Group, group_id=group_id, is_active=True)
     if group.owner != owner:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'error': 'グループのオーナーのみメンバーを削除できます'}, status=403)
         return HttpResponseForbidden('グループのオーナーのみメンバーを削除できます')
 
     try:
         membership = GroupMember.objects.get(
             group=group,
-            member_id=member_id,
-            is_active=True
+            member_id=member_id
         )
         if membership.member == group.owner:
-            return JsonResponse({
-                'error': 'グループのオーナーは削除できません'
-            }, status=400)
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'error': 'グループのオーナーは削除できません'}, status=400)
+            messages.error(request, 'グループのオーナーは削除できません')
+        else:
+            member_name = membership.member.user_name
+            joined_at = membership.joined_at.strftime('%Y/%m/%d') if hasattr(membership, 'joined_at') and membership.joined_at else ''
+            
+            # トランザクション内で確実に両方のテーブルを更新
+            with transaction.atomic():
+                # accountテーブルのgroup_idをクリア
+                try:
+                    member_account = Account.objects.get(user_id=member_id)
+                    member_account.group_id = None
+                    member_account.save()
+                except Account.DoesNotExist:
+                    pass  # アカウントが見つからない場合は無視
+                
+                # group_memberテーブルから物理削除（論理削除ではなく完全削除）
+                membership.delete()
+            
+            # AJAXリクエストの場合はJSONで応答
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'status': 'ok',
+                    'message': f'{member_name}をグループから削除しました',
+                    'member_id': member_id,
+                    'member_name': member_name,
+                    'joined_at': joined_at
+                })
+            
+            messages.success(request, f'{member_name}をグループから削除しました')
 
-        # 論理削除
-        membership.is_active = False
-        membership.save()
-
-        return JsonResponse({
-            'status': 'ok',
-            'message': f'{membership.member.user_name}をグループから削除しました'
-        })
+        return redirect('accounts:group_menu', group_id=group_id)
 
     except GroupMember.DoesNotExist:
-        return JsonResponse({
-            'error': '指定されたメンバーが見つかりません'
-        }, status=404)
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'error': '指定されたメンバーが見つかりません'}, status=404)
+        messages.error(request, '指定されたメンバーが見つかりません')
+        return redirect('accounts:group_menu', group_id=group_id)
 
 
 @require_POST
@@ -1324,6 +1349,14 @@ def ai_chat_api(request):
     message = (body.get("message") or "").strip()
     character = body.get("character") or "usagi"
     conv_id = body.get("conversation_id")
+    
+    # デバッグログ
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"=== AI Chat API Called ===")
+    logger.info(f"Received body: {body}")
+    logger.info(f"Character ID: {character}")
+    logger.info(f"Message: {message}")
 
     if not message:
         return JsonResponse({"error": "message required"}, status=400)
@@ -1368,7 +1401,16 @@ def ai_chat_api(request):
     AIMessage.objects.create(conversation=conv, role="user", content=message)
 
     from .services import chat_gemini
-    reply = chat_gemini(message, pairs, character_id=character)
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        logger.info(f"Calling chat_gemini with character={character}, message={message[:50]}...")
+        reply = chat_gemini(message, pairs, character_id=character)
+        logger.info(f"Got reply: {reply[:100]}...")
+    except Exception as e:
+        logger.error(f"Error in chat_gemini: {str(e)}", exc_info=True)
+        reply = f"[エラー] {str(e)}"
 
     AIMessage.objects.create(conversation=conv, role="assistant", content=reply)
 

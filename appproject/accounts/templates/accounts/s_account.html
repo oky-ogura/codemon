@@ -12,75 +12,117 @@
 {% block extra_css %}
 <style>
   /* メインカード */
-  .card { max-width:1100px; margin:160px auto 40px; background:#fff; border:1px solid #ddd; padding:24px 30px; box-shadow:0 6px 20px rgba(0,0,0,0.05); box-sizing:border-box; overflow:hidden; }
+
+  .card { max-width:1000px; margin:160px auto 40px; background:transparent; border:none; padding:18px; box-shadow:none; box-sizing:border-box; max-height:calc(100vh - 200px); overflow:visible; }
 
   .main { display:flex; gap:24px; align-items:flex-start; }
-  .left { width:180px; flex-shrink:0; text-align:center; }
+  .left { width:220px; text-align:center; }
+  
+  /* アバターサークル */
   .avatar-circle {
-      width:140px; height:140px; border-radius:50%; border:3px solid #bbb; display:flex; align-items:center; justify-content:center; background:#fafafa; font-size:48px; margin:6px auto;
+    width:140px; height:140px; border-radius:50%; border:3px solid #4fc3f7; display:flex; align-items:center; justify-content:center; background:#4fc3f7; font-size:48px; margin:6px auto; color:#fff; font-weight:700;
   }
-
-  /* イニシャルごとの背景色（A-Z） */
-  .avatar-circle.initial-A { background:#1abc9c; color:#fff; }
-  .avatar-circle.initial-B { background:#2ecc71; color:#fff; }
-  .avatar-circle.initial-C { background:#3498db; color:#fff; }
-  .avatar-circle.initial-D { background:#9b59b6; color:#fff; }
-  .avatar-circle.initial-E { background:#34495e; color:#fff; }
-  .avatar-circle.initial-F { background:#16a085; color:#fff; }
-  .avatar-circle.initial-G { background:#27ae60; color:#fff; }
-  .avatar-circle.initial-H { background:#2980b9; color:#fff; }
-  .avatar-circle.initial-I { background:#8e44ad; color:#fff; }
-  .avatar-circle.initial-J { background:#2c3e50; color:#fff; }
-  .avatar-circle.initial-K { background:#f39c12; color:#fff; }
-  .avatar-circle.initial-L { background:#d35400; color:#fff; }
-  .avatar-circle.initial-M { background:#c0392b; color:#fff; }
-  .avatar-circle.initial-N { background:#7f8c8d; color:#fff; }
-  .avatar-circle.initial-O { background:#e67e22; color:#fff; }
-  .avatar-circle.initial-P { background:#e74c3c; color:#fff; }
-  .avatar-circle.initial-Q { background:#1f618d; color:#fff; }
-  .avatar-circle.initial-R { background:#117a65; color:#fff; }
-  .avatar-circle.initial-S { background:#9b59b6; color:#fff; }
-  .avatar-circle.initial-T { background:#2e86c1; color:#fff; }
-  .avatar-circle.initial-U { background:#17a589; color:#fff; }
-  .avatar-circle.initial-V { background:#b03a2e; color:#fff; }
-  .avatar-circle.initial-W { background:#45b39d; color:#fff; }
-  .avatar-circle.initial-X { background:#5dade2; color:#fff; }
-  .avatar-circle.initial-Y { background:#f5b041; color:#fff; }
-  .avatar-circle.initial-Z { background:#a569bd; color:#fff; }
 
   .initial-text { font-size:48px; line-height:1; color:inherit; font-weight:700; }
   .meta { margin-top:10px; font-size:14px; color:#333; }
   .logout-area { margin-top:14px; }
 
   .info { flex:1; }
-  .info-table { border-collapse:collapse; }
-  .info-table td { padding:8px 12px; vertical-align:middle; }
-  .info-table .label { font-weight:700; color:#333; background:#fff; border:1px solid #ddd; border-right:none; border-radius:20px 0 0 20px; }
-  .info-table .value { color:#000; background:#5DD4F5; border:1px solid #5DD4F5; border-left:none; border-radius:0 20px 20px 0; }
-
+  
   .top-row { display:flex; justify-content:space-between; align-items:center; gap:12px; }
-  .id-box { font-size:18px; font-weight:700; color:#333; }
 
   .btn { padding:6px 10px; border-radius:6px; border:1px solid #bbb; background:#f0f2f5; cursor:pointer; font-size:13px; }
-  .btn.logout { background:#2b8cff; color:#fff; border:none; padding:10px 18px; border-radius:8px; }
+  .btn.logout { background:transparent; border:none; padding:4px; cursor:pointer; transition:transform 0.2s ease, opacity 0.2s ease; outline:none; }
+  .btn.logout:hover { transform:scale(1.1); opacity:0.7; }
+  .btn.logout:focus { outline:none; }
+
+  /* モーダル */
+  #confirm-modal{position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.4);display:none;align-items:center;justify-content:center;z-index:1100}
+  #confirm-modal .box{background:#fff;padding:20px;border-radius:8px;min-width:320px;text-align:center}
+  #confirm-modal .buttons{margin-top:16px;display:flex;gap:12px;justify-content:center}
+  #confirm-modal .btn{padding:8px 14px;border-radius:6px;border:none;cursor:pointer}
+  #confirm-modal .yes{background:#f46b6b;color:#fff}
+  #confirm-modal .no{background:#e0e6ef}
 
   /* レスポンシブ */
   @media(max-width:720px){
-      .main { flex-direction:column; }
-      .left { width:100%; text-align:left; display:flex; gap:12px; align-items:center; }
-      .avatar-circle { width:96px; height:96px; font-size:32px; }
-      .card { margin-top:120px; }
+    .main { flex-direction:column; }
+    .left { width:100%; text-align:left; display:flex; gap:12px; align-items:center; }
+    .avatar-circle { width:96px; height:96px; font-size:32px; }
+    .card { margin-top:120px; }
   }
 </style>
 {% endblock %}
-
+<header class="top-tabs">
+    <nav class="tabs">
+      <ul>
+        <li>
+          <a href="{% url 'accounts:karihome' %}" id="tab-home">
+            <!-- ホームアイコン(SVG) -->
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+            </svg>
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'accounts:system_choice' %}" id="tab-systems">
+            <div class="nav-image-container">
+              <img src="{% static 'codemon/images/nav/system.png' %}" 
+                   class="nav-normal"
+                   alt="システム">
+              <img src="{% static 'codemon/images/nav/system_active.png' %}" 
+                   class="nav-active"
+                   alt="システム">
+            </div>
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'accounts:block_choice' %}" id="tab-algorithms">
+            <div class="nav-image-container">
+              <img src="{% static 'codemon/images/nav/algorithm.png' %}" 
+                   class="nav-normal"
+                   alt="アルゴリズム">
+              <img src="{% static 'codemon/images/nav/algorithm_active.png' %}" 
+                   class="nav-active"
+                   alt="アルゴリズム">
+            </div>
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'codemon:checklist_selection' %}" id="tab-checklist">
+            <div class="nav-image-container">
+              <img src="{% static 'codemon/images/nav/checklist.png' %}" 
+                   class="nav-normal"
+                   alt="チェックリスト">
+              <img src="{% static 'codemon/images/nav/checklist_active.png' %}" 
+                   class="nav-active"
+                   alt="チェックリスト">
+            </div>
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'accounts:account_entry' %}" id="tab-account">
+            <div class="nav-image-container">
+              <img src="{% static 'codemon/images/nav/account.png' %}" 
+                   class="nav-normal"
+                   alt="アカウント">
+              <img src="{% static 'codemon/images/nav/account_active.png' %}" 
+                   class="nav-active"
+                   alt="アカウント">
+            </div>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </header>
 {% block content %}
   <div class="card">
     <div class="main">
       <div class="left">
-        {% with display_name=account.user_name|default:"ゲスト" %}
+
+        {% with display_name=account.user_name|default:"?" %}
           {% with initial=display_name|slice:":1" %}
-            <div class="avatar-circle initial-{{ initial|upper }}">
+            <div class="avatar-circle">
               <span class="initial-text">{{ initial|upper }}</span>
             </div>
           {% endwith %}
@@ -90,7 +132,10 @@
           <div class="logout-area">
             <form id="logout-form" method="post" action="{% url 'accounts:logout' %}">
               {% csrf_token %}
-              <button type="button" id="logout-btn" class="btn logout">ログアウト</button>
+
+              <button type="button" id="logout-btn" class="btn logout">
+                <img src="{% static 'codemon/images/nav/教員用アカウント画面 (17).png' %}" alt="ログアウト" style="height:40px; display:block;">
+              </button>
             </form>
           </div>
         </div>
@@ -98,25 +143,38 @@
 
       <div class="info">
         <div class="top-row">
-          <div style="flex:1;overflow:hidden;">
-            <div style="display:flex;gap:30px;align-items:center;margin-top:12px;flex-wrap:wrap;">
-              <table class="info-table" style="flex-shrink:0;border-spacing:0 8px;min-width:240px;">
+
+          <div style="flex:1;">
+            <div style="display:flex;gap:50px;align-items:center;margin-top:12px;">
+              <table style="flex-shrink:0;border-spacing:0 8px;min-width:280px;border-collapse:collapse;">
                 <tr>
                   <td colspan="2" style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;">
-                    <span style="width:70px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">ID</span>
-                    <span style="flex:1;padding-right:20px;color:#000;font-size:15px;text-align:center;">{{ account.user_id|default:user.id }}</span>
+                    <span style="width:90px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">ID</span>
+                    <span style="flex:1;padding-right:20px;color:#000;font-size:15px;">{% if account %}{{ account.user_id }}{% else %}---{% endif %}</span>
                   </td>
                 </tr>
                 <tr>
                   <td colspan="2" style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;">
-                    <span style="width:70px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">名前</span>
-                    <span style="flex:1;padding-right:20px;color:#000;font-size:15px;text-align:center;">{{ account.user_name|default:"ゲスト" }}</span>
+
+                    <span style="width:90px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">名前</span>
+                    <span style="flex:1;padding-right:20px;color:#000;font-size:15px;">{% if account %}{{ account.user_name }}{% else %}ゲスト{% endif %}</span>
                   </td>
                 </tr>
                 <tr>
                   <td colspan="2" style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;">
-                    <span style="width:70px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">年齢</span>
-                    <span style="flex:1;padding-right:20px;color:#000;font-size:15px;text-align:center;">{% if account and account.age is not None %}{{ account.age }}歳{% else %}--{% endif %}</span>
+
+                    <span style="width:90px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">年齢</span>
+                    <span style="flex:1;padding-right:20px;color:#000;font-size:15px;">{% if account and account.age is not None %}{{ account.age }}歳{% else %}--{% endif %}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="2" style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;">
+                    <span style="width:90px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">グループ</span>
+                    {% if joined_group %}
+                      <span style="flex:1;padding-right:20px;color:#000;font-size:15px;">{{ joined_group.group_name }}</span>
+                    {% else %}
+                      <a href="{% url 'accounts:group_join_confirm' %}" style="flex:1;padding-right:20px;color:#0066cc;font-size:15px;text-decoration:underline;">グループ参加</a>
+                    {% endif %}
                   </td>
                 </tr>
               </table>
@@ -126,24 +184,27 @@
                 {% if ai_config and ai_config.appearance %}
                   <img src="{% static 'codemon/images/characters/' %}{{ ai_config.appearance }}" 
                        alt="AI" 
-                       style="width:150px;height:150px;object-fit:contain;display:block;"
+
+                       style="width:180px;height:180px;object-fit:contain;display:block;"
                        onerror="this.src='{% static 'codemon/images/characters/イヌ.png' %}'">
                 {% else %}
                   <img src="{% static 'codemon/images/characters/イヌ.png' %}" 
                        alt="AI" 
-                       style="width:150px;height:150px;object-fit:contain;display:block;">
+
+                       style="width:180px;height:180px;object-fit:contain;display:block;">
                 {% endif %}
               </div>
               
               <!-- AI名前と日付情報 -->
-              <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:1;min-width:200px;">
-                <div style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;">
-                  <span style="width:70px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">名前</span>
-                  <span style="flex:1;padding-right:20px;color:#000;font-size:15px;text-align:center;">{{ ai_config.ai_name|default:"codemon" }}</span>
+
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;min-width:280px;">
+                  <span style="width:90px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">名前</span>
+                  <span style="flex:1;padding-right:20px;color:#000;font-size:15px;">{{ ai_config.ai_name|default:"CodeMon" }}</span>
                 </div>
                 <div style="text-align:center;font-size:14px;color:#666;">
-                  <div>初めて会った日　{% if first_met %}{{ first_met|date:"Y/m/d" }}{% else %}---{% endif %}</div>
-                  <div style="margin-top:4px;">累計　{{ total_days|default:"0日" }}</div>
+                  <div>初めて会った日　{% if first_met %}{{ first_met|date:"Y/m/d" }}{% else %}--{% endif %}</div>
+                  <div style="margin-top:4px;">累計　{% if total_days %}{{ total_days }}{% else %}0日{% endif %}</div>
                 </div>
               </div>
             </div>
@@ -180,24 +241,25 @@
   <!-- ページ専用: ヘッダー高さに合わせてカードの上マージンを調整 -->
   <script>
   (function(){
-      function adjustCardMargin(){
-          try{
-              var header = document.querySelector('.top-tabs');
-              var card = document.querySelector('.card');
-              if(!header || !card) return;
-              var rect = header.getBoundingClientRect();
-              var bottom = rect.bottom || 0;
-              var extra = 18;
-              var pad = Math.ceil(bottom + extra);
-              card.style.marginTop = pad + 'px';
-          }catch(e){ console.error('adjustCardMargin error', e); }
-      }
 
-      document.addEventListener('DOMContentLoaded', adjustCardMargin);
-      window.addEventListener('load', adjustCardMargin);
-      window.addEventListener('resize', adjustCardMargin);
-      setTimeout(adjustCardMargin, 300);
-      setTimeout(adjustCardMargin, 1000);
+    function adjustCardMargin(){
+      try{
+        var header = document.querySelector('.top-tabs');
+        var card = document.querySelector('.card');
+        if(!header || !card) return;
+        var rect = header.getBoundingClientRect();
+        var bottom = rect.bottom || 0;
+        var extra = 18;
+        var pad = Math.ceil(bottom + extra);
+        card.style.marginTop = pad + 'px';
+      }catch(e){ console.error('adjustCardMargin error', e); }
+    }
+
+    document.addEventListener('DOMContentLoaded', adjustCardMargin);
+    window.addEventListener('load', adjustCardMargin);
+    window.addEventListener('resize', adjustCardMargin);
+    setTimeout(adjustCardMargin, 300);
+    setTimeout(adjustCardMargin, 1000);
   })();
   </script>
 {% endblock %}
