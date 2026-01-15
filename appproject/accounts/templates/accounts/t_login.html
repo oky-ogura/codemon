@@ -1,68 +1,203 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <title>ログイン（教員）</title>
-    <style>
-        body { background: #f5f7fa; font-family: 'Segoe UI', sans-serif; }
-        .login-box {
-            margin: 80px auto;
-            width: 350px;
-            padding: 32px 28px 24px 28px;
-            background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-        }
-        .login-box h2 {
-            text-align: center;
-            margin-bottom: 24px;
-            color: #333;
-        }
-        .messages { margin-bottom:12px }
-        .message { padding:10px;border-radius:6px;font-size:0.95em }
-        .message.error { background:#fdecea;color:#611a15;border:1px solid #f5c6cb }
-        .message.success { background:#e6ffed;color:#164d2b;border:1px solid #b3e6c1 }
-        .login-box form {
-            display: flex;
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ログイン（教員）{% endblock %}
+
+{% block background_frame %}
+<img src="{% static 'codemon/images/frames/bg_frame_yellow.png' %}" 
+     alt="" 
+     class="bg-frame">
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ナビゲーションを非表示（ログイン画面では不要） */
+    .top-tabs {
+        display: none !important;
+    }
+    
+    /* ログインコンテナ */
+    .login-container {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+
+    /* タイトル */
+    .title {
+        margin-bottom: 40px;
+        z-index: 10;
+    }
+    .title img {
+        height: 50px;
+        width: auto;
+    }
+
+    /* フォーム */
+    .login-form {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        z-index: 10;
+        width: 100%;
+        max-width: 500px;
+    }
+    .form-row {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        width: 100%;
+        justify-content: center;
+    }
+    .form-label {
+        background: #fff;
+        padding: 10px 30px;
+        border-radius: 40px;
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        min-width: 140px;
+        text-align: center;
+    }
+    .form-input {
+        background: #5BD4F0;
+        border: none;
+        border-radius: 40px;
+        padding: 12px 20px;
+        height: 45px;
+        font-size: 16px;
+        outline: none;
+        color: #fff;
+        width: 250px;
+    }
+    .form-input::placeholder {
+        color: rgba(255,255,255,0.7);
+    }
+    .form-input:focus {
+        background: #4AC5E0;
+    }
+
+    /* リンク */
+    .links {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 40px;
+        margin: 10px 0;
+        z-index: 10;
+    }
+    .links a {
+        color: #00BFFF;
+        text-decoration: none;
+        font-size: 16px;
+    }
+    .links a:hover {
+        text-decoration: underline;
+    }
+
+    /* ボタン */
+    .submit-btn {
+        font-size: 1rem;
+        color: #000;
+        text-transform: uppercase;
+        padding: 8px 30px;
+        border-radius: 8px;
+        border-top: 3px solid #00BFFF;
+        border-left: 3px solid #00BFFF;
+        border-right: 3px solid #E0E0E0;
+        border-bottom: 3px solid #E0E0E0;
+        background: #fff;
+        box-shadow: 4px 4px 0 #00BFFF;
+        cursor: pointer;
+        font-weight: bold;
+        margin-top: 10px;
+        z-index: 10;
+    }
+    .submit-btn:hover {
+        background: #f0f8ff;
+    }
+
+    /* エラーメッセージ */
+    .messages {
+        margin-bottom: 15px;
+        z-index: 10;
+    }
+    .message {
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-size: 0.95em;
+    }
+    .message.error {
+        background: #fdecea;
+        color: #611a15;
+        border: 1px solid #f5c6cb;
+    }
+    .message.success {
+        background: #e6ffed;
+        color: #164d2b;
+        border: 1px solid #b3e6c1;
+    }
+
+    @media (max-width: 600px) {
+        .form-row {
             flex-direction: column;
+            gap: 10px;
         }
-        .login-box input, .login-box button {
-            margin-bottom: 14px;
-            padding: 10px;
-            font-size: 1em;
-            border-radius: 5px;
-            border: 1px solid #ccc;
+        .form-label {
+            min-width: auto;
+            width: 100%;
+            max-width: 250px;
         }
-        .login-box button {
-            background: #007bff;
-            color: #fff;
-            border: none;
-            cursor: pointer;
-            transition: background 0.2s;
+        .form-input {
+            width: 100%;
+            max-width: 250px;
         }
-        .login-box button:hover {
-            background: #0056b3;
+        .links {
+            flex-direction: column;
+            gap: 8px;
         }
-        .login-box label {
-            margin-bottom: 4px;
-            color: #444;
-        }
-    </style>
-</head>
-<body>
-    <div class="login-box">
-        <h2>ログイン（教員）</h2>
-        <form method="post">
-            {% csrf_token %}
-            <label for="id_username">ユーザー名</label>
-            <input type="text" name="username" id="id_username" required>
-            <label for="id_password">パスワード</label>
-            <input type="password" name="password" id="id_password" required>
-            <div class="links">
-                <a href="{% url 'accounts:teacher_signup' %}" class="muted">アカウント新規作成</a>
-            </div>
-            <button type="submit">ログイン</button>
-        </form>
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <h2 style="margin-bottom: 40px;">
+    ログイン（教員）
+    </h2>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+            <div class="message {{ message.tags }}">{{ message }}</div>
+        {% endfor %}
     </div>
-</body>
-</html>
+    {% endif %}
+
+    <form method="post" class="login-form">
+        {% csrf_token %}
+        <div class="form-row">
+            <label class="form-label" for="id_username">名前</label>
+            <input type="text" class="form-input" name="username" id="id_username" required>
+        </div>
+        <div class="form-row">
+            <label class="form-label" for="id_password">パスワード</label>
+            <input type="password" class="form-input" name="password" id="id_password" required>
+        </div>
+        <div class="links">
+            <a href="{% url 'accounts:password_reset' %}">パスワードを忘れた場合</a>
+            <a href="{% url 'accounts:teacher_signup' %}">アカウント新規作成</a>
+        </div>
+        <button type="submit" class="submit-btn">ログイン</button>
+    </form>
+</div>
+{% endblock %}
