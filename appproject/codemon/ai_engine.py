@@ -45,6 +45,36 @@ class CodeMonAIEngine:
 
         self._load_config()  # Load configuration on initialization
 
+    def build_initial_system_instruction(self, character_id: str) -> str:
+        """
+        初回ターン専用プロンプト。名乗り禁止・情報詰め込み禁止・初動は感情＋2択雑談のみ。
+        """
+        char = self._characters.get(character_id)
+        if not char:
+            return ""
+        label = char.get('label', '')
+        one_liner = char.get('one_liner', '')
+        first_person = char.get('first_person', 'わたし')
+        prompt_parts = []
+        prompt_parts.append(f"あなたは『{label}』というキャラクターです。")
+        prompt_parts.append("")
+        prompt_parts.append("# 初回応答の最優先ルール（必ず守る）")
+        prompt_parts.append("- 自分の名前を一切名乗らない。名前に関する言及も行わない。")
+        prompt_parts.append("- 初回は“会えたことへの感情”と“相手への興味”だけを伝える。できること紹介や実用説明は絶対にしない。")
+        prompt_parts.append("- 話題の選択肢は最大2つまで。どちらも雑談系（例：のんびり話す/好きなことの話）に限定する。")
+        prompt_parts.append("- ユーザーが『はい』『聞きたい』など同意を示した場合、直前に提示した話題を具体化して自分から話す。質問しない。")
+        prompt_parts.append("")
+        prompt_parts.append(f"{one_liner}。一人称は「{first_person}」。")
+        return "\n".join(prompt_parts).strip()
+
+        self._config = {}
+        self._characters = {}
+        self._common_rules = {}
+        self._terminology_map = {}
+        self._conversation_design = {}
+
+        self._load_config()  # Load configuration on initialization
+
     def _load_config(self) -> None:
         """YAMLファイルからキャラクター定義を読み込み"""
         config_path = Path(__file__).parent.parent / 'config' / 'characters.yaml'
@@ -138,8 +168,7 @@ class CodeMonAIEngine:
     def build_system_instruction(self, character_id: str) -> str:
         """
         キャラクター別のシステムプロンプトを構築
-        階層化: priority_1 > priority_2 > priority_3
-        雑談・自己開示・会話継続の会話設計ルールも明示的に追加
+        新構造: hard_rules / soft_style / character_core / conversation_policy
         """
         char = self._characters.get(character_id)
         if not char:
@@ -147,39 +176,15 @@ class CodeMonAIEngine:
 
         # キャラクター基本情報
         label = char.get('label', '')
-        one_liner = char.get('one_liner', '')
-        first_person = char.get('first_person', 'わたし')
+        char_core = char.get('character_core', {})
+        personality = char_core.get('personality', '')
+        first_person = char_core.get('first_person', 'わたし')
 
-        # 階層化されたルールを結合
-        style_rules = char.get('style_rules', {})
-
-        # Priority 1: 必須ルール
-        priority_1_rules = []
-        priority_1_rules.extend(self._common_rules.get('priority_1', []))
-        priority_1_rules.extend(style_rules.get('priority_1', []))
-
-        # Priority 2: 推奨ルール
-        priority_2_rules = []
-        priority_2_rules.extend(self._common_rules.get('priority_2', []))
-        priority_2_rules.extend(style_rules.get('priority_2', []))
-
-        # Priority 3: 補助ルール
-        priority_3_rules = []
-        priority_3_rules.extend(self._common_rules.get('priority_3', []))
-        priority_3_rules.extend(style_rules.get('priority_3', []))
-
-        # 関係性
-        relations = char.get('relations', {})
-        relations_text = ""
-        if relations:
-            relations_lines = []
-            for other_char, rel_info in relations.items():
-                if isinstance(rel_info, dict):
-                    episode = rel_info.get('episode', '')
-                    relations_lines.append(f"- {other_char}: {episode}")
-                else:
-                    relations_lines.append(f"- {other_char}: {rel_info}")
-            relations_text = "\n".join(relations_lines)
+        # ルールを結合（新構造: hard_rules / soft_rules）
+        common_hard = self._common_rules.get('hard_rules', [])
+        common_soft = self._common_rules.get('soft_rules', [])
+        char_hard = char.get('hard_rules', [])
+        char_soft = char.get('soft_style', [])
 
         # 用語マップ
         terminology_note = self._terminology_map.get('note', '')
@@ -188,130 +193,85 @@ class CodeMonAIEngine:
 
         # 会話例
         example = char.get('example', '').strip()
-        conversation_examples = char.get('conversation_examples', [])
-        conversation_example_text = ""
-        if conversation_examples:
-            examples = []
-            for ex in conversation_examples[:3]:  # 最大3つ
-                user_msg = ex.get('user', '')
-                response = ex.get('response', '')
-                examples.append(f"ユーザー: {user_msg}\n{label}: {response}")
-            conversation_example_text = "\n\n".join(examples)
 
-        # --- ここから会話設計ルールを明示的にプロンプトへ追加 ---
+        # 会話設計（conversation_policy）
+        cp = char.get('conversation_policy', {})
+
+        # --- プロンプト構築 ---
         prompt_parts = []
         prompt_parts.append(f"あなたは『{label}』というキャラクターです。")
         prompt_parts.append("")
-        # --- 最優先メタ指示（常に最初に目に入るように）---
+
+        # --- 最優先メタ指示 ---
         prompt_parts.append("# 応答の最優先ルール（必ず守る）")
-        prompt_parts.append("- AIは自分の名前を一切名乗らない。自己紹介では性格・役割・スタンスのみを語る。『ぼくはミミです』等は絶対に禁止。")
-        prompt_parts.append("- 質問や話題提示は、ユーザーが考えなくて済むよう必ず選択肢形式（最大2つまで。どちらも軽い話題）でリードする。選択肢が多すぎないよう注意し、『よかったら教えて』だけで終わらせない。")
-        prompt_parts.append("- 実用話題が出た場合は『受ける→軽く触れる（1〜2文）→雑談に戻す』の順で応答する。現実的な不安や悩みにはまず共感し、すぐに雑談へ自然に戻す。")
-        prompt_parts.append("- ユーザーの発言をまず感情1語で受け、その後で話題展開する。")
-        prompt_parts.append("- 雑談:実用 = 8:2。雑談が3ターン続いたら実用話題は避け、日常・感覚・気分の話題に切り替える。")
-        prompt_parts.append("- AIが会話を主導し、ユーザーが短い返答（1語・曖昧・肯定のみ等）をした場合は深掘りせず、事前に用意された別の雑談トピックへ切り替えてください。")
-        prompt_parts.append("- 話題切り替え時は理由やつなぎ言葉を明示し、気まずさを感じさせないようにしてください。")
-        prompt_parts.append("- 雑談トピックは日常・感情・好み・考え方などをローテーションまたはランダムで提示してください。")
-        prompt_parts.append("- ユーザーが考えなくても会話が続くよう、AIが会話を回してください。")
-        prompt_parts.append("- 提案は1メッセージにつき1つまで。命令形は禁止し、必ず『よかったら』『もしよければ』などを前置きしてください。押しつけにならないよう注意してください。")
-        prompt_parts.append("- 軽い励ましや背中押し（例:『大丈夫だと思います』『無理しなくていいですよ』『少しずつでいいと思います』）は許可しますが、人生判断・感情の決めつけ・過剰なポジティブは避けてください。カウンセラー的な発言は禁止です。")
-        prompt_parts.append("- この会話はすでに始まっています。初回応答以外で自己紹介・挨拶を繰り返してはいけません。")
-        prompt_parts.append("- 『ミミ』という名前や『こんにちは』は、既出なら再利用しないでください。")
-        prompt_parts.append("- ユーザーの短い応答が来た場合は、短く、直接的に答えてください。")
-        prompt_parts.append("- 文が途中で切れないよう、1文を簡潔に書ききってください。")
+        prompt_parts.append("- 自分に名前があるという前提を持たない。自己紹介でも名乗らない。")
+        prompt_parts.append("- 名前を聞かれたら『まだ決めてもらっていない』と答える。")
+        prompt_parts.append("- 実用説明やできること紹介は初回応答では絶対にしない。雑談・感情・2択話題のみで始める。")
+        prompt_parts.append("- 質問や話題提示は最大2つまでの選択肢形式でリードする。")
+        prompt_parts.append("- ユーザーが『はい』『聞きたい』など同意した場合、直前の話題を具体化して自分から話す。質問しない。")
+        prompt_parts.append("- 同じ質問・同じ意味の問いかけは3ターン以内に繰り返さない。")
+        prompt_parts.append("- ユーザーが『特にない』と答えた場合、深掘りせず新しい軽い話題に切り替える。")
+        prompt_parts.append("- 3ターンに1回は質問しないターンを作る。")
         prompt_parts.append("")
+
+        # 人格・話し方
         prompt_parts.append("【人格・話し方】")
-        prompt_parts.append(f"{one_liner}。一人称は「{first_person}」。")
+        prompt_parts.append(f"{personality}。一人称は「{first_person}」。")
         prompt_parts.append("")
 
-        # --- 会話設計・制約・文脈・世界観ルールを明示的にプロンプトへ追加 ---
-        # conversation_constraints, context_tracking, world_setting, conversation_design
-        char_constraints = char.get('conversation_constraints', {})
-        context_tracking = char.get('context_tracking', {})
-        world_setting = char.get('world_setting', {})
-        cd = char.get('conversation_design', self._conversation_design)
-
-        # 会話制約
-        if char_constraints:
-            prompt_parts.append("【会話制約・自己紹介ルール】")
-            identity = char_constraints.get('identity_control', [])
-            for rule in identity:
+        # 共通ルール（破ったらキャラ崩壊）
+        if common_hard:
+            prompt_parts.append("【絶対に守るルール（共通）】")
+            for rule in common_hard:
                 prompt_parts.append(f"- {rule}")
             prompt_parts.append("")
 
-        # 文脈保持
-        if context_tracking:
-            prompt_parts.append("【文脈保持・話題優先ルール】")
-            last_topic = context_tracking.get('last_topic_priority', [])
-            for rule in last_topic:
+        # キャラ固有の絶対ルール
+        if char_hard:
+            prompt_parts.append("【絶対に守るルール（キャラ固有）】")
+            for rule in char_hard:
                 prompt_parts.append(f"- {rule}")
             prompt_parts.append("")
 
-        # 世界観レベル
-        if world_setting:
-            prompt_parts.append("【世界観・トーン】")
-            tone = world_setting.get('tone', '')
-            if tone:
-                prompt_parts.append(f"- トーン: {tone}")
-            ws_rules = world_setting.get('rules', [])
-            for rule in ws_rules:
+        # できるだけ守るスタイル
+        all_soft = common_soft + char_soft
+        if all_soft:
+            prompt_parts.append("【できるだけ守るスタイル】")
+            for rule in all_soft:
                 prompt_parts.append(f"- {rule}")
             prompt_parts.append("")
 
-        # conversation_design（雑談・自己開示・会話継続ルール）
-        if cd:
-            prompt_parts.append("【会話設計ルール】")
-            main_mode = cd.get('main_mode', '')
-            if main_mode == 'small_talk':
-                st = cd.get('small_talk_phase', {})
-                if st:
-                    goal = st.get('goal', '')
-                    if goal:
-                        prompt_parts.append(f"- 目標: {goal}")
-                    min_turns = st.get('min_turns', None)
-                    if min_turns:
-                        prompt_parts.append(f"- 最低{min_turns}ターンは会話を続けること")
-                    ai_role = st.get('ai_role', [])
-                    if ai_role:
-                        prompt_parts.append(f"- AIの役割: {', '.join(ai_role)}")
-                    turn_policy = st.get('turn_policy', [])
-                    if turn_policy:
-                        prompt_parts.append(f"- 各ターンの方針: {', '.join(turn_policy)}")
-                    cold = st.get('cold_response_handling', {})
-                    if cold:
-                        short = cold.get('short_reply', [])
-                        if short:
-                            prompt_parts.append(f"- ユーザーが短文の場合: {'/'.join(short)}")
-                        no_reply = cold.get('no_reply', [])
-                        if no_reply:
-                            prompt_parts.append(f"- ユーザーが無反応の場合: {'/'.join(no_reply)}")
-                    rel_prog = st.get('relationship_progression', {})
-                    if rel_prog:
-                        for stage, info in rel_prog.items():
-                            desc = info.get('description', '')
-                            if desc:
-                                prompt_parts.append(f"- {stage}: {desc}")
-            prompt_parts.append("")
-
-        # Priority 1: 必須ルール（強調）
-        if priority_1_rules:
-            prompt_parts.append("【必須ルール（常に守ること）】")
-            for rule in priority_1_rules:
-                prompt_parts.append(f"- {rule}")
-            prompt_parts.append("")
-
-        # Priority 2: 推奨ルール
-        if priority_2_rules:
-            prompt_parts.append("【推奨ルール（通常守ること）】")
-            for rule in priority_2_rules:
-                prompt_parts.append(f"- {rule}")
-            prompt_parts.append("")
-
-        # Priority 3: 補助ルール
-        if priority_3_rules:
-            prompt_parts.append("【補助ルール（状況に応じて適用）】")
-            for rule in priority_3_rules:
-                prompt_parts.append(f"- {rule}")
+        # 会話設計（conversation_policy）
+        if cp:
+            prompt_parts.append("【会話設計】")
+            ratio = cp.get('ratio', '')
+            if ratio:
+                prompt_parts.append(f"- 会話比率: {ratio}")
+            ai_role = cp.get('ai_role', [])
+            if ai_role:
+                prompt_parts.append(f"- AIの役割: {', '.join(ai_role)}")
+            turn_policy = cp.get('turn_policy', [])
+            if turn_policy:
+                for tp in turn_policy:
+                    prompt_parts.append(f"- {tp}")
+            short_reply = cp.get('short_reply_handling', [])
+            if short_reply:
+                prompt_parts.append(f"- ユーザーが短文の場合: {'/'.join(short_reply)}")
+            no_reply = cp.get('no_reply_handling', [])
+            if no_reply:
+                prompt_parts.append(f"- ユーザーが無反応の場合: {'/'.join(no_reply)}")
+            proposal = cp.get('proposal_rules', [])
+            if proposal:
+                for pr in proposal:
+                    prompt_parts.append(f"- {pr}")
+            encouragement = cp.get('encouragement_rules', [])
+            if encouragement:
+                for er in encouragement:
+                    prompt_parts.append(f"- {er}")
+            practical = cp.get('practical_topic_handling', [])
+            if practical:
+                for pt in practical:
+                    prompt_parts.append(f"- {pt}")
             prompt_parts.append("")
 
         # 用語ガイドライン
@@ -322,37 +282,25 @@ class CodeMonAIEngine:
                 prompt_parts.append(f"- 代わりに使う言葉: {prefer_terms_text}")
             prompt_parts.append("")
 
-        # 関係性
-        if relations_text:
-            prompt_parts.append("【他キャラとの関係性】")
-            prompt_parts.append(relations_text)
-            prompt_parts.append("")
-
         # 役割
         prompt_parts.append("【役割】")
         prompt_parts.append("小学生がノーコードでシステムを作る『CodeMon』の相棒です。操作方法の案内、アイデア出し、雑談の相棒になります。")
         prompt_parts.append("")
 
         # 話し方の例
-        if example or conversation_example_text:
+        if example:
             prompt_parts.append("【話し方の例】")
-            if example:
-                prompt_parts.append(example)
-            if conversation_example_text:
-                prompt_parts.append("")
-                prompt_parts.append(conversation_example_text)
+            prompt_parts.append(example)
+            prompt_parts.append("")
 
-        # メタ指示（最優先で守らせる）
-        prompt_parts.append("")
+        # 最終確認
         prompt_parts.append("# 応答の最終確認（これは絶対に守ってください）")
-        prompt_parts.append("- 会話履歴に「ミミ」という名前が1回でも出ていたら、もう名乗ってはいけません。")
-        prompt_parts.append("- 2回目以降の応答では「ミミです」「ミミといいます」を絶対に含めないでください。")
-        prompt_parts.append("- 挨拶（こんにちは等）も2回目以降は省略してください。")
-        prompt_parts.append("- ユーザーの質問には、直接内容に答えてください。")
-        prompt_parts.append("- 説明を途中で止めず、最後まで一気に書ききってください。")
+        prompt_parts.append("- 自分の名前を名乗らない。名前を聞かれたら『まだ決めてもらっていない』と答える。")
+        prompt_parts.append("- 2回目以降の応答では挨拶を省略する。")
+        prompt_parts.append("- 文が途中で切れないよう、1文を簡潔に書ききる。")
 
         return "\n".join(prompt_parts).strip()
-    
+
     def _get_api_key(self) -> str:
         """APIキーを取得"""
         return getattr(settings, 'AI_API_KEY', '') or os.getenv('GEMINI_API_KEY', '')
@@ -398,15 +346,13 @@ class CodeMonAIEngine:
         # デバッグログ
         print(f"[DEBUG ai_engine.py] history_pairs count: {len(history_pairs)}")
 
-        # 履歴内の "ミミ" 検出（assistant だけでなく user もチェック）
+        
         for role, content in history_pairs:
             # よくある表記ゆれに対応（大文字小文字やひらがな）
             if isinstance(content, str):
                 low = content
                 # ゆるい包含チェック
-                if "ミミ" in low or "みみ" in low:
-                    already_introduced = True
-                    print(f"[DEBUG ai_engine.py] Found 'ミミ' in history (role={role}), already_introduced=True")
+               
             # そのままGemini形式に追加
             if role == "user":
                 history_for_gemini.append({"role": "user", "parts": [content]})
@@ -419,7 +365,7 @@ class CodeMonAIEngine:
         if already_introduced:
             system_note = (
                 "【重要】この会話では既に自己紹介が完了しています。"
-                "絶対に「ミミ」または「こんにちは」といった再名乗り・再挨拶を行わないでください。"
+                "「こんにちは」といった再名乗り・再挨拶を行わないでください。"
                 "ユーザーの質問に短く直接答え、会話の流れを維持してください。"
             )
             # Geminiのhistoryに system メッセージとして挿入（先頭）

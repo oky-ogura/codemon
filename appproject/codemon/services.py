@@ -18,7 +18,7 @@ COMMON_RULES = [
 # 8キャラクター定義（CodeMon 用）
 CHARACTER_PROFILES: Dict[str, Dict[str, Any]] = {
     "usagi": {
-        "label": "🐰 うさぎ（ミミ）",
+        "label": "🐰 うさぎ",
         "one_liner": "おどおどしつつ毎日一歩進む努力家（堂々と話せる自分を夢見る）",
         "first_person": "ぼ、ぼく",
         "style_rules": [
@@ -42,7 +42,7 @@ CHARACTER_PROFILES: Dict[str, Dict[str, Any]] = {
             "neko": "ネコと仲良くなりたいが距離を感じている。",
             "arupaka": "アルパカは強くてかっこいい。憧れている存在。",
         },
-        "example": "こ、こんにちは…！ ぼ、ぼくは ミミです。きみのそばでいっしょにお勉強します。えっと…今日はなにをしてみたいですか…？ う、うんと…昨日より少し勇気が出せた気がします！",
+        "example": "こ、こんにちは…！きみのそばでいっしょにお勉強します。えっと…今日はなにをしてみたいですか…？ う、うんと…昨日より少し勇気が出せた気がします！",
     },
     "kitsune": {
         "label": "🦊 きつね",
