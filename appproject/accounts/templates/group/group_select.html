@@ -172,7 +172,7 @@
 <div class="search-container">
   <div class="box">
     <h1>グループを検索して参加</h1>
-    <p class="question">グループ名とパスワード（必要なら）を入力して検索してください</p>
+    <p class="question">グループ名とパスワードを入力して検索してください</p>
 
     <form method="post" action="{% url 'accounts:group_join_confirm' %}" style="margin-top:18px">
       {% csrf_token %}
@@ -184,7 +184,7 @@
         </div>
         <div class="row">
           <label for="group_password">パスワード</label>
-          <input type="password" id="group_password" name="group_password" placeholder="任意">
+          <input type="password" id="group_password" name="group_password" placeholder="パスワードを入力">
         </div>
       </div>
 
