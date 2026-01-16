@@ -51,6 +51,7 @@ class Algorithm(models.Model):
     user = models.ForeignKey('accounts.Account', on_delete=models.CASCADE, verbose_name='ユーザーID')
     algorithm_name = models.CharField(max_length=100, verbose_name='アルゴリズム名')
     algorithm_description = models.TextField(blank=True, null=True, verbose_name='アルゴリズム概要')
+    blockly_xml = models.TextField(blank=True, null=True, verbose_name='Blockly XML')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新日時')
 
@@ -61,6 +62,7 @@ class Algorithm(models.Model):
 
     def __str__(self):
         return f"{self.algorithm_name} (ID: {self.algorithm_id})"
+
 
 
 class Checklist(models.Model):

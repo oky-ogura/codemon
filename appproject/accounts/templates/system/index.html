@@ -15,6 +15,12 @@
   /* Blocklyは外部スクリプトとして読み込む */
   :root { --nav-height:56px; --primary:#1976d2; --bg:#f9f9fb; --muted:#666; }
 
+  /* このページではスクロールを有効化 */
+  body {
+    overflow: visible !important;
+    height: auto !important;
+  }
+
   /* ナビゲーション表示状態の制御 */
   .top-tabs {
     display: block; /* 常に表示 */
@@ -29,7 +35,7 @@
     width: 100%;
     max-width: 1200px;
     margin: 0 auto;
-    padding-top: 60px; /* 編集フィールドの位置調整 */
+    padding-top: 60px !important; /* ナビゲーションバーと適度な間隔を保つ */
     padding-bottom: 40px;
     min-height: auto;
     overflow-y: visible;
@@ -744,11 +750,72 @@
     // 編集モードの場合、既存要素データを保持
     const existingElementsData = {{ elements_json|default:"[]"|safe }};
     
+    // 未保存の変更を追跡
+    let isDirty = false;
+    let initialContent = '';
+
+    // 初期状態を保存
+    (function saveInitialState(){
+      const slideArea = document.getElementById('slideArea');
+      if (slideArea) {
+        initialContent = slideArea.innerHTML;
+      }
+    })();
+
+    // 変更を検知する関数
+    function markDirty() {
+      const slideArea = document.getElementById('slideArea');
+      if (slideArea && slideArea.innerHTML !== initialContent) {
+        isDirty = true;
+      }
+    }
+
+    // スライドエリアの変更を監視
+    (function watchChanges(){
+      const slideArea = document.getElementById('slideArea');
+      if (!slideArea) return;
+      
+      // MutationObserverで変更を監視
+      const observer = new MutationObserver(function() {
+        markDirty();
+      });
+      
+      observer.observe(slideArea, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        characterData: true
+      });
+    })();
+
+    // ブラウザ閉じる/リロード時の警告
+    window.addEventListener('beforeunload', function(e) {
+      if (!isDirty) return;
+      e.preventDefault();
+      e.returnValue = '';
+    });
+
     (function(){
       try{
         const tabs = document.querySelectorAll('.nav-tab');
         tabs.forEach(tab=>{
           tab.addEventListener('click', function(e){
+            // システムタブ自身のクリックは許可
+            if(this.id === 'tab-system'){
+              tabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-pressed','false'); });
+              this.classList.add('active');
+              this.setAttribute('aria-pressed','true');
+              return;
+            }
+            
+            // 未保存の変更がある場合は警告
+            if (isDirty) {
+              e.preventDefault();
+              const confirmed = confirm('保存されていない変更があります。移動してもよろしいですか?');
+              if (!confirmed) return;
+              isDirty = false;
+            }
+            
             // 見た目の切替
             tabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-pressed','false'); });
             this.classList.add('active');
@@ -780,6 +847,14 @@
         console.error('tabs init error', err);
       }
     })();
+
+    // 保存時にisDirtyをリセット
+    const originalSaveBtn = document.getElementById('saveBtn');
+    if (originalSaveBtn) {
+      originalSaveBtn.addEventListener('click', function() {
+        isDirty = false;
+      });
+    }
 
     const colorOptions = [
       { name: "あお", value: "#2196F3" },
