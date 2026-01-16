@@ -61,10 +61,19 @@
     /* ページネーション */
     .pagination {
       display:flex;
-      justify-content:center;
+      justify-content:space-between;
       align-items:center;
-      gap:16px;
       margin:16px 0 12px 0;
+      position: relative;
+    }
+    .pagination-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
     }
     .pagination-info {
       color:#666;
@@ -87,6 +96,52 @@
     .pagination-btn:disabled {
       opacity:0.4;
       cursor:not-allowed;
+    }
+    
+    /* 検索ボックス */
+    .search-container {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: auto;
+      position: relative;
+    }
+    .search-input {
+      padding: 8px 32px 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #d0d7de;
+      font-size: 14px;
+      width: 200px;
+      transition: all .12s ease;
+    }
+    .search-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+    }
+    .search-clear-btn {
+      position: absolute;
+      right: 8px;
+      background: transparent;
+      border: none;
+      color: #999;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all .12s ease;
+    }
+    .search-clear-btn:hover {
+      background: #f0f0f0;
+      color: #333;
+    }
+    .search-clear-btn.show {
+      display: flex;
     }
     
     .actions { display:flex; gap:12px; margin-top:12px; justify-content:center; }
@@ -119,7 +174,49 @@
 {% include 'partials/navigation.html' %}
   <main>
     <div class="list-card" role="region" aria-label="システム一覧">
-      <!-- ...existing code... -->
+      <!-- ページネーション（上部） -->
+      <div class="pagination" id="topPagination">
+        <div class="pagination-controls">
+          <button class="pagination-btn" id="prevBtn" disabled>← 前へ</button>
+          <span class="pagination-info" id="pageInfo">1 / 1</span>
+          <button class="pagination-btn" id="nextBtn" disabled>次へ →</button>
+        </div>
+        <div class="search-container">
+          <input type="text" id="searchInput" class="search-input" placeholder="システム名で検索..." />
+          <button class="search-clear-btn" id="clearSearchBtn" title="クリア">×</button>
+        </div>
+      </div>
+
+      <div id="systemsContainer">
+        {% if systems %}
+        <div class="system-list">
+          <ul id="systemsList" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:3px;">
+            {% for s in systems %}
+            <li data-id="{{ s.system_id }}" style="border-radius:8px;padding:12px 14px;display:flex;align-items:center;gap:16px;">
+              <div style="flex:1;min-width:0;font-weight:700;font-size:15px;color:#0b2f5a;">{{ s.system_name }}</div>
+              <div style="flex:1;min-width:0;color:#666;font-size:13px;">作成日: {{ s.created_at|date:"Y年n月j日 H:i" }}</div>
+              {% if s.created_at != s.updated_at %}
+              <div style="flex:1;min-width:0;color:#666;font-size:13px;">更新日: {{ s.updated_at|date:"Y年n月j日 H:i" }}</div>
+              {% else %}
+              <div style="flex:1;min-width:0;color:#666;font-size:13px;"></div>
+              {% endif %}
+              <button class="system-detail-btn" data-system-id="{{ s.system_id }}">詳細</button>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% else %}
+        <div class="list-empty">
+          作成済みのシステムはまだありません。<br />
+          「新しいシステムを作成」ボタンで作成を開始できます。
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="actions" aria-hidden="false">
+        <button class="btn btn-primary" id="btn-new">新しいシステムを作成</button>
+        <button class="btn btn-ghost" id="btn-back">戻る</button>
+      </div>
     </div>
   </main>
 
@@ -128,6 +225,8 @@
     const ITEMS_PER_PAGE = 4;
     let currentPage = 1;
     let allSystems = [];
+    let filteredSystems = []; // 検索結果を保持
+    let searchQuery = ''; // 現在の検索クエリ
 
     // 初期データの読み込み
     (function initializeSystems() {
@@ -148,6 +247,7 @@
         });
         
         // 初期表示
+        filteredSystems = allSystems;
         renderPage(1);
       } else {
         // システムが1つもない場合
@@ -160,16 +260,16 @@
       const container = document.getElementById('systemsContainer');
       if (!container) return;
 
-      if (!allSystems || allSystems.length === 0) {
+      if (!filteredSystems || filteredSystems.length === 0) {
         container.innerHTML = `
-          <div class="list-empty">作成済みのシステムはまだありません。<br />「新しいシステムを作成」ボタンで作成を開始できます。</div>`;
+          <div class="list-empty">検索結果が見つかりません。</div>`;
         updatePaginationButtons();
         return;
       }
 
       const startIndex = (page - 1) * ITEMS_PER_PAGE;
       const endIndex = startIndex + ITEMS_PER_PAGE;
-      const pageSystems = allSystems.slice(startIndex, endIndex);
+      const pageSystems = filteredSystems.slice(startIndex, endIndex);
 
       let html = '<div class="system-list"><ul id="systemsList" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:3px;">';
       for (const s of pageSystems) {
@@ -196,7 +296,7 @@
     }
 
     function updatePaginationButtons() {
-      const totalPages = Math.ceil(allSystems.length / ITEMS_PER_PAGE) || 1;
+      const totalPages = Math.ceil(filteredSystems.length / ITEMS_PER_PAGE) || 1;
       const prevBtn = document.getElementById('prevBtn');
       const nextBtn = document.getElementById('nextBtn');
       const pageInfo = document.getElementById('pageInfo');
@@ -221,11 +321,65 @@
     });
 
     document.getElementById('nextBtn')?.addEventListener('click', function() {
-      const totalPages = Math.ceil(allSystems.length / ITEMS_PER_PAGE);
+      const totalPages = Math.ceil(filteredSystems.length / ITEMS_PER_PAGE);
       if (currentPage < totalPages) {
         renderPage(currentPage + 1);
       }
     });
+
+    // 検索機能
+    const searchInput = document.getElementById('searchInput');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+
+    function performSearch(query) {
+      searchQuery = query.toLowerCase().trim();
+      
+      if (!searchQuery) {
+        // 検索クエリが空の場合は全件表示
+        filteredSystems = allSystems;
+      } else {
+        // システム名でフィルタリング
+        filteredSystems = allSystems.filter(system => {
+          return system.system_name.toLowerCase().includes(searchQuery);
+        });
+      }
+      
+      // 1ページ目に戻して表示
+      renderPage(1);
+      
+      // クリアボタンの表示/非表示
+      if (clearSearchBtn) {
+        if (searchQuery) {
+          clearSearchBtn.classList.add('show');
+        } else {
+          clearSearchBtn.classList.remove('show');
+        }
+      }
+    }
+
+    if (searchInput) {
+      // 入力中にリアルタイム検索
+      searchInput.addEventListener('input', function(e) {
+        performSearch(e.target.value);
+      });
+      
+      // Enterキーで検索
+      searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          performSearch(e.target.value);
+        }
+      });
+    }
+
+    if (clearSearchBtn) {
+      clearSearchBtn.addEventListener('click', function() {
+        if (searchInput) {
+          searchInput.value = '';
+          performSearch('');
+          searchInput.focus();
+        }
+      });
+    }
 
     // 「新しいシステムを作成」ボタンは index.html へ遷移
     const btnNew = document.getElementById('btn-new');
@@ -250,6 +404,12 @@
           created_at: s.created_at,
           updated_at: s.updated_at
         }));
+        
+        // 検索をリセット
+        filteredSystems = allSystems;
+        if (searchInput) searchInput.value = '';
+        searchQuery = '';
+        if (clearSearchBtn) clearSearchBtn.classList.remove('show');
         
         // 1ページ目を表示
         renderPage(1);

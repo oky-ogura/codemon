@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% block banner_nav %}{% endblock %}
 {% load static %}
 
 {% block title %}ホーム - Codemon{% endblock %}
@@ -23,6 +24,356 @@
     height: calc(100vh - 120px);
     position: relative;
   }
+  
+  .karihome-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: visible; /* visible に変更 */
+  }
+  
+  /* キャラクターを画面中央右寄りに配置 */
+  .character-container {
+    position: fixed !important;
+    right: 15%;
+    bottom: 0;
+    transform: none;
+    z-index: 100 !important;
+    display: flex;
+    align-items: flex-end;
+  }
+  
+  .character-image {
+    max-width: 400px !important;
+    max-height: 500px !important;
+    pointer-events: auto;
+    transition: transform 0.3s ease;
+    transform-origin: bottom center;
+    display: block;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  
+  .character-container img {
+    border: none !important;
+    outline: none !important;
+  }
+  
+  /* ホバー時に傾く */
+  .character-image:hover {
+    transform: scale(1.05) rotate(2deg) !important;
+  }
+  
+  /* 吹き出しを左側に配置 */
+  .speech-bubble-container {
+    position: fixed !important;
+    left: 25%;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 101;
+    max-width: 450px;
+    display: flex;
+    justify-content: flex-end;
+  }
+  
+  .speech-bubble {
+    background: white;
+    border-radius: 30px;
+    padding: 35px 45px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    position: relative;
+    font-size: 24px;
+    line-height: 1.8;
+    color: #333;
+    border: 3px solid #FFD700;
+    animation: bubbleFloat 2s ease-in-out infinite;
+  }
+  
+  /* 吹き出しアニメーション */
+  @keyframes bubbleFloat {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+  
+  /* 吹き出しの三角部分 */
+  .speech-bubble::after {
+    content: '';
+    position: absolute;
+    right: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 25px solid white;
+    border-top: 20px solid transparent;
+    border-bottom: 20px solid transparent;
+  }
+  
+  /* キラキラエフェクト */
+  .sparkle {
+    position: absolute;
+    font-size: 24px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  
+  .chat-trigger-btn:hover .sparkle {
+    opacity: 1;
+    animation: sparkleFloat 1.5s ease-in-out infinite;
+  }
+  
+  @keyframes sparkleFloat {
+    0%, 100% {
+      opacity: 0;
+      transform: translateY(0) scale(0.5);
+    }
+    50% {
+      opacity: 1;
+      transform: translateY(-20px) scale(1);
+    }
+  }
+  
+  .sparkle:nth-child(1) { top: -10px; left: -10px; animation-delay: 0s; }
+  .sparkle:nth-child(2) { top: -10px; right: -10px; animation-delay: 0.2s; }
+  .sparkle:nth-child(3) { bottom: -10px; left: -10px; animation-delay: 0.4s; }
+  .sparkle:nth-child(4) { bottom: -10px; right: -10px; animation-delay: 0.6s; }
+  
+  /* 話しかけるボタン */
+  .chat-trigger-btn {
+    position: fixed;
+    left: 31%;
+    top: 67%;
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 50px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(255, 165, 0, 0.4);
+    z-index: 102;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s;
+  }
+  
+  .chat-trigger-btn .sparkle {
+    position: absolute;
+  }
+  
+  .chat-trigger-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 8px 20px rgba(255, 165, 0, 0.6);
+  }
+  
+  /* キャラクターコンテナ */
+  .character-container {
+    position: fixed !important;
+    right: 25%;
+    bottom: 0;
+    transform: none;
+    z-index: 100 !important;
+    display: flex;
+    align-items: flex-end;
+  }
+  
+  /* ==================== チャットモーダル ==================== */
+  .chat-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9998 !important;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .chat-modal.active {
+    display: flex;
+  }
+  
+  .chat-window {
+    background: white;
+    border-radius: 30px;
+    width: 90%;
+    max-width: 800px;
+    height: 80%;
+    max-height: 600px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: modalSlideIn 0.3s ease-out;
+    position: relative !important;
+    z-index: 9999 !important;
+  }
+  
+  @keyframes modalSlideIn {
+    from {
+      transform: scale(0.8) translateY(-50px);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+    }
+  }
+  
+  .chat-header {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 3px solid #FF8C00;
+  }
+  
+  .chat-header h2 {
+    margin: 0;
+    color: white;
+    font-size: 24px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  
+  .chat-close-btn {
+    background: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    color: #FF8C00;
+    font-weight: bold;
+  }
+  
+  .chat-close-btn:hover {
+    transform: rotate(90deg) scale(1.1);
+    background: #FFE4B5;
+  }
+  
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background: #FFF9E6;
+  }
+  
+  .chat-message {
+    display: flex;
+    margin-bottom: 15px;
+    animation: messageSlideIn 0.3s ease-out;
+  }
+  
+  @keyframes messageSlideIn {
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  
+  .chat-message.user {
+    flex-direction: row-reverse;
+    background: none !important;
+  }
+  
+  .chat-message-content {
+    max-width: 70%;
+    padding: 15px 20px;
+    border-radius: 20px;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  
+  .chat-message.ai .chat-message-content {
+    background: white;
+    border: 3px solid #FFD700;
+    color: #333;
+  }
+  
+  .chat-message.user .chat-message-content {
+    background: #FFD700 !important;
+    color: #333;
+    font-weight: bold;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  .chat-input-area {
+    padding: 20px;
+    background: white;
+    border-top: 3px solid #FFD700;
+    display: flex;
+    gap: 10px;
+  }
+  
+  .chat-input {
+    flex: 1;
+    padding: 15px 20px;
+    border: 3px solid #FFD700;
+    border-radius: 25px;
+    font-size: 16px;
+    outline: none;
+    transition: all 0.3s;
+  }
+  
+  .chat-input:focus {
+    border-color: #FFA500;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+  }
+  
+  .chat-send-btn {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    border: none;
+    padding: 15px 30px;
+    border-radius: 25px;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+  }
+  
+  .chat-send-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(255, 165, 0, 0.4);
+  }
+  
+  .chat-send-btn:active {
+    transform: scale(0.98);
+  }
+  
+  .chat-loading {
+    display: none;
+    text-align: center;
+    padding: 10px;
+    color: #666;
+  }
+  
+  .chat-loading.active {
+    display: block;
+  }
+
 </style>
 {% endblock %}
 

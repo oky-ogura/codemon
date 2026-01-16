@@ -1,97 +1,40 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<title>アルゴリズム作成</title>
+{% extends 'base.html' %}
+{% load static %}
+
+{% block background_frame %}
+<img src="{% static 'codemon/images/frames/bg_frame_purple.png' %}" 
+     alt="" 
+     class="bg-frame"
+     onerror="this.style.display='none';">
+{% endblock %}
+
+{% block title %}アルゴリズム作成 - Codemon{% endblock %}
+
+{% block extra_css %}
 <script src="https://unpkg.com/blockly/blockly.min.js"></script>
 <style>
-  /* ----- 上部ナビゲーション ----- */
-  :root {
-    --nav-height:56px;
-    --primary:#1976d2;
-    --bg:#f9f9f9;
-    --card:#ffffff;
-    --muted:#666;
+  /* スクロールを有効化 */
+  body {
+    overflow-y: auto !important;
+    height: auto !important;
   }
-  body{
-    margin:0;
-    font-family: "Yu Gothic","Hiragino Kaku Gothic ProN","Segoe UI",sans-serif;
-    background:var(--bg);
-    color:#222;
+
+  /* ナビゲーション表示状態の制御 */
+  .top-tabs {
+    display: block;
+    transition: opacity 0.3s ease;
   }
-  .top-nav {
-    box-sizing:border-box;
-    width:100%;
-    max-width:1180px;
-    height:var(--nav-height);
-    margin:12px auto;
-    display:flex;
-    align-items:center;
-    gap:12px;
-    padding:6px 12px;
-    background:linear-gradient(180deg,#fff,#fafafa);
-    border-radius:10px;
-    box-shadow:0 1px 3px rgba(0,0,0,0.06);
-    border:1px solid #e6e6e9;
-  }
-  .nav-brand{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    margin-right:12px;
-    padding-right:8px;
-    border-right:1px solid #eee;
-  }
-  .nav-brand .logo{
-    width:36px;
-    height:36px;
-    border-radius:6px;
-    background:var(--primary);
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    color:#fff;
-    font-weight:700;
-    font-size:18px;
-  }
-  .nav-brand .title{
-    font-size:15px;
-    color:#111;
-    font-weight:600;
-  }
-  .nav-tabs{
-    display:flex;
-    /* タブの間隔を均等にする */
-    justify-content: space-evenly;
-    align-items:center;
-    width:100%;
-  }
-  .nav-tab{
-    appearance:none;
-    border:0;
-    background:transparent;
-    padding:8px 12px;
-    border-radius:8px;
-    font-size:14px;
-    cursor:pointer;
-    color:var(--muted);
-    transition: all .12s ease;
-  }
-  .nav-tab:hover{
-    background:#f0f6ff;
-    color:var(--primary);
-    transform:translateY(-1px);
-  }
-  .nav-tab.active{
-    background:var(--primary);
-    color:#fff;
-    box-shadow:0 2px 6px rgba(25,118,210,0.18);
+
+  /* フィールドと重なった時にナビゲーションバーを非表示 */
+  .top-tabs.hidden {
+    opacity: 0;
+    pointer-events: none;
   }
 
   /* ----- ページレイアウト ----- */
   .page-wrap{
     max-width:1180px;
-    margin:0 auto 40px;
+    margin:100px auto 40px;
     padding:12px;
     box-sizing:border-box;
   }
@@ -161,20 +104,10 @@
     #blocklyDiv, #visual-area { width:100%; margin:6px 0; height:420px; }
   }
 </style>
-</head>
-<body>
-  <header class="top-nav" role="banner" aria-label="メインナビゲーション">
+{% endblock %}
 
-    <nav class="nav-tabs" role="navigation" aria-label="タブメニュー">
-      <button class="nav-tab" id="tab-system" aria-pressed="false" title="システム">システム</button>
-      <button class="nav-tab active" id="tab-algorithm" aria-pressed="true" title="プログラム">プログラム</button>
-      <button class="nav-tab" id="tab-progress" aria-pressed="false" title="チェックリスト">チェックリスト</button>
-      <button class="nav-tab" id="tab-account" aria-pressed="false" title="アカウント">アカウント</button>
-    </nav>
-  </header>
-
+{% block content %}
   <main class="page-wrap" role="main">
-    <h1>アルゴリズム作成</h1>
 
     <div class="shortcut-btns">
       <button id="undoBtn" title="もどす (Ctrl+Z)">←</button>
@@ -2011,6 +1944,120 @@ function runBlocks(){
 }
 
 visual.innerHTML = "ここに実行結果が表示されます";
+
+// 未保存の変更を追跡
+let isDirty = false;
+let initialContent = '';
+
+// 初期状態を保存
+(function saveInitialState(){
+  const slideArea = document.getElementById('slideArea');
+  if (slideArea) {
+    initialContent = slideArea.innerHTML;
+  }
+})();
+
+// 変更を検知する関数
+function markDirty() {
+  const slideArea = document.getElementById('slideArea');
+  if (slideArea && slideArea.innerHTML !== initialContent) {
+    isDirty = true;
+  }
+}
+
+// スライドエリアの変更を監視
+(function watchChanges(){
+  const slideArea = document.getElementById('slideArea');
+  if (!slideArea) return;
+  
+  // MutationObserverで変更を監視
+  const observer = new MutationObserver(function() {
+    markDirty();
+  });
+  
+  observer.observe(slideArea, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    characterData: true
+  });
+})();
+
+// ブラウザ閉じる/リロード時の警告
+window.addEventListener('beforeunload', function(e) {
+  if (!isDirty) return;
+  e.preventDefault();
+  e.returnValue = '';
+});
+
+// ナビゲーションタブクリック時の警告
+(function handleNavigation(){
+  const tabs = document.querySelectorAll('.top-tabs a[id^="tab-"]');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', function(e) {
+      // アルゴリズムタブ自身のクリックは許可
+      if (this.id === 'tab-algorithms') return;
+      
+      if (isDirty) {
+        e.preventDefault();
+        const confirmed = confirm('保存されていない変更があります。移動してもよろしいですか？');
+        if (confirmed) {
+          isDirty = false;
+          window.location.href = this.href;
+        }
+      }
+    });
+  });
+})();
+
+// 保存時にisDirtyをリセット
+const originalSaveBtn = document.getElementById('saveBtn');
+if (originalSaveBtn) {
+  originalSaveBtn.addEventListener('click', function() {
+    isDirty = false;
+  });
+}
+
+// ナビゲーションバーでアルゴリズムタブをアクティブに設定
+(function setActiveTab(){
+  const algorithmTab = document.getElementById('tab-algorithms');
+  if (algorithmTab) {
+    algorithmTab.classList.add('active');
+  }
+})();
+
+// ナビゲーションバーとフィールドの重なりを検出して非表示にする
+(function handleNavbarOverlap(){
+  const navbar = document.querySelector('.top-tabs');
+  const container = document.getElementById('container');
+  
+  if (!navbar || !container) return;
+  
+  function checkOverlap() {
+    const navbarRect = navbar.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    
+    // ナビゲーションバーとコンテナが重なっているかチェック
+    const isOverlapping = !(
+      navbarRect.bottom < containerRect.top ||
+      navbarRect.top > containerRect.bottom ||
+      navbarRect.right < containerRect.left ||
+      navbarRect.left > containerRect.right
+    );
+    
+    if (isOverlapping) {
+      navbar.classList.add('hidden');
+    } else {
+      navbar.classList.remove('hidden');
+    }
+  }
+  
+  // スクロール時とリサイズ時にチェック
+  window.addEventListener('scroll', checkOverlap);
+  window.addEventListener('resize', checkOverlap);
+  
+  // 初回チェック
+  checkOverlap();
+})();
 </script>
-</body>
-</html>
+{% endblock %}

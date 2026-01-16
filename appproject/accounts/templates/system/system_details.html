@@ -118,7 +118,36 @@
 <main>
     <h1>システム詳細</h1>
     <div class="card" role="region" aria-label="システム詳細内容">
-      <!-- ...existing code... -->
+      <!-- システム名・概要を表示するフォーム -->
+      <form class="system-form" aria-label="システム情報" onsubmit="return false;">
+        <div class="form-row">
+          <label for="system-name">システム名</label>
+          <input id="system-name" name="name" type="text" value="{{ system_name }}" disabled aria-disabled="true" />
+        </div>
+
+        <div class="form-row">
+          <label for="system-summary">システムの詳細</label>
+          <textarea id="system-summary" name="summary" rows="6" disabled aria-disabled="true">{{ system_description }}</textarea>
+        </div>
+
+        <div class="form-row">
+          <label for="created-at">作成日</label>
+          <input id="created-at" name="created_at" type="text" value="{{ created_at|date:'Y年n月j日 H:i' }}" disabled aria-disabled="true" />
+        </div>
+
+        <!-- 下部の操作ボタン（表示） -->
+        <div class="card-actions" role="group" aria-label="操作">
+          <button type="button" class="btn ghost" id="btn-back" title="一覧に戻る">
+            <img src="{% static 'codemon/images/buttons/back.png' %}" alt="戻る">
+          </button>
+          <button type="button" class="btn warn" id="btn-delete" title="削除">
+            <img src="{% static 'codemon/images/buttons/delete.png' %}" alt="削除">
+          </button>
+          <button type="button" class="btn primary" id="btn-edit" title="編集">
+            <img src="{% static 'codemon/images/buttons/edit.png' %}" alt="編集">
+          </button>
+        </div>
+      </form>
     </div>
 </main>
 
