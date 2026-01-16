@@ -13,195 +13,226 @@
 
 {% block extra_css %}
 <style>
-
-/* ===== フォーム全体 ===== */
-.checklist-form-container {
-  max-width: 760px;
-  width: min(92vw, 760px);
-  /* ナビゲーションタブの下に配置し、下部のボタン類と被らないよう余白を確保 */
-  margin: 120px auto !important;
-  padding: 28px 30px;
-  position: relative;
-  z-index: 20;
-  background-color: rgba(249,249,249,0.95);
-  border: 1px solid #ddd;
-  border-radius: 10px;
-}
-.checklist-form-container h2 {
-  text-align: center;
-  margin-bottom: 25px;
-}
-
-/* ページヘッダー用画像（フォーム上部の飾り） */
 .page-hero {
-  text-align: center;
-  margin-bottom: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-top: 150px;
 }
 .page-hero-img {
-  /* 幅をナビゲーション中段の「アルゴリズム」→「チェックリスト」区間に近づける */
-  width: min(26vw, 640px);
-  max-width: 640px;
+  width: 100%;
+  max-width: 300px;
   height: auto;
   display: block;
-  margin: 25px auto 22px; /* 中央に寄せつつ下の余白を広めに */
+  object-fit: contain;
 }
 
-/* ===== 入力フィールド ===== */
-.form-group {
-  margin-bottom: 20px;
-}
-label {
-  display: block;
-  margin-bottom: 6px;
-  font-weight: bold;
-}
-.required {
-  color: #dc3545;
-}
-input[type="text"],
-textarea {
-  width: 100%;
-  padding: 10px 18px;
-  border: none;
-  border-radius: 24px;
-  box-sizing: border-box;
-  background-color: #62d1ee; /* 青い入力ブロック */
-  color: #012; 
-  font-size: 1rem;
-}
-
-/* ===== メタ情報（作成日など） ===== */
 .meta-info {
-  background-color: #f1f3f5;
-  border-radius: 4px;
-  padding: 10px 15px;
-  margin: 20px 0;
-  font-size: 0.95em;
+  margin: 12px 0 4px;
   color: #555;
+  font-size: 14px;
 }
 
-/* ===== ボタンエリア ===== */
 .form-actions {
-  text-align: center;
-  margin-top: 25px;
+  margin-top: 18px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  overflow: visible;
+  z-index: 1000; /* selectionページのcenterコンテナ相当の前面化 */
 }
-.btn-back, .btn-save {
+.btn-back,
+.btn-create {
+  position: relative;
   display: inline-block;
-  padding: 10px 25px;
-  border-radius: 4px;
-  border: none;
-  text-decoration: none;
-  color: white;
-  cursor: pointer;
-  font-weight: bold;
-  background: none; /* 画像で表示するため背景を無効化 */
-  padding: 0; /* 画像サイズで調整 */
-}
-.btn-back {
-  background-color: #6c757d;
-  margin-right: 10px;
-}
-.btn-back:hover {
-  background-color: #5a6268;
-}
-.btn-save {
-  background-color: #28a745;
-}
-.btn-save:hover {
-  background-color: #218838;
-}
-/* 画像ボタン用 */
-.btn-back, .btn-save {
-  display: inline-block;
-  box-shadow: none !important;
-  overflow: hidden; /* 画像の外周を切り取るため */
-  border-radius: 8px; /* 角丸で馴染ませる */
   padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  overflow: visible;
+  z-index: 2;
+}
+
+.btn-back img {
+  width: var(--back-img-width, 100%);
+  max-width: var(--back-img-max-width, 220px);
+  height: var(--back-img-height, auto);
+  object-fit: var(--back-img-object-fit, contain);
+  border-radius: 999px;
+  box-shadow: none;
+  transition: transform .18s ease;
+  display: block;
+  position: var(--back-img-position, relative);
+  transform: translate(
+      var(--back-img-offset-x, var(--back-img-translate-x, -40px)),
+      var(--back-img-offset-y, var(--back-img-translate-y, -45px))
+    ) rotate(var(--back-img-rotate, 0deg)) scale(var(--back-img-scale, 1));
+}
+
+.btn-create img {
+  width: var(--create-img-width, 100%);
+  max-width: var(--create-img-max-width, 220px);
+  height: var(--create-img-height, auto);
+  object-fit: var(--create-img-object-fit, contain);
+  border-radius: 999px;
+  box-shadow: none;
+  transition: transform .18s ease;
+  display: block;
+  position: var(--create-img-position, relative);
+  transform: translate(
+      var(--create-img-offset-x, var(--create-img-translate-x, 40px)),
+      var(--create-img-offset-y, var(--create-img-translate-y, -45px))
+    ) rotate(var(--create-img-rotate, 0deg)) scale(var(--create-img-scale, 1));
+}
+
+/* 親フォームコンテナでもクリッピングを防止 */
+.checklist-form-container {
+  position: relative;
+  overflow: visible;
+}
+
+/* ===== フォーム行（name/desc）共通: 画像＋重ね配置 ===== */
+.form-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: min(92vw, 980px);
+  margin: 0 auto 16px;
+  min-height: var(--row-min-height, 220px);
+  overflow: visible;
+}
+
+.form-row .row-bg {
+  position: var(--row-img-position, absolute);
+  width: var(--row-img-width, 100%);
+  max-width: var(--row-img-max-width, 640px);
+  height: var(--row-img-height, auto);
+  object-fit: var(--row-img-object-fit, contain);
+  display: block;
+  top: var(--row-img-top, 50%);
+  left: var(--row-img-left, 50%);
+  transform: translate(
+    var(--row-img-offset-x, -50%),
+    var(--row-img-offset-y, -50%)
+  ) rotate(var(--row-img-rotate, 0deg)) scale(var(--row-img-scale, 1));
+  z-index: 0;
+}
+
+.form-row .form-content {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: var(--content-gap, 16px);
+  top: var(--content-top, 50%);
+  left: var(--content-left, 50%);
+  transform: translate(var(--content-offset-x, -50%), var(--content-offset-y, -50%));
+  z-index: 2;
+  width: var(--content-width, auto);
+}
+
+.form-row .field-label {
+  position: var(--label-position, relative);
+  top: var(--label-top, 0);
+  left: var(--label-left, 0);
+  transform: translate(var(--label-offset-x, 0), var(--label-offset-y, 0)) scaleX(var(--label-scaleX, 1)) scaleY(var(--label-scaleY, 1));
+  font-weight: var(--label-font-weight, 700);
+  font-size: var(--label-font-size, 18px);
+  color: var(--label-color, #151515);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.form-row .field-input {
+  position: var(--input-position, relative);
+  top: var(--input-top, 0);
+  left: var(--input-left, 0);
+  transform: translate(var(--input-offset-x, 0), var(--input-offset-y, 0));
+  width: var(--input-width, 420px);
+}
+
+.form-row .field-input input,
+.form-row .field-input textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
   background: transparent;
 }
 
-.btn-back img, .btn-save img {
-  display: block;
-  width: auto;
-  height: 56px;
-  max-width: 220px;
-  box-shadow: none !important;
-  filter: none !important;
-  border: none !important;
-  background: transparent !important;
-  /* 画像の外側6pxを切り取って縁取りを隠す（画像により調整可能） */
-  -webkit-clip-path: inset(6px 6px 6px 6px round 6px);
-  clip-path: inset(6px 6px 6px 6px round 6px);
+/* ===== name-row 個別調整用変数 ===== */
+.name-row {
+  --row-min-height: 80px;
+  --row-img-width: 100%;
+  --row-img-max-width: 510px;
+  --row-img-offset-x: -50%;
+  --row-img-offset-y: 30%;
+  --row-img-scale: 1;
+  
+  --content-top: 50%;
+  --content-left: 50%;
+  --content-offset-x: -50%;
+  --content-offset-y: -50%;
+  
+  --label-font-size: 18px;
+  --label-color: #151515;
+  --label-offset-x: 0;
+  --label-offset-y: 40px;
+  
+  --input-width: 250px;
+  --input-offset-x: 50px;
+  --input-offset-y: 40px;
+}
+
+/* ===== desc-row 個別調整用変数 ===== */
+.desc-row {
+  --row-min-height: 220px;
+  --row-img-width: 100%;
+  --row-img-max-width: 510px;
+  --row-img-offset-x: -50%;
+  --row-img-offset-y: -70%;
+  --row-img-scale: 1;
+  
+  --content-top: 50%;
+  --content-left: 50%;
+  --content-offset-x: -50%;
+  --content-offset-y: -50%;
+  
+  --label-font-size: 18px;
+  --label-color: #151515;
+  --label-offset-x: 0;
+  --label-offset-y: -20px;
+  
+  --input-width: 250px;
+  --input-offset-x: 40px;
+  --input-offset-y: -20px;
+}
+
+@media (max-width: 768px) {
+  .page-hero-img { max-width: 600px; }
+  .checklist-form-container form { max-width: 92vw; }
+  .btn-back img { width: var(--back-img-width-tablet, 200px); }
+  .btn-create img { width: var(--create-img-width-tablet, 200px); }
+  .form-row.name-row, .form-row.desc-row { --row-min-height: 200px; }
 }
 
 @media (max-width: 480px) {
-  .btn-back img, .btn-save img { height: 44px; }
+  .page-hero { padding-top: 24px; }
+  .btn-back img { width: var(--back-img-width-mobile, 180px); }
+  .btn-create img { width: var(--create-img-width-mobile, 180px); }
 }
-
-/* ページ固有：ナビゲーションの高さ分だけコンテンツを下げる（固定ヘッダと重ならないように） */
-.content-wrapper {
-  padding-top: 140px !important;
-}
-
-/* 背景画像（フォーム右側の飾り） */
-.checklist-form-container {
-  background-image: url("{% static 'codemon/images/background/checklist_bule_bg.png' %}");
-  background-repeat: no-repeat;
-  background-position: right center;
-  background-size: 48% auto;
-}
-
-/* ラベルと入力を横並びにして、ラベルは左、入力は右の青いボックスにする */
-.form-row {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  margin-bottom: 18px;
-  max-width: 640px; /* 行幅を抑えて中央寄せ */
-  margin-left: auto;
-  margin-right: auto;
-  /* 白い背景画像を行全体に適用。背景色とブレンドして薄い灰色を付与 */
-  /* 不透明度を上げて背後の図形が見えないようにする */
-  background-image: linear-gradient(rgba(245,245,245,1), rgba(245,245,245,1)), url("{% static 'codemon/images/background/checklist_white_bg.png' %}");
-  background-repeat: no-repeat;
-  background-position: center center;
-  background-size: 100% 100%;
-  background-blend-mode: multiply;
-  padding: 10px 18px; /* 画像内の余白と整合させる */
-}
-.form-row label {
-  width: 160px;
-  text-align: left;
-  flex-shrink: 0;
-}
-.form-row .field-input {
-  flex: 1;
-  max-width: 520px;
-}
-
-/* テキストエリアを青いカード風に */
-textarea { min-height: 84px; padding: 14px 18px; }
-
-@media (max-width: 768px) {
-  .checklist-form-container { background-size: 60% auto; padding: 20px; }
-  .form-row { flex-direction: column; align-items: stretch; }
-  .form-row label { width: 100%; margin-bottom: 8px; }
-}
-
 </style>
-
+<style>
+/* selection.html との差分吸収: コンテンツラッパのクリッピングを解除 */
+.content-wrapper { overflow: visible !important; }
+</style>
 {% endblock %}
 
 {% block content %}
-
-<!-- 🔹 メッセージ表示 -->
-{% if messages %}
-  <ul class="messages">
-    {% for message in messages %}
-      <li>{{ message }}</li>
-    {% endfor %}
-  </ul>
-{% endif %}
 
 <!-- 🔹 フォーム本体 -->
 <!-- ページヘッダー画像：フォームの上に表示 -->
@@ -214,17 +245,23 @@ textarea { min-height: 84px; padding: 14px 18px; }
   <form method="post" id="checklist-form">
     {% csrf_token %}
 
-    <div class="form-row form-group">
-      <label for="name">チェックリスト名 <span class="required">*</span></label>
-      <div class="field-input">
-        <input type="text" name="name" id="name" required placeholder="例：第1回課題進捗チェック">
+    <div class="form-row form-group name-row">
+      <img class="row-bg" src="{% static 'codemon/images/backgrounds/checklist_create_bg1.png' %}" alt="">
+      <div class="form-content">
+        <label for="name" class="field-label">チェックリスト名 <span class="required"></span></label>
+        <div class="field-input">
+          <input type="text" name="name" id="name" required placeholder="例：第1回課題進捗チェック">
+        </div>
       </div>
     </div>
 
-    <div class="form-row form-group">
-      <label for="description">チェックリスト概要</label>
-      <div class="field-input">
-        <textarea name="description" id="description" rows="3" placeholder="チェックリストの目的や概要を入力してください。"></textarea>
+    <div class="form-row form-group desc-row">
+      <img class="row-bg" src="{% static 'codemon/images/backgrounds/checklist_create_bg2.png' %}" alt="">
+      <div class="form-content">
+        <label for="description" class="field-label">チェックリスト概要</label>
+        <div class="field-input">
+          <textarea name="description" id="description" rows="3" placeholder="チェックリストの目的や概要を入力してください。"></textarea>
+        </div>
       </div>
     </div>
 
@@ -237,10 +274,10 @@ textarea { min-height: 84px; padding: 14px 18px; }
 
     <div class="form-actions">
       <a href="{% url 'codemon:checklist_selection' %}" class="btn-back" aria-label="戻る">
-        <img src="{% static 'codemon/images/buttons/back.png' %}" alt="戻る">
+        <img src="{% static 'codemon/images/buttons/back.png' %}" alt="">
       </a>
-      <button type="submit" class="btn-save" aria-label="作成">
-        <img src="{% static 'codemon/images/buttons/create.png' %}" alt="作成">
+      <button type="submit" class="btn-create" aria-label="作成">
+        <img src="{% static 'codemon/images/buttons/create.png' %}" alt="">
       </button>
     </div>
   </form>
