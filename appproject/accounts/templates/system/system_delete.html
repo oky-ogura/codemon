@@ -66,36 +66,14 @@
 {% endblock %}
 
 {% block content %}
+{% include 'partials/navigation.html' %}
   <div class="card" role="region" aria-label="削除確認内容">
       <div class="warning-box">
         <p>以下のシステムを削除しようとしています。</p>
         <p><strong>この操作は取り消すことができません。</strong></p>
       </div>
-
-      <form method="post" class="delete-form" aria-label="削除するシステム情報">
-        {% csrf_token %}
-        
-        <div class="form-row">
-          <label for="system-name">システム名</label>
-          <input id="system-name" name="name" type="text" value="{{ system_name }}" disabled aria-disabled="true" />
-        </div>
-
-        <div class="form-row">
-          <label for="system-summary">システムの詳細</label>
-          <textarea id="system-summary" name="summary" rows="6" disabled aria-disabled="true">{{ system_description }}</textarea>
-        </div>
-
-        <div class="form-row">
-          <label for="created-at">作成日時</label>
-          <input id="created-at" name="created_at" type="text" value="{{ created_at|date:'Y年n月j日 H:i' }}" disabled aria-disabled="true" />
-        </div>
-
-        <div class="card-actions" role="group" aria-label="操作">
-          <button type="button" class="btn ghost" id="btn-cancel" title="キャンセル">キャンセル</button>
-          <button type="submit" class="btn danger" title="削除を実行">削除する</button>
-        </div>
-      </form>
-    </div>
+      <!-- ...existing code... -->
+  </div>
 {% endblock %}
 
 {% block extra_js %}

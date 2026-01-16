@@ -102,6 +102,13 @@
     const character = document.querySelector('.character-image');
     if (!character) return;
 
+    // character_widget.html で独自のセリフ処理を行っている場合はスキップ
+    const widget = document.getElementById('characterWidget');
+    if (widget) {
+      // character_widget.html が処理するので、ここでは何もしない
+      return;
+    }
+
     // キャラクターをクリックしたときの反応
     character.style.cursor = 'pointer';
     character.style.pointerEvents = 'auto';
@@ -130,6 +137,13 @@
   function initSpeechBubbleEffects() {
     const bubble = document.querySelector('.speech-bubble');
     if (!bubble) return;
+
+    // character_widget.html で独自の処理を行っている場合はスキップ
+    const widget = document.getElementById('characterWidget');
+    if (widget) {
+      // character_widget.html が処理するので、ここでは何もしない
+      return;
+    }
 
     // 吹き出しをクリックすると新しいメッセージ
     bubble.style.cursor = 'pointer';

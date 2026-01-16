@@ -15,10 +15,8 @@
   /* Blocklyは外部スクリプトとして読み込む */
   :root { --nav-height:56px; --primary:#1976d2; --bg:#f9f9fb; --muted:#666; }
 
-  /* ナビゲーション表示状態の制御 */
-  .top-tabs {
-    display: block; /* 常に表示 */
-  }
+  /* ナビゲーション表示状態の制御（共通テンプレートで管理） */
+  /* .top-tabs { display: block; } は不要 */
 
   /* コンテンツ全体の配置 */
   .content-wrapper {
@@ -679,53 +677,12 @@
 {% endblock %}
 
 {% block content %}
+{% include 'partials/navigation.html' %}
 <div class="content-wrapper">
-  <!-- 左側のボタンバー（縦並び） -->
+  <!-- ...existing code... -->
   <div class="button-bar">
-    <!-- 矢印ボタン（元に戻す・やり直し） -->
-    <div class="undo-redo-btns">
-      <button id="undoBtn" title="元に戻す (Ctrl+Z)">←</button>
-      <button id="redoBtn" title="やり直し (Ctrl+Y)">→</button>
-    </div>
-
-    <!-- 実行、保存ボタン -->
-    <button id="executeBtn" aria-disabled="false">
-      <img src="{% static 'codemon/images/button/execution_button.png' %}" alt="実行">
-    </button>
-    <button id="saveBtn" aria-disabled="false">
-      <img src="{% static 'codemon/images/button/save_button.png' %}" alt="保存">
-    </button>
-
-    <!-- フォームボタン + プルダウン -->
-    <div class="form-dropdown" id="formDropdownWrap">
-      <button id="formBtn" aria-haspopup="true" aria-expanded="false">フォーム ▾</button>
-      <div class="dropdown-menu" id="formDropdown" role="menu" aria-hidden="true">
-        <button id="addTextBtn" role="menuitem">あいう</button>
-        <button id="addNumberBtn" role="menuitem">123</button>
-        <button id="addCheckboxBtn" role="menuitem">チェックボックス</button>
-        <button id="addRadioBtn" role="menuitem">ラジオボタン</button>
-      </div>
-
-      <!-- チェックボックス/ラジオ作成パネル（共通） -->
-      <div class="create-options-panel" id="createOptionsPanel" role="dialog" aria-hidden="true">
-        <label for="optionsCount">項目の数</label>
-        <div>
-          <input id="optionsCount" type="number" min="1" max="10" value="3" />
-          <span style="color:#666;font-size:13px;">個</span>
-        </div>
-        <div class="panel-actions">
-          <button id="createOptionsCancel">キャンセル</button>
-          <button id="createOptionsConfirm">作成</button>
-        </div>
-      </div>
-    </div>
-
-    <button id="addDatetimeBtn">日時</button>
-    <button id="addTimerBtn">タイマー</button>
-    <button id="addButtonBtn">ボタン追加</button>
+    <!-- ...existing code... -->
   </div>
-
-  <!-- 右側のメインエリア -->
   <div class="main-area">
     <div id="slideArea">
       <div id="trash" title="ここにドラッグで削除">🗑️</div>

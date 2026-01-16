@@ -2,226 +2,325 @@
 <html lang="ja">
 <head>
     {% load static %}
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>AI外見設定</title>
     <style>
-        body{
-            margin:0;
-            font-family:Meiryo, 'Hiragino Kaku Gothic ProN',sans-serif;
+        @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@800;900&display=swap');
 
-/* ---------------------------------------------------- /
-/ 競合修正後の統合されたスタイル /
-/ ---------------------------------------------------- */
-
-/* body: 背景設定とFlexboxによる画面中央寄せを統合 /
-body{
-/ mainのショートハンドとbackground-size:coverを採用し、f5f5f5を背景色として採用 */
-background:#f5f5f5 url("{% static 'accounts/background.png' %}") no-repeat center center fixed;
-background-size:cover;
-
-/* accountsのレイアウト（全画面表示と中央寄せ）を採用 */
-min-height:100vh;
-display:flex;
-align-items:center;
-justify-content:center;
-padding:20px;
-box-sizing:border-box;
-
-
-}
-
-/* .wrap: max-width、マージン、パディング、角丸を統合 /
-.wrap{
-max-width:980px; / mainを採用 /
-width:95%;
-margin:20px auto; / mainを採用 /
-padding:50px 60px; / accountsを採用 /
-border:none;
-background:transparent;
-border-radius:12px; / mainを採用 */
-box-shadow:none;
-}
-
-/* h1: タイトルスタイルを統合 /
-h1{
-text-align:center;
-margin-top:0;
-margin-bottom:30px; / accountsを採用 */
-font-size:28px;
-font-weight:bold;
-}
-
-/* .canvas: 高さ300pxを採用 /
-.canvas{
-position:relative;
-height:300px; / mainを採用 */
-display:flex;
-align-items:center;
-justify-content:center;
-margin-bottom:20px;
-}
-
-/* 画像周りの四角（枠）を消すために border を無効化し、img に合わせて表示する */
-.illustration{
-width:250px;
-height:250px;
-display:block;
-margin:0 auto;
-border:none;
-background:transparent;
-border-radius:0;
-object-fit:contain;
-}
-.nav-left,.nav-right{
-position:absolute;
-left:40px;
-top:50%;
-transform:translateY(-50%);
-cursor:pointer;
-transition:opacity 0.2s;
-}
-        .illustration{
-            width:250px;
-            height:250px;
-            display:block;
-            margin:0 auto;
-            border:none;
-            background:transparent;
-            border-radius:0;
-            object-fit:contain;
-        }
-        .nav-left,.nav-right{
-            position:absolute;
-            left:40px;
-            top:50%;
-            transform:translateY(-50%);
-            cursor:pointer;
-            transition:opacity 0.2s;
-        }
-        .nav-left:hover,.nav-right:hover{
-            opacity:0.7;
-        }
-        .nav-right{
-            left:auto;
-            right:40px;
-        }
-        .nav-button{
-            width:0;
-            height:0;
-            border:none;
-            background:transparent;
-            font-size:0;
-        }
-        .nav-left .nav-button{
-            border-top:30px solid transparent;
-            border-bottom:30px solid transparent;
-            border-right:40px solid #FFC857;
-        }
-        .nav-right .nav-button{
-            border-top:30px solid transparent;
-            border-bottom:30px solid transparent;
-            border-left:40px solid #FFC857;
-        }
-        .controls{
-            display:flex;
-            justify-content:space-between;
-            padding:0 40px;
-            margin-top:35px;
-        }
-        .btn{
-            font-size:1rem;
-            color:#000000;
-            text-transform:uppercase;
-            padding:5px 10px;
-            border-radius:10px;
-            border-top:2px solid #ff8c00;
-            border-left:2px solid #ff8c00;
-            border-right:2px solid #fafafa;
-            border-bottom:2px solid #fafafa;
-            background:#ffffff;
-            box-shadow:5px 5px 0 #00bfff;
-            cursor:pointer;
-            transition:transform 0.1s;
-        }
-        .btn:hover{
-            transform:translate(2px, 2px);
-            box-shadow:3px 3px 0 #00bfff;
-        }
-        .btn:active{
-            transform:translate(5px, 5px);
-            box-shadow:0 0 0 #00bfff;
+        :root {
+            --theme-base: #ff99cc;
+            --theme-light: #ffcce6;
+            --theme-deep: #a30052;
+            --theme-shadow: #e68ab8;
         }
 
-        .nav-left,.nav-right{position:absolute;left:25%;top:50%;transform:translateY(-50%);cursor:pointer;transition:opacity 0.3s;width:80px;height:80px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
-        .nav-right{left:auto;right:25%}
-        .nav-left:hover,.nav-right:hover{opacity:0.7}
-        .nav-left .nav-button{
-            border-top:20px solid transparent;
-            border-bottom:20px solid transparent;
-            border-right:30px solid #FFC857;
-            margin-right:5px;
+        body {
+            margin: 0; padding: 0;
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            overflow: hidden;
+            height: 100vh; width: 100vw;
+            background: #fdfdfd;
         }
-        .nav-right .nav-button{
-            border-top:20px solid transparent;
-            border-bottom:20px solid transparent;
-            border-left:30px solid #FFC857;
-            margin-left:5px;
-        }
-        .controls{display:flex;justify-content:space-between;padding:10px 0}
-        .btn{padding:12px 40px;border-radius:8px;border:none;cursor:pointer;font-size:16px;font-weight:bold;transition:all 0.3s}
-        .btn.primary{background:#5dade2;color:#fff}
-        .btn.primary:hover{background:#3498db}
-        .btn.secondary{background:#f8f9fa;color:#333;border:2px solid #ddd}
-        .btn.secondary:hover{background:#e9ecef}
 
+        #main-bg {
+            position: absolute; inset: 0;
+            background: #eee url('{% static "codemon/images/backgrounds/bg_common.png" %}') center/cover;
+            z-index: -3;
+        }
+
+        .color-overlay {
+            position: absolute; inset: 0;
+            background-color: var(--theme-base);
+            opacity: 0.15;
+            background-image: radial-gradient(var(--theme-deep) 2px, transparent 2px);
+            background-size: 40px 40px;
+            transition: all 0.8s ease;
+            z-index: -2;
+            animation: bgScroll 20s linear infinite;
+        }
+        @keyframes bgScroll {
+            from { background-position: 0 0; }
+            to { background-position: 40px 40px; }
+        }
+
+        .container {
+            display: flex; width: 100%; height: 100%;
+            align-items: center; justify-content: center;
+            gap: 60px; z-index: 1; position: relative;
+        }
+
+        /* --- セレクターエリアのデザイン --- */
+        .selector-wrapper { 
+            position: relative; 
+            width: 500px; height: 500px; 
+            flex-shrink: 0; 
+        }
+
+        .selector-area { 
+            position: absolute; 
+            top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); 
+            width: 400px; height: 400px; 
+        }
+
+        /* 背景：外側のドットリング（右回転） */
+        .selector-area::before {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 420px; height: 420px;
+            border: 10px dotted var(--theme-base);
+            border-radius: 50%;
+            opacity: 0.4;
+            z-index: -1;
+            animation: rotateRight 50s linear infinite;
+        }
+
+        /* 背景：内側のドットリング（左回転） */
+        .selector-area::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 320px; height: 320px;
+            border: 6px dotted var(--theme-base);
+            border-radius: 50%;
+            opacity: 0.2;
+            z-index: -1;
+            animation: rotateLeft 30s linear infinite;
+        }
+
+        @keyframes rotateRight {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        @keyframes rotateLeft {
+            from { transform: translate(-50%, -50%) rotate(360deg); }
+            to { transform: translate(-50%, -50%) rotate(0deg); }
+        }
+        
+        /* キャライコン：柔らかい色の太枠 */
+        .char-icon {
+            position: absolute; width: 95px; height: 95px; border-radius: 50%;
+            background: white; 
+            border: 6px solid var(--theme-light); 
+            cursor: pointer;
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.05); 
+            transform: translate(-50%, -50%);
+        }
+
+        .char-icon.active {
+            border-color: var(--theme-base) !important;
+            transform: translate(-50%, -50%) scale(1.3);
+            z-index: 10;
+            box-shadow: 0 15px 30px var(--theme-shadow);
+        }
+        .char-icon img { width: 80%; height: 80%; object-fit: contain; }
+
+        /* カードとボタン：柔らかいポップデザイン */
+        .detail-card {
+            width: 420px; padding: 45px; border-radius: 60px;
+            background: rgba(255, 255, 255, 0.98);
+            border: 12px solid var(--theme-light);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.08);
+            text-align: center; transition: all 0.5s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.5); }
+            70% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .pop-ani { animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #bigCharImg { width: 180px; height: 180px; object-fit: contain; }
+
+        .char-name {
+            font-size: 54px; font-weight: 900;
+            color: var(--theme-deep) !important;
+            margin: 15px 0;
+            letter-spacing: 0.05em;
+            text-shadow: 4px 4px 0 #fff, -4px -4px 0 #fff;
+        }
+
+        .char-desc { font-size: 19px; color: var(--theme-deep); opacity: 0.85; margin-bottom: 35px; font-weight: 800; }
+
+        .btn-decide {
+            background: linear-gradient(135deg, var(--theme-light) 0%, var(--theme-base) 100%);
+            color: white;
+            border: none; padding: 24px 30px; border-radius: 100px;
+            font-size: 30px; font-weight: 900; cursor: pointer;
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 0 var(--theme-shadow);
+            width: 100%; display: flex; align-items: center; justify-content: center;
+        }
+        .btn-decide:hover { transform: translateY(-5px); box-shadow: 0 15px 0 var(--theme-shadow); }
+        .btn-decide:active { transform: translateY(8px); box-shadow: 0 2px 0 var(--theme-shadow); }
+
+        /* カーテン設定 */
+        #transition-curtain {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 10000;
+            display: flex; pointer-events: none;
+        }
+
+        .curtain-panel {
+            flex: 1; height: 100%;
+            transform: translateY(100%);
+            transition: transform 0.6s cubic-bezier(0.45, 0, 0.55, 1);
+            opacity: 1 !important;
+        }
+
+        .panel-1 { transition-delay: 0.0s; }
+        .panel-2 { transition-delay: 0.1s; }
+        .panel-3 { transition-delay: 0.2s; background-color: #ffffff; }
+        .panel-4 { transition-delay: 0.3s; }
+        .panel-5 { transition-delay: 0.4s; }
+
+        #transition-curtain.active .curtain-panel {
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body>
-    <div class="wrap">
-        <h1>CodeMonの見た目を決めよう！</h1>
-        <div class="canvas">
-            <div class="nav-left" id="prev"><div class="nav-button">◀</div></div>
-            <!-- 画像表示用に div を img に変更 -->
-            <img class="illustration" id="illustration" src="" alt="AIのイラスト（大きく）">
-            <div class="nav-right" id="next"><div class="nav-button">▶</div></div>
-        </div>
 
-        <form method="post" id="aiForm">
-            {% csrf_token %}
-            <input type="hidden" name="appearance" id="appearanceInput" value="triangle">
-            <div class="controls">
-                <button type="button" class="btn" id="backBtn">戻る</button>
-                <button type="submit" class="btn" id="decideBtn">決定</button>
+<div id="main-bg"></div>
+<div class="color-overlay" id="overlay"></div>
+
+<div id="transition-curtain">
+    <div class="curtain-panel panel-1"></div>
+    <div class="curtain-panel panel-2"></div>
+    <div class="curtain-panel panel-3"></div>
+    <div class="curtain-panel panel-4"></div>
+    <div class="curtain-panel panel-5"></div>
+</div>
+
+<div class="container">
+    <div class="selector-wrapper">
+        <div class="selector-area" id="iconContainer">
             </div>
-        </form>
     </div>
 
-    <script>
-        // baseStatic は static/codemon/images/characters/ への URL
-        const baseStatic = "{% static 'codemon/images/characters/' %}";
-        const appearances = {{ appearances|safe }};
-        let idx = 0;
-        const illustration = document.getElementById('illustration');
-        const appearanceInput = document.getElementById('appearanceInput');
+    <div class="detail-card">
+        <div style="margin-bottom:20px; height:180px; display:flex; align-items:center; justify-content:center;">
+            <img id="bigCharImg" src="" alt="キャラ画像">
+        </div>
+        <h2 class="char-name" id="charName"></h2>
+        <p class="char-desc" id="charDesc"></p>
+        
+        <form method="post" id="aiForm" style="width: 100%;">
+            {% csrf_token %}
+            <input type="hidden" name="appearance" id="appearanceInput" value="">
+            <button type="button" class="btn-decide" onclick="submitWithTransition()">キミに きめた！</button>
+        </form>
+    </div>
+</div>
 
-        function render(){
-            const filename = appearances[idx];
-            appearanceInput.value = filename;
-            if(filename){
-                // 日本語ファイル名にも対応するため encodeURIComponent を使用
-                illustration.src = baseStatic + encodeURIComponent(filename);
-                illustration.alt = filename;
-            } else {
-                illustration.removeAttribute('src');
-                illustration.alt = 'AIのイラスト（大きく）';
-            }
-        }
+<script>
+    const appearances = {{ appearances|safe }};
+    const charDescriptions = {
+        'イヌ.png': '元気いっぱい！あきらめない心。',
+        'ウサギ.png': 'ぴょんぴょんはねるのがだいすき！',
+        'キツネ.png': 'ずこうが得意なおしゃれさん。',
+        'ネコ.png': 'さんすうが得意な女の子。',
+        'パンダ.png': '力もちでやさしいリーダー。',
+        'フクロウ.png': 'よるの森のものしり博士。',
+        'リス.png': 'ひらめき天才のアイデアマン。',
+        'アルパカ.png': 'ふわふわで癒し系の人気者。'
+    };
 
-        document.getElementById('prev').addEventListener('click',()=>{ idx = (idx-1+appearances.length)%appearances.length; render(); });
-        document.getElementById('next').addEventListener('click',()=>{ idx = (idx+1)%appearances.length; render(); });
-        document.getElementById('backBtn').addEventListener('click',()=>{ window.history.back(); });
-        render();
-    </script>
+    const colorMap = {
+        'イヌ.png': '#FFD700', 'ウサギ.png': '#FFB6C1', 'キツネ.png': '#E5A020',
+        'ネコ.png': '#4DB6AC', 'パンダ.png': '#E0E0E0', 'フクロウ.png': '#92B7D6',
+        'リス.png': '#FEB6AC', 'アルパカ.png': '#E5D580'
+    };
+
+    function generateDeepColor(hex) {
+        if(hex === '#E0E0E0') return '#5D5D5D'; 
+        if(hex === '#FFD700') return '#8B6508';
+        if(hex === '#FFB6C1') return '#a30052';
+        let r = parseInt(hex.slice(1, 3), 16);
+        let g = parseInt(hex.slice(3, 5), 16);
+        let b = parseInt(hex.slice(5, 7), 16);
+        const max = Math.max(r, g, b);
+        const factor = 0.45;
+        r = Math.floor(r === max ? r * 0.6 : r * factor);
+        g = Math.floor(g === max ? g * 0.6 : g * factor);
+        b = Math.floor(b === max ? b * 0.6 : b * factor);
+        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    }
+
+    const baseStatic = "{% static 'codemon/images/characters/' %}";
+    const iconContainer = document.getElementById('iconContainer');
+    let selectedIdx = 0;
+
+    appearances.forEach((filename, i) => {
+        const btn = document.createElement('div');
+        btn.className = 'char-icon' + (i === 0 ? ' active' : '');
+        const img = document.createElement('img');
+        img.src = baseStatic + encodeURIComponent(filename);
+        btn.appendChild(img);
+        const radius = 200; 
+        const angle = (i * 360 / appearances.length - 90) * (Math.PI / 180);
+        btn.style.left = (200 + radius * Math.cos(angle)) + 'px';
+        btn.style.top = (200 + radius * Math.sin(angle)) + 'px';
+        btn.onclick = () => {
+            document.querySelectorAll('.char-icon').forEach(el => el.classList.remove('active'));
+            btn.classList.add('active');
+            selectedIdx = i;
+            updateDetail();
+        };
+        iconContainer.appendChild(btn);
+    });
+
+    function updateDetail() {
+        const filename = appearances[selectedIdx];
+        const themeBase = colorMap[filename] || '#ff99cc';
+        const themeDeep = generateDeepColor(themeBase);
+
+        const root = document.documentElement;
+        root.style.setProperty('--theme-base', themeBase);
+        root.style.setProperty('--theme-light', themeBase + '99');
+        root.style.setProperty('--theme-deep', themeDeep);
+        root.style.setProperty('--theme-shadow', themeDeep + '44');
+
+        const bigImg = document.getElementById('bigCharImg');
+        bigImg.src = baseStatic + encodeURIComponent(filename);
+        bigImg.classList.remove('pop-ani');
+        void bigImg.offsetWidth; 
+        bigImg.classList.add('pop-ani');
+
+        document.getElementById('charName').innerText = filename.replace('.png', '');
+        document.getElementById('charDesc').innerText = charDescriptions[filename] || '';
+        document.getElementById('appearanceInput').value = filename;
+    }
+
+    function submitWithTransition() {
+        const curtain = document.getElementById('transition-curtain');
+        const filename = appearances[selectedIdx];
+        const themeBase = colorMap[filename] || '#ff99cc';
+        const themeDeep = generateDeepColor(themeBase);
+
+        const panels = curtain.querySelectorAll('.curtain-panel');
+        panels[0].style.backgroundColor = themeDeep;
+        panels[1].style.backgroundColor = themeBase;
+        panels[3].style.backgroundColor = themeBase;
+        panels[4].style.backgroundColor = themeDeep;
+
+        curtain.classList.add('active');
+
+        setTimeout(() => {
+            document.getElementById('aiForm').submit();
+        }, 700); 
+    }
+
+    updateDetail();
+</script>
 </body>
 </html>

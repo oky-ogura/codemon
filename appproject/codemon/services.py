@@ -4,6 +4,9 @@ from typing import List, Tuple, Dict, Any
 from django.conf import settings
 import google.generativeai as genai
 
+# 新AIエンジン（YAMLベース）をインポート
+from .ai_engine import get_ai_engine
+
 # 全キャラ共通のルール（自動的に全てのキャラクターに適用される）
 COMMON_RULES = [
     "自己説明は客観ラベルより体験＋感情（『昨日できなかったことができた』『練習して少し慣れた』など具体的な体験を語る）",
@@ -225,6 +228,18 @@ def build_system_instruction(character_id: str) -> str:
     return prompt.strip()
 
 def chat_gemini(user_text: str, history_pairs: List[Tuple[str, str]], character_id: str = "usagi") -> str:
+    """
+    AIチャットを実行
+    - YAMLで定義されているキャラクター → 新AIエンジン（階層化プロンプト + tenacityリトライ）
+    - それ以外 → 従来のロジック（CHARACTER_PROFILES使用）
+    """
+    # 新AIエンジンでYAML定義キャラクターをチェック
+    ai_engine = get_ai_engine()
+    if ai_engine.is_yaml_character(character_id):
+        # YAML定義キャラクターは新エンジンを使用
+        return ai_engine.chat(user_text, history_pairs, character_id)
+    
+    # 以下は従来のロジック（YAML未定義キャラクター用）
     # Prefer settings.AI_API_KEY (project-wide). Fallback to legacy GEMINI_API_KEY env var.
     api_key = getattr(settings, 'AI_API_KEY', '') or os.getenv('GEMINI_API_KEY', '')
     if not api_key:
@@ -233,7 +248,7 @@ def chat_gemini(user_text: str, history_pairs: List[Tuple[str, str]], character_
     genai.configure(api_key=api_key)
 
     # Prefer settings.AI_MODEL, then GEMINI_MODEL env var, then default Gemini model
-    model_name = getattr(settings, 'AI_MODEL', '') or os.getenv('GEMINI_MODEL', 'gemini-2.0-flash')
+    model_name = getattr(settings, 'AI_MODEL', '') or os.getenv('GEMINI_MODEL', 'gemini-3-flash-preview')
 
     generation_config = {
         "temperature": 0.7,

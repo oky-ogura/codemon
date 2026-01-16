@@ -116,45 +116,10 @@
 {% endblock %}
 
 {% block content %}
+{% include 'partials/navigation.html' %}
   <main>
     <div class="list-card" role="region" aria-label="システム一覧">
-      <!-- ページネーション（上部） -->
-      <div class="pagination" id="topPagination">
-        <button class="pagination-btn" id="prevBtn" disabled>← 前へ</button>
-        <span class="pagination-info" id="pageInfo">1 / 1</span>
-        <button class="pagination-btn" id="nextBtn" disabled>次へ →</button>
-      </div>
-
-      <div id="systemsContainer">
-        {% if systems %}
-        <div class="system-list">
-          <ul id="systemsList" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:3px;">
-            {% for s in systems %}
-            <li data-id="{{ s.system_id }}" style="border-radius:8px;padding:12px 14px;display:flex;align-items:center;gap:16px;">
-              <div style="flex:1;min-width:0;font-weight:700;font-size:15px;color:#0b2f5a;">{{ s.system_name }}</div>
-              <div style="flex:1;min-width:0;color:#666;font-size:13px;">作成日: {{ s.created_at|date:"Y年n月j日 H:i" }}</div>
-              {% if s.created_at != s.updated_at %}
-              <div style="flex:1;min-width:0;color:#666;font-size:13px;">更新日: {{ s.updated_at|date:"Y年n月j日 H:i" }}</div>
-              {% else %}
-              <div style="flex:1;min-width:0;color:#666;font-size:13px;"></div>
-              {% endif %}
-              <button class="system-detail-btn" data-system-id="{{ s.system_id }}">詳細</button>
-            </li>
-            {% endfor %}
-          </ul>
-        </div>
-        {% else %}
-        <div class="list-empty">
-          作成済みのシステムはまだありません。<br />
-          「新しいシステムを作成」ボタンで作成を開始できます。
-        </div>
-        {% endif %}
-      </div>
-
-      <div class="actions" aria-hidden="false">
-        <button class="btn btn-primary" id="btn-new">新しいシステムを作成</button>
-        <button class="btn btn-ghost" id="btn-back">戻る</button>
-      </div>
+      <!-- ...existing code... -->
     </div>
   </main>
 
