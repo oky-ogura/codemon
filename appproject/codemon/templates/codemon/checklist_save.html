@@ -49,7 +49,10 @@
   height: auto;
   display: block;
   object-fit: contain;
-  transform: translate(var(--hero-offset-x), var(--hero-offset-y)) scale(var(--hero-scale));
+  position: absolute;
+  left: 0;
+  top: 120px;
+  transform: scale(var(--hero-scale));
 }
 
 /* フォームラッパー */
@@ -79,8 +82,8 @@ form.checklist-form {
 /* 背景画像 */
 .checklist-name img.bg {
   position: absolute;
-  left: 0;
-  top: 0;
+  left: -90px;
+  top: 150px;
   width: var(--name-bg-width, 100%);
   max-width: var(--name-bg-max-width, 270px);
   height: var(--name-bg-height, auto);
@@ -88,14 +91,14 @@ form.checklist-form {
   display: block;
   object-fit: var(--name-bg-object-fit, contain);
   z-index: 1;
-  transform: translate(var(--name-bg-x, -90px), var(--name-bg-y, 110px)) scale(var(--name-bg-scale, 1));
+  transform: scale(var(--name-bg-scale, 1));
 }
 
 /* タイトル */
 .checklist-name .section-title {
   position: absolute;
-  left: 0;
-  top: 0;
+  left: -50px;
+  top: 160px;
   width: var(--name-title-width, auto);
   max-width: var(--name-title-max-width, none);
   height: var(--name-title-height, auto);
@@ -108,20 +111,20 @@ form.checklist-form {
   letter-spacing: var(--name-title-spacing, 0);
   overflow: hidden;
   text-overflow: ellipsis;
-  transform: translate(var(--name-title-x, -50px), var(--name-title-y, 120px)) scale(var(--name-title-scale, 1));
+  transform: scale(var(--name-title-scale, 1));
 }
 
 /* 入力フォーム */
 .checklist-name .section-input {
   position: absolute;
-  left: 0;
-  top: 0;
+  left: -85px;
+  top: 185px;
   width: var(--name-input-width, 100%);
   max-width: var(--name-input-max-width, 260px);
   height: var(--name-input-height, auto);
   max-height: var(--name-input-max-height, none);
   z-index: 2;
-  transform: translate(var(--name-input-x, -85px), var(--name-input-y, 145px)) scale(var(--name-input-scale, 1));
+  transform: scale(var(--name-input-scale, 1));
 }
 
 .checklist-name .section-input input[type="text"] {
@@ -142,8 +145,8 @@ form.checklist-form {
 /* 背景画像 */
 .checklist-overview img.bg {
   position: absolute;
-  left: 0;
-  top: 0;
+  left: -90px;
+  top: 75px;
   width: var(--overview-bg-width, 100%);
   max-width: var(--overview-bg-max-width, 270px);
   height: var(--overview-bg-height, auto);
@@ -151,14 +154,14 @@ form.checklist-form {
   display: block;
   object-fit: var(--overview-bg-object-fit, contain);
   z-index: 1;
-  transform: translate(var(--overview-bg-x, -90px), var(--overview-bg-y, 35px)) scale(var(--overview-bg-scale, 1));
+  transform: scale(var(--overview-bg-scale, 1));
 }
 
 /* タイトル */
 .checklist-overview .section-title {
   position: absolute;
-  left: 0;
-  top: 0;
+  left: -55px;
+  top: 85px;
   width: var(--overview-title-width, auto);
   max-width: var(--overview-title-max-width, none);
   height: var(--overview-title-height, auto);
@@ -171,20 +174,20 @@ form.checklist-form {
   letter-spacing: var(--overview-title-spacing, 0);
   overflow: hidden;
   text-overflow: ellipsis;
-  transform: translate(var(--overview-title-x, -55px), var(--overview-title-y, 45px)) scale(var(--overview-title-scale, 1));
+  transform: scale(var(--overview-title-scale, 1));
 }
 
 /* 入力フォーム */
 .checklist-overview .section-input {
   position: absolute;
-  left: 0;
-  top: 0;
+  left: -87px;
+  top: 124px;
   width: var(--overview-input-width, 100%);
   max-width: var(--overview-input-max-width, 260px);
   height: var(--overview-input-height, auto);
   max-height: var(--overview-input-max-height, none);
   z-index: 2;
-  transform: translate(var(--overview-input-x, -87px), var(--overview-input-y, 84px)) scale(var(--overview-input-scale, 1));
+  transform: scale(var(--overview-input-scale, 1));
 }
 
 .checklist-overview .section-input textarea {
@@ -206,8 +209,8 @@ form.checklist-form {
 /* 背景画像 */
 .checklist-items img.bg {
   position: absolute;
-  left: 0;
-  top: 0;
+  left: 220px;
+  top: -215px;
   width: var(--items-bg-width, 100%);
   max-width: var(--items-bg-max-width, 440px);
   height: var(--items-bg-height, auto);
@@ -215,14 +218,14 @@ form.checklist-form {
   display: block;
   object-fit: var(--items-bg-object-fit, contain);
   z-index: 1;
-  transform: translate(var(--items-bg-x, 220px), var(--items-bg-y, -255px)) scale(var(--items-bg-scale, 1));
+  transform: scale(var(--items-bg-scale, 1));
 }
 
 /* タイトル */
 .checklist-items .section-title {
   position: absolute;
   left: 0;
-  top: 0;
+  top: 40px;
   width: var(--items-title-width, 100%);
   max-width: var(--items-title-max-width, 270px);
   height: var(--items-title-height, auto);
@@ -249,17 +252,23 @@ form.checklist-form {
   transform: translate(200px, -200px);
 }
 
+/* 項目コンテナ */
+#items-container {
+  position: absolute;
+  left: 40px;
+  top: 40px;
+  width: 100%;
+  max-width: 400px;
+  z-index: 2;
+  transform: translate(200px, -200px);
+}
+
 /* 項目1行 */
 .item-row {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 10px;
-}
-
-.item-checkbox input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
 }
 
 .item-title input[type="text"] {
@@ -346,7 +355,7 @@ form.checklist-form {
   background: var(--actions-add-bg, transparent);
   border: var(--actions-add-border, none);
   z-index: var(--actions-add-z-index, auto);
-  transform: translate(var(--actions-add-x, -450px), var(--actions-add-y, 295px)) scale(var(--actions-add-scale, 1));
+  transform: translate(var(--actions-add-x, -450px), var(--actions-add-y, 340px)) scale(var(--actions-add-scale, 1));
 }
 
 .side-actions .btn-save {
@@ -359,7 +368,7 @@ form.checklist-form {
   background: var(--actions-save-bg, transparent);
   border: var(--actions-save-border, none);
   z-index: var(--actions-save-z-index, auto);
-  transform: translate(var(--actions-save-x, -583px), var(--actions-save-y, 365px)) scale(var(--actions-save-scale, 1));
+  transform: translate(var(--actions-save-x, -583px), var(--actions-save-y, 397px)) scale(var(--actions-save-scale, 1));
 }
 
 .side-actions .btn-back {
@@ -372,7 +381,7 @@ form.checklist-form {
   background: var(--actions-back-bg, transparent);
   border: var(--actions-back-border, none);
   z-index: var(--actions-back-z-index, auto);
-  transform: translate(var(--actions-back-x, -672px), var(--actions-back-y, 452px)) scale(var(--actions-back-scale, 1));
+  transform: translate(var(--actions-back-x, -672px), var(--actions-back-y, 485px)) scale(var(--actions-back-scale, 1));
 }
 
 /* 保存完了オーバーレイ */
@@ -645,7 +654,7 @@ form.checklist-form {
       <p class="save-complete-checklist-name-text">{{ checklist.checklist_name }}</p>
     </div>
     <div class="save-complete-buttons">
-      <a href="{% url 'codemon:checklist_detail' pk=checklist.checklist_id %}" class="btn-save-back" aria-label="戻る">
+      <a href="{% url 'codemon:checklist_list' %}" class="btn-save-back" aria-label="戻る">
         <img src="{% static 'codemon/images/tags/checklist_save_back.png' %}" alt="戻る">
       </a>
       <a href="{% url 'codemon:checklist_edit' pk=checklist.checklist_id %}" class="btn-save-continue" aria-label="続ける">
