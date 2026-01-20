@@ -85,7 +85,6 @@ urlpatterns = [
      # グループ詳細表示（accounts.views の group_detail を利用）
      path('groups/<int:group_id>/', views.group_detail, name='group_detail'),
      path('groups/<int:group_id>/delete/confirm/', views.group_delete_confirm, name='group_delete_confirm'),
-     path('groups/<int:group_id>/delete/', codemon_views.group_delete, name='group_delete'),
      # 重複していた karihome ルートの片方を削除（上部ですでに定義済み）
     path('block/choice/', views.block_choice, name='block_choice'),
     path('block/create/', views.block_create, name='block_create'),

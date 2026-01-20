@@ -1288,7 +1288,8 @@ def group_delete(request, group_id):
     if owner is None or owner.type != 'teacher':
         return HttpResponseForbidden('教師権限が必要です')
 
-    group = get_object_or_404(Group, group_id=group_id, owner=owner, is_active=True)
+    # is_active フィルタを削除してグループを取得
+    group = get_object_or_404(Group, group_id=group_id, owner=owner)
     
     # 実際にグループを削除する（トランザクションでメンバー削除、アカウント紐付け解除、本体削除をまとめて行う）
     try:
