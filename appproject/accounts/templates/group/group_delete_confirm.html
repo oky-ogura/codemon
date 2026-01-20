@@ -1,32 +1,176 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="utf-8">
-<title>グループ削除の確認</title>
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}グループ削除確認 - Codemon{% endblock %}
+
+{% block background_frame %}
+<img src="{% static 'codemon/images/frames/frame_brack.png' %}" 
+     alt="" 
+     class="bg-frame"
+     onerror="this.style.display='none';">
+{% endblock %}
+
+{% block extra_css %}
 <style>
-  body{font-family:"Segoe UI",Meiryo,sans-serif;background:#f7f7f7;margin:0;padding:24px}
-  .frame{width:720px;margin:40px auto;background:#fff;border:1px solid #ddd;padding:24px;border-radius:8px}
-  .title{font-weight:700;margin-bottom:18px}
-  .meta{margin:20px 0;color:#666}
-  .buttons{display:flex;gap:18px;justify-content:center;margin-top:28px}
-  .btn{padding:12px 24px;border-radius:8px;border:none;cursor:pointer}
-  .btn.back{background:#e0e6ef}
-  .btn.del{background:#f46b6b;color:#fff}
+  /* ヘッダーを非表示 */
+  .top-tabs {
+    display: none !important;
+  }
+
+  /* コンテンツエリアを画面中央に配置 */
+  .content-wrapper {
+    display: flex;
+    align-items: flex-start; /* centerからflex-startに変更して上寄せ */
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px !important;
+    padding-top: 55px !important; /* pxで固定値を指定 */
+  }
+
+  .container {
+    max-width: 600px;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+
+  .delete-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #d32f2f;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .delete-message {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 30px;
+    line-height: 1.6;
+    text-align: center;
+  }
+
+  .group-info {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 24px 0;
+  }
+
+  .group-info .label {
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 8px;
+  }
+
+  .group-info .value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #333;
+  }
+
+  .delete-buttons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    align-items: center;
+    margin-top: 30px;
+  }
+
+  .btn-back {
+    background: transparent;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+
+  .btn-back:hover {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+
+  .btn {
+    padding: 14px 36px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+
+  .btn-cancel {
+    background: #e0e6ef;
+    color: #333;
+  }
+
+  .btn-cancel:hover {
+    background: #d0d6df;
+  }
+
+  .btn-delete {
+    background: #ff6b6b;
+    color: #fff;
+  }
+
+  .btn-delete:hover {
+    background: #ff5252;
+  }
+
+  @media(max-width: 720px) {
+    .container {
+      padding: 30px 20px;
+    }
+
+    .delete-buttons {
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .btn {
+      width: 100%;
+      max-width: 280px;
+    }
+  }
 </style>
-</head>
-<body>
-  <div class="frame">
-    <div class="title">このグループを削除しますか？</div>
-    <div style="text-align:center;font-weight:600;margin-top:12px">{{ group.group_name }}　メンバー　{{ member_count }}人</div>
+{% endblock %}
 
-    <div class="buttons">
-      <a href="{% url 'accounts:account_entry' %}" class="btn back">戻るボタン</a>
+{% block content %}
+<div class="container">
+  <h1 class="delete-title">本当にこのグループを削除しますか？</h1>
+  <p class="delete-message">
+    削除すると復元できません。<br>
+    グループに所属しているメンバーの紐付けも解除されます。<br>
+    よろしいですか？
+  </p>
 
-      <form method="post" action="{% url 'accounts:group_delete' group.group_id %}" style="display:inline">
-        {% csrf_token %}
-        <button type="submit" class="btn del">削除するボタン</button>
-      </form>
-    </div>
+  <div class="group-info">
+    <div class="label">グループ名</div>
+    <div class="value">{{ group.group_name }}</div>
+    {% if member_count is not None %}
+      <div class="label" style="margin-top: 12px;">メンバー数</div>
+      <div class="value">{{ member_count }}人</div>
+    {% endif %}
   </div>
-</body>
-</html>
+
+  <div class="delete-buttons">
+    <a href="{% url 'accounts:account_entry' %}" class="btn btn-cancel">戻る</a>
+    <form method="post" action="{% url 'accounts:group_delete' group.group_id %}" style="display: inline;">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-delete">削除する</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -130,9 +130,11 @@
 
         <div class="meta">
           <div class="logout-area">
-            <a href="{% url 'accounts:logout_confirm' %}" class="btn logout">
-              <img src="{% static 'codemon/images/nav/教員用アカウント画面 (17).png' %}" alt="ログアウト" style="height:40px; display:block;">
-            </a>
+            <form id="logout-form" method="get" action="{% url 'accounts:logout_confirm' %}">
+              <button type="submit" id="logout-btn" class="btn logout">
+                <img src="{% static 'codemon/images/nav/教員用アカウント画面 (17).png' %}" alt="ログアウト" style="height:40px; display:block;">
+              </button>
+            </form>
           </div>
         </div>
       </div>
@@ -209,8 +211,6 @@
       </div>
     </div>
   </div>
-
-
 
   <!-- ページ専用: ヘッダー高さに合わせてカードの上マージンを調整 -->
   <script>
