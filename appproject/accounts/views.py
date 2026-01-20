@@ -322,6 +322,10 @@ def user_logout(request):
     except Exception:
         return redirect('/')
 
+def logout_confirm(request):
+    """ログアウト確認ページを表示する"""
+    return render(request, 'accounts/logout.html')
+
 
 # --- セッションベース認証簡易デコレータ & karihome ビュー追加 ---
 from functools import wraps

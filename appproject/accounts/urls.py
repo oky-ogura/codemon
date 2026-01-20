@@ -20,6 +20,7 @@ urlpatterns = [
     path('ai_initial/', views.ai_initial_settings, name='ai_initial'),
     path('ai_initial/confirm/', views.ai_initial_confirm, name='ai_initial_confirm'),
     path('ai_initial/save/', views.ai_initial_save, name='ai_initial_save'),
+    path('logout/confirm/', views.logout_confirm, name='logout_confirm'),
     path('logout/', views.user_logout, name='logout'),
     
 
