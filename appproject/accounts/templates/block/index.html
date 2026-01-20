@@ -189,6 +189,11 @@
     <block type="controls_case"></block>
     <block type="controls_default"></block>
   </category>
+  <category name="システム" colour="290">
+    <block type="load_system"></block>
+    <block type="system_condition"></block>
+    <block type="display_system"></block>
+  </category>
 </xml>
 
 <script>
@@ -197,6 +202,17 @@ const visual = document.getElementById("visual-area");
 // グローバルなエンティティ状態（位置・角度・速度・フラグ）
 if(typeof window._actor === 'undefined'){
   window._actor = { x:0, y:0, orientation:0, speed:1, paused:false, stopped:false, simTime:0 };
+}
+
+// システム一覧をグローバル変数に保存
+window._systemsList = [];
+try {
+  const systemsData = '{{ systems_json|escapejs }}';
+  if (systemsData && systemsData !== '[]' && systemsData !== '') {
+    window._systemsList = JSON.parse(systemsData);
+  }
+} catch(e) {
+  console.error('システム一覧の読み込みエラー:', e);
 }
 
 /* ---------------------- ナビタブ（見た目切替 / 遷移） ---------------------- */
@@ -1057,6 +1073,75 @@ Blockly.Blocks['print_text'] = {
   }
 };
 
+// ---------------------- システム読み込みブロック ----------------------
+Blockly.Blocks['load_system'] = {
+  init: function() {
+    // グローバル変数からシステム一覧を取得
+    const systems = window._systemsList || [];
+    
+    // ドロップダウンの選択肢を作成
+    const options = systems.length > 0 
+      ? systems.map(sys => [sys.system_name, sys.system_id.toString()])
+      : [['システムがありません', '0']];
+    
+    this.appendDummyInput()
+      .appendField("システムをよみこむ:")
+      .appendField(new Blockly.FieldDropdown(options), "SYSTEM_ID");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(290);
+  }
+};
+
+// ---------------------- システム条件分岐ブロック ----------------------
+Blockly.Blocks['system_condition'] = {
+  init: function() {
+    const systems = window._systemsList || [];
+    
+    const options = systems.length > 0 
+      ? systems.map(sys => [sys.system_name, sys.system_id.toString()])
+      : [['システムがありません', '0']];
+    
+    this.appendDummyInput()
+      .appendField("もし システム")
+      .appendField(new Blockly.FieldDropdown(options), "SYSTEM_ID")
+      .appendField("の");
+    this.appendDummyInput()
+      .appendField("ラベル：")
+      .appendField(new Blockly.FieldTextInput("文字："), "ELEMENT_NAME")
+      .appendField("が");
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([["=","EQ"],["≠","NEQ"],[">","GT"],["<","LT"],["≥","GTE"],["≤","LTE"],["ふくむ","CONTAINS"]]), "OP")
+      .appendField(new Blockly.FieldTextInput("あたい"), "VALUE")
+      .appendField("なら");
+    this.appendStatementInput("DO")
+      .appendField("すること");
+    this.appendStatementInput("ELSE")
+      .appendField("そうでなければ");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(290);
+  }
+};
+
+// ---------------------- システム表示ブロック ----------------------
+Blockly.Blocks['display_system'] = {
+  init: function() {
+    const systems = window._systemsList || [];
+    
+    const options = systems.length > 0 
+      ? systems.map(sys => [sys.system_name, sys.system_id.toString()])
+      : [['システムがありません', '0']];
+    
+    this.appendDummyInput()
+      .appendField("システムをひょうじ:")
+      .appendField(new Blockly.FieldDropdown(options), "SYSTEM_ID");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(290);
+  }
+};
+
 // ---------------------- 比較ブロック (採点補助) ----------------------
 Blockly.Blocks['compare_values'] = {
   init: function() {
@@ -1400,11 +1485,11 @@ function collectAnswers(){
 }
 
 // ---------------------- 実行関数 ----------------------
-function runBlocks(){
+async function runBlocks(){
   visual.innerHTML = "";
   const blocks = workspace.getTopBlocks(true);
 
-  function processBlock(block){
+  async function processBlock(block){
     if(!block) return;
 
     if(block.updateVisual) block.updateVisual(visual);
@@ -1415,7 +1500,7 @@ function runBlocks(){
           const doBlock = block.getInputTargetBlock("DO");
           for(let i = 0; i < times; i++){
             if(doBlock){
-              try{ processBlock(doBlock); }
+              try{ await processBlock(doBlock); }
               catch(ctrl){
                 if(ctrl && ctrl.control === 'continue') { continue; }
                 if(ctrl && ctrl.control === 'break') { break; }
@@ -1428,7 +1513,7 @@ function runBlocks(){
         case 'controls_if_custom':
           if(evalIfCondition(block)){
             const doBlock = block.getInputTargetBlock("DO");
-            if(doBlock) processBlock(doBlock);
+            if(doBlock) await processBlock(doBlock);
           }
           break;
 
@@ -1441,7 +1526,7 @@ function runBlocks(){
             let iter = 0;
             while((evalCondition(condBlock) || 0) !== 0){
               if(!doBlock) break;
-              try{ processBlock(doBlock); }
+              try{ await processBlock(doBlock); }
               catch(ctrl){
                 if(ctrl && ctrl.control === 'continue') { /* next iteration */ }
                 else if(ctrl && ctrl.control === 'break') { break; }
@@ -1465,7 +1550,7 @@ function runBlocks(){
             // 条件が真になるまで繰り返す -> 条件が偽の間ループ
             while(((evalCondition(condBlockRU) || 0) === 0)){
               if(!doBlockRU) break;
-              try{ processBlock(doBlockRU); }
+              try{ await processBlock(doBlockRU); }
               catch(ctrl){
                 if(ctrl && ctrl.control === 'continue') { /* next */ }
                 else if(ctrl && ctrl.control === 'break') { break; }
@@ -1488,7 +1573,7 @@ function runBlocks(){
             let iterDU = 0;
             // 最低1回は実行してから条件を評価
             if(doBlockDU){
-              try{ processBlock(doBlockDU); }
+              try{ await processBlock(doBlockDU); }
               catch(ctrl){
                 if(ctrl && ctrl.control === 'continue') { /* continue to condition check */ }
                 else if(ctrl && ctrl.control === 'break') { /* break outer do-until */ return; }
@@ -1497,7 +1582,7 @@ function runBlocks(){
             }
             while(((evalCondition(condBlockDU) || 0) === 0)){
               if(!doBlockDU) break;
-              try{ processBlock(doBlockDU); }
+              try{ await processBlock(doBlockDU); }
               catch(ctrl){
                 if(ctrl && ctrl.control === 'continue') { /* next iteration */ }
                 else if(ctrl && ctrl.control === 'break') { break; }
@@ -1535,7 +1620,7 @@ function runBlocks(){
               for(let i = from; i <= to; i += by){
                 window._for_index = i;
                 if(doBlockF){
-                  try{ processBlock(doBlockF); }
+                  try{ await processBlock(doBlockF); }
                   catch(ctrl){
                     if(ctrl && ctrl.control === 'continue') { continue; }
                     if(ctrl && ctrl.control === 'break') { break; }
@@ -1552,7 +1637,7 @@ function runBlocks(){
               for(let i = from; i >= to; i += by){
                 window._for_index = i;
                 if(doBlockF){
-                  try{ processBlock(doBlockF); }
+                  try{ await processBlock(doBlockF); }
                   catch(ctrl){
                     if(ctrl && ctrl.control === 'continue') { continue; }
                     if(ctrl && ctrl.control === 'break') { break; }
@@ -1577,7 +1662,7 @@ function runBlocks(){
             let iterFv = 0;
             while(true){
               if(doBlockForever){
-                try{ processBlock(doBlockForever); }
+                try{ await processBlock(doBlockForever); }
                 catch(ctrl){
                   if(ctrl && ctrl.control === 'continue') { /* next iteration */ }
                   else if(ctrl && ctrl.control === 'break') { break; }
@@ -1639,7 +1724,7 @@ function runBlocks(){
               // expose variable name for potential use blocks
               window._vars[varName] = items[idx];
               if(doBlockFE){
-                try{ processBlock(doBlockFE); }
+                try{ await processBlock(doBlockFE); }
                 catch(ctrl){
                   if(ctrl && ctrl.control === 'continue') { /* next item */ continue; }
                   if(ctrl && ctrl.control === 'break') { break; }
@@ -1700,7 +1785,7 @@ function runBlocks(){
                   // execute case body and then stop unless break/continue control is used
                   const body = caseBlock.getInputTargetBlock('DO');
                   if(body){
-                    try{ processBlock(body); }
+                    try{ await processBlock(body); }
                     catch(ctrl){
                       if(ctrl && ctrl.control === 'continue') { /* continue to next case */ }
                       else if(ctrl && ctrl.control === 'break') { executed = true; matched = true; break; }
@@ -1714,7 +1799,7 @@ function runBlocks(){
                 if(!matched){
                   const body = caseBlock.getInputTargetBlock('DO');
                   if(body){
-                    try{ processBlock(body); }
+                    try{ await processBlock(body); }
                     catch(ctrl){
                       if(ctrl && ctrl.control === 'continue') { /* no-op */ }
                       else if(ctrl && ctrl.control === 'break') { executed = true; break; }
@@ -1736,7 +1821,7 @@ function runBlocks(){
               const finallyBlock = block.getInputTargetBlock('FINALLY');
               const errVar = (block.getFieldValue && block.getFieldValue('ERRVAR')) || '';
               try{
-                if(tryBlock) processBlock(tryBlock);
+                if(tryBlock) await processBlock(tryBlock);
               }catch(err){
                 // loop control signals (break/continue) should propagate
                 if(err && err.control) throw err;
@@ -1745,7 +1830,7 @@ function runBlocks(){
                 if(errVar && typeof window._vars === 'undefined') window._vars = {};
                 if(errVar) window._vars[errVar] = err;
                 if(catchBlock) {
-                  try{ processBlock(catchBlock); }
+                  try{ await processBlock(catchBlock); }
                   catch(ctrl){
                     // if catch body raises loop control, propagate
                     if(ctrl && ctrl.control) throw ctrl;
@@ -1758,7 +1843,7 @@ function runBlocks(){
               } finally {
                 // always run finally block
                 if(finallyBlock){
-                  try{ processBlock(finallyBlock); }
+                  try{ await processBlock(finallyBlock); }
                   catch(ctrl){
                     if(ctrl && ctrl.control) throw ctrl;
                     else throw ctrl;
@@ -1772,6 +1857,80 @@ function runBlocks(){
         case 'print_text':
           const textVal = block.getFieldValue("TEXT");
           visual.innerHTML += `<p>${textVal}</p>`;
+          break;
+
+        case 'load_system':
+          const systemId = block.getFieldValue('SYSTEM_ID');
+          if (systemId && systemId !== '0') {
+            visual.innerHTML += `<div class="form-row">システム(ID: ${systemId})を読み込みました</div>`;
+            // 実際のシステム読み込み処理をここに追加可能
+            // 例: window.location.href = `/accounts/system/preview/${systemId}/`;
+          } else {
+            visual.innerHTML += `<div class="form-row">読み込むシステムが選択されていません</div>`;
+          }
+          break;
+
+        case 'system_condition':
+          const sysId = block.getFieldValue('SYSTEM_ID');
+          const elementName = block.getFieldValue('ELEMENT_NAME');
+          const op = block.getFieldValue('OP');
+          const expectedValue = block.getFieldValue('VALUE');
+          
+          // APIを使ってサーバーから要素の値を取得
+          try {
+            const apiUrl = `/accounts/api/system/${sysId}/element/${encodeURIComponent(elementName)}/`;
+            console.log('🔍 API呼び出し:', apiUrl);
+            console.log('📝 検索する要素名:', elementName);
+            
+            const response = await fetch(apiUrl);
+            console.log('📡 レスポンスステータス:', response.status);
+            
+            const data = await response.json();
+            console.log('📦 取得したデータ:', data);
+            
+            let actualValue = '';
+            if (data.success && data.element_value) {
+              actualValue = data.element_value;
+            } else if (data.element_value === '') {
+              actualValue = '';
+            }
+            
+            console.log('✅ 実際の値:', actualValue);
+            
+            // 条件評価
+            let conditionMet = false;
+            switch(op) {
+              case 'EQ': conditionMet = (actualValue == expectedValue); break;
+              case 'NEQ': conditionMet = (actualValue != expectedValue); break;
+              case 'GT': conditionMet = (Number(actualValue) > Number(expectedValue)); break;
+              case 'LT': conditionMet = (Number(actualValue) < Number(expectedValue)); break;
+              case 'GTE': conditionMet = (Number(actualValue) >= Number(expectedValue)); break;
+              case 'LTE': conditionMet = (Number(actualValue) <= Number(expectedValue)); break;
+              case 'CONTAINS': conditionMet = actualValue.includes(expectedValue); break;
+            }
+            
+            visual.innerHTML += `<div class="form-row">システム${sysId}の「${elementName}」の値: "${actualValue}" ${conditionMet ? '✓条件満たす' : '✗条件満たさない'}</div>`;
+            
+            if (conditionMet) {
+              const doBlock = block.getInputTargetBlock('DO');
+              if (doBlock) await processBlock(doBlock);
+            } else {
+              const elseBlock = block.getInputTargetBlock('ELSE');
+              if (elseBlock) await processBlock(elseBlock);
+            }
+          } catch (error) {
+            console.error('システム要素の値取得エラー:', error);
+            visual.innerHTML += `<div class="form-row">⚠️ システム要素の値を取得できませんでした: ${error.message}</div>`;
+          }
+          break;
+
+        case 'display_system':
+          const displaySysId = block.getFieldValue('SYSTEM_ID');
+          if (displaySysId && displaySysId !== '0') {
+            visual.innerHTML += `<div class="form-row">📺 システム(ID: ${displaySysId})を表示</div>`;
+          } else {
+            visual.innerHTML += `<div class="form-row">⚠️ 表示するシステムが選択されていません</div>`;
+          }
           break;
 
         case 'controls_break':
@@ -1937,10 +2096,12 @@ function runBlocks(){
     }
 
     const next = block.getNextBlock();
-    if(next) processBlock(next);
+    if(next) await processBlock(next);
   }
 
-  blocks.forEach(b => processBlock(b));
+  for(const b of blocks) {
+    await processBlock(b);
+  }
 }
 
 visual.innerHTML = "ここに実行結果が表示されます";

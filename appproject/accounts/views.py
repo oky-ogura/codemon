@@ -322,6 +322,10 @@ def user_logout(request):
     except Exception:
         return redirect('/')
 
+def logout_confirm(request):
+    """ログアウト確認ページを表示する"""
+    return render(request, 'accounts/logout.html')
+
 
 # --- セッションベース認証簡易デコレータ & karihome ビュー追加 ---
 from functools import wraps
@@ -571,6 +575,23 @@ def block_index(request):
     algorithm_id = request.GET.get('id')
     context = {}
 
+    # ログインユーザーのシステム一覧を取得
+    account = get_logged_account(request)
+    systems_json = '[]'
+    if account:
+        try:
+            systems_qs = System.objects.filter(user=account).order_by('-created_at')
+            systems_list = []
+            for sys in systems_qs:
+                systems_list.append({
+                    'system_id': sys.system_id,
+                    'system_name': sys.system_name
+                })
+            systems_json = json.dumps(systems_list, ensure_ascii=False)
+        except Exception:
+            pass
+    context['systems_json'] = systems_json
+
     if algorithm_id:
         try:
             algorithm = Algorithm.objects.get(algorithm_id=algorithm_id)
@@ -580,12 +601,10 @@ def block_index(request):
                 blockly_xml = algorithm.blockly_xml or ''
             except Exception:
                 blockly_xml = ''
-            context = {
-                'algorithm_id': algorithm.algorithm_id,
-                'algorithm_name': algorithm.algorithm_name,
-                'algorithm_description': algorithm.algorithm_description or '',
-                'blockly_xml': blockly_xml,
-            }
+            context['algorithm_id'] = algorithm.algorithm_id
+            context['algorithm_name'] = algorithm.algorithm_name
+            context['algorithm_description'] = algorithm.algorithm_description or ''
+            context['blockly_xml'] = blockly_xml
         except Algorithm.DoesNotExist:
             messages.error(request, '指定されたアルゴリズムが見つかりません。')
         except Exception:
@@ -598,12 +617,10 @@ def block_index(request):
                     )
                     row = cursor.fetchone()
                     if row:
-                        context = {
-                            'algorithm_id': row[0],
-                            'algorithm_name': row[1],
-                            'algorithm_description': row[2] or '',
-                            'blockly_xml': '',
-                        }
+                        context['algorithm_id'] = row[0]
+                        context['algorithm_name'] = row[1]
+                        context['algorithm_description'] = row[2] or ''
+                        context['blockly_xml'] = ''
                     else:
                         messages.error(request, '指定されたアルゴリズムが見つかりません。')
             except Exception:
@@ -743,6 +760,55 @@ def get_system_elements(request):
         return JsonResponse({'error': 'System not found'}, status=404)
     except Exception as e:
         logger.error(f"Error in get_system_elements: {str(e)}", exc_info=True)
+        return JsonResponse({'error': str(e)}, status=500)
+
+def get_system_element_value(request, system_id, element_name):
+    """
+    システムの特定の要素の値を取得するAPIエンドポイント
+    アルゴリズム実行時にシステム要素の値を取得するために使用
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"=== get_system_element_value called ===")
+    logger.info(f"system_id: {system_id}, element_name: {element_name}")
+    
+    account = get_logged_account(request)
+    if not account:
+        return JsonResponse({'error': 'Not authenticated'}, status=401)
+
+    try:
+        # システムの所有者確認
+        system = System.objects.get(system_id=system_id, user=account)
+        logger.info(f"System found: {system.system_name}")
+
+        # システム要素を検索（element_labelで検索）
+        element = SystemElement.objects.filter(
+            system=system,
+            element_label=element_name
+        ).first()
+        
+        if element:
+            logger.info(f"Element found: {element.element_label}, value: {element.element_value}")
+            return JsonResponse({
+                'success': True,
+                'element_name': element.element_label,
+                'element_value': element.element_value or '',
+                'element_type': element.element_type
+            })
+        else:
+            logger.warning(f"Element not found: {element_name}")
+            return JsonResponse({
+                'success': False,
+                'error': 'Element not found',
+                'element_name': element_name,
+                'element_value': ''
+            })
+    except System.DoesNotExist:
+        logger.error(f"System not found: system_id={system_id}")
+        return JsonResponse({'error': 'System not found'}, status=404)
+    except Exception as e:
+        logger.error(f"Error in get_system_element_value: {str(e)}", exc_info=True)
         return JsonResponse({'error': str(e)}, status=500)
 
 # ブロック作成保存
@@ -1022,6 +1088,34 @@ def system_delete_success(request):
 def system_tutorial(request):
 
     return render(request, 'system/system_tutorial.html')
+
+# ルーレットお題表示画面
+def system_roulette_topics(request):
+    # ログインユーザーのAI設定を取得
+    account = get_logged_account(request)
+    appearance = 'イヌ.png'
+    ai_name = 'うたー'
+    
+    if account:
+        try:
+            from .models import AiConfig
+            config = AiConfig.objects.filter(account=account).first()
+            if config:
+                appearance = config.appearance or 'イヌ.png'
+                ai_name = config.ai_name or 'うたー'
+        except Exception:
+            pass
+    
+    # 外見からキャラクターIDを取得
+    character = APPEARANCE_TO_CHARACTER.get(appearance, 'inu')
+    
+    context = {
+        'appearance': appearance,
+        'ai_name': ai_name,
+        'character': character,
+    }
+    
+    return render(request, 'system/system_Roulette.html', context)
 
 
 # アルゴリズム選択画面

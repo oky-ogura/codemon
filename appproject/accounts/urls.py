@@ -20,6 +20,7 @@ urlpatterns = [
     path('ai_initial/', views.ai_initial_settings, name='ai_initial'),
     path('ai_initial/confirm/', views.ai_initial_confirm, name='ai_initial_confirm'),
     path('ai_initial/save/', views.ai_initial_save, name='ai_initial_save'),
+    path('logout/confirm/', views.logout_confirm, name='logout_confirm'),
     path('logout/', views.user_logout, name='logout'),
     
 
@@ -56,6 +57,7 @@ urlpatterns = [
     path('system/', views.system_index, name='system_index'),
     path('system/save/', views.system_save, name='system_save'),
     path('system/elements/', views.get_system_elements, name='get_system_elements'),
+    path('api/system/<int:system_id>/element/<str:element_name>/', views.get_system_element_value, name='get_system_element_value'),
     path('system/choice/', views.system_choice, name='system_choice'),
     path('system/create/', views.system_create, name='system_create'),
     path('system/list/', views.system_list, name='system_list'),
@@ -63,6 +65,7 @@ urlpatterns = [
     path('system/details/', views.system_details, name='system_details'),
     path('system/delete/', views.system_delete, name='system_delete'),
     path('system/delete/success/', views.system_delete_success, name='system_delete_success'),
+    path('system/roulette-topics/', views.system_roulette_topics, name='system_roulette_topics'),
     path('t_account/', views.account_view, name='account_dashboard'),
     path('groups/create/', views.group_create, name='group_create'),
      # Add member now accepts a group_id and uses the invite handler
