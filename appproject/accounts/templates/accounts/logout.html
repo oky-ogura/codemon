@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ログアウト - Codemon{% endblock %}
+
+{% block background_frame %}
+<img src="{% static 'codemon/images/frames/生徒用アカウント画面 (2).png' %}" 
+     alt="" 
+     class="bg-frame"
+     onerror="this.style.display='none';">
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ヘッダーを非表示 */
+  .top-tabs {
+    display: none !important;
+  }
+
+  /* コンテンツエリアを画面中央に配置 */
+  .content-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .logout-container {
+    max-width: 600px;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    margin-top: 60px;
+  }
+
+  .logout-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 20px;
+  }
+
+  .logout-message {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 40px;
+    line-height: 1.6;
+  }
+
+  .logout-buttons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .btn-logout {
+    padding: 12px 32px;
+    border-radius: 25px;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .btn-logout.confirm {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .btn-logout.confirm img {
+    height: 50px;
+    width: auto;
+    display: block;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+
+  .btn-logout.confirm:hover img {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+
+  .btn-logout.cancel {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .btn-logout.cancel img {
+    height: 50px;
+    width: auto;
+    display: block;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+
+  .btn-logout.cancel:hover img {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+
+  .logout-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+  }
+
+  @media(max-width: 720px) {
+    .logout-container {
+      padding: 30px 20px;
+    }
+
+    .logout-buttons {
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .btn-logout {
+      width: 100%;
+      max-width: 280px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="logout-container">
+  <div class="logout-icon">👋</div>
+  <h1 class="logout-title">ログアウトしますか？</h1>
+  <p class="logout-message">
+    ログアウトすると、現在のセッションが終了します。<br>
+    再度ログインする必要があります。
+      
+    
+  </p>
+  
+  <div class="logout-buttons">
+    <form method="post" action="{% url 'accounts:logout' %}" style="margin: 0;">
+      {% csrf_token %}
+      <button type="submit" class="btn-logout confirm">
+        <img src="{% static 'codemon/images/nav/生徒用アカウント画面 (11).png' %}" alt="はい、ログアウトする">
+      </button>
+    </form>
+    <button type="submit" class="btn-logout confirm">
+    <img src="{% static 'codemon/images/nav/back.png' %}" alt="いいえ、戻る" onclick="history.back();">
+    </button>
+  </div>
+</div>
+{% endblock %}
