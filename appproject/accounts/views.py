@@ -322,10 +322,6 @@ def user_logout(request):
     except Exception:
         return redirect('/')
 
-def logout_confirm(request):
-    """ログアウト確認ページを表示する"""
-    return render(request, 'accounts/logout.html')
-
 
 # --- セッションベース認証簡易デコレータ & karihome ビュー追加 ---
 from functools import wraps
@@ -1679,7 +1675,7 @@ def group_menu_redirect(request):
 
 
 def group_delete_confirm(request, group_id):
-    """グループ削除の確認画面を表示する（GET）。削除確定は POST で accounts:group_delete を呼ぶ。"""
+    """グループ削除の確認画面を表示する（GET）。削除確定は POST で accounts:group_delete (codemon.views.group_delete) を呼ぶ。"""
     owner = _get_write_owner(request)
     if owner is None:
         return redirect('accounts:student_login')
@@ -1701,9 +1697,8 @@ def group_delete_confirm(request, group_id):
     except Exception:
         member_count = 0
 
-    return render(request, 'group/group_delete.html', {
-        'group_id': group_id,
-        'group_name': group.group_name,
+    return render(request, 'group/group_delete_confirm.html', {
+        'group': group,
         'member_count': member_count,
     })
 
@@ -1714,8 +1709,6 @@ def group_delete(request, group_id):
         # 確認ページへ誘導（POST以外は削除を行わない）
         return redirect('accounts:group_delete_confirm', group_id=group_id)
 
-    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-
     try:
         with transaction.atomic():
             with connection.cursor() as cursor:
@@ -1725,17 +1718,9 @@ def group_delete(request, group_id):
                 cursor.execute('UPDATE account SET group_id = NULL WHERE group_id = %s', [group_id])
                 # 最後に group 本体を削除（テーブル名が予約語のためダブルクォートで囲む）
                 cursor.execute('DELETE FROM "group" WHERE group_id = %s', [group_id])
-        
-        if is_ajax:
-            return JsonResponse({'status': 'ok', 'message': 'グループを削除しました。'})
-        
         messages.success(request, 'グループを削除しました。')
     except Exception as e:
-        if is_ajax:
-            return JsonResponse({'error': f'グループの削除に失敗しました: {e}'}, status=500)
-        
         messages.error(request, f'グループの削除に失敗しました: {e}')
-    
     return redirect('accounts:account_entry')
 
 
@@ -1797,59 +1782,22 @@ def group_detail(request, group_id):
 
 
 def group_delete_confirm(request, group_id):
-    """グループ削除の確認画面とPOSTでの削除実行"""
-    owner = _get_write_owner(request)
-    if owner is None or getattr(owner, 'type', '') != 'teacher':
-        messages.error(request, '教師権限が必要です')
-        return redirect('accounts:account_entry')
-    
-    # POST リクエストの場合は削除を実行
-    if request.method == 'POST':
-        try:
-            with transaction.atomic():
-                with connection.cursor() as cursor:
-                    # group_member テーブルから該当 group_id のメンバーを削除
-                    cursor.execute('DELETE FROM group_member WHERE group_id = %s', [group_id])
-                    # account テーブルの group_id を NULL にして紐付け解除
-                    cursor.execute('UPDATE account SET group_id = NULL WHERE group_id = %s', [group_id])
-                    # グループ名を取得してから削除
-                    cursor.execute('SELECT group_name FROM "group" WHERE group_id = %s', [group_id])
-                    row = cursor.fetchone()
-                    group_name = row[0] if row else 'グループ'
-                    # 最後に group 本体を削除（テーブル名が予約語のためダブルクォートで囲む）
-                    cursor.execute('DELETE FROM "group" WHERE group_id = %s', [group_id])
-            
-            messages.success(request, f'グループ「{group_name}」を削除しました')
-            return redirect('accounts:account_entry')
-        except Exception as e:
-            import logging
-            logging.exception('group_delete failed for group_id=%s', group_id)
-            messages.error(request, f'グループの削除に失敗しました: {e}')
-            return redirect('accounts:account_entry')
-    
-    # GET リクエストの場合は確認画面を表示
+    """表示用の削除確認ページ。POST 実行は `codemon.views.group_delete` を使う想定。"""
     group = None
-    member_count = 0
     try:
         with connection.cursor() as cursor:
             cursor.execute('SELECT group_id, group_name, user_id FROM "group" WHERE group_id = %s', [group_id])
             row = cursor.fetchone()
             if row:
                 group = {'group_id': row[0], 'group_name': row[1], 'owner_id': row[2]}
-                # メンバー数を取得
-                cursor.execute('SELECT COUNT(*) FROM group_member WHERE group_id = %s', [group_id])
-                count_row = cursor.fetchone()
-                if count_row:
-                    member_count = count_row[0]
     except Exception:
         group = None
-        member_count = 0
 
     if group is None:
         messages.error(request, '指定されたグループが見つかりません')
         return redirect('accounts:account_entry')
 
-    return render(request, 'group/group_delete_confirm.html', {'group': group, 'member_count': member_count})
+    return render(request, 'group/group_delete_confirm.html', {'group': group})
 
 
 def group_remove_member(request, group_id, member_id):

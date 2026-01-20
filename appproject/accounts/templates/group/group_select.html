@@ -172,18 +172,7 @@
 <div class="search-container">
   <div class="box">
     <h1>グループを検索して参加</h1>
-    <p class="question">グループ名とパスワードを入力して検索してください</p>
-
-    <!-- エラーメッセージ表示エリア -->
-    {% if messages %}
-      <div style="margin: 16px 0;">
-        {% for message in messages %}
-          <div style="padding: 12px 16px; margin-bottom: 10px; border-radius: 6px; {% if message.tags == 'error' %}background: #ffe6e6; color: #c33; border: 1px solid #ffcccc;{% elif message.tags == 'success' %}background: #e6ffe6; color: #3c3; border: 1px solid #ccffcc;{% else %}background: #e6f3ff; color: #369; border: 1px solid #cce6ff;{% endif %}">
-            {{ message }}
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
+    <p class="question">グループ名とパスワード（必要なら）を入力して検索してください</p>
 
     <form method="post" action="{% url 'accounts:group_join_confirm' %}" style="margin-top:18px">
       {% csrf_token %}
@@ -195,7 +184,7 @@
         </div>
         <div class="row">
           <label for="group_password">パスワード</label>
-          <input type="password" id="group_password" name="group_password" placeholder="パスワードを入力">
+          <input type="password" id="group_password" name="group_password" placeholder="任意">
         </div>
       </div>
 
