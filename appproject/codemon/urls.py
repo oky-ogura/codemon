@@ -25,6 +25,7 @@ urlpatterns = [
     path('checklists/<int:pk>/edit/', views.checklist_edit, name='checklist_edit'),
     path('checklists/<int:pk>/save/', views.checklist_save, name='checklist_save'),
     path('checklists/<int:pk>/delete/confirm/', views.checklist_delete_confirm, name='checklist_delete_confirm'),
+    path('checklists/<int:pk>/delete/complete/', views.checklist_delete_complete, name='checklist_delete_complete'),
     path('checklists/<int:pk>/delete/', views.checklist_delete, name='checklist_delete'),
 
     # 項目の完了／未完了切り替え

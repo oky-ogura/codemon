@@ -644,7 +644,7 @@ def checklist_create(request):
                     sort_order += 1
 
             messages.success(request, 'チェックリストを作成しました。')
-            return redirect('codemon:checklist_detail', pk=cl.checklist_id)
+            return redirect('codemon:checklist_edit', pk=cl.checklist_id)
     return render(request, 'codemon/checklist_create.html', {'user': request.user})
 
 
@@ -701,43 +701,41 @@ def checklist_save(request, pk):
     checklist = get_object_or_404(Checklist, checklist_id=pk)
     if request.method == 'POST':
         name = request.POST.get('checklist_name')
-        desc = request.POST.get('checklist_description')
+        desc = request.POST.get('checklist_description', '')
 
         items = []
         index = 1
-        while f'item_{index}' in request.POST:
-            text = request.POST.get(f'item_{index}', '').strip()
-            done = request.POST.get(f'done_{index}') == 'on'
+        while f'item_title_{index}' in request.POST:
+            text = request.POST.get(f'item_title_{index}', '').strip()
+            done = request.POST.get(f'item_check_{index}') == 'on'
             if text:
                 items.append({'text': text, 'done': done})
             index += 1
 
-        # 🔹 確認画面表示
-        if 'show_confirm' in request.POST:
-            return render(request, 'codemon/checklist_save.html', {
-                'checklist': checklist,
-                'checklist_name': name,
-                'checklist_description': desc,
-                'items': items,
-            })
+        # 🔹 保存確定（編集画面から保存ボタンを押した場合）
+        if 'show_confirm' in request.POST or 'confirm_save' in request.POST:
+            checklist.checklist_name = name
+            checklist.checklist_description = desc
+            checklist.updated_at = timezone.now()
+            checklist.save()
 
-        # 🔹 確定保存
-        checklist.checklist_name = name
-        checklist.checklist_description = desc
-        checklist.updated_at = timezone.now()
-        checklist.save()
+            checklist.items.all().delete()
+            for i, item in enumerate(items, start=1):
+                ChecklistItem.objects.create(
+                    checklist=checklist,
+                    item_text=item['text'],
+                    is_done=item['done'],
+                    sort_order=i
+                )
 
-        checklist.items.all().delete()
-        for i, item in enumerate(items, start=1):
-            ChecklistItem.objects.create(
-                checklist=checklist,
-                item_text=item['text'],
-                is_done=item['done'],
-                sort_order=i
-            )
-
-        messages.success(request, 'チェックリストを保存しました。')
-        return redirect('codemon:checklist_detail', pk=checklist.checklist_id)
+            messages.success(request, 'チェックリストを保存しました。')
+            # show_confirmの場合は保存完了画面を表示
+            if 'show_confirm' in request.POST:
+                return render(request, 'codemon/checklist_save.html', {
+                    'checklist': checklist,
+                })
+            # confirm_saveの場合は詳細画面にリダイレクト
+            return redirect('codemon:checklist_detail', pk=checklist.checklist_id)
 
     return redirect('codemon:checklist_edit', pk=pk)
 
@@ -778,14 +776,63 @@ def checklist_delete(request, pk):
                 pass
         cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
     if request.method == 'POST':
-        checklist_name = cl.checklist_name
-        items_count = cl.items.count()
+        deleted_pk = cl.checklist_id
+        deleted_name = cl.checklist_name
+        deleted_description = getattr(cl, 'checklist_description', '')
+        deleted_items = list(cl.items.values('checklist_item_id', 'item_text', 'is_done'))
+        items_count = len(deleted_items)
         cl.delete()
         messages.success(request,
-            f'チェックリスト「{checklist_name}」と{items_count}個の項目が削除されました。')
-        return render(request, 'codemon/checklist_delete_complete.html',
-            {'deleted_name': checklist_name, 'deleted_items_count': items_count})
+            f'チェックリスト「{deleted_name}」と{items_count}個の項目が削除されました。')
+        return render(request, 'codemon/checklist_delete_complete.html', {
+            'deleted_pk': deleted_pk,
+            'deleted_name': deleted_name,
+            'deleted_description': deleted_description,
+            'deleted_items_count': items_count,
+            'deleted_items': deleted_items,
+        })
     return redirect('codemon:checklist_delete_confirm', pk=pk)
+
+
+def checklist_delete_complete(request, pk):
+    """削除処理を実行して、完了画面をレンダリング"""
+    if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
+        cl = get_object_or_404(Checklist, checklist_id=pk)
+    else:
+        owner = _get_write_owner(request)
+        if owner is None:
+            if not getattr(settings, 'DEBUG', False):
+                login_url = reverse('accounts:student_login') + '?next=' + request.path
+                messages.error(request, 'チェックリストの削除にはログインが必要です')
+                return redirect(login_url)
+            from accounts.models import Account as _Account
+            owner, _ = _Account.objects.get_or_create(
+                email='dev_auto@local',
+                defaults={'user_name': '開発用匿名', 'password': 'dev', 'account_type': 'dev', 'age': 0}
+            )
+            try:
+                request.session['is_account_authenticated'] = True
+                request.session['account_user_id'] = getattr(owner, 'user_id', getattr(owner, 'id', None))
+            except Exception:
+                pass
+        cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
+    
+    # 削除処理を実行
+    deleted_pk = cl.checklist_id
+    deleted_name = cl.checklist_name
+    deleted_description = getattr(cl, 'checklist_description', '')
+    deleted_items = list(cl.items.values('checklist_item_id', 'item_text', 'is_done'))
+    items_count = len(deleted_items)
+    cl.delete()
+    messages.success(request,
+        f'チェックリスト「{deleted_name}」と{items_count}個の項目が削除されました。')
+    return render(request, 'codemon/checklist_delete_complete.html', {
+        'deleted_pk': deleted_pk,
+        'deleted_name': deleted_name,
+        'deleted_description': deleted_description,
+        'deleted_items_count': items_count,
+        'deleted_items': deleted_items,
+    })
 
 
 @require_POST
