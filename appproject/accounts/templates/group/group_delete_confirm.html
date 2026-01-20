@@ -167,7 +167,7 @@
 
   <div class="delete-buttons">
     <a href="{% url 'accounts:account_entry' %}" class="btn btn-cancel">戻る</a>
-    <form method="post" action="{% url 'accounts:group_delete_confirm' group.group_id %}" style="display: inline;">
+    <form method="post" action="{% url 'accounts:group_delete' group.group_id %}" style="display: inline;">
       {% csrf_token %}
       <button type="submit" class="btn btn-delete">削除する</button>
     </form>
