@@ -1579,6 +1579,17 @@ def group_create(request):
             messages.error(request, 'ユーザーが特定できません。ログインしてください。')
             return redirect('accounts:student_login')
 
+        # 同じグループ名が既に存在するかチェック
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT group_id FROM "group" WHERE group_name = %s AND is_active = %s', [group_name, True])
+                existing_group = cursor.fetchone()
+                if existing_group:
+                    messages.error(request, 'このグループ名は既に使用されています。別の名前を入力してください。')
+                    return render(request, 'group/create_group.html', {})
+        except Exception:
+            pass
+
         # パスワードはハッシュ化して保存（空可）
         hashed = make_password(group_password) if group_password else ''
 
@@ -1628,7 +1639,6 @@ def group_create(request):
             # Render the same template with an explicit error message so it is visible
             return render(request, 'group/create_group.html', {'error_message': err})
 
-        messages.success(request, 'グループを作成しました。')
         # 要求: 作成後は教員アカウント用テンプレート `t_account.html` に戻す
         # URLconf では t_account ページは name='account_dashboard' にマッピングされているため
         # ここではその名前へリダイレクトする
@@ -1723,9 +1733,8 @@ def group_delete(request, group_id):
                 cursor.execute('UPDATE account SET group_id = NULL WHERE group_id = %s', [group_id])
                 # 最後に group 本体を削除（テーブル名が予約語のためダブルクォートで囲む）
                 cursor.execute('DELETE FROM "group" WHERE group_id = %s', [group_id])
-        messages.success(request, 'グループを削除しました。')
-    except Exception as e:
-        messages.error(request, f'グループの削除に失敗しました: {e}')
+    except Exception:
+        pass
     return redirect('accounts:account_entry')
 
 
