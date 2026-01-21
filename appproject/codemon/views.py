@@ -1329,9 +1329,8 @@ def group_delete(request, group_id):
                 
                 # AJAX呼び出しならJSONを返す
                 if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                    return JsonResponse({'status': 'ok', 'group_id': group_id, 'message': f'グループ「{group_name}」を削除しました'})
+                    return JsonResponse({'status': 'ok', 'group_id': group_id})
                 
-                messages.success(request, f'グループ「{group_name}」を削除しました')
                 return redirect('accounts:account_entry')
             except Exception as e:
                 cursor.execute('ROLLBACK')
