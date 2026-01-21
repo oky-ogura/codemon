@@ -16,9 +16,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   text-align: center;
   padding: 30px;
+  padding-top: 180px;  /* 固定チェックリスト情報の高さ分の余白 */
+  padding-bottom: 120px;  /* 固定ボタンの高さ分の余白を確保 */
   min-height: calc(100vh - 140px);
   gap: 18px;
   position: relative;
@@ -27,15 +29,20 @@
 }
 
 .checklist-info-table {
-  width: 100%;
+  width: min(92vw, 980px);
   border-collapse: collapse;
-  margin-bottom: 24px;
+  margin-bottom: 0;
   background: transparent;
   border-radius: 12px;
   overflow: visible;
   box-shadow: none;
   border: none;
   table-layout: auto;
+  position: fixed;
+  top: 140px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
 }
 
 .checklist-info-table th {
@@ -69,8 +76,10 @@
 .checklist-row-name {
   /* 名前行用のスタイル調整用 */
   --name-offset-x: 30px;
-  --name-offset-y: -85px;
-  transform: translate(var(--name-offset-x), var(--name-offset-y));
+  --name-offset-y: 0;
+  position: relative;
+  left: var(--name-offset-x);
+  top: var(--name-offset-y);
 }
 
 .checklist-row-name td {
@@ -83,9 +92,11 @@
 
 .checklist-row-description {
   /* 説明行用のスタイル調整用 */
-  --description-offset-x: 220px;
-  --description-offset-y: -130px;
-  transform: translate(var(--description-offset-x), var(--description-offset-y));
+  --description-offset-x: 240px;
+  --description-offset-y: -50px;
+  position: relative;
+  left: var(--description-offset-x);
+  top: var(--description-offset-y);
 }
 
 .checklist-row-description td {
@@ -98,57 +109,144 @@
 .checklist-row-line {
   /* 画像ライン行用のスタイル調整用 */
   --line-offset-x: 0px;
-  --line-offset-y: -90px;
-  transform: translate(var(--line-offset-x), var(--line-offset-y));
+  --line-offset-y: -52px;
+  position: relative;
+  left: var(--line-offset-x);
+  top: var(--line-offset-y);
 }
 
 .checklist-row-line td {
   /* 画像ラインセル用スタイル */
   padding: 12px 16px;
   text-align: center;
+  position: relative;
 }
 
 .checklist-line-image {
   /* 画像ラインのスタイル調整用 */
   --image-offset-x: 0px;
   --image-offset-y: 0px;
-  max-width: 100%;
+  --image-scale: 1;
+  max-width: 863px;
   height: auto;
   display: block;
-  transform: translate(var(--image-offset-x), var(--image-offset-y));
+  position: absolute;
+  left: var(--image-offset-x);
+  top: var(--image-offset-y);
+  transform: scale(var(--image-scale));
 }
 
+/* ===== チェックリスト項目 行ごとの背景画像 ===== */
 .checklist-items-table {
-  width: 100%;
+  width: min(92vw, 980px);
+  margin: 0 auto;
   border-collapse: collapse;
-  margin-bottom: 24px;
-  background: transparent;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: none;
   border: none;
+  --item-gap: 11px; /* 項目間のスペース */
+  border-spacing: 0 var(--item-gap);
+}
+
+.checklist-items-table tr {
+  --item-padding: 12px 16px; /* 各行のパディング */
 }
 
 .checklist-items-table td {
-  padding: 12px 16px;
-  text-align: left;
-  border-bottom: none;
+  padding: var(--item-padding);
 }
 
-.checklist-items-table tr:last-child td {
-  border-bottom: none;
+.checklist-item-bg {
+  /* 位置調整用のCSS変数（ボタンと同様の考え方） */
+  --item-bg-offset-x: -170px;
+  --item-bg-offset-y: -130px;
+  --item-bg-scale: 1;
+  --item-bg-position: center;
+  --item-bg-size: 660px auto;
+  --item-bg-max-width: 660px; /* 例: 720px などで上限を設定可能 */
+
+  position: relative;
+  min-height: 64px;
+  overflow: visible;
 }
 
-.checklist-items-table input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
-  cursor: pointer;
-}
-
+/* ===== チェックリスト項目のテキスト（タイトル）調整 ===== */
 .checklist-items-table label {
+  /* テキスト表示調整用のCSS変数 */
+  --item-title-font-size: 16px;
+  --item-title-color: #333;
+  --item-title-font-family: inherit;
+  --item-title-font-weight: normal;
+  --item-title-line-height: 1.4;
+  --item-title-letter-spacing: 0;
+  --item-title-margin: 0;
+  --item-title-padding: 0;
+  --item-title-offset-x: -420px;
+  --item-title-offset-y: -130px;
+  --item-title-scale: 1;
+
+  font-size: var(--item-title-font-size);
+  color: var(--item-title-color);
+  font-family: var(--item-title-font-family);
+  font-weight: var(--item-title-font-weight);
+  line-height: var(--item-title-line-height);
+  letter-spacing: var(--item-title-letter-spacing);
+  margin: var(--item-title-margin);
+  padding: var(--item-title-padding);
+  display: inline-block;
+  position: relative;
+  transform: translate(var(--item-title-offset-x), var(--item-title-offset-y)) scale(var(--item-title-scale));
+  transform-origin: left center;
+}
+
+.checklist-item-bg::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: min(100%, var(--item-bg-max-width));
+  height: 100%;
+  background-image: url("{% static 'codemon/images/backgrounds/checklist_detail_bg.png' %}");
+  background-repeat: no-repeat;
+  background-position: var(--item-bg-position);
+  background-size: var(--item-bg-size);
+  transform: translate(calc(-50% + var(--item-bg-offset-x)), var(--item-bg-offset-y)) scale(var(--item-bg-scale));
+  z-index: 0;
+}
+
+.checklist-item-bg > * {
+  position: relative;
+  z-index: 1; /* 背景より前面に表示 */
+}
+
+/* ===== カスタムチェックボックス ===== */
+.checklist-items-table input[type="checkbox"] {
+  /* 位置・サイズ調整用のCSS変数 */
+  --checkbox-width: 40px;
+  --checkbox-height: 40px;
+  --checkbox-offset-x: 15px;
+  --checkbox-offset-y: -130px;
+  --checkbox-scale: 1;
+  
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: var(--checkbox-width);
+  height: var(--checkbox-height);
   cursor: pointer;
-  font-size: 16px;
-  color: #333;
+  background-image: url("{% static 'codemon/images/buttons/check1.png' %}");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: block;
+  position: relative;
+  transform: translate(var(--checkbox-offset-x), var(--checkbox-offset-y)) scale(var(--checkbox-scale));
+  z-index: 2; /* 背景画像より前に表示 */
+}
+
+.checklist-items-table input[type="checkbox"]:checked {
+  background-image: url("{% static 'codemon/images/buttons/check2.png' %}");
 }
 
 /* ===== アクションボタン ===== */
@@ -157,8 +255,10 @@
   justify-content: center;
   align-items: center;
   gap: 18px;
-  margin-top: 24px;
-  position: relative;
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 1000;
 }
 
@@ -171,17 +271,19 @@
   --back-margin-top: 0;
   --back-margin-bottom: 0;
   --back-img-width: 100%;
-  --back-img-max-width: 180px;
+  --back-img-max-width: 100px;
   --back-img-height: auto;
   --back-img-object-fit: contain;
-  --back-img-offset-x: -435px;
-  --back-img-offset-y: 30px;
+  --back-img-offset-x: -310px;
+  --back-img-offset-y: 100px;
   --back-img-scale: 1;
   
   position: relative;
   display: inline-block;
   width: var(--back-width);
   max-width: var(--back-max-width);
+  min-width: 180px;
+  min-height: 180px;
   height: var(--back-height);
   padding: var(--back-padding);
   margin-top: var(--back-margin-top);
@@ -191,6 +293,7 @@
   text-decoration: none;
   cursor: pointer;
   transition: transform 0.22s ease;
+  overflow: visible;
 }
 
 .btn-back img {
@@ -201,7 +304,10 @@
   display: block;
   border-radius: 999px;
   box-shadow: none !important;
-  transform: translate(var(--back-img-offset-x), var(--back-img-offset-y)) scale(var(--back-img-scale));
+  position: absolute;
+  left: var(--back-img-offset-x);
+  top: var(--back-img-offset-y);
+  transform: scale(var(--back-img-scale));
 }
 
 .btn-back:hover {
@@ -221,17 +327,19 @@
   --edit-margin-top: 0;
   --edit-margin-bottom: 0;
   --edit-img-width: 100%;
-  --edit-img-max-width: 180px;
+  --edit-img-max-width: 100px;
   --edit-img-height: auto;
   --edit-img-object-fit: contain;
-  --edit-img-offset-x: -530px;
-  --edit-img-offset-y: -130px;
+  --edit-img-offset-x: -505px;
+  --edit-img-offset-y: -60px;
   --edit-img-scale: 1;
   
   position: relative;
   display: inline-block;
   width: var(--edit-width);
   max-width: var(--edit-max-width);
+  min-width: 180px;
+  min-height: 180px;
   height: var(--edit-height);
   padding: var(--edit-padding);
   margin-top: var(--edit-margin-top);
@@ -241,6 +349,7 @@
   text-decoration: none;
   cursor: pointer;
   transition: transform 0.22s ease;
+  overflow: visible;
 }
 
 .btn-edit img {
@@ -251,7 +360,10 @@
   display: block;
   border-radius: 999px;
   box-shadow: none !important;
-  transform: translate(var(--edit-img-offset-x), var(--edit-img-offset-y)) scale(var(--edit-img-scale));
+  position: absolute;
+  left: var(--edit-img-offset-x);
+  top: var(--edit-img-offset-y);
+  transform: scale(var(--edit-img-scale));
 }
 
 .btn-edit:hover {
@@ -271,17 +383,19 @@
   --delete-margin-top: 0;
   --delete-margin-bottom: 0;
   --delete-img-width: 100%;
-  --delete-img-max-width: 180px;
+  --delete-img-max-width: 100px;
   --delete-img-height: auto;
   --delete-img-object-fit: contain;
-  --delete-img-offset-x: -635px;
-  --delete-img-offset-y: -50px;
+  --delete-img-offset-x: -705px;
+  --delete-img-offset-y: 20px;
   --delete-img-scale: 1;
   
   position: relative;
   display: inline-block;
   width: var(--delete-width);
   max-width: var(--delete-max-width);
+  min-width: 180px;
+  min-height: 180px;
   height: var(--delete-height);
   padding: var(--delete-padding);
   margin-top: var(--delete-margin-top);
@@ -291,6 +405,7 @@
   text-decoration: none;
   cursor: pointer;
   transition: transform 0.22s ease;
+  overflow: visible;
 }
 
 .btn-delete img {
@@ -301,7 +416,10 @@
   display: block;
   border-radius: 999px;
   box-shadow: none !important;
-  transform: translate(var(--delete-img-offset-x), var(--delete-img-offset-y)) scale(var(--delete-img-scale));
+  position: absolute;
+  left: var(--delete-img-offset-x);
+  top: var(--delete-img-offset-y);
+  transform: scale(var(--delete-img-scale));
 }
 
 .btn-delete:hover {
@@ -336,6 +454,7 @@
 @media (max-width: 768px) {
   .checklist-detail {
     padding: 20px;
+    padding-bottom: 120px;  /* ボタンの高さ分の余白を確保 */
   }
   
   .checklist-info-table th {
@@ -374,6 +493,7 @@
 @media (max-width: 480px) {
   .checklist-detail {
     padding: 16px;
+    padding-bottom: 120px;  /* ボタンの高さ分の余白を確保 */
   }
   
   .checklist-info-table th {
@@ -427,22 +547,23 @@
   </table>
 
   <!-- 🔹 チェックリスト項目 -->
-  <form method="POST" action="">
+  <form method="POST" action="" onsubmit="event.preventDefault();" style="position: relative; z-index: 1100;">
     {% csrf_token %}
     <table class="checklist-items-table">
       {% for item in checklist.items.all %}
       <tr>
-        <td>
-          <input type="checkbox" id="item_{{ item.checklist_item_id }}" 
+        <td style="width:52px;">
+          <input type="checkbox" id="item_{{ item.checklist_item_id }}"
           {% if item.is_done %}checked{% endif %}
-          onchange="toggleItem({{ checklist.checklist_id }}, {{ item.checklist_item_id }}, this.checked)">
+          onchange="toggleItem({{ checklist.checklist_id }}, {{ item.checklist_item_id }}, this.checked)"
+          onclick="event.stopPropagation();">
         </td>
-        <td>
-          <label for="item_{{ item.checklist_item_id }}" {% if item.is_done %}style="text-decoration: line-through; color: gray;"{% endif %}>
+        <td class="checklist-item-bg">
+           <label for="item_{{ item.checklist_item_id }}" {% if item.is_done %}style="text-decoration: line-through; color: gray;"{% endif %}
+             onclick="event.preventDefault(); event.stopPropagation();">
           {{ item.item_text }}
         </label>
         </td>
-      </tr>
       {% endfor %}
     </table>
   </form>
@@ -468,6 +589,14 @@ document.addEventListener('DOMContentLoaded', function() {
   {% if request.user.role == 'teacher' %}
     accountTab.href = "{% url 'accounts:teacher_home' %}";
   {% endif %}
+
+  // チェックリスト項目テーブル内のクリックは他要素へバブルさせない
+  const checklistTable = document.querySelector('.checklist-items-table');
+  if (checklistTable) {
+    checklistTable.addEventListener('click', function(e) {
+      e.stopPropagation();
+    });
+  }
 });
 function getCookie(name) {
     let cookieValue = null;

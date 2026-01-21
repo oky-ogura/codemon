@@ -22,7 +22,7 @@
 .page-hero-img { display:block; margin: 0 auto 12px; }
 
 /* コンテナ */
-.checklist-list-container { max-width: 1100px; width: min(94vw,1100px); margin: 80px auto 120px; padding: 30px 36px; position: relative; z-index:20; background-color:transparent; border:none; border-radius:12px; }
+.checklist-list-container { max-width: 1100px; width: min(94vw,1100px); margin: 80px auto 120px; padding: 30px 36px 120px; position: relative; z-index:20; background-color:transparent; border:none; border-radius:12px; }
 .checklist-list-container h1 { text-align: center; margin-bottom: 8px; font-size:28px; }
 
 /* テーブル（カード風の行に置き換え） */
@@ -111,12 +111,11 @@
 
 /* 戻るボタンコンテナもCSS変数で調整可能に */
 .back-button-container {
-  text-align: var(--back-align, left);
-  margin-top: var(--back-margin-top, 20px);
-  margin-left: var(--back-margin-left, 0);
-  margin-right: var(--back-margin-right, 0);
-  margin-bottom: var(--back-margin-bottom, 0);
-  transform: translate(var(--back-tx, -75px), var(--back-ty, 55px)) scale(var(--back-scale, 1));
+  position: fixed;
+  bottom: 40px;
+  left: 90px;
+  transform: translateX(-50%);
+  z-index: 1000;
 }
 .back-button-container .btn-back img {
   height: var(--back-img-height, 56px);
@@ -126,30 +125,6 @@
 @media (max-width:800px) {
   .checklist-meta, .checklist-updated, .checklist-action { width:auto; text-align:left; }
   .checklist-row { flex-direction:column; align-items:stretch; gap:8px; }
-}
-
-/* アクション（右上）: 作成ボタンなど */
-.list-actions { 
-  position: var(--actions-position, absolute); 
-  right: var(--actions-right, 22px); 
-  top: var(--actions-top, 22px); 
-  display: var(--actions-display, flex); 
-  gap: var(--actions-gap, 12px); 
-  align-items: var(--actions-align, center);
-  transform: translate(var(--actions-tx, 0), var(--actions-ty, 0)) scale(var(--actions-scale, 1));
-}
-.list-actions a, .list-actions button { 
-  background: var(--actions-btn-bg, none); 
-  border: var(--actions-btn-border, none); 
-  padding: var(--actions-btn-padding, 0); 
-  cursor: var(--actions-btn-cursor, pointer);
-  transform: translate(var(--actions-btn-tx, 0), var(--actions-btn-ty, 0)) scale(var(--actions-btn-scale, 1));
-}
-.list-actions img { 
-  height: var(--actions-img-height, 56px); 
-  width: var(--actions-img-width, auto);
-  display: var(--actions-img-display, block);
-  transform: translate(var(--actions-img-tx, 0), var(--actions-img-ty, 0)) scale(var(--actions-img-scale, 1));
 }
 
 @media (max-width: 800px) {
@@ -197,8 +172,6 @@
             </a>
         </div>
       </div>
-    {% empty %}
-      <div class="checklist-row"><div class="checklist-cell no-items" style="flex:1; text-align:center;">作成されたチェックリストはありません。</div></div>
     {% endfor %}
   </div>
 

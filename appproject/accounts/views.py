@@ -304,6 +304,11 @@ def karihome(request):
     """簡易ビュー: accounts/karihome.html を表示する。テンプレートは既にあるため GET で表示するだけ。"""
     return render(request, 'accounts/karihome.html')
 
+def logout_confirm(request):
+    """ログアウト確認ページを表示"""
+    return render(request, 'accounts/logout.html')
+
+
 def user_logout(request):
     # セッション内のアカウント情報を削除してログアウト扱いにする
     for k in ['is_account_authenticated', 'account_user_id', 'account_email', 'account_user_name']:
@@ -1784,20 +1789,27 @@ def group_detail(request, group_id):
 def group_delete_confirm(request, group_id):
     """表示用の削除確認ページ。POST 実行は `codemon.views.group_delete` を使う想定。"""
     group = None
+    member_count = 0
     try:
         with connection.cursor() as cursor:
             cursor.execute('SELECT group_id, group_name, user_id FROM "group" WHERE group_id = %s', [group_id])
             row = cursor.fetchone()
             if row:
                 group = {'group_id': row[0], 'group_name': row[1], 'owner_id': row[2]}
+                # メンバー数を取得
+                cursor.execute('SELECT COUNT(*) FROM group_member WHERE group_id = %s AND is_active = TRUE', [group_id])
+                count_row = cursor.fetchone()
+                if count_row:
+                    member_count = count_row[0]
     except Exception:
         group = None
+        member_count = 0
 
     if group is None:
         messages.error(request, '指定されたグループが見つかりません')
         return redirect('accounts:account_entry')
 
-    return render(request, 'group/group_delete_confirm.html', {'group': group})
+    return render(request, 'group/group_delete_confirm.html', {'group': group, 'member_count': member_count})
 
 
 def group_remove_member(request, group_id, member_id):
