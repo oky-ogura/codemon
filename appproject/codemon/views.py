@@ -1086,6 +1086,14 @@ def group_create(request):
                 from django.db import connection
                 now = timezone.now()
                 with connection.cursor() as cursor:
+                    # PostgreSQLの場合、シーケンスが遅れている可能性があるため
+                    # テーブル内の最大IDとシーケンスを比較して修正する
+                    if connection.vendor == 'postgresql':
+                        cursor.execute('SELECT MAX(group_id) FROM "group"')
+                        max_id = cursor.fetchone()[0]
+                        if max_id is not None:
+                            cursor.execute("SELECT setval('group_group_id_seq', GREATEST(nextval('group_group_id_seq'), %s))", [max_id + 1])
+                    
                     cursor.execute(
                         'INSERT INTO "group" (group_name, description, user_id, password, created_at, updated_at, is_active) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING group_id',
                         [name, description, getattr(owner, 'user_id', getattr(owner, 'id', None)), '', now, now, True]
@@ -1093,14 +1101,11 @@ def group_create(request):
                     row = cursor.fetchone()
                     group_id = row[0]
                 group = Group.objects.get(group_id=group_id)
-            except Exception:
+            except Exception as e:
                 # Fall back to the ORM create to let the original exception
                 # propagate if raw SQL fails for some reason.
-                group = Group.objects.create(
-                    group_name=name,
-                    description=description,
-                    owner=owner
-                )
+                messages.error(request, f'グループ作成に失敗しました: {e}')
+                return render(request, 'codemon/group_create.html')
             # 作成者を教師権限のメンバーとして追加
             try:
                 GroupMember.objects.create(

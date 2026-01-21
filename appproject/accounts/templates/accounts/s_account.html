@@ -148,30 +148,30 @@
                 <tr>
                   <td colspan="2" style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;">
                     <span style="width:90px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">ID</span>
-                    <span style="flex:1;padding-right:20px;color:#000;font-size:15px;">{% if account %}{{ account.user_id }}{% else %}---{% endif %}</span>
+                    <span style="flex:1;padding-right:20px;color:#000;font-size:15px;text-align:center;">{% if account %}{{ account.user_id }}{% else %}---{% endif %}</span>
                   </td>
                 </tr>
                 <tr>
                   <td colspan="2" style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;">
 
                     <span style="width:90px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">名前</span>
-                    <span style="flex:1;padding-right:20px;color:#000;font-size:15px;">{% if account %}{{ account.user_name }}{% else %}ゲスト{% endif %}</span>
+                    <span style="flex:1;padding-right:20px;color:#000;font-size:15px;text-align:center;">{% if account %}{{ account.user_name }}{% else %}ゲスト{% endif %}</span>
                   </td>
                 </tr>
                 <tr>
                   <td colspan="2" style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;">
 
                     <span style="width:90px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">年齢</span>
-                    <span style="flex:1;padding-right:20px;color:#000;font-size:15px;">{% if account and account.age is not None %}{{ account.age }}歳{% else %}--{% endif %}</span>
+                    <span style="flex:1;padding-right:20px;color:#000;font-size:15px;text-align:center;">{% if account and account.age is not None %}{{ account.age }}歳{% else %}--{% endif %}</span>
                   </td>
                 </tr>
                 <tr>
                   <td colspan="2" style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;">
                     <span style="width:90px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">グループ</span>
                     {% if joined_group %}
-                      <span style="flex:1;padding-right:20px;color:#000;font-size:15px;">{{ joined_group.group_name }}</span>
+                      <span style="flex:1;padding-right:20px;color:#000;font-size:15px;text-align:center;">{{ joined_group.group_name }}</span>
                     {% else %}
-                      <a href="{% url 'accounts:group_join_confirm' %}" style="flex:1;padding-right:20px;color:#0066cc;font-size:15px;text-decoration:underline;">グループ参加</a>
+                      <a href="{% url 'accounts:group_join_confirm' %}" style="flex:1;padding-right:20px;color:#0066cc;font-size:15px;text-align:center;text-decoration:underline;">グループ参加</a>
                     {% endif %}
                   </td>
                 </tr>
@@ -198,7 +198,7 @@
               <div style="display:flex;flex-direction:column;gap:8px;">
                 <div style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;min-width:280px;">
                   <span style="width:90px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">名前</span>
-                  <span style="flex:1;padding-right:20px;color:#000;font-size:15px;">{{ ai_config.ai_name|default:"CodeMon" }}</span>
+                  <span style="flex:1;padding-right:20px;color:#000;font-size:15px;text-align:center;">{{ ai_config.ai_name|default:"CodeMon" }}</span>
                 </div>
                 <div style="text-align:center;font-size:14px;color:#666;">
                   <div>初めて会った日　{% if first_met %}{{ first_met|date:"Y/m/d" }}{% else %}--{% endif %}</div>
