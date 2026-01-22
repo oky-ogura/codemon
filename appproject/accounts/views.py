@@ -1582,7 +1582,7 @@ def group_create(request):
         # 同じグループ名が既に存在するかチェック
         try:
             with connection.cursor() as cursor:
-                cursor.execute('SELECT group_id FROM "group" WHERE group_name = %s AND is_active = %s', [group_name, True])
+                cursor.execute('SELECT group_id FROM "group" WHERE group_name = %s',[group_name])
                 existing_group = cursor.fetchone()
                 if existing_group:
                     messages.error(request, 'このグループ名は既に使用されています。別の名前を入力してください。')
@@ -1607,7 +1607,7 @@ def group_create(request):
                     last_id = cursor.fetchone()[0]
                     new_group_id = last_id + 1
                     
-                    cursor.execute('INSERT INTO "group" (group_id, group_name, user_id, password, is_active, created_at, updated_at) VALUES (%s, %s, %s, %s, %s, now(), now())', [new_group_id, group_name, user_id, hashed or '', True])
+                    cursor.execute('INSERT INTO "group" (group_id, group_name, user_id, password, created_at, updated_at)'' VALUES (%s, %s, %s, %s, now(), now())',[new_group_id, group_name, user_id, hashed or ''])
                     group_id = new_group_id
 
                 if group_id is None:
