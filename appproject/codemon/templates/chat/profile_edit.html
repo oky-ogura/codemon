@@ -1,0 +1,455 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}プロフィール編集 - Codemon{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-container {
+        max-width: 600px;
+        margin: 40px auto;
+        padding: 30px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .profile-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .profile-title {
+        font-size: 28px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+
+    .profile-subtitle {
+        color: #999;
+        font-size: 14px;
+    }
+
+    .avatar-section {
+        text-align: center;
+        margin-bottom: 40px;
+        padding: 30px;
+        background: #f9f9f9;
+        border-radius: 10px;
+    }
+
+    .current-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        margin: 0 auto 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 48px;
+        font-weight: bold;
+        overflow: hidden;
+    }
+
+    .current-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .current-avatar-label {
+        font-size: 12px;
+        color: #999;
+        margin-bottom: 15px;
+    }
+
+    .upload-section {
+        margin-bottom: 20px;
+    }
+
+    .upload-label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 10px;
+        color: #333;
+    }
+
+    .file-input-wrapper {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+    }
+
+    .file-input-label {
+        display: block;
+        padding: 12px 20px;
+        background: #f0f0f0;
+        border: 2px dashed #2196F3;
+        border-radius: 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .file-input-label:hover {
+        background: #e8f5ff;
+        border-color: #1976D2;
+    }
+
+    .file-input-label.drag-over {
+        background: #e3f2fd;
+        border-color: #1976D2;
+    }
+
+    input[type="file"] {
+        display: none;
+    }
+
+    .upload-icon {
+        font-size: 24px;
+        margin-right: 10px;
+    }
+
+    .upload-text {
+        font-size: 14px;
+        color: #666;
+    }
+
+    .upload-hint {
+        font-size: 12px;
+        color: #999;
+        margin-top: 5px;
+    }
+
+    .preview-section {
+        margin-top: 20px;
+    }
+
+    .preview-label {
+        font-size: 12px;
+        font-weight: 500;
+        color: #999;
+        margin-bottom: 10px;
+    }
+
+    .preview-image {
+        max-width: 200px;
+        max-height: 200px;
+        border-radius: 8px;
+        object-fit: cover;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 8px;
+        color: #333;
+        font-size: 14px;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 10px 15px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: inherit;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: #2196F3;
+        box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+    }
+
+    .form-textarea {
+        resize: vertical;
+        min-height: 80px;
+    }
+
+    .button-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 30px;
+    }
+
+    .btn {
+        flex: 1;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-save {
+        background: #2196F3;
+        color: white;
+    }
+
+    .btn-save:hover {
+        background: #1976D2;
+    }
+
+    .btn-save:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+
+    .btn-cancel {
+        background: #f0f0f0;
+        color: #333;
+    }
+
+    .btn-cancel:hover {
+        background: #e0e0e0;
+    }
+
+    .success-message {
+        background: #d4edda;
+        color: #155724;
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: none;
+    }
+
+    .error-message {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: none;
+    }
+
+    .spinner {
+        display: none;
+        width: 16px;
+        height: 16px;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid #2196F3;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-left: 8px;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 600px) {
+        .profile-container {
+            margin: 20px;
+            padding: 20px;
+        }
+
+        .button-group {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-header">
+        <div class="profile-title">プロフィール編集</div>
+        <div class="profile-subtitle">あなたの表示アイコンを設定・変更します</div>
+    </div>
+
+    <div id="success-message" class="success-message">
+        ✓ プロフィールを更新しました
+    </div>
+    <div id="error-message" class="error-message">
+        ✗ エラーが発生しました
+    </div>
+
+    <form id="profile-form" method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- アイコン設定セクション -->
+        <div class="avatar-section">
+            <div class="current-avatar-label">現在のアイコン</div>
+            <div class="current-avatar" id="current-avatar">
+                {% if user.avatar %}
+                    <img src="{{ user.avatar.url }}" alt="{{ user.username }}">
+                {% else %}
+                    <span>{{ user.username|first|upper }}</span>
+                {% endif %}
+            </div>
+
+            <div class="upload-section">
+                <label class="upload-label">アイコンを変更</label>
+                <div class="file-input-wrapper" id="file-input-wrapper">
+                    <label for="avatar-input" class="file-input-label" id="file-input-label">
+                        <span class="upload-icon">📁</span>
+                        <span class="upload-text">クリックするか、ファイルをドラッグ&ドロップ</span>
+                        <div class="upload-hint">
+                            対応形式: JPG, PNG, GIF (最大 10MB)
+                        </div>
+                    </label>
+                    <input type="file" id="avatar-input" name="avatar" accept="image/*"
+                           onchange="handleAvatarSelect(event)">
+                </div>
+            </div>
+
+            <div id="preview-section" class="preview-section" style="display: none;">
+                <div class="preview-label">プレビュー</div>
+                <img id="preview-image" src="" alt="Preview" class="preview-image">
+            </div>
+        </div>
+
+        <!-- プロフィール情報セクション -->
+        <div class="form-group">
+            <label class="form-label" for="username">ユーザー名</label>
+            <input type="text" id="username" class="form-input" value="{{ user.username }}" 
+                   readonly style="background: #f9f9f9; cursor: not-allowed;">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="email">メールアドレス</label>
+            <input type="email" id="email" class="form-input" value="{{ user.email }}" 
+                   readonly style="background: #f9f9f9; cursor: not-allowed;">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="bio">自己紹介</label>
+            <textarea id="bio" name="bio" class="form-input form-textarea" 
+                      placeholder="自己紹介を入力してください">{{ user.profile.bio|default:"" }}</textarea>
+        </div>
+
+        <!-- ボタングループ -->
+        <div class="button-group">
+            <button type="submit" class="btn btn-save" id="save-btn">
+                <span>保存する</span>
+                <span class="spinner" id="spinner"></span>
+            </button>
+            <button type="button" class="btn btn-cancel" onclick="window.history.back()">
+                キャンセル
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    const form = document.getElementById('profile-form');
+    const avatarInput = document.getElementById('avatar-input');
+    const fileInputLabel = document.getElementById('file-input-label');
+    const previewSection = document.getElementById('preview-section');
+    const previewImage = document.getElementById('preview-image');
+    const currentAvatar = document.getElementById('current-avatar');
+    const spinner = document.getElementById('spinner');
+    const saveBtn = document.getElementById('save-btn');
+
+    // ファイル選択処理
+    function handleAvatarSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // ファイルサイズチェック（10MB）
+        if (file.size > 10 * 1024 * 1024) {
+            showError('ファイルサイズが大きすぎます（最大10MB）');
+            avatarInput.value = '';
+            return;
+        }
+
+        // ファイルタイプチェック
+        if (!file.type.startsWith('image/')) {
+            showError('画像ファイルのみ対応しています');
+            avatarInput.value = '';
+            return;
+        }
+
+        // プレビュー表示
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewImage.src = e.target.result;
+            previewSection.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // ドラッグ&ドロップ処理
+    const fileInputWrapper = document.getElementById('file-input-wrapper');
+    fileInputWrapper.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        fileInputLabel.classList.add('drag-over');
+    });
+
+    fileInputWrapper.addEventListener('dragleave', () => {
+        fileInputLabel.classList.remove('drag-over');
+    });
+
+    fileInputWrapper.addEventListener('drop', (e) => {
+        e.preventDefault();
+        fileInputLabel.classList.remove('drag-over');
+        const files = e.dataTransfer.files;
+        avatarInput.files = files;
+        handleAvatarSelect({ target: { files: files } });
+    });
+
+    // フォーム送信処理
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        spinner.style.display = 'inline-block';
+        saveBtn.disabled = true;
+
+        const formData = new FormData(form);
+
+        try {
+            const response = await fetch('{% url "profile:edit" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            });
+
+            if (response.ok) {
+                showSuccess('プロフィールを更新しました');
+                // 3秒後にリダイレクト
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showError('プロフィール更新に失敗しました');
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+            showError('エラーが発生しました');
+        } finally {
+            spinner.style.display = 'none';
+            saveBtn.disabled = false;
+        }
+    });
+
+    function showSuccess(message) {
+        const el = document.getElementById('success-message');
+        el.textContent = '✓ ' + message;
+        el.style.display = 'block';
+        setTimeout(() => {
+            el.style.display = 'none';
+        }, 3000);
+    }
+
+    function showError(message) {
+        const el = document.getElementById('error-message');
+        el.textContent = '✗ ' + message;
+        el.style.display = 'block';
+        setTimeout(() => {
+            el.style.display = 'none';
+        }, 3000);
+    }
+</script>
+{% endblock %}
