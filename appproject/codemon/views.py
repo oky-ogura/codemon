@@ -1086,6 +1086,14 @@ def group_create(request):
                 from django.db import connection
                 now = timezone.now()
                 with connection.cursor() as cursor:
+                    # PostgreSQLの場合、シーケンスが遅れている可能性があるため
+                    # テーブル内の最大IDとシーケンスを比較して修正する
+                    if connection.vendor == 'postgresql':
+                        cursor.execute('SELECT MAX(group_id) FROM "group"')
+                        max_id = cursor.fetchone()[0]
+                        if max_id is not None:
+                            cursor.execute("SELECT setval('group_group_id_seq', GREATEST(nextval('group_group_id_seq'), %s))", [max_id + 1])
+                    
                     cursor.execute(
                         'INSERT INTO "group" (group_name, description, user_id, password, created_at, updated_at, is_active) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING group_id',
                         [name, description, getattr(owner, 'user_id', getattr(owner, 'id', None)), '', now, now, True]
@@ -1093,14 +1101,11 @@ def group_create(request):
                     row = cursor.fetchone()
                     group_id = row[0]
                 group = Group.objects.get(group_id=group_id)
-            except Exception:
+            except Exception as e:
                 # Fall back to the ORM create to let the original exception
                 # propagate if raw SQL fails for some reason.
-                group = Group.objects.create(
-                    group_name=name,
-                    description=description,
-                    owner=owner
-                )
+                messages.error(request, f'グループ作成に失敗しました: {e}')
+                return render(request, 'codemon/group_create.html')
             # 作成者を教師権限のメンバーとして追加
             try:
                 GroupMember.objects.create(
@@ -1284,38 +1289,57 @@ def group_edit(request, group_id):
 @require_POST
 def group_delete(request, group_id):
     """グループの削除（論理削除）"""
-    owner = _get_write_owner(request)
-    if owner is None or owner.type != 'teacher':
-        return HttpResponseForbidden('教師権限が必要です')
-
-    group = get_object_or_404(Group, group_id=group_id, owner=owner, is_active=True)
+    if request.method != 'POST':
+        return HttpResponseForbidden('POSTメソッドが必要です')
     
-    # 実際にグループを削除する（トランザクションでメンバー削除、アカウント紐付け解除、本体削除をまとめて行う）
+    # セッションから現在のユーザーIDを取得
+    current_user_id = request.session.get('account_user_id')
+    if not current_user_id:
+        messages.error(request, 'ログインが必要です')
+        return redirect('accounts:account_entry')
+    
+    # グループの存在確認とowner権限チェック
     try:
-        with transaction.atomic():
-            # メンバーシップ削除
-            GroupMember.objects.filter(group=group).delete()
-            # account テーブルの group_id を解除（参照整合性のため）
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT group_id, group_name, user_id FROM "group" WHERE group_id = %s', [group_id])
+            row = cursor.fetchone()
+            if not row:
+                messages.error(request, '指定されたグループが見つかりません')
+                return redirect('accounts:account_entry')
+            
+            group_name = row[1]
+            owner_id = row[2]
+            
+            # owner権限チェック
+            if str(owner_id) != str(current_user_id):
+                messages.error(request, 'このグループを削除する権限がありません')
+                return redirect('accounts:account_entry')
+            
+            # トランザクション内で削除処理
+            cursor.execute('BEGIN')
             try:
-                Account.objects.filter(group_id=group.group_id).update(group_id=None)
-            except Exception:
-                import logging
-                logging.exception('failed to clear account.group_id for group %s', group.group_id)
-            # グループ本体を削除
-            group_name = group.group_name
-            group.delete()
-
-        # AJAX 呼び出しなら JSON を返す
-        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-            return JsonResponse({'status': 'ok', 'group_id': group_id, 'message': f'グループ「{group_name}」を削除しました'})
-
-        messages.success(request, f'グループ「{group_name}」を削除しました')
-        return redirect('codemon:group_list')
+                # メンバーシップ削除
+                cursor.execute('DELETE FROM group_member WHERE group_id = %s', [group_id])
+                # accountテーブルのgroup_id解除
+                cursor.execute('UPDATE account SET group_id = NULL WHERE group_id = %s', [group_id])
+                # グループ本体削除
+                cursor.execute('DELETE FROM "group" WHERE group_id = %s', [group_id])
+                cursor.execute('COMMIT')
+                
+                # AJAX呼び出しならJSONを返す
+                if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                    return JsonResponse({'status': 'ok', 'group_id': group_id})
+                
+                return redirect('accounts:account_entry')
+            except Exception as e:
+                cursor.execute('ROLLBACK')
+                raise e
     except Exception as e:
         import logging
         logging.exception('group_delete failed for group_id=%s', group_id)
         messages.error(request, f'グループの削除に失敗しました: {e}')
-        return redirect('codemon:group_detail', group_id=group_id)
+        return redirect('accounts:account_entry')
 
 
 # If ALLOW_ANONYMOUS_VIEWS is False, wrap the view callables with the real

@@ -304,6 +304,11 @@ def karihome(request):
     """簡易ビュー: accounts/karihome.html を表示する。テンプレートは既にあるため GET で表示するだけ。"""
     return render(request, 'accounts/karihome.html')
 
+def logout_confirm(request):
+    """ログアウト確認ページを表示"""
+    return render(request, 'accounts/logout.html')
+
+
 def user_logout(request):
     # セッション内のアカウント情報を削除してログアウト扱いにする
     for k in ['is_account_authenticated', 'account_user_id', 'account_email', 'account_user_name']:
@@ -1574,6 +1579,17 @@ def group_create(request):
             messages.error(request, 'ユーザーが特定できません。ログインしてください。')
             return redirect('accounts:student_login')
 
+        # 同じグループ名が既に存在するかチェック
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT group_id FROM "group" WHERE group_name = %s',[group_name])
+                existing_group = cursor.fetchone()
+                if existing_group:
+                    messages.error(request, 'このグループ名は既に使用されています。別の名前を入力してください。')
+                    return render(request, 'group/create_group.html', {})
+        except Exception:
+            pass
+
         # パスワードはハッシュ化して保存（空可）
         hashed = make_password(group_password) if group_password else ''
 
@@ -1586,11 +1602,13 @@ def group_create(request):
                 # 多くの既存 DB スキーマでは group.password が NOT NULL の場合があるため
                 # raw SQL で確実に挿入する
                 with connection.cursor() as cursor:
-                    cursor.execute('INSERT INTO "group" (group_name, user_id, password, is_active, created_at, updated_at) VALUES (%s, %s, %s, %s, now(), now())', [group_name, user_id, hashed or '', True])
-                    # 挿入した行を取得（group_name と user_id の組で最新のものを選ぶ）
-                    cursor.execute('SELECT group_id FROM "group" WHERE group_name = %s AND user_id = %s ORDER BY group_id DESC LIMIT 1', [group_name, user_id])
-                    row = cursor.fetchone()
-                    group_id = row[0] if row else None
+                    # 最後のグループIDを取得して+1した値を新しいグループIDとする
+                    cursor.execute('SELECT COALESCE(MAX(group_id), 0) FROM "group"')
+                    last_id = cursor.fetchone()[0]
+                    new_group_id = last_id + 1
+                    
+                    cursor.execute('INSERT INTO "group" (group_id, group_name, user_id, password, created_at, updated_at)'' VALUES (%s, %s, %s, %s, now(), now())',[new_group_id, group_name, user_id, hashed or ''])
+                    group_id = new_group_id
 
                 if group_id is None:
                     raise Exception('グループ作成後に group_id を取得できませんでした')
@@ -1623,7 +1641,6 @@ def group_create(request):
             # Render the same template with an explicit error message so it is visible
             return render(request, 'group/create_group.html', {'error_message': err})
 
-        messages.success(request, 'グループを作成しました。')
         # 要求: 作成後は教員アカウント用テンプレート `t_account.html` に戻す
         # URLconf では t_account ページは name='account_dashboard' にマッピングされているため
         # ここではその名前へリダイレクトする
@@ -1718,9 +1735,8 @@ def group_delete(request, group_id):
                 cursor.execute('UPDATE account SET group_id = NULL WHERE group_id = %s', [group_id])
                 # 最後に group 本体を削除（テーブル名が予約語のためダブルクォートで囲む）
                 cursor.execute('DELETE FROM "group" WHERE group_id = %s', [group_id])
-        messages.success(request, 'グループを削除しました。')
-    except Exception as e:
-        messages.error(request, f'グループの削除に失敗しました: {e}')
+    except Exception:
+        pass
     return redirect('accounts:account_entry')
 
 
@@ -1784,20 +1800,27 @@ def group_detail(request, group_id):
 def group_delete_confirm(request, group_id):
     """表示用の削除確認ページ。POST 実行は `codemon.views.group_delete` を使う想定。"""
     group = None
+    member_count = 0
     try:
         with connection.cursor() as cursor:
             cursor.execute('SELECT group_id, group_name, user_id FROM "group" WHERE group_id = %s', [group_id])
             row = cursor.fetchone()
             if row:
                 group = {'group_id': row[0], 'group_name': row[1], 'owner_id': row[2]}
+                # メンバー数を取得
+                cursor.execute('SELECT COUNT(*) FROM group_member WHERE group_id = %s AND is_active = TRUE', [group_id])
+                count_row = cursor.fetchone()
+                if count_row:
+                    member_count = count_row[0]
     except Exception:
         group = None
+        member_count = 0
 
     if group is None:
         messages.error(request, '指定されたグループが見つかりません')
         return redirect('accounts:account_entry')
 
-    return render(request, 'group/group_delete_confirm.html', {'group': group})
+    return render(request, 'group/group_delete_confirm.html', {'group': group, 'member_count': member_count})
 
 
 def group_remove_member(request, group_id, member_id):

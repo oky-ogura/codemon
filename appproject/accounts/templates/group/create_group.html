@@ -4,7 +4,7 @@
 {% block title %}グループ作成 - Codemon{% endblock %}
 
 {% block background_frame %}
-<img src="{% static 'codemon/images/frames/教員用アカウント画面 (2).png' %}" 
+<img src="{% static 'codemon/images/frames/frame_brack.png' %}" 
      alt="" 
      class="bg-frame"
      onerror="this.style.display='none';">
@@ -14,7 +14,7 @@
 <style>
   .card { 
     max-width:1200px; 
-    margin:180px auto 40px; 
+    margin:100px auto 40px; 
     background:transparent; 
     border:none; 
     padding:24px; 
@@ -41,7 +41,7 @@
   .form-group {
     display:flex;
     flex-direction:column;
-    gap:20px;
+    gap:15px;
     align-items:center;
     margin-bottom:12px;
     justify-content:center;
@@ -100,15 +100,15 @@
   }
   
   .btn {
-    font-size:20px;
+    font-size:18px;
     color:#000000;
-    padding:12px 40px;
+    padding:10px 35px;
     border-radius:50px;
     border:3px solid #00BFFF;
     background:#ffffff;
     box-shadow:0 4px 10px rgba(0,191,255,0.3);
     cursor:pointer;
-    margin:40px 0;
+    margin:25px 0;
     font-weight:bold;
     transition:transform 0.2s ease, box-shadow 0.2s ease;
   }
@@ -185,7 +185,21 @@
 {% block content %}
 <div class="card">
   <div class="form-section">
-    <img src="{% static 'codemon/images/nav/group_create.png' %}" alt="グループ作成" style="max-width:400px;width:100%;height:auto;margin-bottom:40px;display:block;">
+    <img src="{% static 'codemon/images/nav/group_create.png' %}" alt="グループ作成" style="max-width:350px;width:100%;height:auto;margin-bottom:20px;display:block;">
+    
+    {% if messages %}
+    <div class="messages" style="margin-bottom: 15px; width: 100%; max-width: 600px;">
+      {% for message in messages %}
+        <div class="message {{ message.tags }}" style="padding: 10px 20px; border-radius: 8px; font-size: 0.9em; margin-bottom: 8px; text-align: center;
+          {% if message.tags == 'error' %}background: #fdecea; color: #611a15; border: 1px solid #f5c6cb;
+          {% elif message.tags == 'success' %}background: #e6ffed; color: #164d2b; border: 1px solid #b3e6c1;
+          {% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    
     <form method="post" action="{% url 'accounts:group_create' %}">
       {% csrf_token %}
       <div class="form-group">
