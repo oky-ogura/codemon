@@ -6,8 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('codemon', '0012_merge_20251128_1232'),
-        ('codemon', '0013_merge_20260108_1009'),
+        ('codemon', '0001_initial'),
     ]
 
     operations = [
