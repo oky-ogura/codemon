@@ -1258,3 +1258,145 @@ def ai_history_api(request):
         ],
     })
 
+# ---- Demo UI views for chat templates ----
+def chat_ui_index(request):
+    """チャットUIデモ索引ページ"""
+    return render(request, 'chat/index.html')
+
+def chat_ui_list(request):
+    rooms = [
+        {
+            'name': '2年A組 グループチャット',
+            'is_group': True,
+            'avatar_url': None,
+            'updated_at': timezone.now(),
+            'last_message': '明日の提出物を確認してください。',
+            'participant_names': '田中, 鈴木, 佐藤',
+            'unread_count': 3,
+            'url': reverse('codemon:chat_ui_room'),
+        },
+        {
+            'name': '個別: 山田太郎',
+            'is_group': False,
+            'avatar_url': None,
+            'updated_at': timezone.now() - timezone.timedelta(hours=2),
+            'last_message': 'ファイルをアップロードしました。',
+            'participant_names': '山田太郎',
+            'unread_count': 0,
+            'url': reverse('codemon:chat_ui_room'),
+        },
+    ]
+    return render(request, 'chat/chat_list.html', {'chat_rooms': rooms})
+
+
+def chat_ui_room(request):
+    room = {
+        'name': '2年A組 グループチャット',
+        'is_group': True,
+        'member_count': 5,
+        'updated_at': timezone.now(),
+        'read_ratio': '4/5',
+        'unread_count': 1,
+        'members': [
+            {'name': '田中', 'role': 'teacher'},
+            {'name': '佐藤', 'role': 'student'},
+            {'name': '鈴木', 'role': 'student'},
+            {'name': '山田', 'role': 'student'},
+            {'name': '高橋', 'role': 'student'},
+        ]
+    }
+
+    messages = [
+        {
+            'author_name': '田中 (教師)',
+            'created_at': timezone.now() - timezone.timedelta(minutes=20),
+            'text': '課題の提出期限は金曜17:00です。',
+            'is_self': False,
+            'is_read': True,
+            'read_by': '5名',
+            'read_count': 5,
+            'read_by_list': ['佐藤', '鈴木', '山田', '高橋', '田中'],
+            'can_delete': False,
+        },
+        {
+            'author_name': 'あなた',
+            'created_at': timezone.now() - timezone.timedelta(minutes=2),
+            'text': '了解しました！ファイルも投函します。',
+            'is_self': True,
+            'is_read': False,
+            'read_by': '3名',
+            'read_count': 3,
+            'read_by_list': ['田中', '佐藤', '山田'],
+            'can_delete': True,
+            'delete_url': '#',
+            'file_url': '/media/sample.pdf',
+        },
+    ]
+
+    recent_files = [
+        {'name': '課題説明.pdf', 'url': '/media/sample.pdf'},
+        {'name': '参考画像.png', 'url': '/media/sample.png'},
+    ]
+
+    return render(request, 'chat/chat_room.html', {
+        'room': room,
+        'messages': messages,
+        'recent_files': recent_files,
+    })
+
+
+def chat_ui_profile(request):
+    return render(request, 'chat/profile_edit.html')
+
+
+def chat_ui_submission_box(request):
+    return render(request, 'chat/submission_box_create.html')
+
+
+def chat_ui_submission_submit(request):
+    assignment = {
+        'title': '第3回 レポート',
+        'description': 'AIと教育についての考察をまとめてください。',
+        'due_at': timezone.now() + timezone.timedelta(days=2),
+    }
+    submission = {'status': '未提出'}
+    return render(request, 'chat/submission_submit.html', {
+        'assignment': assignment,
+        'submission': submission,
+    })
+
+
+def chat_ui_score_student(request):
+    scores = [
+        {
+            'assignment_title': '第1回 課題',
+            'value': 85,
+            'max_score': 100,
+            'comment': '構成がわかりやすいです',
+            'updated_at': timezone.now() - timezone.timedelta(days=1),
+        },
+        {
+            'assignment_title': '第2回 小テスト',
+            'value': 92,
+            'max_score': 100,
+            'comment': '計算ミスに注意',
+            'updated_at': timezone.now(),
+        },
+    ]
+    return render(request, 'chat/score_view_student.html', {'scores': scores})
+
+
+def chat_ui_score_teacher(request):
+    score_rows = [
+        {'id': 1, 'student_name': '佐藤', 'score': 80, 'max_score': 100, 'comment': 'よくできました'},
+        {'id': 2, 'student_name': '鈴木', 'score': 70, 'max_score': 100, 'comment': 'もう一歩'},
+    ]
+    return render(request, 'chat/score_manage_teacher.html', {'score_rows': score_rows})
+
+
+def chat_ui_group_manage(request):
+    members = [
+        {'name': '佐藤', 'role': 'student', 'remove_url': '#'},
+        {'name': '鈴木', 'role': 'student', 'remove_url': '#'},
+    ]
+    return render(request, 'chat/group_manage.html', {'members': members})
