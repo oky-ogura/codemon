@@ -104,16 +104,16 @@
   .speech-bubble::after {
     content: '';
     position: absolute;
-    right: -20px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 0;
-    height: 0;
-    border-left: 25px solid white;
-    border-top: 20px solid transparent;
-    border-bottom: 20px solid transparent;
-  }
-  
+    /* キャラクターを画面中央右寄りに配置 */
+    .character-container {
+      position: fixed !important;
+      right: 15%;
+      bottom: 0;
+      transform: none;
+      z-index: 10 !important; /* ナビゲーションより下に */
+      display: flex;
+      align-items: flex-end;
+    }
   /* キラキラエフェクト */
   .sparkle {
     position: absolute;
@@ -128,16 +128,16 @@
     animation: sparkleFloat 1.5s ease-in-out infinite;
   }
   
-  @keyframes sparkleFloat {
-    0%, 100% {
-      opacity: 0;
-      transform: translateY(0) scale(0.5);
+    .speech-bubble-container {
+      position: fixed !important;
+      left: 25%;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 11; /* キャラクターより上、ナビゲーションより下 */
+      max-width: 450px;
+      display: flex;
+      justify-content: flex-end;
     }
-    50% {
-      opacity: 1;
-      transform: translateY(-20px) scale(1);
-    }
-  }
   
   .sparkle:nth-child(1) { top: -10px; left: -10px; animation-delay: 0s; }
   .sparkle:nth-child(2) { top: -10px; right: -10px; animation-delay: 0.2s; }
@@ -153,6 +153,10 @@
     color: white;
     border: none;
     padding: 15px 30px;
+    .top-tabs {
+      z-index: 1000 !important;
+      position: relative;
+    }
     border-radius: 50px;
     font-size: 18px;
     font-weight: bold;

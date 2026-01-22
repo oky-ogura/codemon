@@ -598,29 +598,47 @@ document.addEventListener('DOMContentLoaded', function() {
   const sendChatBtn = document.getElementById('sendChatBtn');
   const chatInput = document.getElementById('chatInput');
   const chatMessages = document.getElementById('chatMessages');
-  const chatLoading = document.getElementById('chatLoading');
-  const chatTriggerBtn = document.getElementById('chatTriggerBtn');
-  const characterMumble = document.getElementById('characterMumble');
-  const minimizeBtn = document.getElementById('widgetMinimizeBtn');
-  const miniIcon = document.getElementById('characterMiniIcon');
-  
-  const isSidebarMode = widget && widget.classList.contains('sidebar-mode');
-  
-  // ========================================
-  // キャラクター別セリフ定義
-  // ========================================
-  const characterDialogues = {
-    // ウサギ（おどおど、詰まりがち）
-    'ウサギ.png': {
-      mumbles: [
-        'え、えっと…何しようかな…',
-        'ぼ、ぼく、ここにいるよ…',
-        'う、うんと…少し眠いかも…',
-        'あ、あの…誰かいるかな…',
-        'ぼ、ぼくでよければ…話そうよ…',
-        'え、えっと…今日もがんばるね…',
-        'ぼ、ぼく…ちょっと緊張する…',
-        'あ、あの…よかったら声かけてね…'
+    if (isSidebarMode) {
+      // ユーザーIDをテンプレートから取得
+      const userId = '{{ request.user.id|default:"anon" }}';
+      // 最小化状態のキー
+      const minimizedKey = `character_minimized_${userId}`;
+
+      // 最小化ボタン
+      if (minimizeBtn) {
+        minimizeBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          widget.classList.add('minimized');
+          if (miniIcon) miniIcon.classList.add('active');
+          // 最小化状態を保存
+          localStorage.setItem(minimizedKey, 'true');
+        });
+      }
+      // ミニアイコンクリックで復元
+      if (miniIcon) {
+        miniIcon.addEventListener('click', function() {
+          widget.classList.remove('minimized');
+          miniIcon.classList.remove('active');
+          // 復元状態を保存
+          localStorage.setItem(minimizedKey, 'false');
+        });
+      }
+      // キャラクタークリックでチャットを開く（sidebarモード）
+      if (character) {
+        character.addEventListener('click', function() {
+          openChat();
+        });
+      }
+      // ページ表示時に最小化状態を復元
+      const minimized = localStorage.getItem(minimizedKey);
+      if (minimized === 'true') {
+        widget.classList.add('minimized');
+        if (miniIcon) miniIcon.classList.add('active');
+      } else {
+        widget.classList.remove('minimized');
+        if (miniIcon) miniIcon.classList.remove('active');
+      }
+    }
       ],
       greeting: 'こ、こんにちは…！ ぼ、ぼくは{{ ai_name }}です。<br>え、えっと…なんでも聞いてね…！'
     },
@@ -841,6 +859,59 @@ document.addEventListener('DOMContentLoaded', function() {
   if (chatModal) {
     chatModal.addEventListener('click', function(e) {
       if (e.target === chatModal) closeChat();
+    });
+  }
+
+  // ========================================
+  // コピー時にプレフィックス付与
+  // ========================================
+  if (chatMessages) {
+    chatMessages.addEventListener('copy', function(e) {
+      const selection = window.getSelection();
+      if (!selection.rangeCount) return;
+
+      // 選択範囲内のメッセージ要素を取得
+      const range = selection.getRangeAt(0);
+      const container = document.createElement('div');
+      container.appendChild(range.cloneContents());
+
+      // メッセージを整形
+      let formattedText = '';
+      const messages = container.querySelectorAll('.chat-message');
+      
+      if (messages.length > 0) {
+        // 複数メッセージが選択された場合
+        messages.forEach(msg => {
+          const content = msg.querySelector('.chat-message-content');
+          if (content) {
+            const prefix = msg.classList.contains('user') ? 'ユーザー：' : 'ＡＩ：';
+            formattedText += prefix + content.textContent.trim() + '\n\n';
+          }
+        });
+      } else {
+        // 単一メッセージ内の部分選択の場合
+        const selectedNode = selection.anchorNode;
+        let messageElement = selectedNode.nodeType === Node.TEXT_NODE 
+          ? selectedNode.parentElement 
+          : selectedNode;
+        
+        // .chat-message要素を探す
+        while (messageElement && !messageElement.classList?.contains('chat-message')) {
+          messageElement = messageElement.parentElement;
+        }
+        
+        if (messageElement && messageElement.classList.contains('chat-message')) {
+          const prefix = messageElement.classList.contains('user') ? 'ユーザー：' : 'ＡＩ：';
+          formattedText = prefix + selection.toString().trim();
+        } else {
+          // フォールバック: そのままのテキスト
+          formattedText = selection.toString();
+        }
+      }
+
+      // クリップボードにカスタムテキストを設定
+      e.clipboardData.setData('text/plain', formattedText.trim());
+      e.preventDefault();
     });
   }
   

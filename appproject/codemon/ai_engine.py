@@ -102,6 +102,13 @@ class CodeMonAIEngine:
         AIチャットを実行
         tenacityが利用可能な場合はエクスポネンシャルバックオフでリトライ
         """
+        # --- デバッグ: キャラクターID・プロンプト・履歴・入力を出力 ---
+        print(f"[DEBUG ai_engine.py] character_id: {character_id}")
+        sys_inst = self.build_system_instruction(character_id)
+        print(f"[DEBUG ai_engine.py] system_instruction (first 300): {sys_inst[:300]}...")
+        print(f"[DEBUG ai_engine.py] user_text: {user_text}")
+        print(f"[DEBUG ai_engine.py] history_pairs: {history_pairs}")
+
         if TENACITY_AVAILABLE:
             def is_rate_limit_error(exception):
                 err = str(exception)
@@ -168,7 +175,7 @@ class CodeMonAIEngine:
     def build_system_instruction(self, character_id: str) -> str:
         """
         キャラクター別のシステムプロンプトを構築
-        新構造: hard_rules / soft_style / character_core / conversation_policy
+        新構造: hard_rules / soft_style / character_core / conversation_policy / speaking_style / example
         """
         char = self._characters.get(character_id)
         if not char:
@@ -186,6 +193,13 @@ class CodeMonAIEngine:
         char_hard = char.get('hard_rules', [])
         char_soft = char.get('soft_style', [])
 
+        # speaking_style（sentence_endings, habits など）
+        speaking_style = char.get('speaking_style', {})
+        politeness = speaking_style.get('politeness', '')
+        tone = speaking_style.get('tone', '')
+        sentence_endings = speaking_style.get('sentence_endings', [])
+        habits = speaking_style.get('habits', [])
+
         # 用語マップ
         terminology_note = self._terminology_map.get('note', '')
         prefer_terms = self._terminology_map.get('prefer', [])
@@ -194,8 +208,11 @@ class CodeMonAIEngine:
         # 会話例
         example = char.get('example', '').strip()
 
-        # 会話設計（conversation_policy）
+        # 会話設計（conversation_policy/conversation_design）
         cp = char.get('conversation_policy', {})
+        # 新しいYAMLでは conversation_design という名前もあり得る
+        if not cp:
+            cp = char.get('conversation_design', {})
 
         # --- プロンプト構築 ---
         prompt_parts = []
@@ -217,6 +234,12 @@ class CodeMonAIEngine:
         # 人格・話し方
         prompt_parts.append("【人格・話し方】")
         prompt_parts.append(f"{personality}。一人称は「{first_person}」。")
+        if politeness or tone:
+            prompt_parts.append(f"- 話し方: {politeness} / {tone}")
+        if sentence_endings:
+            prompt_parts.append(f"- よく使う文末: {'/'.join(sentence_endings)}")
+        if habits:
+            prompt_parts.append(f"- 口癖・話し方の特徴: {'/'.join(habits)}")
         prompt_parts.append("")
 
         # 共通ルール（破ったらキャラ崩壊）
@@ -241,9 +264,13 @@ class CodeMonAIEngine:
                 prompt_parts.append(f"- {rule}")
             prompt_parts.append("")
 
-        # 会話設計（conversation_policy）
+        # 会話設計（conversation_policy/conversation_design）
         if cp:
             prompt_parts.append("【会話設計】")
+            # main_modeやmode
+            main_mode = cp.get('main_mode') or cp.get('mode')
+            if main_mode:
+                prompt_parts.append(f"- 会話モード: {main_mode}")
             ratio = cp.get('ratio', '')
             if ratio:
                 prompt_parts.append(f"- 会話比率: {ratio}")
@@ -254,12 +281,22 @@ class CodeMonAIEngine:
             if turn_policy:
                 for tp in turn_policy:
                     prompt_parts.append(f"- {tp}")
-            short_reply = cp.get('short_reply_handling', [])
-            if short_reply:
-                prompt_parts.append(f"- ユーザーが短文の場合: {'/'.join(short_reply)}")
-            no_reply = cp.get('no_reply_handling', [])
-            if no_reply:
-                prompt_parts.append(f"- ユーザーが無反応の場合: {'/'.join(no_reply)}")
+            # cold_response_handling, short_reply_handling, no_reply_handling
+            cold = cp.get('cold_response_handling', {})
+            if cold:
+                short = cold.get('short_reply', [])
+                if short:
+                    prompt_parts.append(f"- ユーザーが短文の場合: {'/'.join(short)}")
+                no_reply = cold.get('no_reply', [])
+                if no_reply:
+                    prompt_parts.append(f"- ユーザーが無反応の場合: {'/'.join(no_reply)}")
+            else:
+                short_reply = cp.get('short_reply_handling', [])
+                if short_reply:
+                    prompt_parts.append(f"- ユーザーが短文の場合: {'/'.join(short_reply)}")
+                no_reply = cp.get('no_reply_handling', [])
+                if no_reply:
+                    prompt_parts.append(f"- ユーザーが無反応の場合: {'/'.join(no_reply)}")
             proposal = cp.get('proposal_rules', [])
             if proposal:
                 for pr in proposal:
@@ -272,6 +309,19 @@ class CodeMonAIEngine:
             if practical:
                 for pt in practical:
                     prompt_parts.append(f"- {pt}")
+            prompt_parts.append("")
+
+        # world_setting
+        world_setting = char.get('world_setting', {})
+        if world_setting:
+            prompt_parts.append("【世界観・トーン】")
+            tone = world_setting.get('tone', '')
+            if tone:
+                prompt_parts.append(f"- トーン: {tone}")
+            rules = world_setting.get('rules', [])
+            if rules:
+                for r in rules:
+                    prompt_parts.append(f"- {r}")
             prompt_parts.append("")
 
         # 用語ガイドライン

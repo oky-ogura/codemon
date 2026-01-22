@@ -1,3 +1,4 @@
+from accounts.ai_chat_api import ai_chat_api
 import os
 import json
 from django.shortcuts import render, get_object_or_404, redirect
@@ -1096,62 +1097,22 @@ def index(request):
 
 
 # ====== AI Chat API ======
-@login_required
-@require_POST
-def ai_chat_api(request):
-    try:
-        body = json.loads(request.body.decode("utf-8"))
-    except Exception:
-        return JsonResponse({"error": "invalid json"}, status=400)
-
-    message = (body.get("message") or "").strip()
-    character = body.get("character") or "usagi"
-    conv_id = body.get("conversation_id")
-
-    if not message:
-        return JsonResponse({"error": "message required"}, status=400)
-
-    if conv_id:
-        try:
-            conv = AIConversation.objects.get(id=conv_id, user=request.user)
-        except AIConversation.DoesNotExist:
-            return JsonResponse({"error": "conversation not found"}, status=404)
-    else:
-        conv = AIConversation.objects.create(
-            user=request.user,
-            character_id=character,
-            title=f"{character}-{timezone.now():%Y%m%d%H%M}",
-        )
-
-    recent = list(conv.messages.order_by("-created_at")[:20])
-    pairs = [(m.role, m.content) for m in reversed(recent)]
-
-    # デバッグログ
-    print(f"[DEBUG views.py] Character: {character}")
-    print(f"[DEBUG views.py] Pairs count: {len(pairs)}")
-    for i, (role, content) in enumerate(pairs):
-        print(f"[DEBUG views.py] pairs[{i}]: {role} = {content[:50] if len(content) > 50 else content}...")
-
-    AIMessage.objects.create(conversation=conv, role="user", content=message)
-
-    from .services import chat_gemini
-    reply = chat_gemini(message, pairs, character_id=character)
-
-    AIMessage.objects.create(conversation=conv, role="assistant", content=reply)
-
-    return JsonResponse({
-        "conversation_id": conv.id,
-        "reply": reply,
-    })
+# ai_chat_api は accounts/ai_chat_api.py からインポート済み（行1）
+# 重複定義を削除し、インポート版を使用
 
 
-@login_required
+# ai_history_api もセッション認証対応に変更
 def ai_history_api(request):
+    from accounts.views import get_logged_account
+    acc = get_logged_account(request)
+    if not acc:
+        return JsonResponse({"error": "not authenticated"}, status=401)
+    
     conv_id = request.GET.get("conversation_id")
     if not conv_id:
         return JsonResponse({"error": "conversation_id required"}, status=400)
     try:
-        conv = AIConversation.objects.get(id=conv_id, user=request.user)
+        conv = AIConversation.objects.get(id=conv_id, user_id=acc.user_id)
     except AIConversation.DoesNotExist:
         return JsonResponse({"error": "not found"}, status=404)
 

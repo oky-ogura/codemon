@@ -590,6 +590,19 @@
 
 <script src="{% static 'codemon/js/interactions.js' %}"></script>
 <script>
+// --- メッセージ追加（グローバルスコープに移動） ---
+function addMessage(text, type) {
+  const chatMessages = document.getElementById('chatMessages');
+  const messageDiv = document.createElement('div');
+  messageDiv.className = `chat-message ${type}`;
+  const contentDiv = document.createElement('div');
+  contentDiv.className = 'chat-message-content';
+  contentDiv.textContent = text;
+  messageDiv.appendChild(contentDiv);
+  chatMessages.appendChild(messageDiv);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   const widget = document.getElementById('characterWidget');
   const character = document.querySelector('.character-image');
@@ -605,6 +618,57 @@ document.addEventListener('DOMContentLoaded', function() {
   const miniIcon = document.getElementById('characterMiniIcon');
   
   const isSidebarMode = widget && widget.classList.contains('sidebar-mode');
+
+  // ========================================
+  // コピー時にプレフィックス付与
+  // ========================================
+  chatMessages.addEventListener('copy', function(e) {
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+
+    // 選択範囲内のメッセージ要素を取得
+    const range = selection.getRangeAt(0);
+    const container = document.createElement('div');
+    container.appendChild(range.cloneContents());
+
+    // メッセージを整形
+    let formattedText = '';
+    const messages = container.querySelectorAll('.chat-message');
+    
+    if (messages.length > 0) {
+      // 複数メッセージが選択された場合
+      messages.forEach(msg => {
+        const content = msg.querySelector('.chat-message-content');
+        if (content) {
+          const prefix = msg.classList.contains('user') ? 'ユーザー：' : 'ＡＩ：';
+          formattedText += prefix + content.textContent.trim() + '\n\n';
+        }
+      });
+    } else {
+      // 単一メッセージ内の部分選択の場合
+      const selectedNode = selection.anchorNode;
+      let messageElement = selectedNode.nodeType === Node.TEXT_NODE 
+        ? selectedNode.parentElement 
+        : selectedNode;
+      
+      // .chat-message要素を探す
+      while (messageElement && !messageElement.classList?.contains('chat-message')) {
+        messageElement = messageElement.parentElement;
+      }
+      
+      if (messageElement && messageElement.classList.contains('chat-message')) {
+        const prefix = messageElement.classList.contains('user') ? 'ユーザー：' : 'ＡＩ：';
+        formattedText = prefix + selection.toString().trim();
+      } else {
+        // フォールバック: そのままのテキスト
+        formattedText = selection.toString();
+      }
+    }
+
+    // クリップボードにカスタムテキストを設定
+    e.clipboardData.setData('text/plain', formattedText.trim());
+    e.preventDefault();
+  });
   
   // ========================================
   // キャラクター別セリフ定義
@@ -726,12 +790,16 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // 現在のキャラクターを取得
   const currentAppearance = widget ? widget.getAttribute('data-character') : 'イヌ.png';
-  const currentDialogue = characterDialogues[currentAppearance] || characterDialogues['イヌ.png'];
+  let currentDialogue = characterDialogues[currentAppearance];
+  if (!currentDialogue) {
+    currentDialogue = characterDialogues['イヌ.png'];
+  }
+  console.log('キャラ名:', currentAppearance, 'currentDialogue:', currentDialogue);
   const aiName = '{{ ai_name|default:"うたー"|escapejs }}';
-  
+
   // 初期挨拶を設定
   const initialGreeting = document.getElementById('initialGreeting');
-  if (initialGreeting) {
+  if (initialGreeting && currentDialogue && currentDialogue.greeting) {
     initialGreeting.innerHTML = currentDialogue.greeting.replace(/\{\{ ai_name \}\}/g, aiName);
   }
   
@@ -845,24 +913,56 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // メッセージ追加
-  function addMessage(text, type) {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `chat-message ${type}`;
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'chat-message-content';
-    contentDiv.textContent = text;
-    messageDiv.appendChild(contentDiv);
-    chatMessages.appendChild(messageDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+  // ユーザーIDをテンプレートから取得
+  const userId = '{{ request.user.id|default:"anon" }}';
+  // 最小化状態のキー
+  const minimizedKey = `character_minimized_${userId}`;
+
+  // sidebarモード: 最小化/復元機能
+  if (isSidebarMode) {
+    // 最小化ボタン
+    if (minimizeBtn) {
+      minimizeBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        widget.classList.add('minimized');
+        if (miniIcon) miniIcon.classList.add('active');
+        // 最小化状態を保存
+        localStorage.setItem(minimizedKey, 'true');
+      });
+    }
+    // ミニアイコンクリックで復元
+    if (miniIcon) {
+      miniIcon.addEventListener('click', function() {
+        widget.classList.remove('minimized');
+        miniIcon.classList.remove('active');
+        // 復元状態を保存
+        localStorage.setItem(minimizedKey, 'false');
+      });
+    }
+    // キャラクタークリックでチャットを開く（sidebarモード）
+    if (character) {
+      character.addEventListener('click', function() {
+        openChat();
+      });
+    }
+    // ページ表示時に最小化状態を復元
+    const minimized = localStorage.getItem(minimizedKey);
+    if (minimized === 'true') {
+      widget.classList.add('minimized');
+      if (miniIcon) miniIcon.classList.add('active');
+    } else {
+      widget.classList.remove('minimized');
+      if (miniIcon) miniIcon.classList.remove('active');
+    }
   }
-  
-  // CSRFトークン取得
+  // --- CSRFトークン取得関数（Django公式推奨） ---
   function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
       const cookies = document.cookie.split(';');
       for (let i = 0; i < cookies.length; i++) {
         const cookie = cookies[i].trim();
+        // Does this cookie string begin with the name we want?
         if (cookie.substring(0, name.length + 1) === (name + '=')) {
           cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
           break;
@@ -915,12 +1015,17 @@ document.addEventListener('DOMContentLoaded', function() {
         body: JSON.stringify({
           message: message,
           character: currentCharacterId
-        })
+        }),
+        credentials: 'include' // セッション認証を必ず送信
       })
       .then(response => response.json())
       .then(data => {
-        let reply = data.reply || 'エラー: 返答がありません';
-        addMessage(reply, 'ai');
+        if (data && data.error) {
+          addMessage('エラー: ' + data.error, 'ai');
+        } else {
+          let reply = data.reply || 'エラー: 返答がありません';
+          addMessage(reply, 'ai');
+        }
         chatLoading.classList.remove('active');
       })
       .catch(err => {
