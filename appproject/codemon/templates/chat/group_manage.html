@@ -1,0 +1,783 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}グループ管理 - Codemon{% endblock %}
+
+{% block extra_css %}
+<style>
+    .group-manage-container {
+        max-width: 1000px;
+        margin: 20px auto;
+        padding: 20px;
+    }
+
+    .manage-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .manage-title {
+        font-size: 28px;
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #333;
+    }
+
+    .manage-subtitle {
+        color: #999;
+        font-size: 14px;
+    }
+
+    .toolbar {
+        background: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        gap: 15px;
+    }
+
+    .btn-primary {
+        background: #2196F3;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-primary:hover {
+        background: #1976D2;
+    }
+
+    .group-list {
+        display: grid;
+        gap: 20px;
+    }
+
+    .group-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .group-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .group-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f0f0f0;
+    }
+
+    .group-name {
+        font-size: 18px;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .group-info {
+        font-size: 12px;
+        color: #999;
+        margin-top: 3px;
+    }
+
+    .group-action-menu {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-icon {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 18px;
+        padding: 6px 10px;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+
+    .btn-icon:hover {
+        background: #f0f0f0;
+    }
+
+    .members-section {
+        margin-bottom: 15px;
+    }
+
+    .section-title {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 10px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .member-count-badge {
+        display: inline-block;
+        background: #e3f2fd;
+        color: #2196F3;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .members-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+    }
+
+    .member-item {
+        background: #f9f9f9;
+        padding: 10px;
+        border-radius: 6px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-left: 3px solid #2196F3;
+    }
+
+    .member-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+    }
+
+    .member-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+        flex-shrink: 0;
+    }
+
+    .member-avatar img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .member-name {
+        font-size: 13px;
+        color: #333;
+        font-weight: 500;
+    }
+
+    .member-role {
+        font-size: 11px;
+        color: #999;
+        margin-top: 2px;
+    }
+
+    .remove-member-btn {
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        padding: 4px 6px;
+        cursor: pointer;
+        font-size: 11px;
+        transition: background 0.2s;
+    }
+
+    .remove-member-btn:hover {
+        background: #c82333;
+    }
+
+    .group-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #f0f0f0;
+    }
+
+    .btn-action {
+        flex: 1;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-invite {
+        background: #4CAF50;
+        color: white;
+    }
+
+    .btn-invite:hover {
+        background: #45a049;
+    }
+
+    .btn-edit {
+        background: #2196F3;
+        color: white;
+    }
+
+    .btn-edit:hover {
+        background: #1976D2;
+    }
+
+    .btn-delete {
+        background: #f44336;
+        color: white;
+    }
+
+    .btn-delete:hover {
+        background: #da190b;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+    }
+
+    .empty-icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+    }
+
+    .empty-text {
+        font-size: 16px;
+        margin-bottom: 5px;
+    }
+
+    .empty-hint {
+        font-size: 13px;
+        color: #bbb;
+        margin-bottom: 20px;
+    }
+
+    /* モーダル */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal {
+        background: white;
+        border-radius: 10px;
+        padding: 30px;
+        max-width: 500px;
+        width: 90%;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+
+    .modal-header {
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        color: #333;
+    }
+
+    .modal-body {
+        margin-bottom: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 5px;
+        color: #333;
+        font-size: 13px;
+    }
+
+    .form-input, .form-select {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 13px;
+        font-family: inherit;
+    }
+
+    .form-input:focus, .form-select:focus {
+        outline: none;
+        border-color: #2196F3;
+        box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+    }
+
+    .modal-footer {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    .btn-modal {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-modal-save {
+        background: #2196F3;
+        color: white;
+    }
+
+    .btn-modal-save:hover {
+        background: #1976D2;
+    }
+
+    .btn-modal-cancel {
+        background: #f0f0f0;
+        color: #333;
+    }
+
+    .btn-modal-cancel:hover {
+        background: #e0e0e0;
+    }
+
+    .user-select-list {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-top: 10px;
+    }
+
+    .user-select-item {
+        padding: 10px 12px;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .user-select-item:hover {
+        background: #f9f9f9;
+    }
+
+    .user-select-item input[type="checkbox"] {
+        cursor: pointer;
+    }
+
+    @media (max-width: 768px) {
+        .group-manage-container {
+            padding: 10px;
+        }
+
+        .members-list {
+            grid-template-columns: 1fr;
+        }
+
+        .group-actions {
+            flex-direction: column;
+        }
+
+        .toolbar {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .btn-primary {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="group-manage-container">
+    <!-- ヘッダー -->
+    <div class="manage-header">
+        <div class="manage-title">グループ管理</div>
+        <div class="manage-subtitle">メッセージグループを作成・管理し、メンバーを招待・削除します</div>
+    </div>
+
+    <!-- ツールバー -->
+    <div class="toolbar">
+        <button class="btn-primary" onclick="openCreateGroupModal()">
+            ➕ 新しいグループを作成
+        </button>
+    </div>
+
+    <!-- グループ一覧 -->
+    {% if groups %}
+    <div class="group-list">
+        {% for group in groups %}
+        <div class="group-card">
+            <!-- グループヘッダー -->
+            <div class="group-card-header">
+                <div>
+                    <div class="group-name">{{ group.name }}</div>
+                    <div class="group-info">
+                        作成日: {{ group.created_at|date:"Y年m月d日" }}
+                    </div>
+                </div>
+                <div class="group-action-menu">
+                    <button class="btn-icon" onclick="editGroupName('{{ group.id }}', '{{ group.name }}')" 
+                            title="グループ名を編集">
+                        ✏️
+                    </button>
+                    <button class="btn-icon" onclick="deleteGroup('{{ group.id }}', '{{ group.name }}')" 
+                            title="グループを削除">
+                        🗑️
+                    </button>
+                </div>
+            </div>
+
+            <!-- メンバーセクション -->
+            <div class="members-section">
+                <div class="section-title">
+                    メンバー
+                    <span class="member-count-badge">{{ group.members.count }}名</span>
+                </div>
+                <div class="members-list">
+                    {% for member in group.members.all %}
+                    <div class="member-item">
+                        <div class="member-info">
+                            <div class="member-avatar">
+                                {% if member.avatar %}
+                                    <img src="{{ member.avatar.url }}" alt="{{ member.username }}">
+                                {% else %}
+                                    <span>{{ member.username|first|upper }}</span>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <div class="member-name">{{ member.username }}</div>
+                                {% if member.is_staff %}
+                                <div class="member-role">教師</div>
+                                {% else %}
+                                <div class="member-role">生徒</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if user.id != member.id %}
+                        <button class="remove-member-btn" 
+                                onclick="removeMember('{{ group.id }}', '{{ member.id }}', '{{ member.username }}')">
+                            削除
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- グループアクション -->
+            <div class="group-actions">
+                <button class="btn-action btn-invite" 
+                        onclick="openInviteModal('{{ group.id }}', '{{ group.name }}')">
+                    👥 メンバーを招待
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">👥</div>
+        <div class="empty-text">グループがまだありません</div>
+        <div class="empty-hint">グループを作成すると、メンバーとチャットを共有できます</div>
+        <button class="btn-primary" onclick="openCreateGroupModal()">
+            ➕ グループを作成
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- グループ作成モーダル -->
+<div class="modal-overlay" id="create-group-modal">
+    <div class="modal">
+        <div class="modal-header">新しいグループを作成</div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">グループ名 <span style="color: #ff5252;">*</span></label>
+                <input type="text" id="group-name-input" class="form-input" 
+                       placeholder="グループ名を入力してください">
+            </div>
+            <div class="form-group">
+                <label class="form-label">メンバーを選択</label>
+                <div class="user-select-list" id="user-select-list">
+                    {% for user in available_users %}
+                    <label class="user-select-item">
+                        <input type="checkbox" name="members" value="{{ user.id }}">
+                        <span>{{ user.username }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal btn-modal-cancel" onclick="closeCreateGroupModal()">キャンセル</button>
+            <button class="btn-modal btn-modal-save" onclick="saveCreateGroup()">作成</button>
+        </div>
+    </div>
+</div>
+
+<!-- メンバー招待モーダル -->
+<div class="modal-overlay" id="invite-modal">
+    <div class="modal">
+        <div class="modal-header">メンバーを招待</div>
+        <div class="modal-body">
+            <div style="margin-bottom: 15px; padding: 10px; background: #f9f9f9; border-radius: 4px;">
+                グループ: <strong id="invite-group-name"></strong>
+            </div>
+            <div class="form-group">
+                <label class="form-label">招待するメンバー</label>
+                <div class="user-select-list" id="invite-user-list">
+                    <!-- 動的に生成される -->
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal btn-modal-cancel" onclick="closeInviteModal()">キャンセル</button>
+            <button class="btn-modal btn-modal-save" onclick="saveInviteMembers()">招待</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentGroupId = null;
+    let currentGroupName = null;
+
+    // グループ作成モーダルを開く
+    function openCreateGroupModal() {
+        document.getElementById('create-group-modal').style.display = 'flex';
+    }
+
+    // グループ作成モーダルを閉じる
+    function closeCreateGroupModal() {
+        document.getElementById('create-group-modal').style.display = 'none';
+        document.getElementById('group-name-input').value = '';
+        document.querySelectorAll('#create-group-modal input[type="checkbox"]').forEach(cb => cb.checked = false);
+    }
+
+    // グループを作成
+    async function saveCreateGroup() {
+        const groupName = document.getElementById('group-name-input').value.trim();
+        if (!groupName) {
+            alert('グループ名を入力してください');
+            return;
+        }
+
+        const members = Array.from(document.querySelectorAll('#create-group-modal input[type="checkbox"]:checked'))
+            .map(cb => cb.value);
+
+        try {
+            const response = await fetch('{% url "chat:group_create" %}', {
+                method: 'POST',
+                body: JSON.stringify({
+                    name: groupName,
+                    members: members
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            });
+
+            if (response.ok) {
+                alert('グループを作成しました');
+                closeCreateGroupModal();
+                location.reload();
+            } else {
+                alert('作成に失敗しました');
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+        }
+    }
+
+    // メンバー招待モーダルを開く
+    async function openInviteModal(groupId, groupName) {
+        currentGroupId = groupId;
+        currentGroupName = groupName;
+        document.getElementById('invite-group-name').textContent = groupName;
+
+        // 招待可能なユーザーを取得
+        try {
+            const response = await fetch(`/chat/group/${groupId}/available-members/`);
+            const data = await response.json();
+
+            const userList = document.getElementById('invite-user-list');
+            userList.innerHTML = '';
+
+            data.users.forEach(user => {
+                const label = document.createElement('label');
+                label.className = 'user-select-item';
+                label.innerHTML = `
+                    <input type="checkbox" name="invite-members" value="${user.id}">
+                    <span>${user.username}</span>
+                `;
+                userList.appendChild(label);
+            });
+        } catch (error) {
+            console.error('エラー:', error);
+        }
+
+        document.getElementById('invite-modal').style.display = 'flex';
+    }
+
+    // メンバー招待モーダルを閉じる
+    function closeInviteModal() {
+        document.getElementById('invite-modal').style.display = 'none';
+        currentGroupId = null;
+    }
+
+    // メンバーを招待
+    async function saveInviteMembers() {
+        const members = Array.from(document.querySelectorAll('#invite-modal input[type="checkbox"]:checked'))
+            .map(cb => cb.value);
+
+        if (members.length === 0) {
+            alert('招待するメンバーを選択してください');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/chat/group/${currentGroupId}/invite-members/`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    members: members
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            });
+
+            if (response.ok) {
+                alert('メンバーを招待しました');
+                closeInviteModal();
+                location.reload();
+            } else {
+                alert('招待に失敗しました');
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+        }
+    }
+
+    // メンバーを削除
+    async function removeMember(groupId, memberId, memberName) {
+        if (!confirm(`${memberName} をグループから削除しますか？`)) return;
+
+        try {
+            const response = await fetch(`/chat/group/${groupId}/remove-member/`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    member_id: memberId
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            });
+
+            if (response.ok) {
+                alert('メンバーを削除しました');
+                location.reload();
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+        }
+    }
+
+    // グループを削除
+    async function deleteGroup(groupId, groupName) {
+        if (!confirm(`グループ「${groupName}」を削除しますか？`)) return;
+
+        try {
+            const response = await fetch(`/chat/group/${groupId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            });
+
+            if (response.ok) {
+                alert('グループを削除しました');
+                location.reload();
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+        }
+    }
+
+    // グループ名を編集
+    function editGroupName(groupId, groupName) {
+        const newName = prompt('新しいグループ名を入力:', groupName);
+        if (!newName || newName === groupName) return;
+
+        updateGroupName(groupId, newName);
+    }
+
+    async function updateGroupName(groupId, newName) {
+        try {
+            const response = await fetch(`/chat/group/${groupId}/update-name/`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    name: newName
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            });
+
+            if (response.ok) {
+                alert('グループ名を更新しました');
+                location.reload();
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+        }
+    }
+
+    // モーダル外のクリックで閉じる
+    document.getElementById('create-group-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeCreateGroupModal();
+    });
+
+    document.getElementById('invite-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeInviteModal();
+    });
+</script>
+{% endblock %}
