@@ -5,6 +5,14 @@
 {% block content %}
 <h1>アルゴリズム一覧</h1>
 
+<!-- 直接テスト：この赤いボックスが表示されるか -->
+<div style="position: fixed; bottom: 50px; right: 50px; background: blue; color: white; padding: 20px; z-index: 99999; font-size: 20px;">
+  テスト表示 - algorithms_list.html
+</div>
+
+<!-- テスト：キャラクターウィジェットを直接埋め込み -->
+{% include 'includes/character_widget.html' with mode='sidebar' %}
+
 {% if algorithms and algorithms|length %}
 	<ul style="list-style: none; padding: 0;">
 		{% for a in algorithms %}
@@ -32,4 +40,12 @@
 <p style="margin-top: 20px;">
 	<a href="javascript:history.back()" style="color: #667eea; text-decoration: none; font-weight: bold;">← 前のページに戻る</a>
 </p>
+{% endblock %}
+
+{% block global_character_widget %}
+<!-- デバッグ：このブロックが表示されるかテスト -->
+<div style="position: fixed; bottom: 10px; left: 10px; background: red; color: white; padding: 10px; z-index: 9999;">
+  ウィジェットブロックテスト
+</div>
+{% include 'includes/character_widget.html' with mode='sidebar' %}
 {% endblock %}

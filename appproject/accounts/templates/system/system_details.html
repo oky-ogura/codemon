@@ -114,9 +114,9 @@
 {% endblock %}
 
 {% block content %}
+{% include 'partials/navigation.html' %}
 <main>
     <h1>システム詳細</h1>
-
     <div class="card" role="region" aria-label="システム詳細内容">
       <!-- システム名・概要を表示するフォーム -->
       <form class="system-form" aria-label="システム情報" onsubmit="return false;">

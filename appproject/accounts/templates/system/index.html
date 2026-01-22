@@ -21,6 +21,12 @@
     height: auto !important;
   }
 
+  /* このページではスクロールを有効化 */
+  body {
+    overflow: visible !important;
+    height: auto !important;
+  }
+
   /* ナビゲーション表示状態の制御 */
   .top-tabs {
     display: block; /* 常に表示 */
@@ -681,8 +687,9 @@
 {% endblock %}
 
 {% block content %}
+{% include 'partials/navigation.html' %}
 <div class="content-wrapper">
-  <!-- 左側のボタンバー（縦並び） -->
+  <!-- ...existing code... -->
   <div class="button-bar">
     <!-- 矢印ボタン（元に戻す・やり直し） -->
     <div class="undo-redo-btns">
@@ -731,8 +738,6 @@
     <button id="addTimerBtn">タイマー</button>
     <button id="addButtonBtn">ボタン追加</button>
   </div>
-
-  <!-- 右側のメインエリア -->
   <div class="main-area">
     <div id="slideArea">
       <div id="trash" title="ここにドラッグで削除">🗑️</div>
