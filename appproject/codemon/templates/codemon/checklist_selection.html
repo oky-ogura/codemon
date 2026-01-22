@@ -94,7 +94,10 @@
   display: block;
   border-radius: 999px;
   box-shadow: none !important;
-  transform: translate(var(--list-img-offset-x), var(--list-img-offset-y)) scale(var(--list-img-scale));
+  position: absolute;
+  left: -126px;
+  top: -10px;
+  transform: scale(var(--list-img-scale));
 }
 
 .btn-list:hover img {
@@ -144,7 +147,10 @@
   display: block;
   border-radius: 999px;
   box-shadow: none !important;
-  transform: translate(var(--create-img-offset-x), var(--create-img-offset-y)) scale(var(--create-img-scale));
+  position: absolute;
+  left: -126px;
+  top: 41px;
+  transform: scale(var(--create-img-scale));
 }
 
 .btn-label {
@@ -162,18 +168,16 @@
 
 /* ボタン別のラベル調整（位置・サイズ・色などを個別に可変にする） */
 .btn-list .btn-label {
-  top: var(--list-label-top, 135%);
-  left: var(--list-label-left, 6%);
-  transform: translate(var(--list-label-tx, -50%), var(--list-label-ty, -50%));
+  top: var(--list-label-top, 10px);
+  left: var(--list-label-left, 12px);
   font-size: var(--list-label-font-size, 18px);
   font-weight: var(--list-label-font-weight, 700);
   color: var(--list-label-color, rgba(21, 21, 21, 1););
 }
 
 .btn-create .btn-label {
-  top: var(--create-label-top, 160%);
-  left: var(--create-label-left, 6%);
-  transform: translate(var(--create-label-tx, -50%), var(--create-label-ty, -50%));
+  top: var(--create-label-top, 60px);
+  left: var(--create-label-left, 12px);
   font-size: var(--create-label-font-size, 18px);
   font-weight: var(--create-label-font-weight, 700);
   color: var(--create-label-color, rgba(21, 21, 21, 1););

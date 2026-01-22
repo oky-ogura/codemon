@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 {% load static %}
 
 {% block background_frame %}
@@ -1111,8 +1111,18 @@ Blockly.Blocks['system_condition'] = {
       .appendField(new Blockly.FieldTextInput("文字："), "ELEMENT_NAME")
       .appendField("が");
     this.appendDummyInput()
-      .appendField(new Blockly.FieldDropdown([["=","EQ"],["≠","NEQ"],[">","GT"],["<","LT"],["≥","GTE"],["≤","LTE"],["ふくむ","CONTAINS"]]), "OP")
-      .appendField(new Blockly.FieldTextInput("あたい"), "VALUE")
+      .appendField(new Blockly.FieldDropdown([
+        ["=","EQ"],
+        ["≠","NEQ"],
+        [">","GT"],
+        ["<","LT"],
+        ["≥","GTE"],
+        ["≤","LTE"],
+        ["ふくむ","CONTAINS"],
+        ["せんたくされている","SELECTED"],
+        ["チェックされている","CHECKED"]
+      ]), "OP")
+      .appendField(new Blockly.FieldTextInput("あたい (複数指定は/区切り)"), "VALUE")
       .appendField("なら");
     this.appendStatementInput("DO")
       .appendField("すること");
@@ -1879,14 +1889,14 @@ async function runBlocks(){
           // APIを使ってサーバーから要素の値を取得
           try {
             const apiUrl = `/accounts/api/system/${sysId}/element/${encodeURIComponent(elementName)}/`;
-            console.log('🔍 API呼び出し:', apiUrl);
+            console.log('� API呼び出し:', apiUrl);
             console.log('📝 検索する要素名:', elementName);
             
             const response = await fetch(apiUrl);
             console.log('📡 レスポンスステータス:', response.status);
             
             const data = await response.json();
-            console.log('📦 取得したデータ:', data);
+            console.log(' 取得したデータ:', data);
             
             let actualValue = '';
             if (data.success && data.element_value) {
@@ -1900,13 +1910,80 @@ async function runBlocks(){
             // 条件評価
             let conditionMet = false;
             switch(op) {
-              case 'EQ': conditionMet = (actualValue == expectedValue); break;
-              case 'NEQ': conditionMet = (actualValue != expectedValue); break;
-              case 'GT': conditionMet = (Number(actualValue) > Number(expectedValue)); break;
-              case 'LT': conditionMet = (Number(actualValue) < Number(expectedValue)); break;
-              case 'GTE': conditionMet = (Number(actualValue) >= Number(expectedValue)); break;
-              case 'LTE': conditionMet = (Number(actualValue) <= Number(expectedValue)); break;
-              case 'CONTAINS': conditionMet = actualValue.includes(expectedValue); break;
+              case 'EQ': 
+                conditionMet = (actualValue == expectedValue); 
+                break;
+              case 'NEQ': 
+                conditionMet = (actualValue != expectedValue); 
+                break;
+              case 'GT': 
+                conditionMet = (Number(actualValue) > Number(expectedValue)); 
+                break;
+              case 'LT': 
+                conditionMet = (Number(actualValue) < Number(expectedValue)); 
+                break;
+              case 'GTE': 
+                conditionMet = (Number(actualValue) >= Number(expectedValue)); 
+                break;
+              case 'LTE': 
+                conditionMet = (Number(actualValue) <= Number(expectedValue)); 
+                break;
+              case 'CONTAINS': 
+                conditionMet = actualValue.includes(expectedValue); 
+                break;
+              case 'SELECTED':
+                // ラジオボタンの判定: 値が期待値と一致するか（複数値のOR条件もサポート）
+                console.log('🔍 ラジオボタン判定:', {
+                  actualValue: actualValue,
+                  expectedValue: expectedValue
+                });
+                
+                // 期待値が/区切りの場合は複数条件をチェック（いずれかに一致すればOK）
+                if (expectedValue.includes('/')) {
+                  const expectedValues = expectedValue.split('/').map(v => v.trim());
+                  conditionMet = expectedValues.some(ev => {
+                    const matched = (actualValue === ev);
+                    console.log(`  - "${ev}" との比較: ${matched ? '✓' : '✗'}`);
+                    return matched;
+                  });
+                  console.log('  → 最終判定:', conditionMet ? '条件満たす' : '条件満たさない');
+                } else {
+                  // 単一値の場合
+                  conditionMet = (actualValue === expectedValue);
+                  console.log('  → 単一値判定:', conditionMet ? '条件満たす' : '条件満たさない');
+                }
+                break;
+              case 'CHECKED':
+                // チェックボックスの判定: カンマ区切りの値に期待値が含まれているか
+                // 複数の値を/区切りで指定できる (例: "読書/音楽/スポーツ")
+                if (actualValue && typeof actualValue === 'string') {
+                  const checkedValues = actualValue.split(',').map(v => v.trim());
+                  console.log('🔍 チェックボックス判定:', {
+                    actualValue: actualValue,
+                    checkedValues: checkedValues,
+                    expectedValue: expectedValue
+                  });
+                  
+                  // 期待値が/区切りの場合は複数条件をチェック
+                  if (expectedValue.includes('/')) {
+                    const expectedValues = expectedValue.split('/').map(v => v.trim());
+                    // いずれか一つでもチェックされていればtrue
+                    conditionMet = expectedValues.some(ev => {
+                      const matched = checkedValues.includes(ev);
+                      console.log(`  - "${ev}" のチェック: ${matched ? '✓' : '✗'}`);
+                      return matched;
+                    });
+                    console.log('  → 最終判定:', conditionMet ? '条件満たす' : '条件満たさない');
+                  } else {
+                    // 単一値の場合
+                    conditionMet = checkedValues.includes(expectedValue);
+                    console.log('  → 単一値判定:', conditionMet ? '条件満たす' : '条件満たさない');
+                  }
+                } else {
+                  conditionMet = (actualValue === expectedValue);
+                  console.log('⚠️ actualValueが文字列ではない:', actualValue);
+                }
+                break;
             }
             
             visual.innerHTML += `<div class="form-row">システム${sysId}の「${elementName}」の値: "${actualValue}" ${conditionMet ? '✓条件満たす' : '✗条件満たさない'}</div>`;

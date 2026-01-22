@@ -1,0 +1,463 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}成績確認 - Codemon{% endblock %}
+
+{% block extra_css %}
+<style>
+    .score-container {
+        max-width: 900px;
+        margin: 20px auto;
+        padding: 20px;
+    }
+
+    .score-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .score-title {
+        font-size: 28px;
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #333;
+    }
+
+    .score-subtitle {
+        color: #999;
+        font-size: 14px;
+    }
+
+    .filter-section {
+        background: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .filter-group {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .filter-label {
+        font-size: 13px;
+        font-weight: 500;
+        color: #666;
+    }
+
+    .filter-select {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 13px;
+        cursor: pointer;
+    }
+
+    .filter-select:focus {
+        outline: none;
+        border-color: #2196F3;
+        box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+    }
+
+    .score-list {
+        display: grid;
+        gap: 15px;
+    }
+
+    .score-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .score-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .score-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 15px;
+    }
+
+    .score-card-title {
+        font-weight: 600;
+        font-size: 16px;
+        color: #333;
+    }
+
+    .score-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .score-badge-excellent {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .score-badge-good {
+        background: #cfe2ff;
+        color: #0c5de4;
+    }
+
+    .score-badge-fair {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .score-badge-poor {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .score-card-content {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .info-label {
+        font-size: 13px;
+        color: #999;
+    }
+
+    .info-value {
+        font-weight: 600;
+        font-size: 16px;
+        color: #333;
+    }
+
+    .score-display {
+        text-align: center;
+        padding: 20px;
+        background: #f9f9f9;
+        border-radius: 8px;
+        border-left: 4px solid #2196F3;
+    }
+
+    .score-label {
+        font-size: 12px;
+        color: #999;
+        margin-bottom: 5px;
+    }
+
+    .score-big {
+        font-size: 32px;
+        font-weight: bold;
+        color: #2196F3;
+    }
+
+    .score-denominator {
+        font-size: 14px;
+        color: #666;
+        margin-top: 5px;
+    }
+
+    .score-comment {
+        background: #f0f8ff;
+        border-left: 3px solid #2196F3;
+        padding: 12px 15px;
+        border-radius: 4px;
+        font-size: 13px;
+        color: #0066cc;
+        line-height: 1.5;
+    }
+
+    .score-card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 15px;
+        border-top: 1px solid #f0f0f0;
+        font-size: 12px;
+        color: #999;
+    }
+
+    .teacher-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .teacher-avatar {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #e0e0e0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        color: #666;
+    }
+
+    .teacher-avatar img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+    }
+
+    .empty-icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+    }
+
+    .empty-text {
+        font-size: 16px;
+        margin-bottom: 5px;
+    }
+
+    .empty-hint {
+        font-size: 13px;
+        color: #bbb;
+    }
+
+    .stats-section {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+    }
+
+    .stat-item {
+        text-align: center;
+        padding: 15px;
+        background: #f9f9f9;
+        border-radius: 8px;
+        border-left: 4px solid #2196F3;
+    }
+
+    .stat-label {
+        font-size: 12px;
+        color: #999;
+        margin-bottom: 8px;
+    }
+
+    .stat-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: #2196F3;
+    }
+
+    @media (max-width: 600px) {
+        .score-container {
+            padding: 10px;
+        }
+
+        .filter-section {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .filter-group {
+            width: 100%;
+        }
+
+        .filter-select {
+            flex: 1;
+        }
+
+        .score-card-content {
+            grid-template-columns: 1fr;
+        }
+
+        .stats-section {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="score-container">
+    <!-- ヘッダー -->
+    <div class="score-header">
+        <div class="score-title">成績確認</div>
+        <div class="score-subtitle">先生に付けられた成績を確認します</div>
+    </div>
+
+    <!-- 統計情報 -->
+    {% if scores %}
+    <div class="stats-section">
+        <div class="stat-item">
+            <div class="stat-label">平均点</div>
+            <div class="stat-value">{{ average_score }}</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">最高点</div>
+            <div class="stat-value">{{ max_score }}</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">最低点</div>
+            <div class="stat-value">{{ min_score }}</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">評価済み</div>
+            <div class="stat-value">{{ total_scored }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- フィルター -->
+    <div class="filter-section">
+        <div class="filter-group">
+            <label class="filter-label">対象:</label>
+            <select class="filter-select" id="subject-filter" onchange="filterScores()">
+                <option value="">すべての科目</option>
+                {% for subject in subjects %}
+                <option value="{{ subject }}">{{ subject }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label class="filter-label">並べ替え:</label>
+            <select class="filter-select" id="sort-filter" onchange="filterScores()">
+                <option value="newest">最新順</option>
+                <option value="oldest">古い順</option>
+                <option value="highest">点数が高い順</option>
+                <option value="lowest">点数が低い順</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- スコアリスト -->
+    {% if scores %}
+    <div class="score-list">
+        {% for score in scores %}
+        <div class="score-card" data-subject="{{ score.subject }}" data-score="{{ score.score }}">
+            <div class="score-card-header">
+                <div class="score-card-title">{{ score.title }}</div>
+                <span class="score-badge {% if score.score >= 80 %}score-badge-excellent{% elif score.score >= 70 %}score-badge-good{% elif score.score >= 60 %}score-badge-fair{% else %}score-badge-poor{% endif %}">
+                    {% if score.score >= 80 %}優秀{% elif score.score >= 70 %}良好{% elif score.score >= 60 %}及第{% else %}不合格{% endif %}
+                </span>
+            </div>
+
+            <div class="score-card-content">
+                <div class="info-item">
+                    <span class="info-label">科目</span>
+                    <span class="info-value">{{ score.subject }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">評価日</span>
+                    <span class="info-value">{{ score.date|date:"Y/m/d" }}</span>
+                </div>
+            </div>
+
+            <!-- スコア表示 -->
+            <div class="score-display">
+                <div class="score-label">成績</div>
+                <div class="score-big">{{ score.score }}</div>
+                <div class="score-denominator">/ 100</div>
+            </div>
+
+            <!-- コメント -->
+            {% if score.comment %}
+            <div class="score-comment" style="margin-top: 15px;">
+                <strong>先生からのコメント:</strong><br>
+                {{ score.comment }}
+            </div>
+            {% endif %}
+
+            <!-- フッター -->
+            <div class="score-card-footer">
+                <div class="teacher-info">
+                    <div class="teacher-avatar">
+                        {% if score.teacher_avatar %}
+                            <img src="{{ score.teacher_avatar.url }}" alt="{{ score.teacher_name }}">
+                        {% else %}
+                            <span>{{ score.teacher_name|first|upper }}</span>
+                        {% endif %}
+                    </div>
+                    <span>{{ score.teacher_name }}</span>
+                </div>
+                <span>{{ score.date|date:"Y年m月d日 H:i" }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <div class="empty-text">まだ成績がありません</div>
+        <div class="empty-hint">先生から成績が付けられるとここに表示されます</div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    function filterScores() {
+        const subjectFilter = document.getElementById('subject-filter').value;
+        const sortFilter = document.getElementById('sort-filter').value;
+        const cards = Array.from(document.querySelectorAll('.score-card'));
+
+        // フィルター処理
+        cards.forEach(card => {
+            if (subjectFilter === '' || card.dataset.subject === subjectFilter) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        // ソート処理
+        const scoreList = document.querySelector('.score-list');
+        const visibleCards = cards.filter(card => card.style.display !== 'none');
+
+        visibleCards.sort((a, b) => {
+            const scoreA = parseInt(a.dataset.score);
+            const scoreB = parseInt(b.dataset.score);
+
+            switch (sortFilter) {
+                case 'highest':
+                    return scoreB - scoreA;
+                case 'lowest':
+                    return scoreA - scoreB;
+                case 'oldest':
+                    return new Date(a.dataset.date) - new Date(b.dataset.date);
+                case 'newest':
+                default:
+                    return new Date(b.dataset.date) - new Date(a.dataset.date);
+            }
+        });
+
+        scoreList.innerHTML = '';
+        visibleCards.forEach(card => {
+            scoreList.appendChild(card);
+        });
+    }
+</script>
+{% endblock %}

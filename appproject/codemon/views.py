@@ -63,7 +63,7 @@ def chat_view(request):
 
 
 def thread_list(request):
-    """投函ボックス（スレッド）一覧。教師は作成したスレッド、学生は所属グループのスレッドを閲覧。"""
+    """投函ボックス(スレッド)一覧。教師は作成したスレッド、学生は所属グループのスレッドを閲覧。"""
     owner = _get_write_owner(request)
     if owner is None:
         return redirect('accounts:student_login')
@@ -428,43 +428,41 @@ def checklist_save(request, pk):
     checklist = get_object_or_404(Checklist, checklist_id=pk)
     if request.method == 'POST':
         name = request.POST.get('checklist_name')
-        desc = request.POST.get('checklist_description')
+        desc = request.POST.get('checklist_description', '')
 
         items = []
         index = 1
-        while f'item_{index}' in request.POST:
-            text = request.POST.get(f'item_{index}', '').strip()
-            done = request.POST.get(f'done_{index}') == 'on'
+        while f'item_title_{index}' in request.POST:
+            text = request.POST.get(f'item_title_{index}', '').strip()
+            done = request.POST.get(f'item_check_{index}') == 'on'
             if text:
                 items.append({'text': text, 'done': done})
             index += 1
 
-        # 🔹 確認画面表示
-        if 'show_confirm' in request.POST:
-            return render(request, 'codemon/checklist_save.html', {
-                'checklist': checklist,
-                'checklist_name': name,
-                'checklist_description': desc,
-                'items': items,
-            })
+        # 🔹 保存確定（編集画面から保存ボタンを押した場合）
+        if 'show_confirm' in request.POST or 'confirm_save' in request.POST:
+            checklist.checklist_name = name
+            checklist.checklist_description = desc
+            checklist.updated_at = timezone.now()
+            checklist.save()
 
-        # 🔹 確定保存
-        checklist.checklist_name = name
-        checklist.checklist_description = desc
-        checklist.updated_at = timezone.now()
-        checklist.save()
+            checklist.items.all().delete()
+            for i, item in enumerate(items, start=1):
+                ChecklistItem.objects.create(
+                    checklist=checklist,
+                    item_text=item['text'],
+                    is_done=item['done'],
+                    sort_order=i
+                )
 
-        checklist.items.all().delete()
-        for i, item in enumerate(items, start=1):
-            ChecklistItem.objects.create(
-                checklist=checklist,
-                item_text=item['text'],
-                is_done=item['done'],
-                sort_order=i
-            )
-
-        messages.success(request, 'チェックリストを保存しました。')
-        return redirect('codemon:checklist_detail', pk=checklist.checklist_id)
+            messages.success(request, 'チェックリストを保存しました。')
+            # show_confirmの場合は保存完了画面を表示
+            if 'show_confirm' in request.POST:
+                return render(request, 'codemon/checklist_save.html', {
+                    'checklist': checklist,
+                })
+            # confirm_saveの場合は詳細画面にリダイレクト
+            return redirect('codemon:checklist_detail', pk=checklist.checklist_id)
 
     return redirect('codemon:checklist_edit', pk=pk)
 
@@ -482,6 +480,44 @@ def checklist_delete(request, pk):
     else:
         cl = get_object_or_404(Checklist, checklist_id=pk, user=request.user)
 
+    if request.method == 'POST':
+        deleted_pk = cl.checklist_id
+        deleted_name = cl.checklist_name
+        deleted_description = getattr(cl, 'checklist_description', '')
+        deleted_items = list(cl.items.values('checklist_item_id', 'item_text', 'is_done'))
+        items_count = len(deleted_items)
+        cl.delete()
+        messages.success(request,
+            f'チェックリスト「{checklist_name}」と{items_count}個の項目が削除されました。')
+        return render(request, 'codemon/checklist_delete_complete.html',
+            {'deleted_name': checklist_name, 'deleted_items_count': items_count})
+    return redirect('codemon:checklist_delete_confirm', pk=pk)
+
+
+def checklist_delete_complete(request, pk):
+    """削除処理を実行して、完了画面をレンダリング"""
+    if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
+        cl = get_object_or_404(Checklist, checklist_id=pk)
+    else:
+        owner = _get_write_owner(request)
+        if owner is None:
+            # In production, require login. In DEBUG allow a dev account and bind session.
+            if not getattr(settings, 'DEBUG', False):
+                login_url = reverse('accounts:student_login') + '?next=' + request.path
+                messages.error(request, 'チェックリストの削除にはログインが必要です')
+                return redirect(login_url)
+            # DEBUG: create/get dev account and bind to session
+            from accounts.models import Account as _Account
+            owner, _ = _Account.objects.get_or_create(
+                email='dev_auto@local',
+                defaults={'user_name': '開発用匿名', 'password': 'dev', 'account_type': 'dev', 'age': 0}
+            )
+            try:
+                request.session['is_account_authenticated'] = True
+                request.session['account_user_id'] = getattr(owner, 'user_id', getattr(owner, 'id', None))
+            except Exception:
+                pass
+        cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
     if request.method == 'POST':
         checklist_name = cl.checklist_name
         items_count = cl.items.count()
@@ -1029,11 +1065,14 @@ def group_edit(request, group_id):
 @require_POST
 def group_delete(request, group_id):
     """グループの削除（論理削除）"""
-    owner = _get_write_owner(request)
-    if owner is None or owner.type != 'teacher':
-        return HttpResponseForbidden('教師権限が必要です')
-
-    group = get_object_or_404(Group, group_id=group_id, owner=owner, is_active=True)
+    if request.method != 'POST':
+        return HttpResponseForbidden('POSTメソッドが必要です')
+    
+    # セッションから現在のユーザーIDを取得
+    current_user_id = request.session.get('account_user_id')
+    if not current_user_id:
+        messages.error(request, 'ログインが必要です')
+        return redirect('accounts:account_entry')
     
     # グループを非アクティブ化（論理削除）
     group.is_active = False
@@ -1097,11 +1136,105 @@ def index(request):
 
 
 # ====== AI Chat API ======
-# ai_chat_api は accounts/ai_chat_api.py からインポート済み（行1）
-# 重複定義を削除し、インポート版を使用
+def account_or_login_required(view_func):
+    """
+    Custom decorator that checks both Django auth and custom session auth
+    """
+    def wrapper(request, *args, **kwargs):
+        # Check Django standard authentication
+        if request.user.is_authenticated:
+            return view_func(request, *args, **kwargs)
+        # Check custom session authentication
+        if request.session.get('is_account_authenticated'):
+            return view_func(request, *args, **kwargs)
+        # Not authenticated
+        return JsonResponse({"error": "authentication required"}, status=401)
+    return wrapper
 
 
-# ai_history_api もセッション認証対応に変更
+@account_or_login_required
+@require_POST
+def ai_chat_api(request):
+    try:
+        body = json.loads(request.body.decode("utf-8"))
+    except Exception:
+        return JsonResponse({"error": "invalid json"}, status=400)
+
+    message = (body.get("message") or "").strip()
+    character = body.get("character") or "usagi"
+    conv_id = body.get("conversation_id")
+    
+    # デバッグログ
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"=== AI Chat API Called ===")
+    logger.info(f"Received body: {body}")
+    logger.info(f"Character ID: {character}")
+    logger.info(f"Message: {message}")
+
+    if not message:
+        return JsonResponse({"error": "message required"}, status=400)
+    
+    # Get Account instance for custom session auth
+    from accounts.models import Account
+    if request.user.is_authenticated:
+        # Djangoユーザーのメールから Account を解決
+        account = Account.objects.filter(email=getattr(request.user, 'email', None)).first()
+        if not account:
+            # セッションに user_id があればフォールバック
+            account_user_id = request.session.get('account_user_id')
+            if account_user_id:
+                account = Account.objects.filter(user_id=account_user_id).first()
+        if not account:
+            return JsonResponse({"error": "account not found for user"}, status=404)
+    else:
+        # Custom session authentication
+        account_user_id = request.session.get('account_user_id')
+        if not account_user_id:
+            return JsonResponse({"error": "user identification failed"}, status=401)
+        try:
+            account = Account.objects.get(user_id=account_user_id)
+        except Account.DoesNotExist:
+            return JsonResponse({"error": "account not found"}, status=404)
+
+    if conv_id:
+        try:
+            conv = AIConversation.objects.get(id=conv_id, user=account)
+        except AIConversation.DoesNotExist:
+            return JsonResponse({"error": "conversation not found"}, status=404)
+    else:
+        conv = AIConversation.objects.create(
+            user=account,
+            character_id=character,
+            title=f"{character}-{timezone.now():%Y%m%d%H%M}",
+        )
+
+    recent = list(conv.messages.order_by("-created_at")[:20])
+    pairs = [(m.role, m.content) for m in reversed(recent)]
+
+    AIMessage.objects.create(conversation=conv, role="user", content=message)
+
+    from .services import chat_gemini
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        logger.info(f"Calling chat_gemini with character={character}, message={message[:50]}...")
+        reply = chat_gemini(message, pairs, character_id=character)
+        logger.info(f"Got reply: {reply[:100]}...")
+    except Exception as e:
+        logger.error(f"Error in chat_gemini: {str(e)}", exc_info=True)
+        reply = f"[エラー] {str(e)}"
+
+    AIMessage.objects.create(conversation=conv, role="assistant", content=reply)
+
+    return JsonResponse({
+        "conversation_id": conv.id,
+        "reply": reply,
+    })
+
+
+@account_or_login_required
 def ai_history_api(request):
     from accounts.views import get_logged_account
     acc = get_logged_account(request)
@@ -1124,3 +1257,4 @@ def ai_history_api(request):
             for m in conv.messages.order_by("created_at")
         ],
     })
+

@@ -718,6 +718,10 @@
 
       <!-- チェックボックス/ラジオ作成パネル（共通） -->
       <div class="create-options-panel" id="createOptionsPanel" role="dialog" aria-hidden="true">
+        <label for="optionsLabel">ラベル</label>
+        <div>
+          <input id="optionsLabel" type="text" placeholder="例：好きな色" style="width:180px;padding:4px 6px;margin-bottom:8px;" />
+        </div>
         <label for="optionsCount">項目の数</label>
         <div>
           <input id="optionsCount" type="number" min="1" max="10" value="3" />
@@ -1061,6 +1065,8 @@
       if (confirmBtn) {
         confirmBtn.addEventListener('click', function(e){
           e.preventDefault();
+          const labelInput = document.getElementById('optionsLabel');
+          const label = labelInput ? labelInput.value.trim() : '';
           const n = parseInt(countInput.value, 10) || 0;
           if (n <= 0) {
             alert('項目数は1以上を指定してください。');
@@ -1071,10 +1077,12 @@
             alert('項目数は最大10までです。10に設定します。');
           }
           if (pendingType === 'checkbox') {
-            createCheckboxGroup(capped);
+            createCheckboxGroup(capped, label);
           } else if (pendingType === 'radio') {
-            createRadioGroup(capped);
+            createRadioGroup(capped, label);
           }
+          // ラベル入力をリセット
+          if (labelInput) labelInput.value = '';
           hideOptionsPanel();
           const dropdown = document.getElementById('formDropdown');
           if (dropdown) { dropdown.classList.remove('show'); dropdown.setAttribute('aria-hidden','true'); }
@@ -1457,6 +1465,8 @@
         #previewSlideArea textarea { outline: none !important; box-shadow: none !important; }
         #previewSlideArea { -webkit-user-select: text !important; user-select: text !important; box-shadow: 0 6px 30px rgba(0,0,0,0.24); }
         #previewSlideArea .timer-settings-btn { display: none !important; }
+        #previewSlideArea .checkbox-group-label { display: none !important; }
+        #previewSlideArea .radio-group-label { display: none !important; }
       `;
       overlay.appendChild(previewStyle);
 
@@ -1762,6 +1772,9 @@
       const group = document.createElement('div');
       group.className = 'checkbox-group';
 
+      // 注: 実行画面ではグループラベル(element_label)を表示しない
+      // 編集画面でのみ表示される
+
       const options = elem.element_config?.options || [];
       options.forEach((optText, i) => {
         const row = document.createElement('div');
@@ -1791,6 +1804,9 @@
     function createPreviewRadioGroup(elem) {
       const group = document.createElement('div');
       group.className = 'radio-group';
+
+      // 注: 実行画面ではグループラベル(element_label)を表示しない
+      // 編集画面でのみ表示される
 
       const uniqueName = 'radio_group_' + Date.now() + '_' + Math.floor(Math.random()*1000);
       const options = elem.element_config?.options || [];
@@ -2201,6 +2217,10 @@
       
       // チェックボックスグループ
       slide.querySelectorAll('.checkbox-group').forEach(group => {
+        // グループラベルを取得
+        const groupLabelDiv = group.querySelector('.checkbox-group-label');
+        const groupLabel = groupLabelDiv ? groupLabelDiv.textContent.trim() : '';
+        
         const rows = group.querySelectorAll('.checkbox-row');
         const options = [];
         rows.forEach(row => {
@@ -2210,7 +2230,7 @@
         
         elements.push({
           element_type: 'checkbox_group',
-          element_label: '',
+          element_label: groupLabel,
           element_value: '',
           position_x: parseInt(group.style.left) || 0,
           position_y: parseInt(group.style.top) || 0,
@@ -2223,6 +2243,10 @@
       
       // ラジオボタングループ
       slide.querySelectorAll('.radio-group').forEach(group => {
+        // グループラベルを取得
+        const groupLabelDiv = group.querySelector('.radio-group-label');
+        const groupLabel = groupLabelDiv ? groupLabelDiv.textContent.trim() : '';
+        
         const rows = group.querySelectorAll('.radio-row');
         const options = [];
         rows.forEach(row => {
@@ -2232,7 +2256,7 @@
         
         elements.push({
           element_type: 'radio_group',
-          element_label: '',
+          element_label: groupLabel,
           element_value: '',
           position_x: parseInt(group.style.left) || 0,
           position_y: parseInt(group.style.top) || 0,
@@ -2374,12 +2398,24 @@
     }
 
     // チェックボックスグループ作成
-    function createCheckboxGroup(count) {
+    function createCheckboxGroup(count, groupLabel = '') {
       count = Math.min(count || 0, 10);
       const slide = document.getElementById('slideArea');
       if (!slide) return;
       const group = document.createElement('div');
       group.className = 'checkbox-group';
+
+      // ラベルがある場合は先頭に追加
+      if (groupLabel) {
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'checkbox-group-label';
+        labelDiv.contentEditable = 'true';
+        labelDiv.textContent = groupLabel;
+        labelDiv.style.fontWeight = 'bold';
+        labelDiv.style.marginBottom = '4px';
+        labelDiv.style.cursor = 'text';
+        group.appendChild(labelDiv);
+      }
 
       for (let i = 0; i < count; i++) {
         const row = document.createElement('div');
@@ -2399,7 +2435,7 @@
         group.appendChild(row);
       }
 
-      const pos = getRandomPosition(200, Math.max(80, count * 28));
+      const pos = getRandomPosition(200, Math.max(80, (groupLabel ? 20 : 0) + count * 28));
       group.style.left = pos.x + 'px';
       group.style.top = pos.y + 'px';
 
@@ -2410,7 +2446,7 @@
     }
 
     // ラジオボタングループ作成（同様の条件）
-    function createRadioGroup(count) {
+    function createRadioGroup(count, groupLabel = '') {
       count = Math.min(count || 0, 10);
       const slide = document.getElementById('slideArea');
       if (!slide) return;
@@ -2419,6 +2455,18 @@
 
       // ラジオの name をユニーク化してグループ内のみ排他にする
       const uniqueName = 'radio_group_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+
+      // ラベルがある場合は先頭に追加
+      if (groupLabel) {
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'radio-group-label';
+        labelDiv.contentEditable = 'true';
+        labelDiv.textContent = groupLabel;
+        labelDiv.style.fontWeight = 'bold';
+        labelDiv.style.marginBottom = '4px';
+        labelDiv.style.cursor = 'text';
+        group.appendChild(labelDiv);
+      }
 
       for (let i = 0; i < count; i++) {
         const row = document.createElement('div');
@@ -2439,7 +2487,7 @@
         group.appendChild(row);
       }
 
-      const pos = getRandomPosition(200, Math.max(80, count * 28));
+      const pos = getRandomPosition(200, Math.max(80, (groupLabel ? 20 : 0) + count * 28));
       group.style.left = pos.x + 'px';
       group.style.top = pos.y + 'px';
 
@@ -3315,6 +3363,18 @@
       const group = document.createElement('div');
       group.className = 'checkbox-group';
 
+      // グループラベルがあれば先頭に追加
+      if (elem.element_label) {
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'checkbox-group-label';
+        labelDiv.contentEditable = 'true';
+        labelDiv.textContent = elem.element_label;
+        labelDiv.style.fontWeight = 'bold';
+        labelDiv.style.marginBottom = '4px';
+        labelDiv.style.cursor = 'text';
+        group.appendChild(labelDiv);
+      }
+
       const options = elem.element_config?.options || [];
       options.forEach((optText, i) => {
         const row = document.createElement('div');
@@ -3347,6 +3407,18 @@
     function restoreRadioGroup(elem) {
       const group = document.createElement('div');
       group.className = 'radio-group';
+
+      // グループラベルがあれば先頭に追加
+      if (elem.element_label) {
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'radio-group-label';
+        labelDiv.contentEditable = 'true';
+        labelDiv.textContent = elem.element_label;
+        labelDiv.style.fontWeight = 'bold';
+        labelDiv.style.marginBottom = '4px';
+        labelDiv.style.cursor = 'text';
+        group.appendChild(labelDiv);
+      }
 
       const uniqueName = 'radio_group_' + Date.now() + '_' + Math.floor(Math.random()*1000);
       const options = elem.element_config?.options || [];
