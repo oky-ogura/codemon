@@ -1602,11 +1602,13 @@ def group_create(request):
                 # 多くの既存 DB スキーマでは group.password が NOT NULL の場合があるため
                 # raw SQL で確実に挿入する
                 with connection.cursor() as cursor:
-                    cursor.execute('INSERT INTO "group" (group_name, user_id, password, is_active, created_at, updated_at) VALUES (%s, %s, %s, %s, now(), now())', [group_name, user_id, hashed or '', True])
-                    # 挿入した行を取得（group_name と user_id の組で最新のものを選ぶ）
-                    cursor.execute('SELECT group_id FROM "group" WHERE group_name = %s AND user_id = %s ORDER BY group_id DESC LIMIT 1', [group_name, user_id])
-                    row = cursor.fetchone()
-                    group_id = row[0] if row else None
+                    # 最後のグループIDを取得して+1した値を新しいグループIDとする
+                    cursor.execute('SELECT COALESCE(MAX(group_id), 0) FROM "group"')
+                    last_id = cursor.fetchone()[0]
+                    new_group_id = last_id + 1
+                    
+                    cursor.execute('INSERT INTO "group" (group_id, group_name, user_id, password, is_active, created_at, updated_at) VALUES (%s, %s, %s, %s, %s, now(), now())', [new_group_id, group_name, user_id, hashed or '', True])
+                    group_id = new_group_id
 
                 if group_id is None:
                     raise Exception('グループ作成後に group_id を取得できませんでした')
