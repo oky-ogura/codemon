@@ -2,6 +2,7 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 from . import views
+from accounts import views as accounts_views
 
 app_name = 'codemon'
 
@@ -38,7 +39,7 @@ urlpatterns = [
     path('groups/<int:group_id>/edit/', views.group_edit, name='group_edit'),
     path('groups/<int:group_id>/delete/', views.group_delete, name='group_delete'),
     path('groups/<int:group_id>/members/<int:member_id>/remove/', 
-        views.group_remove_member, name='group_remove_member'),
+        accounts_views.group_remove_member, name='group_remove_member'),
     path('groups/<int:group_id>/leave/', views.group_leave, name='group_leave'),
 
     # その他

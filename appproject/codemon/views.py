@@ -1,6 +1,4 @@
-from accounts.ai_chat_api import ai_chat_api
-import os
-import json
+from functools import wraps
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db import models
 from django.contrib import messages
@@ -19,6 +17,36 @@ from .models import (
 from accounts.models import Account
 from django.utils import timezone
 from django.db.models import Q
+from django.db import transaction
+
+# カスタムログイン必須デコレータ（セッションベース認証用）
+def session_login_required(view_func):
+	"""
+	セッションベースの認証をチェックするデコレータ。
+	request.session['is_account_authenticated'] が True でない場合、
+	ログインページにリダイレクトします。
+	"""
+	@wraps(view_func)
+	def _wrapped_view(request, *args, **kwargs):
+		if not request.session.get('is_account_authenticated'):
+			return redirect('accounts:student_login')
+		return view_func(request, *args, **kwargs)
+		
+	return _wrapped_view
+
+# 教師専用のログイン必須デコレータ
+def teacher_login_required(view_func):
+	"""
+	教師認証をチェックするデコレータ。
+	認証されていない場合、教師ログインページにリダイレクトします。
+	"""
+	@wraps(view_func)
+	def _wrapped_view(request, *args, **kwargs):
+		if not request.session.get('is_account_authenticated'):
+			return redirect('accounts:teacher_login')
+		return view_func(request, *args, **kwargs)
+		
+	return _wrapped_view
 
 # When ALLOW_ANONYMOUS_VIEWS is True (development convenience), make
 # login_required a no-op so pages can be opened without logging in.
@@ -35,12 +63,27 @@ def _get_write_owner(request):
 	ALLOW_ANONYMOUS_VIEWS is True, return or create a dev Account.
 	Otherwise return None.
 	"""
+	# セッションベース認証をチェック
+	if request.session.get('is_account_authenticated'):
+		account_user_id = request.session.get('account_user_id')
+		if account_user_id:
+			try:
+				return Account.objects.get(user_id=account_user_id)
+			except Account.DoesNotExist:
+				pass
+	
+	# Django標準認証のフォールバック
 	if getattr(request, 'user', None) and getattr(request.user, 'is_authenticated', False):
-		return request.user
+		try:
+			return Account.objects.get(email=request.user.email)
+		except Account.DoesNotExist:
+			pass
+	
+	# 開発用の匿名アカウント
 	if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
 		acct, _ = Account.objects.get_or_create(
 			email='dev_anonymous@local',
-			defaults={'user_name': '開発用匿名', 'password': 'dev', 'type': 'dev'}
+			defaults={'user_name': '開発用匿名', 'password': 'dev', 'account_type': 'dev', 'age': 0}
 		)
 		return acct
 	return None
@@ -345,30 +388,60 @@ def get_thread_readers(request, thread_id):
     })
 
 def checklist_selection(request):
+    owner = _get_write_owner(request)
+    if owner is None:
+        return redirect('accounts:student_login')
+    
     if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
         # 匿名ユーザーでも動作させる
         checklists = Checklist.objects.all()
     else:
-        checklists = Checklist.objects.filter(user=request.user)
+        # owner（Accountオブジェクト）に紐づくチェックリストを取得
+        checklists = Checklist.objects.filter(user=owner)
     return render(request, 'codemon/checklist_selection.html', {'checklists': checklists})
 
 def checklist_list(request):
     """作成済みチェックリストの一覧を表示"""
+    owner = _get_write_owner(request)
+    if owner is None:
+        return redirect('accounts:student_login')
+    
+    # URLパラメータから対象ユーザーIDを取得
+    target_user_id = request.GET.get('user_id')
+    
     if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
         checklists = Checklist.objects.all().order_by('-updated_at')
     else:
-        checklists = Checklist.objects.filter(user=request.user).order_by('-updated_at')
+        # 対象ユーザーが指定されている場合
+        if target_user_id:
+            # 教師は他のユーザーのチェックリストを閲覧可能
+            if getattr(owner, 'type', '') == 'teacher':
+                try:
+                    target_account = Account.objects.get(user_id=target_user_id)
+                    checklists = Checklist.objects.filter(user=target_account).order_by('-updated_at')
+                except Account.DoesNotExist:
+                    messages.error(request, '指定されたユーザーが見つかりません')
+                    checklists = Checklist.objects.filter(user=owner).order_by('-updated_at')
+            else:
+                # 生徒は自分のチェックリストのみ閲覧可能
+                if str(target_user_id) == str(owner.user_id):
+                    checklists = Checklist.objects.filter(user=owner).order_by('-updated_at')
+                else:
+                    messages.error(request, '他のユーザーのチェックリストは閲覧できません')
+                    checklists = Checklist.objects.filter(user=owner).order_by('-updated_at')
+        else:
+            # 対象ユーザーが指定されていない場合は自分のチェックリストを表示
+            checklists = Checklist.objects.filter(user=owner).order_by('-updated_at')
+    
     return render(request, 'codemon/checklist_list.html', {'checklists': checklists})
 
 def checklist_create(request):
+	# 認証チェックを最初に実行
+	owner = _get_write_owner(request)
+	if owner is None:
+		return redirect('accounts:student_login')
+	
 	if request.method == 'POST':
-		owner = _get_write_owner(request)
-		if owner is None:
-			from django.urls import reverse
-			login_url = reverse('accounts:student_login') + '?next=' + request.path
-			messages.error(request, 'チェックリストの作成はログインが必要です。ログインしてください。')
-			return redirect(login_url)
-
 		name = request.POST.get('name')
 		description = request.POST.get('description', '')
 		if name:
@@ -387,14 +460,18 @@ def checklist_create(request):
 
 			messages.success(request, 'チェックリストを作成しました。')
 			return redirect('codemon:checklist_detail', pk=cl.checklist_id)
-	return render(request, 'codemon/checklist_create.html', {'user': request.user})
+	return render(request, 'codemon/checklist_create.html', {'user': owner})
 
 
 def checklist_detail(request, pk):
+	owner = _get_write_owner(request)
+	if owner is None:
+		return redirect('accounts:student_login')
+	
 	if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
 		cl = get_object_or_404(Checklist, checklist_id=pk)
 	else:
-		cl = get_object_or_404(Checklist, checklist_id=pk, user=request.user)
+		cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
 	if request.method == 'POST':
 		# new item
 		text = request.POST.get('item_text')
@@ -971,41 +1048,8 @@ def group_invite(request, group_id):
         }, status=404)
 
 
-@require_POST
-def group_remove_member(request, group_id, member_id):
-    """グループからメンバーを削除（教師のみ）"""
-    owner = _get_write_owner(request)
-    if owner is None or owner.type != 'teacher':
-        return HttpResponseForbidden('教師権限が必要です')
 
-    group = get_object_or_404(Group, group_id=group_id, is_active=True)
-    if group.owner != owner:
-        return HttpResponseForbidden('グループのオーナーのみメンバーを削除できます')
 
-    try:
-        membership = GroupMember.objects.get(
-            group=group,
-            member_id=member_id,
-            is_active=True
-        )
-        if membership.member == group.owner:
-            return JsonResponse({
-                'error': 'グループのオーナーは削除できません'
-            }, status=400)
-
-        # 論理削除
-        membership.is_active = False
-        membership.save()
-
-        return JsonResponse({
-            'status': 'ok',
-            'message': f'{membership.member.user_name}をグループから削除しました'
-        })
-
-    except GroupMember.DoesNotExist:
-        return JsonResponse({
-            'error': '指定されたメンバーが見つかりません'
-        }, status=404)
 
 
 @require_POST
@@ -1093,9 +1137,7 @@ if not getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
     systems_list = _login_required(systems_list)
     algorithms_list = _login_required(algorithms_list)
     chat_view = _login_required(chat_view)
-    checklist_selection = _login_required(checklist_selection)
-    checklist_create = _login_required(checklist_create)
-    checklist_detail = _login_required(checklist_detail)
+    # checklist_selection, checklist_list, checklist_create, checklist_detail は _get_write_owner で認証チェック済み
     checklist_toggle_item = _login_required(checklist_toggle_item)
     checklist_save = _login_required(checklist_save)
     checklist_delete_confirm = _login_required(checklist_delete_confirm)
@@ -1108,7 +1150,7 @@ if not getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
     group_detail = _login_required(group_detail)
     group_edit = _login_required(group_edit)
     group_invite = _login_required(group_invite)
-    group_remove_member = _login_required(group_remove_member)
+    # group_remove_member は @teacher_login_required デコレータを使用しているため、ここではラップしない
     group_leave = _login_required(group_leave)
 
 @login_required

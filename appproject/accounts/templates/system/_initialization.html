@@ -1,0 +1,651 @@
+<script>
+// ========================================
+// window.onload - ページ読み込み時の初期化
+// ========================================
+window.onload = function() {
+  const slide = document.getElementById('slideArea');
+  
+  // 編集モードで既存要素がある場合、それを復元
+  if (existingElementsData && existingElementsData.length > 0) {
+    console.log('既存システム要素を復元します:', existingElementsData);
+    restoreSystemElements(existingElementsData);
+  } else {
+    // 保存画面から戻ってきた場合のみ、sessionStorageから以前の編集内容を復元
+    const returnFromCreate = sessionStorage.getItem('returnFromCreate');
+    const savedContent = sessionStorage.getItem('systemDesignContent');
+    
+    if (returnFromCreate === 'true' && savedContent && slide) {
+      try {
+        // JSON形式のデータとして解析を試みる
+        const elementsData = JSON.parse(savedContent);
+        console.log('システム設計内容を復元します（JSON形式）:', elementsData);
+        restoreSystemElements(elementsData);
+      } catch (e) {
+        // JSON解析に失敗した場合は、従来のHTML形式として処理
+        console.log('システム設計内容を復元します（HTML形式）');
+        const trash = slide.querySelector('#trash');
+        const trashHTML = trash ? trash.outerHTML : '<div id="trash" title="ここにドラッグで削除">🗑️</div>';
+        slide.innerHTML = savedContent + trashHTML;
+      }
+    }
+  }
+  
+  // 復元後はフラグをクリア（次回の通常アクセス時に復元しないように）
+  sessionStorage.removeItem('returnFromCreate');
+  
+  // navigatingToCreateフラグもクリア（保存画面に遷移した後は不要）
+  sessionStorage.removeItem('navigatingToCreate');
+  
+  // すべてのドラッグ可能な要素にハンドルを追加
+  Array.from(document.querySelectorAll('.input-container, .draggable-btn, .text-input_container, .text-input-container, .checkbox-group, .radio-group, .timer-container, .roulette-container')).forEach(el=>{
+    addDragHandleIfMissing(el);
+    makeDraggable(el);
+  });
+  
+  // 数値入力フィルタを再適用
+  document.querySelectorAll('input[data-only-number="true"]').forEach(inp => {
+    try { attachNumberFilter(inp); } catch(e){ console.error(e); }
+  });
+  
+  // タイマーの更新処理を開始
+  startTimerUpdates();
+  
+  saveHistory();
+};
+
+// ========================================
+// タイマーの更新処理
+// ========================================
+function startTimerUpdates() {
+  setInterval(function() {
+    document.querySelectorAll('.timer-container').forEach(timer => {
+      const running = timer.getAttribute('data-timer-running') === 'true';
+      if (running) {
+        const mode = timer.getAttribute('data-timer-mode') || 'up';
+        let seconds = parseInt(timer.getAttribute('data-timer-seconds') || '0');
+        
+        if (mode === 'up') {
+          seconds++;
+          timer.setAttribute('data-timer-seconds', seconds.toString());
+        } else {
+          seconds--;
+          if (seconds < 0) seconds = 0;
+          timer.setAttribute('data-timer-seconds', seconds.toString());
+          
+          if (seconds === 0) {
+            timer.setAttribute('data-timer-running', 'false');
+            const startBtn = timer.querySelector('.timer-btn.pause');
+            if (startBtn) {
+              startBtn.textContent = "開始";
+              startBtn.classList.remove('pause');
+              startBtn.classList.add('start');
+            }
+          }
+        }
+        
+        const display = timer.querySelector('.timer-display');
+        if (display) {
+          const h = Math.floor(seconds / 3600);
+          const m = Math.floor((seconds % 3600) / 60);
+          const s = seconds % 60;
+          display.textContent = 
+            String(h).padStart(2, '0') + ':' +
+            String(m).padStart(2, '0') + ':' +
+            String(s).padStart(2, '0');
+        }
+      }
+    });
+  }, 1000);
+}
+
+// ========================================
+// JSON形式の要素データからHTML要素を復元する関数
+// ========================================
+function restoreSystemElements(elementsData) {
+  const slide = document.getElementById('slideArea');
+  if (!slide) return;
+  
+  elementsData.forEach(elem => {
+    try {
+      switch(elem.element_type) {
+        case 'text_input':
+          restoreTextInput(elem, false);
+          break;
+        case 'number_input':
+          restoreTextInput(elem, true);
+          break;
+        case 'datetime_input':
+          restoreDatetimeInput(elem);
+          break;
+        case 'checkbox_group':
+          restoreCheckboxGroup(elem);
+          break;
+        case 'radio_group':
+          restoreRadioGroup(elem);
+          break;
+        case 'button':
+          restoreButton(elem);
+          break;
+        case 'text_box':
+          restoreTextBox(elem);
+          break;
+        case 'roulette':
+          restoreRoulette(elem);
+          break;
+        case 'timer':
+          restoreTimer(elem);
+          break;
+      }
+    } catch (error) {
+      console.error('要素の復元に失敗:', elem, error);
+    }
+  });
+}
+
+function restoreTextInput(elem, onlyNumber) {
+  const container = document.createElement("div");
+  container.classList.add("input-container");
+
+  const label = document.createElement("div");
+  label.classList.add("input-label");
+  label.textContent = elem.element_label || (onlyNumber ? "数字：" : "文字：");
+  label.contentEditable = "true";
+
+  const placeholder = elem.element_config?.placeholder || (onlyNumber ? "数字を入力" : "文字を入力（改行可）");
+  const actualValue = elem.element_value || "";
+
+  if (onlyNumber) {
+    const input = document.createElement("input");
+    input.type = "text";
+    input.inputMode = "numeric";
+    input.pattern = "\\d*";
+    input.classList.add("input-box");
+    input.placeholder = placeholder;
+    input.value = actualValue;
+    input.setAttribute('data-only-number', 'true');
+    container.appendChild(label);
+    container.appendChild(input);
+    attachNumberFilter(input);
+  } else {
+    const textarea = document.createElement("textarea");
+    textarea.classList.add("input-box");
+    textarea.placeholder = placeholder;
+    textarea.value = actualValue;
+    container.appendChild(label);
+    container.appendChild(textarea);
+  }
+
+  container.style.left = elem.position_x + "px";
+  container.style.top = elem.position_y + "px";
+  if (elem.width) container.style.width = elem.width + "px";
+  if (elem.height) container.style.height = elem.height + "px";
+
+  addDragHandleIfMissing(container);
+  makeDraggable(container);
+  document.getElementById("slideArea").appendChild(container);
+}
+
+function restoreDatetimeInput(elem) {
+  const container = document.createElement("div");
+  container.classList.add("input-container");
+
+  const label = document.createElement("div");
+  label.classList.add("input-label");
+  label.textContent = elem.element_label || "日時：";
+  label.contentEditable = "true";
+
+  const input = document.createElement("input");
+  input.type = "datetime-local";
+  input.style.minWidth = "180px";
+  input.style.minHeight = "36px";
+  input.style.fontSize = "16px";
+  input.style.padding = "4px 8px";
+  input.style.boxSizing = "border-box";
+  input.classList.add("input-box");
+  input.value = elem.element_value || "";
+
+  container.appendChild(label);
+  container.appendChild(input);
+
+  container.style.left = elem.position_x + "px";
+  container.style.top = elem.position_y + "px";
+  if (elem.width) container.style.width = elem.width + "px";
+  if (elem.height) container.style.height = elem.height + "px";
+
+  addDragHandleIfMissing(container);
+  makeDraggable(container);
+  document.getElementById("slideArea").appendChild(container);
+}
+
+function restoreCheckboxGroup(elem) {
+  const group = document.createElement('div');
+  group.className = 'checkbox-group';
+
+  // グループラベルがあれば先頭に追加
+  if (elem.element_label) {
+    const labelDiv = document.createElement('div');
+    labelDiv.className = 'checkbox-group-label';
+    labelDiv.contentEditable = 'true';
+    labelDiv.textContent = elem.element_label;
+    labelDiv.style.fontWeight = 'bold';
+    labelDiv.style.marginBottom = '4px';
+    labelDiv.style.cursor = 'text';
+    group.appendChild(labelDiv);
+  }
+
+  const options = elem.element_config?.options || [];
+  options.forEach((optText, i) => {
+    const row = document.createElement('div');
+    row.className = 'checkbox-row';
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.tabIndex = 0;
+
+    const lbl = document.createElement('div');
+    lbl.className = 'checkbox-label';
+    lbl.contentEditable = 'true';
+    lbl.textContent = optText || ('項目 ' + (i + 1));
+
+    row.appendChild(cb);
+    row.appendChild(lbl);
+    group.appendChild(row);
+  });
+
+  group.style.left = elem.position_x + 'px';
+  group.style.top = elem.position_y + 'px';
+  if (elem.width) group.style.width = elem.width + 'px';
+  if (elem.height) group.style.height = elem.height + 'px';
+
+  addDragHandleIfMissing(group);
+  makeDraggable(group);
+  document.getElementById('slideArea').appendChild(group);
+}
+
+function restoreRadioGroup(elem) {
+  const group = document.createElement('div');
+  group.className = 'radio-group';
+
+  // グループラベルがあれば先頭に追加
+  if (elem.element_label) {
+    const labelDiv = document.createElement('div');
+    labelDiv.className = 'radio-group-label';
+    labelDiv.contentEditable = 'true';
+    labelDiv.textContent = elem.element_label;
+    labelDiv.style.fontWeight = 'bold';
+    labelDiv.style.marginBottom = '4px';
+    labelDiv.style.cursor = 'text';
+    group.appendChild(labelDiv);
+  }
+
+  const uniqueName = 'radio_group_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+  const options = elem.element_config?.options || [];
+  options.forEach((optText, i) => {
+    const row = document.createElement('div');
+    row.className = 'radio-row';
+
+    const rb = document.createElement('input');
+    rb.type = 'radio';
+    rb.name = uniqueName;
+    rb.tabIndex = 0;
+
+    const lbl = document.createElement('div');
+    lbl.className = 'radio-label';
+    lbl.contentEditable = 'true';
+    lbl.textContent = optText || ('項目 ' + (i + 1));
+
+    row.appendChild(rb);
+    row.appendChild(lbl);
+    group.appendChild(row);
+  });
+
+  group.style.left = elem.position_x + 'px';
+  group.style.top = elem.position_y + 'px';
+  if (elem.width) group.style.width = elem.width + 'px';
+  if (elem.height) group.style.height = elem.height + 'px';
+
+  addDragHandleIfMissing(group);
+  makeDraggable(group);
+  document.getElementById('slideArea').appendChild(group);
+}
+
+function restoreButton(elem) {
+  const btn = document.createElement("button");
+  btn.classList.add("draggable-btn");
+  btn.textContent = elem.element_label || "ボタン";
+
+  if (elem.width) btn.style.width = elem.width + "px";
+  if (elem.height) btn.style.height = elem.height + "px";
+  
+  if (elem.style_data?.background) btn.style.background = elem.style_data.background;
+  if (elem.style_data?.color) btn.style.color = elem.style_data.color;
+
+  const targetSystemId = elem.element_config?.target_system_id;
+  const algorithmId = elem.element_config?.algorithm_id;
+  const algorithmXml = elem.element_config?.algorithm_xml;
+  
+  if (targetSystemId) {
+    btn.setAttribute('data-target-system', targetSystemId);
+  }
+  if (algorithmId) {
+    btn.setAttribute('data-algorithm-id', algorithmId);
+  }
+  if (algorithmXml) {
+    btn.setAttribute('data-algorithm-xml', algorithmXml);
+  }
+
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    const isPreview = btn.closest('#previewSlideArea');
+    
+    if (isPreview) {
+      if (algorithmId && algorithmXml) {
+        // アルゴリズム実行
+        executeAlgorithmFromButton(algorithmXml, btn.textContent);
+      } else if (targetSystemId) {
+        // システム遷移
+        loadSystemInPreview(targetSystemId);
+      }
+    }
+  });
+
+  btn.style.left = elem.position_x + "px";
+  btn.style.top = elem.position_y + "px";
+
+  addDragHandleIfMissing(btn);
+  makeDraggable(btn);
+  document.getElementById("slideArea").appendChild(btn);
+}
+
+function restoreTextBox(elem) {
+  const container = document.createElement('div');
+  container.className = 'text-input-container';
+  
+  container.style.left = elem.position_x + 'px';
+  container.style.top = elem.position_y + 'px';
+  if (elem.width) container.style.width = elem.width + 'px';
+  if (elem.height) container.style.height = elem.height + 'px';
+
+  const ta = document.createElement('textarea');
+  ta.className = 'text-input';
+  ta.value = elem.element_value || '';
+  ta.placeholder = 'テキストを入力';
+  ta.spellcheck = false;
+
+  container.appendChild(ta);
+  addDragHandleIfMissing(container);
+  makeDraggable(container);
+  document.getElementById('slideArea').appendChild(container);
+}
+
+function restoreRoulette(elem) {
+  const container = document.createElement("div");
+  container.classList.add("roulette-container");
+  
+  const config = elem.element_config || {};
+  const items = config.items || ['項目1', '項目2', '項目3'];
+  
+  container.setAttribute('data-roulette-items', JSON.stringify(items));
+  container.setAttribute('data-roulette-spinning', 'false');
+  
+  // ルーレットの円を作成（SVGベース）
+  const wheel = document.createElement("div");
+  wheel.classList.add("roulette-wheel");
+  wheel.style.position = "relative";
+  wheel.style.width = "200px";
+  wheel.style.height = "200px";
+  wheel.style.transition = "transform 3s cubic-bezier(0.25, 0.1, 0.25, 1)";
+  wheel.dataset.currentRotation = "0";
+  
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("width", "200");
+  svg.setAttribute("height", "200");
+  svg.setAttribute("viewBox", "0 0 200 200");
+  
+  const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B500', '#52C41A'];
+  const centerX = 100;
+  const centerY = 100;
+  const radius = 95;
+  const anglePerSegment = (2 * Math.PI) / items.length;
+  
+  items.forEach((item, index) => {
+    const startAngle = index * anglePerSegment - Math.PI / 2;
+    const endAngle = (index + 1) * anglePerSegment - Math.PI / 2;
+    
+    const x1 = centerX + radius * Math.cos(startAngle);
+    const y1 = centerY + radius * Math.sin(startAngle);
+    const x2 = centerX + radius * Math.cos(endAngle);
+    const y2 = centerY + radius * Math.sin(endAngle);
+    
+    const largeArcFlag = anglePerSegment > Math.PI ? 1 : 0;
+    
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`);
+    path.setAttribute("fill", colors[index % colors.length]);
+    path.setAttribute("stroke", "#fff");
+    path.setAttribute("stroke-width", "2");
+    svg.appendChild(path);
+    
+    const textAngle = startAngle + anglePerSegment / 2;
+    const textRadius = radius * 0.65;
+    const textX = centerX + textRadius * Math.cos(textAngle);
+    const textY = centerY + textRadius * Math.sin(textAngle);
+    
+    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    text.setAttribute("x", textX);
+    text.setAttribute("y", textY);
+    text.setAttribute("text-anchor", "middle");
+    text.setAttribute("dominant-baseline", "middle");
+    text.setAttribute("fill", "#fff");
+    text.setAttribute("font-size", "14");
+    text.setAttribute("font-weight", "bold");
+    text.setAttribute("transform", `rotate(${(textAngle * 180 / Math.PI) + 90}, ${textX}, ${textY})`);
+    text.style.textShadow = "1px 1px 2px rgba(0,0,0,0.8)";
+    text.textContent = item;
+    svg.appendChild(text);
+  });
+  
+  const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  circle.setAttribute("cx", centerX);
+  circle.setAttribute("cy", centerY);
+  circle.setAttribute("r", radius);
+  circle.setAttribute("fill", "none");
+  circle.setAttribute("stroke", "#333");
+  circle.setAttribute("stroke-width", "4");
+  svg.appendChild(circle);
+  
+  wheel.appendChild(svg);
+  
+  const pin = document.createElement("div");
+  pin.style.position = "absolute";
+  pin.style.top = "-15px";
+  pin.style.left = "48%";
+  pin.style.transform = "translateX(-50%)";
+  pin.style.width = "0";
+  pin.style.height = "0";
+  pin.style.borderLeft = "10px solid transparent";
+  pin.style.borderRight = "10px solid transparent";
+  pin.style.borderTop = "20px solid #FF0000";
+  pin.style.zIndex = "10";
+  pin.style.pointerEvents = "none";
+  
+  const result = document.createElement("div");
+  result.classList.add("roulette-result");
+  result.style.marginTop = "10px";
+  result.style.padding = "8px";
+  result.style.background = "#f0f0f0";
+  result.style.borderRadius = "4px";
+  result.style.textAlign = "center";
+  result.style.fontWeight = "bold";
+  result.textContent = "結果: -";
+  
+  const spinBtn = document.createElement("button");
+  spinBtn.classList.add("roulette-btn", "spin");
+  spinBtn.textContent = "スピン";
+  spinBtn.style.marginTop = "10px";
+  spinBtn.style.padding = "8px 20px";
+  spinBtn.style.fontSize = "16px";
+  spinBtn.style.cursor = "pointer";
+  spinBtn.style.position = "relative";
+  spinBtn.style.zIndex = "100";
+  spinBtn.onclick = function(e) {
+    e.stopPropagation();
+    const spinning = container.getAttribute('data-roulette-spinning') === 'true';
+    if (spinning) return;
+    
+    container.setAttribute('data-roulette-spinning', 'true');
+    spinBtn.disabled = true;
+    spinBtn.style.cursor = 'not-allowed';
+    spinBtn.style.opacity = '0.6';
+    
+    const currentRotation = parseFloat(wheel.dataset.currentRotation) || 0;
+    const spins = 5 + Math.random() * 3;
+    const extraDegrees = Math.random() * 360;
+    const newRotation = currentRotation + spins * 360 + extraDegrees;
+    
+    wheel.style.transform = `rotate(${newRotation}deg)`;
+    wheel.dataset.currentRotation = newRotation;
+    
+    setTimeout(() => {
+      const finalAngle = ((newRotation % 360) + 360) % 360;
+      const segmentAngle = 360 / items.length;
+      const angleOnWheel = (270 - finalAngle + 360) % 360;
+      const selectedIndex = Math.floor((angleOnWheel + 90) / segmentAngle) % items.length;
+      
+      result.textContent = `結果: ${items[selectedIndex]}`;
+      container.setAttribute('data-roulette-spinning', 'false');
+      spinBtn.disabled = false;
+      spinBtn.style.cursor = 'pointer';
+      spinBtn.style.opacity = '1';
+    }, 3000);
+  };
+  
+  const wheelWrapper = document.createElement("div");
+  wheelWrapper.style.position = "relative";
+  wheelWrapper.style.pointerEvents = "none";
+  wheelWrapper.appendChild(pin);
+  wheelWrapper.appendChild(wheel);
+  
+  container.appendChild(wheelWrapper);
+  container.appendChild(result);
+  container.appendChild(spinBtn);
+  
+  container.style.left = elem.position_x + "px";
+  container.style.top = elem.position_y + "px";
+  if (elem.width) container.style.width = elem.width + "px";
+  if (elem.height) container.style.height = elem.height + "px";
+
+  addDragHandleIfMissing(container);
+  makeDraggable(container);
+  document.getElementById("slideArea").appendChild(container);
+}
+
+function restoreTimer(elem) {
+  const container = document.createElement("div");
+  container.classList.add("timer-container");
+  
+  const mode = elem.element_config?.mode || 'up';
+  const targetSeconds = elem.element_config?.target || 0;
+  
+  container.setAttribute('data-timer-seconds', elem.element_value || '0');
+  container.setAttribute('data-timer-running', 'false');
+  container.setAttribute('data-timer-mode', mode);
+  container.setAttribute('data-timer-target', targetSeconds.toString());
+
+  const settingsBtn = document.createElement("button");
+  settingsBtn.classList.add("timer-settings-btn");
+  settingsBtn.textContent = "⚙ 設定";
+  settingsBtn.title = "タイマー設定を変更";
+  settingsBtn.onclick = function(e) {
+    e.stopPropagation();
+    openTimerSettings(container, display);
+  };
+
+  const display = document.createElement("div");
+  display.classList.add("timer-display");
+  
+  const seconds = parseInt(elem.element_value || '0');
+  const hDisp = Math.floor(seconds / 3600);
+  const mDisp = Math.floor((seconds % 3600) / 60);
+  const sDisp = seconds % 60;
+  display.textContent = 
+    String(hDisp).padStart(2, '0') + ':' +
+    String(mDisp).padStart(2, '0') + ':' +
+    String(sDisp).padStart(2, '0');
+
+  const controls = document.createElement("div");
+  controls.classList.add("timer-controls");
+
+  const startBtn = document.createElement("button");
+  startBtn.classList.add("timer-btn", "start");
+  startBtn.textContent = "開始";
+  startBtn.onclick = function(e) {
+    e.stopPropagation();
+    const running = container.getAttribute('data-timer-running') === 'true';
+    const timerMode = container.getAttribute('data-timer-mode');
+    
+    if (!running) {
+      if (timerMode === 'down') {
+        const target = parseInt(container.getAttribute('data-timer-target') || '0');
+        if (target === 0) {
+          alert('カウントダウンの時間を設定してください');
+          return;
+        }
+      }
+      container.setAttribute('data-timer-running', 'true');
+      startBtn.textContent = "停止";
+      startBtn.classList.remove('start');
+      startBtn.classList.add('pause');
+    } else {
+      container.setAttribute('data-timer-running', 'false');
+      startBtn.textContent = "開始";
+      startBtn.classList.remove('pause');
+      startBtn.classList.add('start');
+    }
+  };
+
+  const resetBtn = document.createElement("button");
+  resetBtn.classList.add("timer-btn", "reset");
+  resetBtn.textContent = "リセット";
+  resetBtn.onclick = function(e) {
+    e.stopPropagation();
+    const timerMode = container.getAttribute('data-timer-mode');
+    container.setAttribute('data-timer-running', 'false');
+    
+    if (timerMode === 'up') {
+      container.setAttribute('data-timer-seconds', '0');
+      display.textContent = "00:00:00";
+    } else {
+      const target = parseInt(container.getAttribute('data-timer-target') || '0');
+      container.setAttribute('data-timer-seconds', target.toString());
+      const h = Math.floor(target / 3600);
+      const m = Math.floor((target % 3600) / 60);
+      const s = target % 60;
+      display.textContent = 
+        String(h).padStart(2, '0') + ':' +
+        String(m).padStart(2, '0') + ':' +
+        String(s).padStart(2, '0');
+    }
+    
+    startBtn.textContent = "開始";
+    startBtn.classList.remove('pause');
+    startBtn.classList.add('start');
+  };
+
+  controls.appendChild(startBtn);
+  controls.appendChild(resetBtn);
+  
+  container.appendChild(settingsBtn);
+  container.appendChild(display);
+  container.appendChild(controls);
+
+  container.style.left = elem.position_x + 'px';
+  container.style.top = elem.position_y + 'px';
+  if (elem.width) container.style.width = elem.width + 'px';
+  if (elem.height) container.style.height = elem.height + 'px';
+
+  addDragHandleIfMissing(container);
+  makeDraggable(container);
+  document.getElementById('slideArea').appendChild(container);
+}
+</script>

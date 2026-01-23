@@ -1,0 +1,664 @@
+<style>
+  /* Blocklyは外部スクリプトとして読み込む */
+  :root { --nav-height:56px; --primary:#1976d2; --bg:#f9f9fb; --muted:#666; }
+
+  /* このページではスクロールを有効化 */
+  body {
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /* ナビゲーション表示状態の制御 */
+  .top-tabs {
+    display: block; /* 常に表示 */
+  }
+
+  /* コンテンツ全体の配置 */
+  .content-wrapper {
+    display: flex;
+    flex-direction: row; /* 横並びに変更 */
+    align-items: flex-start;
+    justify-content: center;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-top: 60px !important; /* ナビゲーションバーと適度な間隔を保つ */
+    padding-bottom: 40px;
+    min-height: auto;
+    overflow-y: visible;
+    gap: 20px;
+  }
+
+  /* 左側のボタンバー（縦並び） */
+  .button-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 180px;
+    flex-shrink: 0;
+    margin-top: 0; /* ボタンバーを上に移動 */
+  }
+
+  /* 矢印ボタンのコンテナ */
+  .undo-redo-btns {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 5px;
+  }
+
+  .undo-redo-btns button {
+    flex: 1;
+    font-size: 15px;
+    padding: 7px;
+    border-radius: 4px;
+    border: 1px solid #bbb;
+    background: #f5f5f5;
+    cursor: pointer;
+    transition: background 0.2s;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .undo-redo-btns button:hover {
+    background: #e0e0e0;
+  }
+
+  .button-bar button {
+    width: 100%;
+    font-size: 15px;
+    padding: 9px 16px;
+    border-radius: 4px;
+    border: 1px solid #bbb;
+    background: #f5f5f5;
+    cursor: pointer;
+    transition: background 0.2s;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .button-bar button:hover {
+    background: #e0e0e0;
+  }
+
+  .button-bar button.active {
+    background:#1976d2;
+    color:#fff;
+    box-shadow:0 6px 16px rgba(25,118,210,0.12);
+  }
+
+  /* 左側ボタンバー内のアクションボタンのスタイル */
+  .button-bar #saveBtn {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .button-bar #saveBtn img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .button-bar #saveBtn:hover {
+    opacity: 0.8;
+  }
+
+  .button-bar #executeBtn {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .button-bar #executeBtn img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .button-bar #executeBtn:hover {
+    opacity: 0.8;
+  }
+
+  /* 右側のメインエリア */
+  .main-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 860px;
+  }
+
+    /* フォーム用ドロップダウン */
+    .form-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .form-dropdown .dropdown-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+      padding: 6px;
+      min-width: 180px;
+      z-index: 1200;
+      display: none;
+    }
+    .form-dropdown .dropdown-menu.show {
+      display: block;
+    }
+    .form-dropdown .dropdown-menu button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 8px 10px;
+      margin: 4px 0;
+      background: #fff;
+      border: 1px solid #eee;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .form-dropdown .dropdown-menu button:hover {
+      background: #f0f6ff;
+      color: var(--primary);
+    }
+
+    /* checkbox / radio create panel (共通レイアウト) */
+    .create-options-panel {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 190px;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      padding: 10px;
+      z-index: 1300;
+      min-width: 220px;
+      display: none;
+    }
+    .create-options-panel.show { display: block; }
+    .create-options-panel label { display:block; margin-bottom:6px; color:#333; font-size:13px; }
+    .create-options-panel input[type="number"] { width: 80px; padding:4px 6px; margin-right:8px; }
+    .create-options-panel .panel-actions { margin-top:8px; display:flex; gap:8px; justify-content:flex-end; }
+
+    .shortcut-bar {
+      width: 860px;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      margin-bottom: 16px;
+      margin-top: 0;
+    }
+    .shortcut-bar button {
+      margin-right: 10px;
+      font-size: 18px;
+      padding: 6px 18px;
+      border-radius: 4px;
+      border: 1px solid #bbb;
+      background: #f5f5f5;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .shortcut-bar button:hover {
+      background: #e0e0e0;
+    }
+    .shortcut-bar .shortcut-label {
+      font-size: 14px;
+      color: #555;
+      margin-right: 20px;
+    }
+
+    /* 既存の青い保存スタイル（参照用） */
+    .shortcut-save {
+      padding: 10px 18px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(10,59,110,0.08);
+      background: linear-gradient(180deg,#cfe7ff,#b6d9ff);
+      color: #0a3b6e;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(10,59,110,0.06);
+      margin-left: 6px;
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .shortcut-save:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(10,59,110,0.10);
+    }
+    .shortcut-save[aria-disabled="true"]{
+      opacity: 0.7;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    /* ご希望の緑スタイル（優先的に適用されるようセレクタを具体化） */
+    .shortcut-bar .shortcut-btns #saveBtn {
+      font-size: 18px;
+      margin-left: 8px;
+      background: #28a745;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 14px;
+      cursor: pointer;
+    }
+    .shortcut-bar .shortcut-btns #saveBtn:hover {
+      background: #1e7e34;
+    }
+
+    /* 全削除ボタンのスタイル */
+    .shortcut-bar .shortcut-btns #clearAllBtn {
+      font-size: 18px;
+      margin-left: 8px;
+      background: #dc3545;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 16px;
+      cursor: pointer;
+    }
+    .shortcut-bar .shortcut-btns #clearAllBtn:hover {
+      background: #c82333;
+    }
+
+    /* Run/実行 ボタンの見た目を統一 */
+    .shortcut-bar .shortcut-btns #executeBtn {
+      font-size: 18px;
+      margin-left: 10px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 16px;
+      cursor: pointer;
+    }
+    .shortcut-bar .shortcut-btns #executeBtn:hover {
+      background: #0056b3;
+    }
+    #slideArea {
+      width: 860px;
+      height: 440px;
+      border: 2px dashed #666;
+      position: relative;
+      background-color: #fdfdfd;
+      overflow: hidden;
+      margin: 0 auto 20px auto;
+      display: block;
+      flex-shrink: 0;
+    }
+
+    .input-container {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      min-width: 180px;
+      min-height: 40px;
+      cursor: grab;
+      box-sizing: border-box;
+      left: 0;
+      top: 0;
+    }
+
+    .input-container.grabbing { cursor: grabbing; }
+
+    .input-label {
+      margin-right: 5px;
+      white-space: nowrap;
+      padding: 2px 4px;
+      border: 1px dashed transparent;
+      min-width: 40px;
+    }
+    .input-label[contenteditable="true"]:focus {
+      outline: none;
+      border: 1px dashed #999;
+      background: #f0f0f0;
+    }
+
+    .input-box {
+      resize: like;
+      overflow: auto;
+      min-width: 120px;
+      min-height: 40px;
+      padding: 5px;
+      box-sizing: border-box;
+    }
+
+    /* checkbox / radio group: 背景・枠・影を完全に非表示 */
+    .checkbox-group,
+    .radio-group {
+      position: absolute;
+      min-width: 140px;
+      background: transparent !important; /* 背景を透明化 */
+      border: none !important;            /* 枠を非表示 */
+      box-shadow: none !important;        /* 影を消す */
+      padding: 0;                          /* 行間は個別に調整 */
+      border-radius: 0;                    /* 角丸を消す */
+      box-sizing: border-box;
+      cursor: grab;
+    }
+    .checkbox-group.grabbing, .radio-group.grabbing { cursor: grabbing; }
+    .checkbox-row, .radio-row {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:4px 0; /* 行間のみ残す */
+      background: transparent;
+    }
+    .checkbox-row input[type="checkbox"],
+    .radio-row input[type="radio"] {
+      width:18px;
+      height:18px;
+      background: transparent; /* ブラウザ既定の背景を邪魔しないように */
+      appearance: auto;
+    }
+    .checkbox-label, .radio-label {
+      flex:1;
+      padding: 0 6px;
+      border-radius:0;
+      background: transparent; /* ラベル背景も透明化 */
+    }
+    .checkbox-label[contenteditable="true"]:focus,
+    .radio-label[contenteditable="true"]:focus {
+      outline: none;
+      background: rgba(0,0,0,0.03);
+      border: none;
+    }
+
+    .draggable-btn {
+      position: absolute;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: grab;
+      min-width: 60px;
+      min-height: 30px;
+      box-sizing: border-box;
+    }
+    .draggable-btn.grabbing { cursor: grabbing; }
+    .draggable-btn:hover {
+      filter: brightness(0.9);
+    }
+    /* drag handle */
+    .drag-handle {
+      position: absolute;
+      left: -10px;
+      top: -10px;
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      background: rgba(0,0,0,0.06);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:12px;
+      color: rgba(0,0,0,0.6);
+      cursor: grab;
+      user-select: none;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      z-index: 1000;
+    }
+    .drag-handle:active { cursor: grabbing; }
+    .drag-handle.hidden { display:none; }
+
+    /* ゴミ箱をスライドの右上に配置 */
+    #slideArea #trash {
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      width: 52px;
+      height: 52px;
+      background: #eee;
+      border: 2px solid #888;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      color: #888;
+      z-index: 2000;
+      transition: background 0.2s, color 0.2s;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      user-select: none;
+    }
+    #slideArea #trash.dragover {
+      background: #ffdddd;
+      color: #d32f2f;
+      border-color: #d32f2f;
+    }
+
+    /* 追記用 CSS: 選択矩形とテキストボックス */
+    .textarea-selection {
+      position: absolute;
+      border: 2px dashed rgba(25,118,210,0.9);
+      background: rgba(25,118,210,0.07);
+      z-index: 1500;
+      pointer-events: none;
+      box-sizing:border-box;
+    }
+
+    /* 非選択時はコンテナ枠を非表示にする（要望） */
+    .text-input-container {
+      position: absolute;
+      box-sizing: border-box;
+      z-index: 1200;
+      display: block;
+      min-width: 40px;
+      min-height: 24px;
+      border: none;           /* 非選択時は枠を消す */
+      background: transparent;
+      cursor: grab;           /* クリックしてドラッグ可能 */
+      overflow: auto;
+      /* コンテナ自体でリサイズさせる（内側の要素はリサイズ不可にする） */
+      resize: both;
+    }
+    .text-input-container.grabbing { cursor: grabbing; }
+
+    /* テキスト自体はコンテナに合わせて伸縮し、個別のリサイズハンドルは持たない */
+    .text-input {
+      width: 100%;
+      height: 100%;
+      padding: 6px 8px;
+      box-sizing: border-box;
+      /* 内側はリサイズを無効化して、コンテナのリサイズだけにする */
+      resize: none !important;
+      overflow: auto;
+      outline: none;
+      border: none;           /* 非選択時は枠を消す */
+      background: transparent; /* 背景を透明化（白をなくす） */
+      font-size: 14px;
+      line-height: 1.4;
+      min-height: 20px;
+      min-width: 20px;
+      display: block;
+    }
+
+    /* 編集（フォーカス）時にのみ枠／影を表示（セレクタ修正済み） */
+    .text-input-container:focus-within {
+      border: 1px dashed rgba(0,0,0,0.12);
+      background: transparent; /* フォーカス時も白背景を入れない */
+      box-shadow: 0 6px 18px rgba(25,118,210,0.04);
+      cursor: text;
+    }
+    .text-input-container:focus-within .text-input {
+      border: 1px solid rgba(0,0,0,0.12);
+      background: transparent; /* フォーカス時も白背景を入れない */
+    }
+
+    /* 表示用のリサイズ中クラス（視覚のヒント、任意） */
+    .text-input-container.resizing {
+      box-shadow: 0 0 0 2px rgba(25,118,210,0.06) inset;
+      pointer-events: auto;
+      cursor: nwse-resize;
+    }
+
+    /* タイマー要素のスタイル */
+    .timer-container {
+      position: absolute;
+      background: linear-gradient(180deg, #f0f9ff, #e0f2fe);
+      border: 2px solid #0284c7;
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      min-width: 200px;
+      cursor: grab;
+      box-sizing: border-box;
+    }
+    .timer-container.grabbing { cursor: grabbing; }
+    
+    .timer-settings-btn {
+      display: block;
+      margin: 0 auto 8px auto;
+      padding: 3px 10px;
+      font-size: 11px;
+      border: 1px solid #0284c7;
+      border-radius: 4px;
+      background: white;
+      color: #0284c7;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .timer-settings-btn:hover {
+      background: #e0f2fe;
+    }
+    
+    .timer-display {
+      font-size: 28px;
+      font-weight: 700;
+      color: #0c4a6e;
+      text-align: center;
+      font-family: 'Courier New', monospace;
+      margin-bottom: 6px;
+      user-select: none;
+    }
+    
+    .timer-controls {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+    }
+    .timer-btn {
+      padding: 5px 12px;
+      font-size: 13px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .timer-btn.start {
+      background: #22c55e;
+      color: white;
+    }
+    .timer-btn.start:hover {
+      background: #16a34a;
+    }
+    .timer-btn.pause {
+      background: #f97316;
+      color: white;
+    }
+    .timer-btn.pause:hover {
+      background: #ea580c;
+    }
+    .timer-btn.reset {
+      background: #ef4444;
+      color: white;
+    }
+    .timer-btn.reset:hover {
+      background: #dc2626;
+    }
+
+    /* プレビュー用オーバーレイ（より画面全体に表示） */
+    .preview-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      display: flex;
+      flex-direction: column;
+      z-index: 9999;
+      align-items: stretch;
+      justify-content: center;
+      padding: 8px;                 /* 少なめの余白でより全画面に見せる */
+      box-sizing:border-box;
+    }
+    .preview-header {
+      height: 48px;
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:8px;
+      z-index: 10010;
+    }
+    .preview-close {
+      background:#fff;
+      border:1px solid #ccc;
+      padding:6px 12px;
+      border-radius:6px;
+      cursor:pointer;
+      font-weight:600;
+    }
+    .preview-area {
+      flex:1;
+      background:transparent;
+      border-radius:6px;
+      overflow:hidden;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:4px;                  /* 軽い内側余白 */
+      box-sizing:border-box;
+    }
+    /* プレビューでほぼ全画面表示にする（max 制限を除去） */
+    #previewSlideArea {
+      width: calc(100vw - 16px);    /* 左右に小さな余白を残す */
+      height: calc(100vh - 72px);   /* ヘッダ分と上下に余白を残す */
+      max-width: none;
+      max-height: none;
+      border: 2px dashed #666;
+      position:relative;
+      background:#fff;
+      box-sizing:border-box;
+      border-radius:6px;
+      overflow:auto;
+    }
+
+    /* ショートカットバー */
+    .shortcut-bar {
+      width: 100%;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    @media (max-width:980px){
+      .content-wrapper {
+        flex-direction: column;
+        align-items: center;
+      }
+      .button-bar {
+        width: 100%;
+        max-width: 860px;
+      }
+      .main-area, .shortcut-bar, #slideArea { width: 92%; max-width:860px; }
+      #previewSlideArea { width: calc(100vw - 8px); height: calc(100vh - 72px); }
+      .create-options-panel { left: 8px; top: auto; }
+    }
+  </style>

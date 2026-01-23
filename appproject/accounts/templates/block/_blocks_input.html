@@ -1,0 +1,326 @@
+<script>
+// ---------------------- フォームブロック ----------------------
+
+// テキスト入力フォーム
+Blockly.Blocks['show_text'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField("テキスト入力（ラベル: ")
+      .appendField(new Blockly.FieldTextInput("もじ"), "label")
+      .appendField(")");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(160);
+    this.updateVisual = function(container) {
+      const inputId = "block_" + this.id;
+      const labelText = this.getFieldValue("label");
+      container.innerHTML += `<div class="form-row">
+          <label for="${inputId}">${labelText}</label>
+          <input type="text" id="${inputId}"></div>`;
+    };
+    this.getValue = function() {
+      const inputId = "block_" + this.id;
+      return document.getElementById(inputId)?.value || "";
+    };
+  }
+};
+
+// 数値入力フォーム
+Blockly.Blocks['number_input'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField("すうち入力（ラベル: ")
+      .appendField(new Blockly.FieldTextInput("かず"), "label")
+      .appendField(")");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(160);
+    this.updateVisual = function(container) {
+      const inputId = "block_" + this.id;
+      const labelText = this.getFieldValue("label");
+      container.innerHTML += `<div class="form-row">
+          <label for="${inputId}">${labelText}</label>
+          <input type="number" id="${inputId}"></div>`;
+    };
+    this.getValue = function() {
+      const inputId = "block_" + this.id;
+      return Number(document.getElementById(inputId)?.value || 0);
+    };
+  }
+};
+
+// ラジオボタン (固定選択肢)
+Blockly.Blocks['radio_choice'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField("ラジオ（ラベル: ")
+      .appendField(new Blockly.FieldTextInput("しつもん:"), "label")
+      .appendField(")");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(160);
+    this.updateVisual = function(container) {
+      const name = "radio_" + this.id;
+      const labelText = this.getFieldValue("label");
+      container.innerHTML += `
+        <div class="form-row">${labelText}
+          <label><input type="radio" name="${name}" value="はい">はい</label>
+          <label><input type="radio" name="${name}" value="いいえ">いいえ</label>
+        </div>`;
+    };
+    this.getValue = function() {
+      const name = "radio_" + this.id;
+      const checked = document.querySelector(`input[name="${name}"]:checked`);
+      return checked ? checked.value : "";
+    };
+  }
+};
+
+// ラジオボタン (自由選択肢)
+Blockly.Blocks['radio_free'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField("ラジオ（ラベル: ")
+      .appendField(new Blockly.FieldTextInput("しつもん:"), "label")
+      .appendField(" 選ぶもの: ")
+      .appendField(new Blockly.FieldTextInput("はい/いいえ/わからない"), "options")
+      .appendField(")");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(160);
+    this.updateVisual = function(container) {
+      const name = "radio_" + this.id;
+      const labelText = this.getFieldValue("label");
+      const opts = this.getFieldValue("options").split("/");
+      container.innerHTML += `<div class="form-row">${labelText}`;
+      opts.forEach(o => {
+        container.innerHTML += `<label><input type="radio" name="${name}" value="${o}">${o}</label>`;
+      });
+      container.innerHTML += `</div>`;
+    };
+    this.getValue = function() {
+      const name = "radio_" + this.id;
+      const checked = document.querySelector(`input[name="${name}"]:checked`);
+      return checked ? checked.value : "";
+    };
+  }
+};
+
+// チェックボックス (自由選択肢)
+Blockly.Blocks['checkbox_free'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField("チェック（ラベル: ")
+      .appendField(new Blockly.FieldTextInput("しつもん:"), "label")
+      .appendField(" えらぶもの: ")
+      .appendField(new Blockly.FieldTextInput("あ/い/う/え"), "options")
+      .appendField(")");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(160);
+    this.updateVisual = function(container) {
+      const labelText = this.getFieldValue("label");
+      const opts = this.getFieldValue("options").split("/");
+      container.innerHTML += `<div class="form-row">${labelText}</div>`;
+      opts.forEach((o,i)=>{
+        container.innerHTML += `<label><input type="checkbox" id="checkbox_${this.id}_${i}" value="${o}">${o}</label>`;
+      });
+      container.innerHTML += `</div>`;
+    };
+    this.getValue = function() {
+      const inputs = Array.from(document.querySelectorAll(`#visual-area input[type="checkbox"]`))
+                          .filter(input => input.parentElement && input.parentElement.innerText.includes(this.getFieldValue("label")));
+      return inputs.filter(input => input.checked).map(i=>i.value).join(", ");
+    };
+  }
+};
+
+// ---------------------- 追加フォームブロック ----------------------
+// 複数行テキスト入力（textarea）
+Blockly.Blocks['textarea'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField("ながいもじ（ラベル: ")
+      .appendField(new Blockly.FieldTextInput("コメント"), "label")
+      .appendField(") ぎょう:")
+      .appendField(new Blockly.FieldNumber(4,1,50,1), "rows");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(160);
+    this.updateVisual = function(container){
+      const inputId = "block_" + this.id;
+      const labelText = this.getFieldValue('label');
+      const rows = this.getFieldValue('rows') || 4;
+      container.innerHTML += `<div class="form-row"><label for="${inputId}">${labelText}</label><br><textarea id="${inputId}" rows="${rows}" style="width:98%"></textarea></div>`;
+    };
+    this.getValue = function(){
+      const inputId = "block_" + this.id;
+      return document.getElementById(inputId)?.value || "";
+    };
+  }
+};
+
+// ドロップダウン（select）
+Blockly.Blocks['select_dropdown'] = {
+  init: function(){
+    this.appendDummyInput()
+      .appendField('プルダウン（ラベル:')
+      .appendField(new Blockly.FieldTextInput('えらぶ'), 'label')
+      .appendField(' えらぶもの:')
+      .appendField(new Blockly.FieldTextInput('A/B/C'), 'options')
+      .appendField(')');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(160);
+    this.updateVisual = function(container){
+      const inputId = 'block_' + this.id;
+      const labelText = this.getFieldValue('label');
+      const opts = this.getFieldValue('options').split('/');
+      container.innerHTML += `<div class="form-row"><label for="${inputId}">${labelText}</label><select id="${inputId}">${opts.map(o=>`<option value="${o}">${o}</option>`).join('')}</select></div>`;
+    };
+    this.getValue = function(){
+      const inputId = 'block_' + this.id;
+      const el = document.getElementById(inputId);
+      return el ? el.value : '';
+    };
+  }
+};
+
+// 日付入力
+Blockly.Blocks['date_input'] = {
+  init: function(){
+    this.appendDummyInput()
+      .appendField('ひづけ（ラベル:')
+      .appendField(new Blockly.FieldTextInput('ひづけ'), 'label')
+      .appendField(')');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(160);
+    this.updateVisual = function(container){
+      const inputId = 'block_' + this.id;
+      const labelText = this.getFieldValue('label');
+      container.innerHTML += `<div class="form-row"><label for="${inputId}">${labelText}</label><input type="date" id="${inputId}"></div>`;
+    };
+    this.getValue = function(){
+      const inputId = 'block_' + this.id;
+      return document.getElementById(inputId)?.value || '';
+    };
+  }
+};
+
+// 日時入力
+Blockly.Blocks['datetime_input'] = {
+  init: function(){
+    this.appendDummyInput()
+      .appendField('にちじ（ラベル:')
+      .appendField(new Blockly.FieldTextInput('にちじ'), 'label')
+      .appendField(')');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(160);
+    this.updateVisual = function(container){
+      const inputId = 'block_' + this.id;
+      const labelText = this.getFieldValue('label');
+      container.innerHTML += `<div class="form-row"><label for="${inputId}">${labelText}</label><input type="datetime-local" id="${inputId}"></div>`;
+    };
+    this.getValue = function(){
+      const inputId = 'block_' + this.id;
+      return document.getElementById(inputId)?.value || '';
+    };
+  }
+};
+
+// スライダー（range）
+Blockly.Blocks['slider'] = {
+  init: function(){
+    this.appendDummyInput()
+      .appendField('スライダー（ラベル:')
+      .appendField(new Blockly.FieldTextInput('値'), 'label')
+      .appendField(' さいしょう:')
+      .appendField(new Blockly.FieldNumber(0), 'min')
+      .appendField(' さいだい:')
+      .appendField(new Blockly.FieldNumber(100), 'max')
+      .appendField(' きざみ:')
+      .appendField(new Blockly.FieldNumber(1), 'step')
+      .appendField(')');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(160);
+    this.updateVisual = function(container){
+      const inputId = 'block_' + this.id;
+      const spanId = inputId + '_val';
+      const labelText = this.getFieldValue('label');
+      const min = this.getFieldValue('min') || 0;
+      const max = this.getFieldValue('max') || 100;
+      const step = this.getFieldValue('step') || 1;
+      const initial = Math.min(Math.max((min+max)/2, min), max);
+      container.innerHTML += `<div class="form-row"><label for="${inputId}">${labelText}</label><input type="range" id="${inputId}" min="${min}" max="${max}" step="${step}" value="${initial}" oninput="document.getElementById('${spanId}').innerText=this.value"><span id="${spanId}" style="margin-left:8px">${initial}</span></div>`;
+    };
+    this.getValue = function(){
+      const inputId = 'block_' + this.id;
+      const v = document.getElementById(inputId)?.value;
+      return v !== undefined ? Number(v) : 0;
+    };
+  }
+};
+
+// トグル（ON/OFF）
+Blockly.Blocks['toggle_switch'] = {
+  init: function(){
+    this.appendDummyInput()
+      .appendField('スイッチ（ラベル:')
+      .appendField(new Blockly.FieldTextInput('ON/OFF'), 'label')
+      .appendField(')');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(160);
+    this.updateVisual = function(container){
+      const inputId = 'block_' + this.id;
+      const labelText = this.getFieldValue('label');
+      container.innerHTML += `<div class="form-row"><label for="${inputId}">${labelText}</label><input type="checkbox" id="${inputId}" style="margin-left:8px"></div>`;
+    };
+    this.getValue = function(){
+      const inputId = 'block_' + this.id;
+      return !!document.getElementById(inputId)?.checked;
+    };
+  }
+};
+
+// ファイルアップロード（簡易）
+Blockly.Blocks['file_upload'] = {
+  init: function(){
+    this.appendDummyInput()
+      .appendField('ファイル（ラベル:')
+      .appendField(new Blockly.FieldTextInput('ファイル'), 'label')
+      .appendField(')');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(160);
+    this.updateVisual = function(container){
+      const inputId = 'block_' + this.id;
+      const labelText = this.getFieldValue('label');
+      container.innerHTML += `<div class="form-row"><label for="${inputId}">${labelText}</label><input type="file" id="${inputId}" style="display:block;margin-top:4px"></div>`;
+    };
+    this.getValue = function(){
+      const inputId = 'block_' + this.id;
+      const el = document.getElementById(inputId);
+      if(!el) return '';
+      const files = el.files;
+      if(!files || files.length === 0) return '';
+      return Array.from(files).map(f=>f.name).join(', ');
+    };
+  }
+};
+
+// ---------------------- テキスト表示ブロック ----------------------
+Blockly.Blocks['print_text'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField("みせるもじ:")
+      .appendField(new Blockly.FieldTextInput("ここにかく"), "TEXT");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(160);
+  }
+};
+</script>
