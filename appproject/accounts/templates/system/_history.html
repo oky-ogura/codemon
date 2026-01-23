@@ -1,0 +1,325 @@
+<script>
+// ========================================
+// 履歴管理（アンドゥ・リドゥ）
+// ========================================
+(function(){
+  let history = [];
+  let historyIndex = -1;
+
+  window.saveHistory = function() {
+    const slide = document.getElementById('slideArea');
+    if (!slide) return;
+    const snapshot = slide.innerHTML;
+    history = history.slice(0, historyIndex + 1);
+    history.push(snapshot);
+    historyIndex = history.length - 1;
+    updateUndoRedoButtons();
+  };
+
+  window.restoreHistory = function() {
+    const slide = document.getElementById('slideArea');
+    if (!slide || historyIndex < 0 || historyIndex >= history.length) return;
+    slide.innerHTML = history[historyIndex];
+    const inputContainers = slide.querySelectorAll('.input-container');
+    inputContainers.forEach(container => makeDraggable(container));
+    const draggableBtns = slide.querySelectorAll('.draggable-btn');
+    draggableBtns.forEach(btn => makeDraggable(btn));
+    const textInputContainers = slide.querySelectorAll('.text-input-container');
+    textInputContainers.forEach(container => makeDraggable(container));
+    const checkboxGroups = slide.querySelectorAll('.checkbox-group');
+    checkboxGroups.forEach(g => makeDraggable(g));
+    const radioGroups = slide.querySelectorAll('.radio-group');
+    radioGroups.forEach(g => makeDraggable(g));
+    const roulettes = slide.querySelectorAll('.roulette-container');
+    roulettes.forEach(r => makeDraggable(r));
+    const timers = slide.querySelectorAll('.timer-container');
+    timers.forEach(t => makeDraggable(t));
+    updateUndoRedoButtons();
+  };
+
+  window.undo = function() {
+    if (historyIndex > 0) {
+      historyIndex--;
+      restoreHistory();
+    }
+  };
+
+  window.redo = function() {
+    if (historyIndex < history.length - 1) {
+      historyIndex++;
+      restoreHistory();
+    }
+  };
+
+  function updateUndoRedoButtons() {
+    const undoBtn = document.getElementById('undoBtn');
+    const redoBtn = document.getElementById('redoBtn');
+    if (undoBtn) undoBtn.disabled = historyIndex <= 0;
+    if (redoBtn) redoBtn.disabled = historyIndex >= history.length - 1;
+  }
+
+  // 初期履歴を保存
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+      saveHistory();
+    }, 100);
+  });
+
+  // アンドゥ・リドゥボタン
+  const undoBtn = document.getElementById('undoBtn');
+  if (undoBtn) {
+    undoBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      undo();
+    });
+  }
+
+  const redoBtn = document.getElementById('redoBtn');
+  if (redoBtn) {
+    redoBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      redo();
+    });
+  }
+
+  // キーボードショートカット
+  document.addEventListener('keydown', function(e){
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+      if (e.shiftKey) {
+        e.preventDefault();
+        redo();
+      } else {
+        e.preventDefault();
+        undo();
+      }
+    }
+  });
+})();
+
+// ========================================
+// タブナビゲーションとisDirtyリセット
+// ========================================
+(function(){
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', function(){
+      try { isDirty = false; } catch(e){}
+    });
+  });
+})();
+
+// ========================================
+// 色オプション配列
+// ========================================
+const colorOptions = [
+  { name: "あお", value: "#2196F3" },
+  { name: "あか", value: "#F44336" },
+  { name: "みどり", value: "#4CAF50" },
+  { name: "きいろ", value: "#FFEB3B", textColor: "#333" },
+  { name: "オレンジ", value: "#FF9800" },
+  { name: "むらさき", value: "#9C27B0" },
+  { name: "くろ", value: "#333" },
+  { name: "しろ", value: "#fff", textColor: "#333" }
+];
+
+// ========================================
+// ドロップダウン制御
+// ========================================
+(function(){
+  const btn = document.getElementById('formBtn');
+  const dropdown = document.getElementById('formDropdown');
+  const wrap = document.getElementById('formDropdownWrap');
+  const panel = document.getElementById('createOptionsPanel');
+
+  function closeDropdown() {
+    if (dropdown) { dropdown.classList.remove('show'); dropdown.setAttribute('aria-hidden','true'); }
+    if (btn) { btn.setAttribute('aria-expanded','false'); }
+  }
+  function hideOptionsPanel() {
+    if (panel) { panel.classList.remove('show'); panel.setAttribute('aria-hidden','true'); }
+  }
+
+  if (btn && dropdown) {
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      const isOpen = dropdown.classList.contains('show');
+      if (isOpen) { 
+        closeDropdown(); 
+      } else { 
+        dropdown.classList.add('show'); 
+        dropdown.setAttribute('aria-hidden','false'); 
+        btn.setAttribute('aria-expanded','true');
+      }
+    });
+  }
+
+  document.addEventListener('click', function(e){
+    if (!wrap || !wrap.contains(e.target)) {
+      closeDropdown();
+      hideOptionsPanel();
+    }
+  });
+
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') {
+      closeDropdown();
+      hideOptionsPanel();
+    }
+  });
+})();
+
+// ========================================
+// 共通作成パネル制御（チェックボックス / ラジオ）
+// ========================================
+(function(){
+  const addCheckboxBtn = document.getElementById('addCheckboxBtn');
+  const addRadioBtn = document.getElementById('addRadioBtn');
+  const panel = document.getElementById('createOptionsPanel');
+  const countInput = document.getElementById('optionsCount');
+  const cancelBtn = document.getElementById('createOptionsCancel');
+  const confirmBtn = document.getElementById('createOptionsConfirm');
+  const wrap = document.getElementById('formDropdownWrap');
+
+  let pendingType = null;
+
+  function showOptionsPanel(type) {
+    pendingType = type;
+    panel.classList.add('show');
+    panel.setAttribute('aria-hidden','false');
+    setTimeout(()=>{ countInput.focus(); countInput.select(); },10);
+  }
+  function hideOptionsPanel() {
+    pendingType = null;
+    panel.classList.remove('show');
+    panel.setAttribute('aria-hidden','true');
+  }
+
+  if (addCheckboxBtn) {
+    addCheckboxBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      if (panel.classList.contains('show') && pendingType === 'checkbox') hideOptionsPanel(); else showOptionsPanel('checkbox');
+    });
+  }
+  if (addRadioBtn) {
+    addRadioBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      if (panel.classList.contains('show') && pendingType === 'radio') hideOptionsPanel(); else showOptionsPanel('radio');
+    });
+  }
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      hideOptionsPanel();
+    });
+  }
+  if (confirmBtn) {
+    confirmBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      const labelInput = document.getElementById('optionsLabel');
+      const label = labelInput ? labelInput.value.trim() : '';
+      const n = parseInt(countInput.value, 10) || 0;
+      if (n <= 0) {
+        alert('項目数は1以上を指定してください。');
+        return;
+      }
+      const capped = Math.min(n, 10);
+      if (n > 10) {
+        alert('項目数は最大10までです。10に設定します。');
+      }
+      if (pendingType === 'checkbox') {
+        createCheckboxGroup(capped, label);
+      } else if (pendingType === 'radio') {
+        createRadioGroup(capped, label);
+      }
+      if (labelInput) labelInput.value = '';
+      hideOptionsPanel();
+      const dropdown = document.getElementById('formDropdown');
+      if (dropdown) { dropdown.classList.remove('show'); dropdown.setAttribute('aria-hidden','true'); }
+    });
+  }
+
+  document.addEventListener('click', function(e){
+    if (!wrap.contains(e.target)) hideOptionsPanel();
+  });
+})();
+
+// ========================================
+// 保存ボタン
+// ========================================
+const saveBtn = document.getElementById('saveBtn');
+console.log('🔍 保存ボタン要素:', saveBtn);
+console.log('🔍 collectCurrentElements関数:', typeof collectCurrentElements);
+
+if (saveBtn) {
+  saveBtn.addEventListener('click', function(e){
+    e.preventDefault();
+    console.log('💾 保存ボタンがクリックされました');
+    
+    const slide = document.getElementById('slideArea');
+    if (slide) {
+      try {
+        const elementsData = collectCurrentElements();
+        console.log('📦 収集したデータ:', elementsData);
+        
+        sessionStorage.setItem('systemDesignContent', JSON.stringify(elementsData));
+        sessionStorage.setItem('navigatingToCreate', 'true');
+        
+        if (existingSystemData.systemId) {
+          sessionStorage.setItem('systemId', existingSystemData.systemId);
+        }
+        if (existingSystemData.systemName) {
+          sessionStorage.setItem('systemName', existingSystemData.systemName);
+        }
+        if (existingSystemData.systemDescription) {
+          sessionStorage.setItem('systemDescription', existingSystemData.systemDescription);
+        }
+        
+        console.log('システム設計内容を保存しました');
+        
+        // 保存画面に遷移するため、isDirtyをfalseにして警告を防ぐ
+        try { isDirty = false; } catch(e){}
+        
+        window.location.href = '/accounts/system/create/';
+      } catch(error) {
+        console.error('❌ 保存処理エラー:', error);
+        alert('保存処理でエラーが発生しました: ' + error.message);
+      }
+    } else {
+      console.error('❌ slideAreaが見つかりません');
+    }
+  });
+} else {
+  console.error('❌ 保存ボタンが見つかりません');
+}
+
+// ========================================
+// 実行ボタン
+// ========================================
+const executeBtn = document.getElementById('executeBtn');
+if (executeBtn) {
+  executeBtn.addEventListener('click', function(e){
+    e.preventDefault();
+    openPreview();
+  });
+}
+
+// ========================================
+// 全削除ボタン
+// ========================================
+const clearAllBtn = document.getElementById('clearAllBtn');
+if (clearAllBtn) {
+  clearAllBtn.addEventListener('click', function(e){
+    e.preventDefault();
+    if (confirm('すべての要素を削除してもよろしいですか？\nこの操作は取り消せません。')) {
+      const slide = document.getElementById('slideArea');
+      if (slide) {
+        const trash = slide.querySelector('#trash');
+        const trashHTML = trash ? trash.outerHTML : '<div id="trash" title="ここにドラッグで削除">🗑️</div>';
+        slide.innerHTML = trashHTML;
+        saveHistory();
+        console.log('すべての要素を削除しました');
+      }
+    }
+  });
+}
+</script>

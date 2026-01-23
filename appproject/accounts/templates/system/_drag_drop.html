@@ -1,0 +1,237 @@
+  <script>
+    window.addDragHandleIfMissing = function addDragHandleIfMissing(container) {
+      if (!container || container.querySelector('.drag-handle')) return;
+      const handle = document.createElement('div');
+      handle.className = 'drag-handle';
+      handle.title = '移動';
+      handle.textContent = '≡';
+      container.appendChild(handle);
+    };
+
+    window.makeDraggableForPreview = function makeDraggableForPreview(el, parent) {
+      return;
+    };
+
+    window.makeDraggable = function makeDraggable(el) {
+      if (!el) return;
+      el.style.position = 'absolute';
+      addDragHandleIfMissing(el);
+
+      const handle = el.querySelector('.drag-handle');
+      let dragging = false;
+      let startX = 0, startY = 0;
+      let offsetX = 0, offsetY = 0;
+      let moved = false;
+      const threshold = 5;
+
+      let resizing = false;
+      let resizeTimer = null;
+      let initialWidth = el.offsetWidth;
+      let initialHeight = el.offsetHeight;
+
+      let ro = null;
+      try {
+        ro = new ResizeObserver(() => {
+          resizing = true;
+          if (resizeTimer) clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(() => { resizing = false; }, 120);
+        });
+        ro.observe(el);
+      } catch (err) { ro = null; }
+
+      // ゴミ箱要素（存在しない場合もある）
+      const trash = document.getElementById('trash');
+      let lastOverTrash = false;
+
+      function pointInRect(clientX, clientY, rect) {
+        return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+      }
+
+      function setGrabbing(state){
+        if (state) {
+          el.classList.add('grabbing');
+          if (el.classList.contains('draggable-btn')) el.classList.add('grabbing');
+          if (el.classList.contains('checkbox-group')) el.classList.add('grabbing');
+          if (el.classList.contains('radio-group')) el.classList.add('grabbing');
+          try { window._currentDraggingEl = el; } catch(e){}
+        } else {
+          el.classList.remove('grabbing');
+          if (el.classList.contains('draggable-btn')) el.classList.remove('grabbing');
+          if (el.classList.contains('checkbox-group')) el.classList.remove('grabbing');
+          if (el.classList.contains('radio-group')) el.classList.remove('grabbing');
+          try { window._currentDraggingEl = null; } catch(e){}
+        }
+      }
+
+      function onDown(clientX, clientY, isHandle) {
+        const active = document.elementFromPoint(clientX, clientY);
+        if (active) {
+          const editable = active.closest('input,textarea,.text-input,.input-box') || active.isContentEditable;
+          if (editable && !isHandle) {
+            return false;
+          }
+        }
+        const elRect = el.getBoundingClientRect();
+        offsetX = clientX - elRect.left;
+        offsetY = clientY - elRect.top;
+        startX = clientX;
+        startY = clientY;
+        moved = false;
+        document.body.style.userSelect = 'none';
+        initialWidth = el.offsetWidth;
+        initialHeight = el.offsetHeight;
+        return true;
+      }
+
+      function startDrag() {
+        if (resizing) return;
+        dragging = true;
+        setGrabbing(true);
+        el.style.zIndex = 1000;
+      }
+
+      function stopDrag() {
+        if (dragging) dragging = false;
+        setGrabbing(false);
+        el.style.zIndex = '';
+        document.body.style.userSelect = '';
+        // ゴミ箱の視覚状態をクリア
+        try { if (trash) trash.classList.remove('dragover'); lastOverTrash = false; } catch(e){}
+      }
+
+      function mousedownHandler(e) {
+        if (e.button !== 0) return;
+        const isHandle = handle && (e.target === handle || e.target.closest('.drag-handle'));
+        if (!onDown(e.clientX, e.clientY, isHandle)) return;
+
+        const parent = el.parentElement;
+        const parentRect = parent.getBoundingClientRect();
+
+        const onMoveWhileDown = function(ev){
+          const dx = ev.clientX - startX;
+          const dy = ev.clientY - startY;
+          if (!moved && Math.hypot(dx, dy) > threshold) {
+            startDrag();
+            moved = true;
+          }
+          if (!dragging) return;
+          if (resizing) return;
+          let x = ev.clientX - parentRect.left - offsetX;
+          let y = ev.clientY - parentRect.top - offsetY;
+          x = Math.max(0, Math.min(x, parent.clientWidth - el.offsetWidth));
+          y = Math.max(0, Math.min(y, parent.clientHeight - el.offsetHeight));
+          el.style.left = x + 'px';
+          el.style.top = y + 'px';
+          // ゴミ箱上判定（マウスポインタ位置）
+          if (trash) {
+            const over = pointInRect(ev.clientX, ev.clientY, trash.getBoundingClientRect());
+            if (over && !lastOverTrash) { trash.classList.add('dragover'); lastOverTrash = true; }
+            if (!over && lastOverTrash) { trash.classList.remove('dragover'); lastOverTrash = false; }
+          }
+        };
+        const onUpWhileDown = function(ev){
+          document.removeEventListener('mousemove', onMoveWhileDown);
+          document.removeEventListener('mouseup', onUpWhileDown);
+          // ドロップ判定：マウスがゴミ箱上にあれば削除
+          let droppedOnTrash = false;
+          try {
+            if (trash) {
+              droppedOnTrash = pointInRect(ev.clientX, ev.clientY, trash.getBoundingClientRect());
+            }
+          } catch(e){}
+          if (droppedOnTrash) {
+            // 削除
+            try { el.remove(); } catch(e){ if (el.parentElement) el.parentElement.removeChild(el); }
+            try { trash.classList.remove('dragover'); } catch(e){}
+            stopDrag();
+            saveHistory();
+            return;
+          }
+          if (dragging) {
+            stopDrag();
+            saveHistory();
+          }
+        };
+        document.addEventListener('mousemove', onMoveWhileDown);
+        document.addEventListener('mouseup', onUpWhileDown);
+      }
+
+      function touchstartHandler(e) {
+        if (!e.touches || e.touches.length === 0) return;
+        const touch = e.touches[0];
+        const isHandle = handle && (e.target === handle || e.target.closest('.drag-handle'));
+        if (!onDown(touch.clientX, touch.clientY, isHandle)) return;
+
+        const parent = el.parentElement;
+        const parentRect = parent.getBoundingClientRect();
+
+        const onTouchMove = function(ev){
+          if (!ev.touches || ev.touches.length === 0) return;
+          const t = ev.touches[0];
+          const dx = t.clientX - startX;
+          const dy = t.clientY - startY;
+          if (!moved && Math.hypot(dx, dy) > threshold) {
+            startDrag();
+            moved = true;
+          }
+          if (!dragging) return;
+          if (resizing) return;
+          let x = t.clientX - parentRect.left - offsetX;
+          let y = t.clientY - parentRect.top - offsetY;
+          x = Math.max(0, Math.min(x, parent.clientWidth - el.offsetWidth));
+          y = Math.max(0, Math.min(y, parent.clientHeight - el.offsetHeight));
+          el.style.left = x + 'px';
+          el.style.top = y + 'px';
+          // ゴミ箱上判定（タッチ座標）
+          if (trash) {
+            const over = pointInRect(t.clientX, t.clientY, trash.getBoundingClientRect());
+            if (over && !lastOverTrash) { trash.classList.add('dragover'); lastOverTrash = true; }
+            if (!over && lastOverTrash) { trash.classList.remove('dragover'); lastOverTrash = false; }
+          }
+          ev.preventDefault();
+        };
+        const onTouchEnd = function(ev){
+          document.removeEventListener('touchmove', onTouchMove);
+          document.removeEventListener('touchend', onTouchEnd);
+          // タッチ終了時の座標は取得しにくいので、ゴミ箱との重なりは要素中心で判定する
+          let droppedOnTrash = false;
+          try {
+            if (trash) {
+              const elRect = el.getBoundingClientRect();
+              const cx = elRect.left + elRect.width/2;
+              const cy = elRect.top + elRect.height/2;
+              droppedOnTrash = pointInRect(cx, cy, trash.getBoundingClientRect());
+            }
+          } catch(e){}
+          if (droppedOnTrash) {
+            try { el.remove(); } catch(e){ if (el.parentElement) el.parentElement.removeChild(el); }
+            try { trash.classList.remove('dragover'); } catch(e){}
+            stopDrag();
+            saveHistory();
+            return;
+          }
+          if (dragging) {
+            stopDrag();
+            saveHistory();
+          }
+        };
+        document.addEventListener('touchmove', onTouchMove, {passive:false});
+        document.addEventListener('touchend', onTouchEnd);
+      }
+
+      if (handle) {
+        handle.addEventListener('mousedown', mousedownHandler);
+        handle.addEventListener('touchstart', touchstartHandler, {passive:true});
+      }
+      el.addEventListener('mousedown', mousedownHandler);
+      el.addEventListener('touchstart', touchstartHandler, {passive:true});
+
+      const mo = new MutationObserver(mutations => {
+        if (!document.body.contains(el)) {
+          try { if (ro) ro.disconnect(); } catch(e){}
+          mo.disconnect();
+        }
+      });
+      mo.observe(document.body, {childList: true, subtree: true});
+    }
+  </script>

@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}メンバー削除確認 - Codemon{% endblock %}
+
+{% block background_frame %}
+<img src="{% static 'codemon/images/frames/frame_brack.png' %}" 
+     alt="" 
+     class="bg-frame"
+     onerror="this.style.display='none';">
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .container{width:720px;margin:160px auto 80px;background:#fff;border:1px solid #ddd;padding:40px;box-sizing:border-box;box-shadow:0 6px 20px rgba(0,0,0,0.05);}
+  .header{text-align:center;margin-bottom:30px;}
+  .header h1{font-size:22px;color:#333;margin:0 0 10px;}
+  .confirm-box{background:#f9f9f9;border:2px solid #ddd;border-radius:12px;padding:30px;margin:20px 0;}
+  .confirm-row{margin:12px 0;font-size:16px;color:#333;}
+  .confirm-row strong{display:inline-block;width:100px;}
+  .actions{display:flex;justify-content:space-between;margin-top:30px;}
+  .btn{padding:12px 24px;border-radius:8px;border:none;cursor:pointer;font-size:16px;text-decoration:none;display:inline-block;}
+  .btn-cancel{background:#e0e6ef;color:#333;}
+  .btn-delete{background:#ff4444;color:#fff;}
+  .btn-cancel:hover{background:#d0d6df;}
+  .btn-delete:hover{background:#dd3333;}
+  
+  @media(max-width:720px){
+    .container{margin-top:120px;width:90%;padding:20px;}
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+  <div class="container">
+    <div class="header">
+      <h1>メンバー削除確認</h1>
+      <p>このユーザーをグループから削除してもよろしいですか？</p>
+    </div>
+
+    <div class="confirm-box">
+      <div class="confirm-row">
+        <strong>ID:</strong> {{ member.user_id }}
+      </div>
+      <div class="confirm-row">
+        <strong>名前:</strong> {{ member.user_name }}
+      </div>
+      <div class="confirm-row">
+        <strong>開始日:</strong> {{ member.joined_at }}
+      </div>
+    </div>
+
+    <div class="actions">
+      <a href="{% url 'accounts:group_menu' group.group_id %}" class="btn btn-cancel">キャンセル</a>
+      <form method="post" action="{% url 'codemon:group_remove_member' group.group_id member.user_id %}" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-delete">削除する</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+      function adjustCardMargin(){
+          try{
+              var header = document.querySelector('.top-tabs');
+              var card = document.querySelector('.container');
+              if(!header || !card) return;
+              var rect = header.getBoundingClientRect();
+              var bottom = rect.bottom || 0;
+              var extra = 20;
+              var pad = Math.ceil(bottom + extra);
+              card.style.marginTop = pad + 'px';
+          }catch(e){ console.error('adjustCardMargin error', e); }
+      }
+
+      document.addEventListener('DOMContentLoaded', adjustCardMargin);
+      window.addEventListener('load', adjustCardMargin);
+      window.addEventListener('resize', adjustCardMargin);
+      setTimeout(adjustCardMargin, 300);
+      setTimeout(adjustCardMargin, 1000);
+  })();
+  </script>
+{% endblock %}

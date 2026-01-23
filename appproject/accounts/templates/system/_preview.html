@@ -1,0 +1,1276 @@
+<script>
+// ========================================
+// プレビュー画面（実行画面）機能
+// ========================================
+
+window.openPreview = function openPreview(){
+  if (document.getElementById('previewOverlay')) return;
+  const original = document.getElementById('slideArea');
+  if (!original) return;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'previewOverlay';
+  overlay.className = 'preview-overlay';
+  overlay.setAttribute('role','dialog');
+  overlay.setAttribute('aria-modal','true');
+
+  const header = document.createElement('div');
+  header.className = 'preview-header';
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'preview-close';
+  closeBtn.textContent = '閉じる (Esc)';
+  closeBtn.setAttribute('aria-label','閉じる');
+  header.appendChild(closeBtn);
+
+  const areaWrap = document.createElement('div');
+  areaWrap.className = 'preview-area';
+
+  const clone = original.cloneNode(true);
+  clone.id = 'previewSlideArea';
+  const trash = clone.querySelector('#trash');
+  if (trash) trash.remove();
+
+  // cloneNode(true)はDOM構造をコピーするが、input/textareaの現在値はコピーされない
+  // 明示的に値をコピーする必要がある
+  const originalInputs = original.querySelectorAll('input, textarea');
+  const clonedInputs = clone.querySelectorAll('input, textarea');
+  originalInputs.forEach((originalInput, index) => {
+    if (clonedInputs[index]) {
+      clonedInputs[index].value = originalInput.value;
+    }
+  });
+
+  clone.querySelectorAll('input,textarea').forEach(el => {
+    try {
+      el.style.resize = 'none';
+    } catch(e){}
+  });
+  clone.querySelectorAll('input[data-only-number="true"]').forEach(inp=>{
+    try { attachNumberFilter(inp); } catch(e){ console.error(e); }
+  });
+
+  clone.querySelectorAll('.text-input, [contenteditable]').forEach(el => {
+    try {
+      if (el.classList && el.classList.contains('text-input')) {
+        el.setAttribute('contenteditable','false');
+      } else {
+        el.setAttribute('contenteditable','false');
+      }
+    } catch(e){}
+  });
+
+  clone.querySelectorAll('.drag-handle').forEach(h => h.remove());
+
+  clone.querySelectorAll('.timer-settings-btn').forEach(el => {
+    el.style.display = 'none';
+  });
+
+  const previewStyle = document.createElement('style');
+  previewStyle.textContent = `
+    #previewSlideArea * { pointer-events: none !important; }
+    #previewSlideArea button,
+    #previewSlideArea .draggable-btn,
+    #previewSlideArea .timer-btn { pointer-events: auto !important; }
+    #previewSlideArea input,
+    #previewSlideArea textarea,
+    #previewSlideArea .input-box { pointer-events: auto !important; }
+    #previewSlideArea .text-input,
+    #previewSlideArea .text-input-container { pointer-events: none !important; }
+    #previewSlideArea .input-container,
+    #previewSlideArea .draggable-btn,
+    #previewSlideArea .text-input-container,
+    #previewSlideArea .checkbox-group,
+    #previewSlideArea .radio-group,
+    #previewSlideArea .timer-container { user-select: text !important; }
+    #previewSlideArea .input-label,
+    #previewSlideArea .text-input,
+    #previewSlideArea input,
+    #previewSlideArea textarea { outline: none !important; box-shadow: none !important; }
+    #previewSlideArea { -webkit-user-select: text !important; user-select: text !important; box-shadow: 0 6px 30px rgba(0,0,0,0.24); }
+    #previewSlideArea .timer-settings-btn { display: none !important; }
+    #previewSlideArea .checkbox-group-label { display: none !important; }
+    #previewSlideArea .radio-group-label { display: none !important; }
+  `;
+  overlay.appendChild(previewStyle);
+
+  clone.querySelectorAll('button, .draggable-btn').forEach(btn => {
+    try {
+      if (!btn.classList.contains('timer-btn') && !btn.classList.contains('timer-mode-btn')) {
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        
+        const targetSystemId = newBtn.getAttribute('data-target-system');
+        const algorithmId = newBtn.getAttribute('data-algorithm-id');
+        const algorithmXml = newBtn.getAttribute('data-algorithm-xml');
+        
+        console.log('🔧 ボタン設定:', {
+          text: newBtn.textContent,
+          systemId: targetSystemId,
+          algorithmId: algorithmId,
+          hasXml: !!algorithmXml,
+          xmlLength: algorithmXml ? algorithmXml.length : 0
+        });
+        
+        newBtn.addEventListener('click', async function(e){
+          e.stopPropagation();
+          
+          console.log('🖱️ ボタンクリック:', newBtn.textContent);
+          
+          if (algorithmId && algorithmXml) {
+            console.log('▶️ アルゴリズム実行開始:', algorithmId);
+            await executeAlgorithmFromButton(algorithmXml, newBtn.textContent);
+          } else if (targetSystemId) {
+            console.log('🔄 システム遷移:', targetSystemId);
+            loadSystemInPreview(targetSystemId);
+          } else {
+            console.log('⚠️ ボタンクリック - 動作が設定されていません');
+          }
+        });
+      }
+    } catch(err) {
+      console.error('ボタンのイベント設定エラー:', err);
+    }
+  });
+
+  clone.querySelectorAll('.timer-container').forEach(timer => {
+    const startBtn = timer.querySelector('.timer-btn.start');
+    const resetBtn = timer.querySelector('.timer-btn.reset');
+    const display = timer.querySelector('.timer-display');
+    
+    if (startBtn) {
+      startBtn.onclick = function(e) {
+        e.stopPropagation();
+        const running = timer.getAttribute('data-timer-running') === 'true';
+        const mode = timer.getAttribute('data-timer-mode');
+        
+        if (!running) {
+          if (mode === 'down') {
+            const target = parseInt(timer.getAttribute('data-timer-target') || '0');
+            if (target === 0) {
+              alert('カウントダウンの時間を設定してください');
+              return;
+            }
+          }
+          timer.setAttribute('data-timer-running', 'true');
+          startBtn.textContent = "停止";
+          startBtn.classList.remove('start');
+          startBtn.classList.add('pause');
+        } else {
+          timer.setAttribute('data-timer-running', 'false');
+          startBtn.textContent = "開始";
+          startBtn.classList.remove('pause');
+          startBtn.classList.add('start');
+        }
+      };
+    }
+    
+    if (resetBtn) {
+      resetBtn.onclick = function(e) {
+        e.stopPropagation();
+        const mode = timer.getAttribute('data-timer-mode');
+        timer.setAttribute('data-timer-running', 'false');
+        
+        if (mode === 'up') {
+          timer.setAttribute('data-timer-seconds', '0');
+          if (display) display.textContent = "00:00:00";
+        } else {
+          const target = parseInt(timer.getAttribute('data-timer-target') || '0');
+          timer.setAttribute('data-timer-seconds', target.toString());
+          if (display) {
+            const h = Math.floor(target / 3600);
+            const m = Math.floor((target % 3600) / 60);
+            const s = target % 60;
+            display.textContent = 
+              String(h).padStart(2, '0') + ':' +
+              String(m).padStart(2, '0') + ':' +
+              String(s).padStart(2, '0');
+          }
+        }
+        
+        if (startBtn) {
+          startBtn.textContent = "開始";
+          startBtn.classList.remove('pause');
+          startBtn.classList.add('start');
+        }
+      };
+    }
+  });
+
+  areaWrap.appendChild(clone);
+  
+  // 現在表示中のシステムIDを設定（編集画面で開いているシステム）
+  if (existingSystemData && existingSystemData.systemId) {
+    clone.dataset.currentSystemId = existingSystemData.systemId;
+  }
+  
+  overlay.appendChild(header);
+  overlay.appendChild(areaWrap);
+  document.body.appendChild(overlay);
+
+  const prevOverflow = document.body.style.overflow;
+  document.body.style.overflow = 'hidden';
+
+  function closeOverlay(){
+    try{ overlay.remove(); }catch(err){}
+    document.body.style.overflow = prevOverflow || '';
+  }
+  closeBtn.addEventListener('click', closeOverlay);
+  overlay.addEventListener('click', function(evt){
+    if (evt.target === overlay) closeOverlay();
+  });
+  document.addEventListener('keydown', function onEsc(e){
+    if (e.key === 'Escape') {
+      closeOverlay();
+      document.removeEventListener('keydown', onEsc);
+    }
+  });
+}
+
+// 他のシステムを実行画面に読み込む関数
+window.loadSystemInPreview = async function loadSystemInPreview(systemId) {
+  try {
+    console.log(`🔄 システムID ${systemId} を読み込み中...`);
+    
+    // 現在表示中のシステムIDを取得
+    const previewArea = document.getElementById('previewSlideArea');
+    const currentSystemId = previewArea?.dataset?.currentSystemId;
+    
+    // 同じシステムを再読み込みしようとしている場合は警告（入力値が失われる）
+    if (currentSystemId && currentSystemId === systemId) {
+      console.warn(`⚠️ 現在表示中のシステム（ID: ${systemId}）を再読み込みしようとしています。入力値が失われる可能性があります。`);
+    }
+    
+    const response = await fetch(`/accounts/system/elements/?system_id=${systemId}`);
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error(`システムID ${systemId} が見つかりません。システムが存在するか、アクセス権限があるか確認してください。`);
+      } else if (response.status === 401) {
+        throw new Error('認証エラー: ログインしてください。');
+      } else {
+        throw new Error(`システムデータの取得に失敗しました (ステータス: ${response.status})`);
+      }
+    }
+    
+    const data = await response.json();
+    console.log('📦 受信データ:', data);
+    
+    if (!data.success) {
+      throw new Error(data.error || 'システムデータの取得に失敗しました');
+    }
+    
+    // previewAreaは既に上で取得済み（236行目）なので再宣言不要
+    if (!previewArea) {
+      console.error('実行画面が見つかりません');
+      return;
+    }
+    
+    const children = Array.from(previewArea.children);
+    children.forEach(child => {
+      if (child.id !== 'trash') {
+        child.remove();
+      }
+    });
+    
+    // 読み込んだシステムのIDを記録
+    previewArea.dataset.currentSystemId = systemId;
+    
+    restoreSystemElementsToPreview(data.elements, previewArea);
+    console.log(`✅ システムID ${systemId} の読み込み完了`);
+    
+  } catch (error) {
+    console.error('❌ システムの読み込みエラー:', error);
+    alert('システムの読み込みに失敗しました:\n' + error.message);
+  }
+}
+
+// 実行画面に要素を復元する関数
+window.restoreSystemElementsToPreview = function restoreSystemElementsToPreview(elementsData, targetArea) {
+  if (!targetArea) return;
+  
+  elementsData.forEach(elem => {
+    try {
+      let element = null;
+      
+      switch(elem.element_type) {
+        case 'text_input':
+          element = createPreviewTextInput(elem, false);
+          break;
+        case 'number_input':
+          element = createPreviewTextInput(elem, true);
+          break;
+        case 'datetime_input':
+          element = createPreviewDatetimeInput(elem);
+          break;
+        case 'checkbox_group':
+          element = createPreviewCheckboxGroup(elem);
+          break;
+        case 'radio_group':
+          element = createPreviewRadioGroup(elem);
+          break;
+        case 'button':
+          element = createPreviewButton(elem);
+          break;
+        case 'text_box':
+          element = createPreviewTextBox(elem);
+          break;
+        case 'roulette':
+          element = createPreviewRoulette(elem);
+          break;
+        case 'timer':
+          element = createPreviewTimer(elem);
+          break;
+      }
+      
+      if (element) {
+        targetArea.appendChild(element);
+      }
+    } catch (error) {
+      console.error('要素の復元に失敗:', elem, error);
+    }
+  });
+}
+
+// 以下、実行画面用の要素作成関数
+function createPreviewTextInput(elem, onlyNumber) {
+  const container = document.createElement("div");
+  container.classList.add("input-container");
+
+  const label = document.createElement("div");
+  label.classList.add("input-label");
+  label.textContent = elem.element_label || (onlyNumber ? "数字：" : "文字：");
+
+  const placeholder = elem.element_config?.placeholder || (onlyNumber ? "数字を入力" : "文字を入力（改行可）");
+  const actualValue = elem.element_value || "";
+
+  if (onlyNumber) {
+    const input = document.createElement("input");
+    input.type = "text";
+    input.inputMode = "numeric";
+    input.pattern = "\\d*";
+    input.classList.add("input-box");
+    input.placeholder = placeholder;
+    input.value = actualValue;
+    input.setAttribute('data-only-number', 'true');
+    container.appendChild(label);
+    container.appendChild(input);
+    attachNumberFilter(input);
+  } else {
+    const textarea = document.createElement("textarea");
+    textarea.classList.add("input-box");
+    textarea.placeholder = placeholder;
+    textarea.value = actualValue;
+    container.appendChild(label);
+    container.appendChild(textarea);
+  }
+
+  container.style.left = elem.position_x + "px";
+  container.style.top = elem.position_y + "px";
+  if (elem.width) container.style.width = elem.width + "px";
+  if (elem.height) container.style.height = elem.height + "px";
+
+  return container;
+}
+
+function createPreviewDatetimeInput(elem) {
+  const container = document.createElement("div");
+  container.classList.add("input-container");
+
+  const label = document.createElement("div");
+  label.classList.add("input-label");
+  label.textContent = elem.element_label || "日時：";
+
+  const input = document.createElement("input");
+  input.type = "datetime-local";
+  input.style.minWidth = "180px";
+  input.style.minHeight = "36px";
+  input.style.fontSize = "16px";
+  input.style.padding = "4px 8px";
+  input.style.boxSizing = "border-box";
+  input.classList.add("input-box");
+  input.value = elem.element_value || "";
+
+  container.appendChild(label);
+  container.appendChild(input);
+
+  container.style.left = elem.position_x + "px";
+  container.style.top = elem.position_y + "px";
+  if (elem.width) container.style.width = elem.width + "px";
+  if (elem.height) container.style.height = elem.height + "px";
+
+  return container;
+}
+
+function createPreviewCheckboxGroup(elem) {
+  const group = document.createElement('div');
+  group.className = 'checkbox-group';
+
+  const options = elem.element_config?.options || [];
+  options.forEach((optText, i) => {
+    const row = document.createElement('div');
+    row.className = 'checkbox-row';
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.tabIndex = 0;
+
+    const lbl = document.createElement('div');
+    lbl.className = 'checkbox-label';
+    lbl.textContent = optText;
+
+    row.appendChild(cb);
+    row.appendChild(lbl);
+    group.appendChild(row);
+  });
+
+  group.style.left = elem.position_x + "px";
+  group.style.top = elem.position_y + "px";
+  if (elem.width) group.style.width = elem.width + "px";
+  if (elem.height) group.style.height = elem.height + "px";
+
+  return group;
+}
+
+function createPreviewRadioGroup(elem) {
+  const group = document.createElement('div');
+  group.className = 'radio-group';
+
+  const uniqueName = 'radio_group_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+  const options = elem.element_config?.options || [];
+  
+  options.forEach((optText, i) => {
+    const row = document.createElement('div');
+    row.className = 'radio-row';
+
+    const rb = document.createElement('input');
+    rb.type = 'radio';
+    rb.name = uniqueName;
+    rb.tabIndex = 0;
+
+    const lbl = document.createElement('div');
+    lbl.className = 'radio-label';
+    lbl.textContent = optText;
+
+    row.appendChild(rb);
+    row.appendChild(lbl);
+    group.appendChild(row);
+  });
+
+  group.style.left = elem.position_x + "px";
+  group.style.top = elem.position_y + "px";
+  if (elem.width) group.style.width = elem.width + "px";
+  if (elem.height) group.style.height = elem.height + "px";
+
+  return group;
+}
+
+function createPreviewButton(elem) {
+  const btn = document.createElement("button");
+  btn.classList.add("draggable-btn");
+  btn.textContent = elem.element_label || "ボタン";
+
+  const styleData = elem.style_data || {};
+  if (elem.width) btn.style.width = elem.width + "px";
+  if (elem.height) btn.style.height = elem.height + "px";
+  if (styleData.background) btn.style.background = styleData.background;
+  if (styleData.color) btn.style.color = styleData.color;
+
+  btn.style.left = elem.position_x + "px";
+  btn.style.top = elem.position_y + "px";
+
+  const algorithmId = elem.element_config?.algorithm_id;
+  const algorithmXml = elem.element_config?.algorithm_xml;
+  const targetSystemId = elem.element_config?.target_system_id;
+  
+  if (algorithmId) btn.setAttribute('data-algorithm-id', algorithmId);
+  if (algorithmXml) btn.setAttribute('data-algorithm-xml', algorithmXml);
+  if (targetSystemId) btn.setAttribute('data-target-system', targetSystemId);
+  
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    
+    if (algorithmId && algorithmXml) {
+      console.log('アルゴリズム実行:', algorithmId);
+      executeAlgorithmFromButton(algorithmXml, btn.textContent);
+    } else if (targetSystemId) {
+      console.log('システム遷移:', targetSystemId);
+      loadSystemInPreview(targetSystemId);
+    }
+  });
+
+  return btn;
+}
+
+function createPreviewTextBox(elem) {
+  const container = document.createElement("div");
+  container.classList.add("text-input-container");
+
+  const textDiv = document.createElement("div");
+  textDiv.classList.add("text-input");
+  textDiv.textContent = elem.element_value || "";
+
+  container.appendChild(textDiv);
+
+  container.style.left = elem.position_x + "px";
+  container.style.top = elem.position_y + "px";
+  if (elem.width) container.style.width = elem.width + "px";
+  if (elem.height) container.style.height = elem.height + "px";
+
+  return container;
+}
+
+function createPreviewRoulette(elem) {
+  const container = document.createElement("div");
+  container.classList.add("roulette-container");
+  
+  const config = elem.element_config || {};
+  const items = config.items || ['項目1', '項目2', '項目3'];
+  
+  container.setAttribute('data-roulette-items', JSON.stringify(items));
+  container.setAttribute('data-roulette-spinning', 'false');
+  
+  const wheel = document.createElement("div");
+  wheel.classList.add("roulette-wheel");
+  wheel.style.position = "relative";
+  wheel.style.width = "200px";
+  wheel.style.height = "200px";
+  wheel.style.transition = "transform 3s cubic-bezier(0.25, 0.1, 0.25, 1)";
+  wheel.dataset.currentRotation = "0";
+  
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("width", "200");
+  svg.setAttribute("height", "200");
+  svg.setAttribute("viewBox", "0 0 200 200");
+  
+  const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B500', '#52C41A'];
+  const centerX = 100;
+  const centerY = 100;
+  const radius = 95;
+  const anglePerSegment = (2 * Math.PI) / items.length;
+  
+  items.forEach((item, index) => {
+    const startAngle = index * anglePerSegment - Math.PI / 2;
+    const endAngle = (index + 1) * anglePerSegment - Math.PI / 2;
+    
+    const x1 = centerX + radius * Math.cos(startAngle);
+    const y1 = centerY + radius * Math.sin(startAngle);
+    const x2 = centerX + radius * Math.cos(endAngle);
+    const y2 = centerY + radius * Math.sin(endAngle);
+    
+    const largeArcFlag = anglePerSegment > Math.PI ? 1 : 0;
+    
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`);
+    path.setAttribute("fill", colors[index % colors.length]);
+    path.setAttribute("stroke", "#fff");
+    path.setAttribute("stroke-width", "2");
+    svg.appendChild(path);
+    
+    const textAngle = startAngle + anglePerSegment / 2;
+    const textRadius = radius * 0.65;
+    const textX = centerX + textRadius * Math.cos(textAngle);
+    const textY = centerY + textRadius * Math.sin(textAngle);
+    
+    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    text.setAttribute("x", textX);
+    text.setAttribute("y", textY);
+    text.setAttribute("text-anchor", "middle");
+    text.setAttribute("dominant-baseline", "middle");
+    text.setAttribute("fill", "#fff");
+    text.setAttribute("font-size", "14");
+    text.setAttribute("font-weight", "bold");
+    text.setAttribute("transform", `rotate(${(textAngle * 180 / Math.PI) + 90}, ${textX}, ${textY})`);
+    text.style.textShadow = "1px 1px 2px rgba(0,0,0,0.8)";
+    text.textContent = item;
+    svg.appendChild(text);
+  });
+  
+  const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  circle.setAttribute("cx", centerX);
+  circle.setAttribute("cy", centerY);
+  circle.setAttribute("r", radius);
+  circle.setAttribute("fill", "none");
+  circle.setAttribute("stroke", "#333");
+  circle.setAttribute("stroke-width", "4");
+  svg.appendChild(circle);
+  
+  wheel.appendChild(svg);
+  
+  const pin = document.createElement("div");
+  pin.style.position = "absolute";
+  pin.style.top = "-15px";
+  pin.style.left = "46%";
+  pin.style.transform = "translateX(-50%)";
+  pin.style.width = "0";
+  pin.style.height = "0";
+  pin.style.borderLeft = "10px solid transparent";
+  pin.style.borderRight = "10px solid transparent";
+  pin.style.borderTop = "20px solid #FF0000";
+  pin.style.zIndex = "10";
+  pin.style.pointerEvents = "none";
+  
+  const result = document.createElement("div");
+  result.classList.add("roulette-result");
+  result.style.marginTop = "10px";
+  result.style.padding = "8px";
+  result.style.background = "#f0f0f0";
+  result.style.borderRadius = "4px";
+  result.style.textAlign = "center";
+  result.style.fontWeight = "bold";
+  result.textContent = "結果: -";
+  
+  const spinBtn = document.createElement("button");
+  spinBtn.classList.add("roulette-btn", "spin");
+  spinBtn.textContent = "スピン";
+  spinBtn.style.marginTop = "10px";
+  spinBtn.style.padding = "8px 20px";
+  spinBtn.style.fontSize = "16px";
+  spinBtn.style.cursor = "pointer";
+  spinBtn.style.position = "relative";
+  spinBtn.style.zIndex = "100";
+  spinBtn.onclick = function(e) {
+    e.stopPropagation();
+    const spinning = container.getAttribute('data-roulette-spinning') === 'true';
+    if (spinning) return;
+    
+    container.setAttribute('data-roulette-spinning', 'true');
+    spinBtn.disabled = true;
+    spinBtn.style.cursor = 'not-allowed';
+    spinBtn.style.opacity = '0.6';
+    
+    const currentRotation = parseFloat(wheel.dataset.currentRotation) || 0;
+    const spins = 5 + Math.random() * 3;
+    const extraDegrees = Math.random() * 360;
+    const newRotation = currentRotation + spins * 360 + extraDegrees;
+    
+    wheel.style.transform = `rotate(${newRotation}deg)`;
+    wheel.dataset.currentRotation = newRotation;
+    
+    setTimeout(() => {
+      const finalAngle = ((newRotation % 360) + 360) % 360;
+      const segmentAngle = 360 / items.length;
+      const angleOnWheel = (270 - finalAngle + 360) % 360;
+      const selectedIndex = Math.floor((angleOnWheel + 90) / segmentAngle) % items.length;
+      
+      result.textContent = `結果: ${items[selectedIndex]}`;
+      container.setAttribute('data-roulette-spinning', 'false');
+      spinBtn.disabled = false;
+      spinBtn.style.cursor = 'pointer';
+      spinBtn.style.opacity = '1';
+    }, 3000);
+  };
+  
+  const wheelWrapper = document.createElement("div");
+  wheelWrapper.style.position = "relative";
+  wheelWrapper.style.pointerEvents = "none";
+  wheelWrapper.appendChild(pin);
+  wheelWrapper.appendChild(wheel);
+  
+  container.appendChild(wheelWrapper);
+  container.appendChild(result);
+  container.appendChild(spinBtn);
+  
+  container.style.left = elem.position_x + "px";
+  container.style.top = elem.position_y + "px";
+  if (elem.width) container.style.width = elem.width + "px";
+  if (elem.height) container.style.height = elem.height + "px";
+
+  return container;
+}
+
+function createPreviewTimer(elem) {
+  const container = document.createElement('div');
+  container.className = 'timer-container';
+  
+  const config = elem.element_config || {};
+  const mode = config.mode || 'countup';
+  const initialTime = config.initial_time || 0;
+  
+  container.setAttribute('data-timer-mode', mode);
+  container.setAttribute('data-timer-running', 'false');
+  container.setAttribute('data-timer-value', initialTime.toString());
+  container.setAttribute('data-initial-time', initialTime.toString());
+
+  const display = document.createElement('div');
+  display.className = 'timer-display';
+  display.textContent = formatTimerDisplay(initialTime);
+
+  const btnContainer = document.createElement('div');
+  btnContainer.className = 'timer-buttons';
+
+  const startBtn = document.createElement('button');
+  startBtn.className = 'timer-btn start';
+  startBtn.textContent = 'スタート';
+
+  const resetBtn = document.createElement('button');
+  resetBtn.className = 'timer-btn reset';
+  resetBtn.textContent = 'リセット';
+
+  btnContainer.appendChild(startBtn);
+  btnContainer.appendChild(resetBtn);
+
+  container.appendChild(display);
+  container.appendChild(btnContainer);
+
+  container.style.left = elem.position_x + "px";
+  container.style.top = elem.position_y + "px";
+  if (elem.width) container.style.width = elem.width + "px";
+  if (elem.height) container.style.height = elem.height + "px";
+
+  setupTimerEvents(container, startBtn, resetBtn, display, mode, initialTime);
+
+  return container;
+}
+
+function setupTimerEvents(container, startBtn, resetBtn, display, mode, initialTime) {
+  let intervalId = null;
+
+  startBtn.onclick = function(e) {
+    e.stopPropagation();
+    const running = container.getAttribute('data-timer-running') === 'true';
+    
+    if (running) {
+      if (intervalId) clearInterval(intervalId);
+      container.setAttribute('data-timer-running', 'false');
+      startBtn.textContent = 'スタート';
+    } else {
+      container.setAttribute('data-timer-running', 'true');
+      startBtn.textContent = 'ストップ';
+      
+      intervalId = setInterval(() => {
+        let currentValue = parseInt(container.getAttribute('data-timer-value')) || 0;
+        
+        if (mode === 'countdown') {
+          currentValue = Math.max(0, currentValue - 1);
+          container.setAttribute('data-timer-value', currentValue.toString());
+          display.textContent = formatTimerDisplay(currentValue);
+          
+          if (currentValue === 0) {
+            if (intervalId) clearInterval(intervalId);
+            container.setAttribute('data-timer-running', 'false');
+            startBtn.textContent = 'スタート';
+          }
+        } else {
+          currentValue += 1;
+          container.setAttribute('data-timer-value', currentValue.toString());
+          display.textContent = formatTimerDisplay(currentValue);
+        }
+      }, 1000);
+    }
+  };
+
+  resetBtn.onclick = function(e) {
+    e.stopPropagation();
+    if (intervalId) clearInterval(intervalId);
+    container.setAttribute('data-timer-running', 'false');
+    container.setAttribute('data-timer-value', initialTime.toString());
+    display.textContent = formatTimerDisplay(initialTime);
+    startBtn.textContent = 'スタート';
+  };
+}
+
+function formatTimerDisplay(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return String(h).padStart(2, '0') + ':' + 
+         String(m).padStart(2, '0') + ':' + 
+         String(s).padStart(2, '0');
+}
+
+// 現在のスライドエリアの要素を収集する関数
+window.collectCurrentElements = function collectCurrentElements() {
+  const slide = document.getElementById('slideArea');
+  if (!slide) return [];
+  
+  const elements = [];
+  
+  // テキスト/数値/日時入力
+  slide.querySelectorAll('.input-container').forEach(container => {
+    const label = container.querySelector('.input-label');
+    const input = container.querySelector('.input-box');
+    const labelText = label ? label.textContent.trim() : '';
+    const inputValue = input ? input.value.trim() : '';
+    const placeholder = input ? input.placeholder : '';
+    const onlyNumber = input && input.getAttribute('data-only-number') === 'true';
+    const isDatetime = input && input.type === 'datetime-local';
+    
+    let elementType = 'text_input';
+    if (onlyNumber) elementType = 'number_input';
+    if (isDatetime) elementType = 'datetime_input';
+    
+    elements.push({
+      element_type: elementType,
+      element_label: labelText,
+      element_value: inputValue,
+      position_x: parseInt(container.style.left) || 0,
+      position_y: parseInt(container.style.top) || 0,
+      width: container.offsetWidth || null,
+      height: container.offsetHeight || null,
+      style_data: {},
+      element_config: {
+        placeholder: placeholder
+      }
+    });
+  });
+  
+  // チェックボックスグループ
+  slide.querySelectorAll('.checkbox-group').forEach(group => {
+    const groupLabelDiv = group.querySelector('.checkbox-group-label');
+    const groupLabel = groupLabelDiv ? groupLabelDiv.textContent.trim() : '';
+    
+    const rows = group.querySelectorAll('.checkbox-row');
+    const options = [];
+    rows.forEach(row => {
+      const label = row.querySelector('.checkbox-label');
+      if (label) options.push(label.textContent.trim());
+    });
+    
+    elements.push({
+      element_type: 'checkbox_group',
+      element_label: groupLabel,
+      element_value: '',
+      position_x: parseInt(group.style.left) || 0,
+      position_y: parseInt(group.style.top) || 0,
+      width: group.offsetWidth || null,
+      height: group.offsetHeight || null,
+      style_data: {},
+      element_config: { options: options }
+    });
+  });
+  
+  // ラジオボタングループ
+  slide.querySelectorAll('.radio-group').forEach(group => {
+    const groupLabelDiv = group.querySelector('.radio-group-label');
+    const groupLabel = groupLabelDiv ? groupLabelDiv.textContent.trim() : '';
+    
+    const rows = group.querySelectorAll('.radio-row');
+    const options = [];
+    rows.forEach(row => {
+      const label = row.querySelector('.radio-label');
+      if (label) options.push(label.textContent.trim());
+    });
+    
+    elements.push({
+      element_type: 'radio_group',
+      element_label: groupLabel,
+      element_value: '',
+      position_x: parseInt(group.style.left) || 0,
+      position_y: parseInt(group.style.top) || 0,
+      width: group.offsetWidth || null,
+      height: group.offsetHeight || null,
+      style_data: {},
+      element_config: { options: options }
+    });
+  });
+  
+  // ボタン
+  slide.querySelectorAll('.draggable-btn').forEach(btn => {
+    const targetSystemId = btn.getAttribute('data-target-system');
+    const algorithmId = btn.getAttribute('data-algorithm-id');
+    const algorithmXml = btn.getAttribute('data-algorithm-xml');
+    let buttonText = btn.textContent.trim();
+    buttonText = buttonText.replace(/≡/g, '').trim();
+    
+    elements.push({
+      element_type: 'button',
+      element_label: buttonText,
+      element_value: '',
+      position_x: parseInt(btn.style.left) || 0,
+      position_y: parseInt(btn.style.top) || 0,
+      width: parseInt(btn.style.width) || null,
+      height: parseInt(btn.style.height) || null,
+      style_data: {
+        background: btn.style.background || btn.style.backgroundColor,
+        color: btn.style.color
+      },
+      element_config: {
+        target_system_id: targetSystemId,
+        algorithm_id: algorithmId,
+        algorithm_xml: algorithmXml
+      }
+    });
+  });
+  
+  // テキストボックス
+  slide.querySelectorAll('.text-input-container').forEach(container => {
+    const textInput = container.querySelector('.text-input');
+    const content = textInput ? (textInput.value || textInput.textContent || '').trim() : '';
+    
+    elements.push({
+      element_type: 'text_box',
+      element_label: '',
+      element_value: content,
+      position_x: parseInt(container.style.left) || 0,
+      position_y: parseInt(container.style.top) || 0,
+      width: parseInt(container.style.width) || null,
+      height: parseInt(container.style.height) || null,
+      style_data: {},
+      element_config: {}
+    });
+  });
+  
+  // ルーレット
+  slide.querySelectorAll('.roulette-container').forEach(roulette => {
+    const items = JSON.parse(roulette.getAttribute('data-roulette-items') || '[]');
+    
+    elements.push({
+      element_type: 'roulette',
+      element_label: '',
+      element_value: '',
+      position_x: parseInt(roulette.style.left) || 0,
+      position_y: parseInt(roulette.style.top) || 0,
+      width: parseInt(roulette.style.width) || null,
+      height: parseInt(roulette.style.height) || null,
+      style_data: {},
+      element_config: {
+        items: items
+      }
+    });
+  });
+  
+  // タイマー
+  slide.querySelectorAll('.timer-container').forEach(timer => {
+    const mode = timer.getAttribute('data-timer-mode') || 'countup';
+    const initialTime = parseInt(timer.getAttribute('data-initial-time')) || 0;
+    
+    elements.push({
+      element_type: 'timer',
+      element_label: '',
+      element_value: '',
+      position_x: parseInt(timer.style.left) || 0,
+      position_y: parseInt(timer.style.top) || 0,
+      width: parseInt(timer.style.width) || null,
+      height: parseInt(timer.style.height) || null,
+      style_data: {},
+      element_config: {
+        mode: mode,
+        initial_time: initialTime
+      }
+    });
+  });
+  
+  return elements;
+}
+
+// ========================================
+// アルゴリズム実行関数
+// ========================================
+window.executeAlgorithmFromButton = async function executeAlgorithmFromButton(blocklyXml, buttonName) {
+  console.log('🎯 アルゴリズム実行開始:', buttonName);
+  
+  if (!blocklyXml) {
+    alert('アルゴリズムのデータが見つかりません');
+    return;
+  }
+
+  // Blocklyがまだロード中の場合は、loadBlockly()を待機
+  if (typeof Blockly === 'undefined') {
+    console.log('⏳ Blocklyをロード中...');
+    try {
+      await loadBlockly();
+      console.log('✅ Blockly loaded successfully');
+    } catch (error) {
+      console.error('❌ Blockly loading failed:', error);
+      const retry = confirm('Blocklyの読み込みに失敗しました。\n\nページをリロードして再度お試しください。\n\nリロードしますか？');
+      if (retry) {
+        location.reload();
+      }
+      return;
+    }
+  }
+  
+  console.log('✅ Blockly ready, executing algorithm');
+
+  try {
+    // 非表示のBlocklyワークスペースを作成
+    const tempDiv = document.createElement('div');
+    tempDiv.style.display = 'none';
+    document.body.appendChild(tempDiv);
+
+    const workspace = Blockly.inject(tempDiv, {
+      toolbox: '<xml></xml>'
+    });
+
+    // カスタムブロックを定義
+    if (!Blockly.Blocks['load_system']) {
+      Blockly.Blocks['load_system'] = {
+        init: function() {
+          this.appendDummyInput()
+            .appendField("システムをよみこむ:")
+            .appendField(new Blockly.FieldTextInput("0"), "SYSTEM_ID");
+          this.setPreviousStatement(true);
+          this.setNextStatement(true);
+          this.setColour(290);
+        }
+      };
+    }
+
+    if (!Blockly.Blocks['system_condition']) {
+      Blockly.Blocks['system_condition'] = {
+        init: function() {
+          this.appendDummyInput()
+            .appendField("もし システム")
+            .appendField(new Blockly.FieldTextInput("0"), "SYSTEM_ID")
+            .appendField("の");
+          this.appendDummyInput()
+            .appendField("ラベル：")
+            .appendField(new Blockly.FieldTextInput("文字："), "ELEMENT_NAME")
+            .appendField("が");
+          this.appendDummyInput()
+            .appendField(new Blockly.FieldDropdown([
+              ["=", "EQ"],
+              ["≠", "NEQ"],
+              [">", "GT"],
+              ["<", "LT"],
+              ["≧", "GTE"],
+              ["≦", "LTE"],
+              ["含む", "CONTAINS"]
+            ]), "OP")
+            .appendField(new Blockly.FieldTextInput("あたい"), "VALUE")
+            .appendField("なら");
+          this.appendStatementInput("DO")
+            .appendField("すること");
+          this.appendStatementInput("ELSE")
+            .appendField("そうでなければ");
+          this.setPreviousStatement(true);
+          this.setNextStatement(true);
+          this.setColour(290);
+        }
+      };
+    }
+
+    if (!Blockly.Blocks['display_system']) {
+      Blockly.Blocks['display_system'] = {
+        init: function() {
+          this.appendDummyInput()
+            .appendField("システムをひょうじ:")
+            .appendField(new Blockly.FieldTextInput("0"), "SYSTEM_ID");
+          this.setPreviousStatement(true);
+          this.setNextStatement(true);
+          this.setColour(290);
+        }
+      };
+    }
+
+    if (!Blockly.Blocks['text_block']) {
+      Blockly.Blocks['text_block'] = {
+        init: function() {
+          this.appendDummyInput()
+            .appendField("テキスト:")
+            .appendField(new Blockly.FieldTextInput("メッセージ"), "message");
+          this.setPreviousStatement(true);
+          this.setNextStatement(true);
+          this.setColour(160);
+        }
+      };
+    }
+
+    // XMLからブロックを読み込む
+    const xml = Blockly.utils.xml.textToDom(blocklyXml);
+    Blockly.Xml.domToWorkspace(xml, workspace);
+
+    // ブロックを直接処理
+    const blocks = workspace.getTopBlocks(true);
+    
+    // processBlock関数を定義
+    async function processBlock(block) {
+      if (!block) return;
+      
+      switch(block.type) {
+        case 'text_block':
+          const msg = block.getFieldValue('message') || '';
+          console.log('📝 テキスト:', msg);
+          break;
+          
+        case 'system_condition':
+          const sysId = block.getFieldValue('SYSTEM_ID');
+          const elementName = block.getFieldValue('ELEMENT_NAME');
+          const op = block.getFieldValue('OP');
+          const expectedValue = block.getFieldValue('VALUE');
+          
+          console.log('🔍 条件ブロック詳細:', {
+            systemId: sysId,
+            elementName: elementName,
+            operator: op,
+            expectedValue: expectedValue
+          });
+          
+          try {
+            // 現在の実行画面から要素の値を取得
+            const previewArea = document.getElementById('previewSlideArea');
+            if (!previewArea) {
+              throw new Error('実行画面が見つかりません');
+            }
+            
+            // ラベルが一致する入力要素を探す
+            let actualValue = '';
+            
+            // テキスト入力・数値入力・日時入力を探す
+            const inputContainers = previewArea.querySelectorAll('.input-container');
+            for (const container of inputContainers) {
+              const label = container.querySelector('.input-label');
+              if (label && label.textContent.trim() === elementName) {
+                const input = container.querySelector('.input-box');
+                if (input) {
+                  actualValue = input.value || '';
+                  console.log(`📍 入力欄「${elementName}」から値を取得: "${actualValue}"`);
+                  break;
+                }
+              }
+            }
+            
+            // チェックボックスグループを探す（グループラベルまたは選択された項目のラベルで検索）
+            if (!actualValue) {
+              const checkboxGroups = previewArea.querySelectorAll('.checkbox-group');
+              for (const group of checkboxGroups) {
+                const groupLabel = group.querySelector('.checkbox-group-label');
+                const groupLabelText = groupLabel ? groupLabel.textContent.trim() : '';
+                
+                // グループラベルが一致する場合、選択された項目を取得
+                if (groupLabelText === elementName) {
+                  const checkedItems = [];
+                  const rows = group.querySelectorAll('.checkbox-row');
+                  rows.forEach(row => {
+                    const checkbox = row.querySelector('input[type="checkbox"]');
+                    const label = row.querySelector('.checkbox-label');
+                    if (checkbox && checkbox.checked && label) {
+                      checkedItems.push(label.textContent.trim());
+                    }
+                  });
+                  actualValue = checkedItems.join(',');
+                  console.log(`📍 チェックボックスグループ「${elementName}」から選択項目を取得: "${actualValue}"`);
+                  break;
+                }
+                
+                // 選択された項目のラベルが一致する場合
+                const rows = group.querySelectorAll('.checkbox-row');
+                for (const row of rows) {
+                  const checkbox = row.querySelector('input[type="checkbox"]');
+                  const label = row.querySelector('.checkbox-label');
+                  if (checkbox && checkbox.checked && label && label.textContent.trim() === expectedValue) {
+                    actualValue = label.textContent.trim();
+                    console.log(`📍 チェックボックス「${expectedValue}」が選択されています`);
+                    break;
+                  }
+                }
+                if (actualValue) break;
+              }
+            }
+            
+            // ラジオボタングループを探す
+            if (!actualValue) {
+              const radioGroups = previewArea.querySelectorAll('.radio-group');
+              for (const group of radioGroups) {
+                const groupLabel = group.querySelector('.radio-group-label');
+                const groupLabelText = groupLabel ? groupLabel.textContent.trim() : '';
+                
+                // グループラベルが一致する場合、選択された項目を取得
+                if (groupLabelText === elementName) {
+                  const rows = group.querySelectorAll('.radio-row');
+                  for (const row of rows) {
+                    const radio = row.querySelector('input[type="radio"]');
+                    const label = row.querySelector('.radio-label');
+                    if (radio && radio.checked && label) {
+                      actualValue = label.textContent.trim();
+                      console.log(`📍 ラジオボタングループ「${elementName}」から選択項目を取得: "${actualValue}"`);
+                      break;
+                    }
+                  }
+                  break;
+                }
+              }
+            }
+            
+            // テキストボックスを探す
+            if (!actualValue) {
+              const textContainers = previewArea.querySelectorAll('.text-input-container');
+              for (const container of textContainers) {
+                const textDiv = container.querySelector('.text-input');
+                if (textDiv && textDiv.textContent.trim() === elementName) {
+                  actualValue = textDiv.textContent || '';
+                  console.log(`📍 テキストボックス「${elementName}」から値を取得: "${actualValue}"`);
+                  break;
+                }
+              }
+            }
+            
+            let conditionMet = false;
+            switch(op) {
+              case 'EQ': conditionMet = (actualValue == expectedValue); break;
+              case 'NEQ': conditionMet = (actualValue != expectedValue); break;
+              case 'GT': conditionMet = (Number(actualValue) > Number(expectedValue)); break;
+              case 'LT': conditionMet = (Number(actualValue) < Number(expectedValue)); break;
+              case 'GTE': conditionMet = (Number(actualValue) >= Number(expectedValue)); break;
+              case 'LTE': conditionMet = (Number(actualValue) <= Number(expectedValue)); break;
+              case 'CONTAINS': conditionMet = actualValue.includes(expectedValue); break;
+            }
+            
+            console.log(`🔍 「${elementName}」の値: "${actualValue}" ${conditionMet ? '✓条件満たす' : '✗条件満たさない'} (期待値: "${expectedValue}", 演算子: ${op})`);
+            
+            if (conditionMet) {
+              const doBlock = block.getInputTargetBlock('DO');
+              if (doBlock) await processBlock(doBlock);
+            } else {
+              const elseBlock = block.getInputTargetBlock('ELSE');
+              if (elseBlock) await processBlock(elseBlock);
+            }
+          } catch (error) {
+            console.error('❌ エラー:', error.message);
+          }
+          break;
+          
+        case 'load_system':
+          const loadSysId = block.getFieldValue('SYSTEM_ID');
+          console.log(`🔄 システム読み込み: ID=${loadSysId}`);
+          console.log('🔍 ブロック詳細:', {
+            type: block.type,
+            systemIdField: loadSysId,
+            allFields: block.inputList.map(input => ({
+              name: input.name,
+              fieldRow: input.fieldRow.map(f => ({ name: f.name, value: f.getValue() }))
+            }))
+          });
+          if (loadSysId && loadSysId !== '0') {
+            if (typeof loadSystemInPreview === 'function') {
+              await loadSystemInPreview(loadSysId);
+            }
+          }
+          break;
+          
+        case 'display_system':
+          const displaySysId = block.getFieldValue('SYSTEM_ID');
+          console.log(`📺 システム表示: ID=${displaySysId}`);
+          if (displaySysId && displaySysId !== '0') {
+            if (typeof loadSystemInPreview === 'function') {
+              await loadSystemInPreview(displaySysId);
+            }
+          }
+          break;
+          
+        default:
+          console.log(`🔧 ブロック実行: ${block.type}`);
+      }
+      
+      const next = block.getNextBlock();
+      if (next) await processBlock(next);
+    }
+    
+    // すべてのトップレベルブロックを実行
+    for (const b of blocks) {
+      await processBlock(b);
+    }
+
+    console.log(`✅ アルゴリズム「${buttonName}」を実行しました`);
+
+    // クリーンアップ
+    workspace.dispose();
+    tempDiv.remove();
+
+  } catch (error) {
+    console.error('❌ アルゴリズム実行エラー:', error);
+    alert('アルゴリズムの実行に失敗しました:\n' + error.message);
+  }
+}
+</script>

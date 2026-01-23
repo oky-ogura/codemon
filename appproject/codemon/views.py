@@ -1175,33 +1175,43 @@ def group_create(request):
 
     return render(request, 'codemon/group_create.html')
 
-@require_POST
 def group_remove_member(request, group_id, member_id):
-    """グループからメンバーを削除（教師のみ）"""
+    """グループからメンバーを削除（教師のみ）。GETで確認画面、POSTで削除実行"""
     owner = _get_write_owner(request)
     if owner is None or owner.type != 'teacher':
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'error': '教師権限が必要です'}, status=403)
-        return HttpResponseForbidden('教師権限が必要です')
+        messages.error(request, '教師権限が必要です')
+        return redirect('accounts:group_menu', group_id=group_id)
 
     group = get_object_or_404(Group, group_id=group_id, is_active=True)
     if group.owner != owner:
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'error': 'グループのオーナーのみメンバーを削除できます'}, status=403)
-        return HttpResponseForbidden('グループのオーナーのみメンバーを削除できます')
+        messages.error(request, 'グループのオーナーのみメンバーを削除できます')
+        return redirect('accounts:group_menu', group_id=group_id)
 
     try:
         membership = GroupMember.objects.get(
             group=group,
             member_id=member_id
         )
+        
         if membership.member == group.owner:
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({'error': 'グループのオーナーは削除できません'}, status=400)
             messages.error(request, 'グループのオーナーは削除できません')
-        else:
+            return redirect('accounts:group_menu', group_id=group_id)
+        
+        # GETリクエストの場合は削除確認画面を表示
+        if request.method == 'GET':
+            member_data = {
+                'user_id': membership.member.user_id,
+                'user_name': membership.member.user_name,
+                'joined_at': membership.joined_at.strftime('%Y/%m/%d') if hasattr(membership, 'joined_at') and membership.joined_at else membership.member.created_at.strftime('%Y/%m/%d') if hasattr(membership.member, 'created_at') else ''
+            }
+            return render(request, 'group/group_member_delete.html', {
+                'group': group,
+                'member': member_data
+            })
+        
+        # POSTリクエストの場合は削除を実行
+        if request.method == 'POST':
             member_name = membership.member.user_name
-            joined_at = membership.joined_at.strftime('%Y/%m/%d') if hasattr(membership, 'joined_at') and membership.joined_at else ''
             
             # トランザクション内で確実に両方のテーブルを更新
             with transaction.atomic():
@@ -1216,23 +1226,12 @@ def group_remove_member(request, group_id, member_id):
                 # group_memberテーブルから物理削除（論理削除ではなく完全削除）
                 membership.delete()
             
-            # AJAXリクエストの場合はJSONで応答
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({
-                    'status': 'ok',
-                    'message': f'{member_name}をグループから削除しました',
-                    'member_id': member_id,
-                    'member_name': member_name,
-                    'joined_at': joined_at
-                })
-            
             messages.success(request, f'{member_name}をグループから削除しました')
-
-        return redirect('accounts:group_menu', group_id=group_id)
+            return redirect('accounts:group_menu', group_id=group_id)
 
     except GroupMember.DoesNotExist:
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'error': '指定されたメンバーが見つかりません'}, status=404)
+        messages.error(request, '指定されたメンバーが見つかりません')
+        return redirect('accounts:group_menu', group_id=group_id)
         messages.error(request, '指定されたメンバーが見つかりません')
         return redirect('accounts:group_menu', group_id=group_id)
 

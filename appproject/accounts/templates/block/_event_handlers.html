@@ -1,0 +1,151 @@
+<script>
+// 保存ボタン(Blocklyワークスペースを保存して遷移)
+document.getElementById('saveBtn').addEventListener('click', function() {
+  // BlocklyのワークスペースをXMLに変換
+  const xml = Blockly.Xml.workspaceToDom(workspace);
+  const xmlText = Blockly.Xml.domToText(xml);
+  
+  // セッションストレージに保存
+  sessionStorage.setItem('blockly_xml', xmlText);
+  
+  // 一時保存されたアルゴリズム名と詳細を取得（戻るボタン経由で保存された内容）
+  const tempName = sessionStorage.getItem('temp_algorithm_name');
+  const tempDescription = sessionStorage.getItem('temp_algorithm_description');
+  const tempId = sessionStorage.getItem('temp_algorithm_id');
+  
+  // 編集モード対応: Django テンプレート変数からアルゴリズムIDを取得
+  const existingAlgorithmData = {
+    algorithmId: tempId || '{{ algorithm_id|default:"" }}',
+    algorithmName: tempName || '{{ algorithm_name|default:""|escapejs }}',
+    algorithmDescription: tempDescription || '{{ algorithm_description|default:""|escapejs }}'
+  };
+  
+  // 一時保存データを削除（使い終わったので）
+  sessionStorage.removeItem('temp_algorithm_name');
+  sessionStorage.removeItem('temp_algorithm_description');
+  sessionStorage.removeItem('temp_algorithm_id');
+  
+  // 編集モードの場合はIDをURLパラメータとして渡す
+  if (existingAlgorithmData.algorithmId) {
+    window.location.href = `/accounts/block/create/?id=${existingAlgorithmData.algorithmId}`;
+  } else {
+    // 新規作成の場合
+    window.location.href = '/accounts/block/create/';
+  }
+});
+
+// 未保存の変更を追跡
+let isDirty = false;
+let initialContent = '';
+
+// 初期状態を保存
+(function saveInitialState(){
+  const slideArea = document.getElementById('slideArea');
+  if (slideArea) {
+    initialContent = slideArea.innerHTML;
+  }
+})();
+
+// 変更を検知する関数
+function markDirty() {
+  const slideArea = document.getElementById('slideArea');
+  if (slideArea && slideArea.innerHTML !== initialContent) {
+    isDirty = true;
+  }
+}
+
+// スライドエリアの変更を監視
+(function watchChanges(){
+  const slideArea = document.getElementById('slideArea');
+  if (!slideArea) return;
+  
+  // MutationObserverで変更を監視
+  const observer = new MutationObserver(function() {
+    markDirty();
+  });
+  
+  observer.observe(slideArea, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    characterData: true
+  });
+})();
+
+// ブラウザ閉じる/リロード時の警告
+window.addEventListener('beforeunload', function(e) {
+  if (!isDirty) return;
+  e.preventDefault();
+  e.returnValue = '';
+});
+
+// ナビゲーションタブクリック時の警告
+(function handleNavigation(){
+  const tabs = document.querySelectorAll('.top-tabs a[id^="tab-"]');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', function(e) {
+      // アルゴリズムタブ自身のクリックは許可
+      if (this.id === 'tab-algorithms') return;
+      
+      if (isDirty) {
+        e.preventDefault();
+        const confirmed = confirm('保存されていない変更があります。移動してもよろしいですか？');
+        if (confirmed) {
+          isDirty = false;
+          window.location.href = this.href;
+        }
+      }
+    });
+  });
+})();
+
+// 保存時にisDirtyをリセット
+const originalSaveBtn = document.getElementById('saveBtn');
+if (originalSaveBtn) {
+  originalSaveBtn.addEventListener('click', function() {
+    isDirty = false;
+  });
+}
+
+// ナビゲーションバーでアルゴリズムタブをアクティブに設定
+(function setActiveTab(){
+  const algorithmTab = document.getElementById('tab-algorithms');
+  if (algorithmTab) {
+    algorithmTab.classList.add('active');
+  }
+})();
+
+// ナビゲーションバーとフィールドの重なりを検出して非表示にする
+(function handleNavbarOverlap(){
+  const navbar = document.querySelector('.top-tabs');
+  const container = document.getElementById('container');
+  
+  if (!navbar || !container) return;
+  
+  function checkOverlap() {
+    const navbarRect = navbar.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    
+    // ナビゲーションバーとコンテナが重なっているかチェック
+    const isOverlapping = !(
+      navbarRect.bottom < containerRect.top ||
+      navbarRect.top > containerRect.bottom ||
+      navbarRect.right < containerRect.left ||
+      navbarRect.left > containerRect.right
+    );
+    
+    if (isOverlapping) {
+      navbar.classList.add('hidden');
+    } else {
+      navbar.classList.remove('hidden');
+    }
+  }
+  
+  // スクロール時とリサイズ時にチェック
+  window.addEventListener('scroll', checkOverlap);
+  window.addEventListener('resize', checkOverlap);
+  
+  // 初回チェック
+  checkOverlap();
+})();
+</script>
