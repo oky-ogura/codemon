@@ -44,7 +44,7 @@ import json
 from types import SimpleNamespace
 from .models import Account, Group, GroupMember
 try:
-    from codemon.views import _get_write_owner
+    from codemon.views import _get_write_owner, teacher_login_required
 except Exception:
     # If import fails (circular import in some contexts), define a fallback that mimics codemon._get_write_owner
     def _get_write_owner(request):
@@ -58,6 +58,16 @@ except Exception:
         if getattr(request, 'user', None) and getattr(request.user, 'is_authenticated', False):
             return request.user
         return None
+    
+    # teacher_login_requiredのフォールバック定義
+    from functools import wraps
+    def teacher_login_required(view_func):
+        @wraps(view_func)
+        def _wrapped_view(request, *args, **kwargs):
+            if not request.session.get('is_account_authenticated'):
+                return redirect('accounts:teacher_login')
+            return view_func(request, *args, **kwargs)
+        return _wrapped_view
 
 from django.db import connection, transaction
 from django.utils import timezone
@@ -1607,7 +1617,11 @@ def group_create(request):
                     last_id = cursor.fetchone()[0]
                     new_group_id = last_id + 1
                     
-                    cursor.execute('INSERT INTO "group" (group_id, group_name, user_id, password, created_at, updated_at)'' VALUES (%s, %s, %s, %s, now(), now())',[new_group_id, group_name, user_id, hashed or ''])
+                    cursor.execute(
+                        'INSERT INTO "group" (group_id, group_name, owner_id, password, created_at, updated_at) '
+                        'VALUES (%s, %s, %s, %s, now(), now())',
+                        [new_group_id, group_name, user_id, hashed or '']
+                    )
                     group_id = new_group_id
 
                 if group_id is None:
@@ -2523,34 +2537,65 @@ def group_invite(request, group_id):
         return redirect('accounts:group_menu', group_id=group_id)
 
 
+@teacher_login_required
 def group_remove_member(request, group_id, member_id):
-    """グループからメンバーを削除（教師のみ）"""
+    """グループからメンバーを削除（教師のみ）。GETで確認画面、POSTで削除実行"""
+    print(f"DEBUG: group_remove_member called - method={request.method}, group_id={group_id}, member_id={member_id}")
+    
     owner = _get_write_owner(request)
-    if owner is None or owner.type != 'teacher':
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'error': '教師権限が必要です'}, status=403)
-        return HttpResponseForbidden('教師権限が必要です')
+    print(f"DEBUG: owner={owner}, account_type={getattr(owner, 'account_type', 'N/A') if owner else 'None'}")
+    
+    if owner is None:
+        print("DEBUG: owner is None, redirecting to teacher_login")
+        return redirect('accounts:teacher_login')
+    
+    if owner.account_type != 'teacher':
+        print(f"DEBUG: owner.account_type={owner.account_type}, not teacher")
+        messages.error(request, '教師権限が必要です')
+        return redirect('accounts:group_menu', group_id=group_id)
 
     group = get_object_or_404(Group, group_id=group_id, is_active=True)
+    print(f"DEBUG: group found - group_id={group.group_id}, owner={group.owner}, owner_id={group.owner_id if hasattr(group, 'owner_id') else 'N/A'}")
+    
+    if group.owner is None:
+        print("DEBUG: group.owner is None")
+        messages.error(request, 'グループのオーナーが設定されていません')
+        return redirect('accounts:group_menu', group_id=group_id)
+    
     if group.owner != owner:
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'error': 'グループのオーナーのみメンバーを削除できます'}, status=403)
-        return HttpResponseForbidden('グループのオーナーのみメンバーを削除できます')
+        print(f"DEBUG: group.owner ({group.owner.user_id}) != owner ({owner.user_id})")
+        messages.error(request, 'グループのオーナーのみメンバーを削除できます')
+        return redirect('accounts:group_menu', group_id=group_id)
+
 
     try:
         membership = GroupMember.objects.get(
             group=group,
-            member_id=member_id
+            member_id=member_id,
+            is_active=True
         )
+        
         if membership.member == group.owner:
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({'error': 'グループのオーナーは削除できません'}, status=400)
             messages.error(request, 'グループのオーナーは削除できません')
-        else:
+            return redirect('accounts:group_menu', group_id=group_id)
+        
+        # GETリクエストの場合は削除確認画面を表示
+        if request.method == 'GET':
+            member_data = {
+                'user_id': membership.member.user_id,
+                'user_name': membership.member.user_name,
+                'joined_at': membership.joined_at.strftime('%Y/%m/%d') if hasattr(membership, 'joined_at') and membership.joined_at else membership.member.created_at.strftime('%Y/%m/%d') if hasattr(membership.member, 'created_at') else ''
+            }
+            return render(request, 'group/group_member_delete.html', {
+                'group': group,
+                'member': member_data
+            })
+        
+        # POSTリクエストの場合は削除を実行
+        if request.method == 'POST':
             member_name = membership.member.user_name
-            joined_at = membership.joined_at.strftime('%Y/%m/%d') if hasattr(membership, 'joined_at') and membership.joined_at else ''
             
-            # トランザクション内で確実に両方のテーブルから削除
+            # トランザクション内で確実に両方のテーブルを更新
             with transaction.atomic():
                 # accountテーブルのgroup_idをクリア
                 try:
@@ -2560,25 +2605,12 @@ def group_remove_member(request, group_id, member_id):
                 except Account.DoesNotExist:
                     pass  # アカウントが見つからない場合は無視
                 
-                # group_memberテーブルから削除
+                # group_memberテーブルから物理削除（論理削除ではなく完全削除）
                 membership.delete()
             
-            # AJAXリクエストの場合はJSONで応答
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({
-                    'status': 'ok',
-                    'message': f'{member_name}をグループから削除しました',
-                    'member_id': member_id,
-                    'member_name': member_name,
-                    'joined_at': joined_at
-                })
-            
             messages.success(request, f'{member_name}をグループから削除しました')
-
-        return redirect('accounts:group_menu', group_id=group_id)
+            return redirect('accounts:group_menu', group_id=group_id)
 
     except GroupMember.DoesNotExist:
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'error': '指定されたメンバーが見つかりません'}, status=404)
         messages.error(request, '指定されたメンバーが見つかりません')
         return redirect('accounts:group_menu', group_id=group_id)

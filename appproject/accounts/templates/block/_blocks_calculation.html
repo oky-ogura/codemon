@@ -1,0 +1,298 @@
+<script>
+// ---------------------- 演算ブロック ----------------------
+
+// 直接数値入力
+Blockly.Blocks['direct_number'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField('すうち:')
+      .appendField(new Blockly.FieldNumber(0, -1000, 1000, 1), "value");
+    this.setOutput(true, "Number");
+    this.setColour(200);
+  }
+};
+
+// 四則演算
+Blockly.Blocks['arithmetic'] = {
+  init: function() {
+    this.appendValueInput("A").setCheck("Number");
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([["+","ADD"],["-","MINUS"],["×","MULTIPLY"],["÷","DIVIDE"]]), "OP");
+    this.appendValueInput("B").setCheck("Number");
+    this.setInputsInline(true);
+    this.setOutput(true, "Number");
+    this.setColour(200);
+  }
+};
+
+// 追加: よく使う演算ブロック群
+Blockly.Blocks['modulo'] = {
+  init: function(){
+    this.appendValueInput('A').setCheck('Number');
+    this.appendDummyInput().appendField('あまり (%)');
+    this.appendValueInput('B').setCheck('Number');
+    this.setInputsInline(true);
+    this.setOutput(true,'Number');
+    this.setColour(200);
+  }
+};
+
+Blockly.Blocks['power'] = {
+  init: function(){
+    this.appendValueInput('A').setCheck('Number');
+    this.appendDummyInput().appendField('べき');
+    this.appendValueInput('B').setCheck('Number');
+    this.setInputsInline(true);
+    this.setOutput(true,'Number');
+    this.setColour(200);
+  }
+};
+
+Blockly.Blocks['sqrt'] = {
+  init: function(){
+    this.appendValueInput('NUM').setCheck('Number').appendField('ルート');
+    this.setOutput(true,'Number');
+    this.setColour(200);
+  }
+};
+
+Blockly.Blocks['abs'] = {
+  init: function(){
+    this.appendValueInput('NUM').setCheck('Number').appendField('ぜったいち');
+    this.setOutput(true,'Number');
+    this.setColour(200);
+  }
+};
+
+Blockly.Blocks['negate'] = {
+  init: function(){
+    this.appendValueInput('NUM').setCheck('Number').appendField('マイナスにする');
+    this.setOutput(true,'Number');
+    this.setColour(200);
+  }
+};
+
+Blockly.Blocks['round'] = {
+  init: function(){
+    this.appendValueInput('NUM').setCheck('Number').appendField('まるめる');
+    this.setOutput(true,'Number');
+    this.setColour(200);
+  }
+};
+
+Blockly.Blocks['floor'] = {
+  init: function(){
+    this.appendValueInput('NUM').setCheck('Number').appendField('きりおとす');
+    this.setOutput(true,'Number');
+    this.setColour(200);
+  }
+};
+
+Blockly.Blocks['ceil'] = {
+  init: function(){
+    this.appendValueInput('NUM').setCheck('Number').appendField('きりあげる');
+    this.setOutput(true,'Number');
+    this.setColour(200);
+  }
+};
+
+Blockly.Blocks['min'] = {
+  init: function(){
+    this.appendValueInput('A').setCheck('Number').appendField('さいしょう');
+    this.appendValueInput('B').setCheck('Number');
+    this.setInputsInline(true);
+    this.setOutput(true,'Number');
+    this.setColour(200);
+  }
+};
+
+Blockly.Blocks['max'] = {
+  init: function(){
+    this.appendValueInput('A').setCheck('Number').appendField('さいだい');
+    this.appendValueInput('B').setCheck('Number');
+    this.setInputsInline(true);
+    this.setOutput(true,'Number');
+    this.setColour(200);
+  }
+};
+
+Blockly.Blocks['clamp'] = {
+  init: function(){
+    this.appendValueInput('VAL').setCheck('Number').appendField('はさむ');
+    this.appendValueInput('MIN').setCheck('Number').appendField('さいしょう');
+    this.appendValueInput('MAX').setCheck('Number').appendField('さいだい');
+    this.setInputsInline(false);
+    this.setOutput(true,'Number');
+    this.setColour(200);
+  }
+};
+
+Blockly.Blocks['random_int'] = {
+  init: function(){
+    this.appendValueInput('MIN').setCheck('Number').appendField('ランダム(整数) さいしょう');
+    this.appendValueInput('MAX').setCheck('Number').appendField('さいだい');
+    this.setInputsInline(true);
+    this.setOutput(true,'Number');
+    this.setColour(200);
+  }
+};
+
+Blockly.Blocks['random_float'] = {
+  init: function(){
+    this.appendDummyInput().appendField('ランダム (0〜1)');
+    this.setOutput(true,'Number');
+    this.setColour(200);
+  }
+};
+
+// length: 文字列や配列の長さを返す
+Blockly.Blocks['length'] = {
+  init: function(){
+    this.appendValueInput('INPUT').setCheck(null).appendField('ながさ');
+    this.setOutput(true,'Number');
+    this.setColour(200);
+  }
+};
+
+// date_add_days: 日付に日数を加算して YYYY-MM-DD を返す
+Blockly.Blocks['date_add_days'] = {
+  init: function(){
+    this.appendValueInput('DATE').setCheck(null).appendField('ひづけ');
+    this.appendValueInput('DAYS').setCheck('Number').appendField('にちをたす');
+    this.setInputsInline(true);
+    this.setOutput(true,null);
+    this.setColour(200);
+  }
+};
+
+// ---------------------- 動き系ブロック ----------------------
+Blockly.Blocks['move_steps'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldNumber(10), "steps")
+      .appendField("歩く");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(230);
+  }
+};
+
+Blockly.Blocks['turn_right'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldNumber(15), "degrees")
+      .appendField("右にまわす");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(230);
+  }
+};
+
+Blockly.Blocks['turn_left'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldNumber(15), "degrees")
+      .appendField("左にまわす");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(230);
+  }
+};
+
+Blockly.Blocks['goto_xy'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField("xを")
+      .appendField(new Blockly.FieldNumber(0), "x")
+      .appendField(" yを")
+      .appendField(new Blockly.FieldNumber(0), "y")
+      .appendField("にする");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(230);
+  }
+};
+
+// 追加: 相対移動 (dx, dy)
+Blockly.Blocks['move_relative'] = {
+  init: function(){
+    this.appendDummyInput()
+      .appendField('ずらす dx:')
+      .appendField(new Blockly.FieldNumber(0), 'dx')
+      .appendField(' dy:')
+      .appendField(new Blockly.FieldNumber(0), 'dy');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(230);
+  }
+};
+
+// 時間付き移動（擬似）: 指定時間で座標へ移動したと見なす
+Blockly.Blocks['move_to_duration'] = {
+  init: function(){
+    this.appendDummyInput()
+      .appendField('なめらかにうごく x:')
+      .appendField(new Blockly.FieldNumber(0), 'x')
+      .appendField(' y:')
+      .appendField(new Blockly.FieldNumber(0), 'y')
+      .appendField(' じかん(s):')
+      .appendField(new Blockly.FieldNumber(1,0,9999,0.1), 'duration');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(230);
+  }
+};
+
+// 速度設定
+Blockly.Blocks['set_speed'] = {
+  init: function(){
+    this.appendDummyInput()
+      .appendField('はやさを')
+      .appendField(new Blockly.FieldNumber(1,0,9999,0.1), 'speed')
+      .appendField('にする');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(230);
+  }
+};
+
+// 待機（擬似時間を進める）
+Blockly.Blocks['wait_seconds'] = {
+  init: function(){
+    this.appendDummyInput()
+      .appendField('まつ 秒:')
+      .appendField(new Blockly.FieldNumber(1,0,9999,0.1), 'secs');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(230);
+  }
+};
+
+// 停止 / 一時停止 / 再開
+Blockly.Blocks['stop'] = { init: function(){ this.appendDummyInput().appendField('とめる'); this.setPreviousStatement(true); this.setNextStatement(true); this.setColour(230);} };
+Blockly.Blocks['pause'] = { init: function(){ this.appendDummyInput().appendField('いちじとめる'); this.setPreviousStatement(true); this.setNextStatement(true); this.setColour(230);} };
+Blockly.Blocks['resume'] = { init: function(){ this.appendDummyInput().appendField('またうごかす'); this.setPreviousStatement(true); this.setNextStatement(true); this.setColour(230);} };
+
+// 位置取得（出力: "x,y" 形式）
+Blockly.Blocks['get_position'] = {
+  init: function(){
+    this.appendDummyInput().appendField('いまのばしょをしらべる');
+    this.setOutput(true, null);
+    this.setColour(230);
+  }
+};
+
+// ---------------------- 比較ブロック (採点補助) ----------------------
+Blockly.Blocks['compare_values'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField('くらべる: ラベル')
+      .appendField(new Blockly.FieldTextInput('しつもん'), 'label')
+      .appendField('=')
+      .appendField(new Blockly.FieldTextInput('きたいち'), 'expect');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(200);
+  }
+};
+</script>

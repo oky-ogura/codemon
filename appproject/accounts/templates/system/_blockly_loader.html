@@ -1,0 +1,107 @@
+  <!-- Blockly動的ロード -->
+  <script>
+    // Blocklyを動的にロードする関数
+    function loadBlockly() {
+      return new Promise((resolve, reject) => {
+        if (typeof Blockly !== 'undefined') {
+          console.log('✅ Blockly already loaded');
+          resolve();
+          return;
+        }
+
+        console.log('📥 Loading Blockly...');
+        
+        // blockly.min.js を読み込み
+        const script1 = document.createElement('script');
+        script1.src = 'https://unpkg.com/blockly/blockly.min.js';
+        script1.onload = function() {
+          console.log('✅ blockly.min.js loaded');
+          
+          // javascript_compressed.js を読み込み
+          const script2 = document.createElement('script');
+          script2.src = 'https://unpkg.com/blockly/javascript_compressed.js';
+          script2.onload = function() {
+            console.log('✅ javascript_compressed.js loaded');
+            
+            // ja.js を読み込み
+            const script3 = document.createElement('script');
+            script3.src = 'https://unpkg.com/blockly/msg/ja.js';
+            script3.onload = function() {
+              console.log('✅ Blockly fully loaded');
+              window.blocklyReady = true;
+              resolve();
+            };
+            script3.onerror = () => reject(new Error('Failed to load ja.js'));
+            document.head.appendChild(script3);
+          };
+          script2.onerror = () => reject(new Error('Failed to load javascript_compressed.js'));
+          document.head.appendChild(script2);
+        };
+        script1.onerror = () => reject(new Error('Failed to load blockly.min.js'));
+        document.head.appendChild(script1);
+      });
+    }
+
+    // ページ読み込み時にBlocklyをロード
+    window.blocklyReady = false;
+    loadBlockly().catch(err => {
+      console.error('❌ Blockly loading failed:', err);
+    });
+  </script>
+
+  <script>
+    // 編集モードの場合、既存システム情報を保持
+    const existingSystemData = {
+      systemId: '{{ system_id|default:"" }}',
+      systemName: '{{ system_name|default:""|escapejs }}',
+      systemDescription: '{{ system_description|default:""|escapejs }}'
+    };
+    
+    // 編集モードの場合、既存要素データを保持
+    const existingElementsData = {{ elements_json|default:"[]"|safe }};
+    
+    // 未保存の変更を追跡
+    let isDirty = false;
+    let initialContent = '';
+
+    // 初期状態を保存
+    (function saveInitialState(){
+      const slideArea = document.getElementById('slideArea');
+      if (slideArea) {
+        initialContent = slideArea.innerHTML;
+      }
+    })();
+
+    // 変更を検知する関数
+    function markDirty() {
+      const slideArea = document.getElementById('slideArea');
+      if (slideArea && slideArea.innerHTML !== initialContent) {
+        isDirty = true;
+      }
+    }
+
+    // スライドエリアの変更を監視
+    (function watchChanges(){
+      const slideArea = document.getElementById('slideArea');
+      if (!slideArea) return;
+      
+      // MutationObserverで変更を監視
+      const observer = new MutationObserver(function() {
+        markDirty();
+      });
+      
+      observer.observe(slideArea, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        characterData: true
+      });
+    })();
+
+    // ブラウザ閉じる/リロード時の警告
+    window.addEventListener('beforeunload', function(e) {
+      if (!isDirty) return;
+      e.preventDefault();
+      e.returnValue = '';
+    });
+  </script>
