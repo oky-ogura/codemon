@@ -11,12 +11,19 @@
 
 {% block extra_css %}
 <style>
-    /* ナビゲーションを非表示（ログイン画面では不要） */
+    :root {
+        --main-blue: #3fbcd9;
+        --main-yellow: #FFD200;
+        --main-bg: #f0f4f8;
+        --panel-white: rgba(255, 255, 255, 0.95);
+        --text-color: #4a5568;
+    }
+
+    /* ナビゲーションを非表示 */
     .top-tabs {
         display: none !important;
     }
     
-    /* ログインコンテナ */
     .login-container {
         position: relative;
         width: 100%;
@@ -29,177 +36,195 @@
         box-sizing: border-box;
     }
 
-    /* タイトル */
-    .title {
-        margin-bottom: 40px;
+    /* タイトル：確認画面と同じ下線デザイン */
+    .page-title {
+        font-size: 2.2rem;
+        font-weight: 900;
+        color: var(--main-blue);
+        margin: 0 0 40px 0;
+        display: inline-block;
+        position: relative;
         z-index: 10;
     }
-    .title img {
-        height: 50px;
-        width: auto;
+    .page-title::after {
+        content: '';
+        position: absolute;
+        bottom: 2px;
+        left: 0;
+        width: 100%;
+        height: 8px;
+        background: var(--main-yellow);
+        border-radius: 10px;
+        opacity: 0.6;
+        z-index: -1;
     }
 
-    /* フォーム */
-    .login-form {
+    /* ログインカード */
+    .login-card {
+        background: var(--panel-white);
+        border-radius: 30px;
+        padding: 40px 30px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        border: 6px solid #fff;
+        position: relative;
+        width: 100%;
+        max-width: 450px;
+        z-index: 10;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 20px;
-        z-index: 10;
-        width: 100%;
-        max-width: 500px;
     }
-    .form-row {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-        width: 100%;
-        justify-content: center;
-    }
-    .form-label {
-        background: #fff;
-        padding: 10px 30px;
-        border-radius: 40px;
-        font-size: 18px;
-        font-weight: 600;
-        color: #333;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        min-width: 140px;
-        text-align: center;
-    }
-    .form-input {
-        background: #5BD4F0;
-        border: none;
-        border-radius: 40px;
-        padding: 12px 20px;
-        height: 45px;
-        font-size: 16px;
-        outline: none;
+
+    .card-label-tag {
+        position: absolute;
+        top: -18px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--main-blue);
         color: #fff;
-        width: 250px;
-    }
-    .form-input::placeholder {
-        color: rgba(255,255,255,0.7);
-    }
-    .form-input:focus {
-        background: #4AC5E0;
-    }
-
-    /* リンク */
-    .links {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: center;
-        gap: 40px;
-        margin: 10px 0;
-        z-index: 10;
-    }
-    .links a {
-        color: #00BFFF;
-        text-decoration: none;
-        font-size: 16px;
-    }
-    .links a:hover {
-        text-decoration: underline;
-    }
-
-    /* ボタン */
-    .submit-btn {
+        padding: 6px 30px;
+        border-radius: 50px;
+        font-weight: 800;
         font-size: 1rem;
-        color: #000;
-        text-transform: uppercase;
-        padding: 8px 30px;
-        border-radius: 8px;
-        border-top: 3px solid #00BFFF;
-        border-left: 3px solid #00BFFF;
-        border-right: 3px solid #E0E0E0;
-        border-bottom: 3px solid #E0E0E0;
-        background: #fff;
-        box-shadow: 4px 4px 0 #00BFFF;
-        cursor: pointer;
-        font-weight: bold;
-        margin-top: 10px;
-        z-index: 10;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
-    .submit-btn:hover {
-        background: #f0f8ff;
+
+    /* フォーム項目 */
+    .login-form {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-label {
+        font-size: 0.9rem;
+        font-weight: 800;
+        color: #94a3b8;
+        padding-left: 10px;
+    }
+
+    .form-input {
+        background: #fff;
+        border: 3px solid #e2e8f0;
+        border-radius: 15px;
+        padding: 12px 20px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--text-color);
+        transition: all 0.2s;
+        outline: none;
+    }
+
+    .form-input:focus {
+        border-color: var(--main-blue);
+        box-shadow: 0 0 0 4px rgba(63, 188, 217, 0.1);
     }
 
     /* エラーメッセージ */
     .messages {
-        margin-bottom: 15px;
-        z-index: 10;
-    }
-    .message {
-        padding: 10px 20px;
-        border-radius: 6px;
-        font-size: 0.95em;
+        width: 100%;
+        margin-bottom: 20px;
     }
     .message.error {
-        background: #fdecea;
-        color: #611a15;
-        border: 1px solid #f5c6cb;
-    }
-    .message.success {
-        background: #e6ffed;
-        color: #164d2b;
-        border: 1px solid #b3e6c1;
+        background: #fff5f5;
+        color: #c53030;
+        border: 2px solid #feb2b2;
+        padding: 10px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-align: center;
     }
 
-    @media (max-width: 600px) {
-        .form-row {
-            flex-direction: column;
-            gap: 10px;
-        }
-        .form-label {
-            min-width: auto;
-            width: 100%;
-            max-width: 250px;
-        }
-        .form-input {
-            width: 100%;
-            max-width: 250px;
-        }
-        .links {
-            flex-direction: column;
-            gap: 8px;
-        }
+    /* ボタン：確認画面の「けってい！」と共通 */
+    .submit-btn {
+        margin-top: 10px;
+        background: var(--main-yellow);
+        color: #634A00;
+        font-size: 1.5rem;
+        font-weight: 900;
+        padding: 12px 0;
+        border-radius: 50px;
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 6px 0 #d4af00;
+        transition: all 0.1s;
+        width: 100%;
+    }
+    .submit-btn:hover { transform: translateY(2px); box-shadow: 0 4px 0 #d4af00; }
+    .submit-btn:active { transform: translateY(6px); box-shadow: none; }
+
+    /* リンク：確認画面の「✎ なおす」に近いスタイル */
+    .links {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        margin-top: 25px;
+        gap: 10px;
+    }
+    .links a {
+        color: #94a3b8;
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 700;
+        padding: 5px 10px;
+        transition: color 0.2s;
+    }
+    .links a:hover {
+        color: var(--main-blue);
+        text-decoration: underline;
+    }
+
+    @media (max-width: 500px) {
+        .login-card { width: 90%; padding: 35px 20px; }
+        .page-title { font-size: 1.8rem; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="login-container">
-    <h2 style="margin-bottom: 40px;">
-    ログイン（教員）
-    </h2>
+    <h1 class="page-title">ログイン（教員）</h1>
 
-    {% if messages %}
-    <div class="messages">
-        {% for message in messages %}
-            {% if message.tags == 'error' %}
-                <div class="message {{ message.tags }}">{{ message }}</div>
-            {% endif %}
-        {% endfor %}
-    </div>
-    {% endif %}
+    <div class="login-card">
+        <div class="card-label-tag">CodeMon 教員ログイン</div>
 
-    <form method="post" class="login-form">
-        {% csrf_token %}
-        <div class="form-row">
-            <label class="form-label" for="id_username">名前</label>
-            <input type="text" class="form-input" name="username" id="id_username" required>
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                {% if message.tags == 'error' %}
+                    <div class="message {{ message.tags }}">{{ message }}</div>
+                {% endif %}
+            {% endfor %}
         </div>
-        <div class="form-row">
-            <label class="form-label" for="id_password">パスワード</label>
-            <input type="password" class="form-input" name="password" id="id_password" required>
-        </div>
+        {% endif %}
+
+        <form method="post" class="login-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label class="form-label" for="id_username">ユーザー名</label>
+                <input type="text" class="form-input" name="username" id="id_username" placeholder="ユーザー名を入力" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="id_password">パスワード</label>
+                <input type="password" class="form-input" name="password" id="id_password" placeholder="パスワードを入力" required>
+            </div>
+
+            <button type="submit" class="submit-btn">ログイン</button>
+        </form>
+
         <div class="links">
-            <a href="{% url 'accounts:password_reset' %}">パスワードを忘れた場合</a>
-            <a href="{% url 'accounts:teacher_signup' %}">アカウント新規作成</a>
+            <a href="{% url 'accounts:teacher_signup' %}">✎ アカウント新規作成</a>
+            <a href="{% url 'accounts:password_reset' %}">？ パスワードを忘れた場合</a>
         </div>
-        <button type="submit" class="submit-btn">ログイン</button>
-    </form>
+    </div>
 </div>
 {% endblock %}
