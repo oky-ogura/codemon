@@ -228,6 +228,52 @@
             .left { flex: auto; }
             .right { width: 100%; }
         }
+
+        /* タイトルエリア全体のデザイン */
+.title-container {
+    margin-bottom: 30px;
+}
+
+/* 「だれをえらぶ？」にあたる、親しみやすいステップバッジ */
+.step-badge {
+    display: inline-block;
+    background: var(--theme-color);
+    color: white;
+    font-size: 14px;
+    font-weight: 900;
+    padding: 4px 15px;
+    border-radius: 50px;
+    margin-bottom: 10px;
+    box-shadow: 0 4px 0 var(--theme-deep);
+}
+
+/* メインの見出しをよりポップに */
+.main-headline {
+    font-size: 28px;
+    color: #555;
+    font-weight: 900;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.main-headline span {
+    color: var(--theme-color);
+    position: relative;
+    display: inline-block;
+}
+
+/* 文字の下にポップなラインを引く */
+.main-headline span::after {
+    content: '';
+    position: absolute;
+    bottom: 2px;
+    left: 0;
+    width: 100%;
+    height: 8px;
+    background: var(--theme-color);
+    opacity: 0.2;
+    z-index: -1;
+}
     </style>
 </head>
 <body>
@@ -302,14 +348,14 @@
 
         // 6. キャラクターごとの初期挨拶設定 (intro)
         const animalSettings = {
-            'イヌ': { personality: '元気', speech: 'わん', intro: 'はじめましてだワン！<br>なまえをつけてね！' },
-            'ウサギ': { personality: '優しい', speech: 'ぴょん', intro: 'はじめましてぴょん♪<br>どんななまえかな？' },
-            'キツネ': { personality: '冷静', speech: 'です', intro: 'はじめまして。<br>なまえをいただけますか？' },
-            'ネコ': { personality: '無口', speech: 'にゃん', intro: '…はじめましてにゃ。<br>なまえ、まってるにゃ。' },
-            'パンダ': { personality: '元気', speech: 'だよ', intro: 'やっほー！<br>ボクのなまえ、きめて！' },
-            'フクロウ.png': { personality: '冷静', speech: 'ですな', intro: 'はじめましてですな。<br>よいなまえを頼みますぞ。' },
-            'リス': { personality: '元気', speech: 'なのだ', intro: 'はじめましてなのだ！<br>早くなまえがほしいのだ！' },
-            'アルパカ': { personality: '元気', speech: 'だよ', intro: 'はじめまして～！<br>なまえ、もふもふにして～' }
+            'イヌ.png': { personality: 'げんきいっぱい', speech: 'わん', intro: 'はじめましてだな！<br>おれになまえをつけてくれ！' },
+            'ウサギ.png': { personality: 'しんちょう', speech: 'ぴょん', intro: 'は、はじめまして…！<br> ぼ、ぼくになまえをつけてください…！' },
+            'キツネ.png': { personality: 'ひにくや', speech: 'です', intro: 'よぉ。はじめまして。<br>オレにどんななまえをつけてくれんの？' },
+            'ネコ.png': { personality: 'くーる', speech: 'にゃん', intro: '…やあ。…はじめまして。<br>すきによんでくれたらいいよ。' },
+            'パンダ.png': { personality: 'のんびり', speech: 'だよ', intro: 'はじめましてぇ〜。<br>おなまえをつけてくれるのぉ～？' },
+            'フクロウ.png': { personality: 'れいせい', speech: 'ですな', intro: 'ふむ。初めまして。<br>わたしに、名前をつけてください。' },
+            'リス.png': { personality: 'つんでれ', speech: 'なのだ', intro: 'はじめまして！<br>あたしになまえをつけてちょうだい！' },
+            'アルパカ.png': { personality: 'あねごはだ', speech: 'だよ', intro: 'ごきげんよう。 はじめまして。<br>わたくしになまえをつけてちょうだい。' }
         };
 
         const baseColor = colorMap[appearance] || '#ff99cc';
@@ -336,14 +382,37 @@
             const bubble = document.getElementById('speechBubble');
             bubble.innerHTML = settings.intro;
 
-            const nameInput = document.getElementById('aiNameInput');
-            nameInput.addEventListener('input', (e) => {
-                if (e.target.value) {
-                    bubble.innerHTML = `「${e.target.value}」！<br>すてきな なまえだね！`;
-                } else {
-                    bubble.innerHTML = settings.intro; // 入力が消えたら初期セリフに戻す
-                }
-            });
+            // 1. キャラクターごとの反応テンプレートを定義
+const reactionMap = {
+    'イヌ.png': (name) => `「${name}」か！<br>いいなまえだな！`,
+    'ウサギ.png': (name) => `「${name}」ですか…！<br>うれしいです…！`,
+    'キツネ.png': (name) => `「${name}」かぁ。<br>まあ、いいんじゃないの？`,
+    'ネコ.png': (name) => `…「${name}」。<br>…いいんじゃない？`,
+    'パンダ.png': (name) => `「${name}」……。<br>ありがとねぇ～`,
+    'フクロウ.png': (name) => `「${name}」ですか。<br>いい名前ですね。`,
+    'リス.png': (name) => `「${name}」！<br>いいなまえじゃない！`,
+    'アルパカ.png': (name) => `「${name}」ね。<br>よろしくってよ！。`
+};
+
+// デフォルトの反応（もしキャラが見つからない場合）
+const defaultReaction = (name) => `「${name}」！<br>すてきな なまえだね！`;
+
+// 2. イベントリスナーの中身を書き換え
+const nameInput = document.getElementById('aiNameInput');
+const selectedChar = "{{ appearance }}"; // Djangoから渡されているキャラ名
+
+nameInput.addEventListener('input', (e) => {
+    const inputName = e.target.value;
+    
+    if (inputName) {
+        // キャラクター固有のセリフを取得（なければデフォルト）
+        const getReaction = reactionMap[selectedChar] || defaultReaction;
+        bubble.innerHTML = getReaction(inputName);
+    } else {
+        // 入力が空になったら初期の挨拶に戻す
+        bubble.innerHTML = settings.intro;
+    }
+});
 
             setTimeout(() => {
                 document.body.classList.add('loaded');
