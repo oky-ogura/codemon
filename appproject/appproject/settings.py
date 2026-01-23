@@ -12,10 +12,22 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+import sys
 from dotenv import load_dotenv
 
-# .envファイルから環境変数を読み込む
-load_dotenv()
+# Pythonのデフォルトエンコーディングを確実にUTF-8に設定
+if sys.platform == 'win32':
+    # Windowsでの文字エンコーディング問題を回避
+    import locale
+    if locale.getpreferredencoding().upper() != 'UTF-8':
+        os.environ['PYTHONUTF8'] = '1'
+    # PostgreSQL関連の環境変数をクリアして、設定ファイルからの影響を排除
+    for key in list(os.environ.keys()):
+        if key.startswith('PG') and key not in ['PGDATA']:
+            del os.environ[key]
+
+# .envファイルから環境変数を読み込む（UTF-8エンコーディングを明示）
+load_dotenv(encoding='utf-8')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -99,44 +111,39 @@ ASGI_APPLICATION = 'appproject.asgi.application'
 # For development, prefer a simple SQLite database when DEBUG is True so
 # the dev server can run without a PostgreSQL instance. In production (DEBUG=False)
 # PostgreSQL settings are used from environment variables.
-if DEBUG==False:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME', 'codemon'),
-            'USER': os.getenv('DB_USER', 'postgres'),
-            'PASSWORD': os.getenv('DB_PASSWORD', 'password'),
-            'HOST': os.getenv('DB_HOST', 'localhost'),
-            'PORT': os.getenv('DB_PORT', '5432'),
-        }
-    }
 
-# Development: allow forcing sqlite for local testing to avoid needing a Postgres
-# server or to work around environment encoding issues (set FORCE_SQLITE=1).
-FORCE_SQLITE = os.getenv('FORCE_SQLITE', '')
-if FORCE_SQLITE.lower() in ('1', 'true', 'yes'):
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
+# PostgreSQLの接続時の文字コードの問題を回避するため、
+# すべての接続パラメータを明示的に文字列として指定
+db_name = str(os.getenv('DB_NAME', 'codemon'))
+db_user = str(os.getenv('DB_USER', 'postgres'))
+db_password = str(os.getenv('DB_PASSWORD', 'password'))
+db_host = str(os.getenv('DB_HOST', 'localhost'))
+db_port = str(os.getenv('DB_PORT', '5432'))
+
+# 一時的にSQLiteを使用（PostgreSQL接続のエンコーディング問題を回避）
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
+# PostgreSQLを使用する場合は以下をコメント解除
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': db_name,
+        'USER': db_user,
+        'PASSWORD': db_password,
+        'HOST': db_host,
+        'PORT': db_port,
+        'OPTIONS': {
+            'client_encoding': 'UTF8',
+        },
     }
-else:
-    # If in DEBUG and no DB env vars are present, default to sqlite for local dev.
-    if DEBUG and not os.getenv('DB_NAME') and not os.getenv('DATABASE_URL'):
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': BASE_DIR / 'db.sqlite3',
-            }
-        }
+}
+
+
 
 
 # Password validation
@@ -268,7 +275,8 @@ LOGGING = {
 # AI integration settings (external API)
 AI_API_KEY = os.getenv('AI_API_KEY', '')
 # Default model to call for chat completions
-AI_MODEL = os.getenv('AI_MODEL', 'gemini-2.0-flash')
+# gemini-2.5-flash は現在利用可能な最新の安定モデル
+AI_MODEL = os.getenv('AI_MODEL', 'gemini-2.5-flash')
 # Development-time email backend: print emails to console so password-reset links are visible during development
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

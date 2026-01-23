@@ -33,3 +33,7 @@
 	<a href="javascript:history.back()" style="color: #667eea; text-decoration: none; font-weight: bold;">← 前のページに戻る</a>
 </p>
 {% endblock %}
+
+{% block global_character_widget %}
+{% include 'includes/character_widget.html' with mode='sidebar' %}
+{% endblock %}

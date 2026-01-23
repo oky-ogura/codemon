@@ -25,7 +25,7 @@ def test_api():
     print(f"✓ APIキー: {api_key[:20]}..." if len(api_key) > 20 else f"✓ APIキー: {api_key}")
     
     # モデル名を取得
-    model_name = getattr(settings, 'AI_MODEL', '') or os.getenv('AI_MODEL', 'gemini-2.0-flash')
+    model_name = getattr(settings, 'AI_MODEL', '') or os.getenv('AI_MODEL', 'gemini-3-flash-preview')
     print(f"✓ モデル: {model_name}\n")
     
     try:

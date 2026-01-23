@@ -1,0 +1,426 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}課題ボックス作成 - Codemon{% endblock %}
+
+{% block extra_css %}
+<style>
+    .submission-box-container {
+        max-width: 700px;
+        margin: 40px auto;
+        padding: 30px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .header {
+        margin-bottom: 40px;
+        text-align: center;
+    }
+
+    .header-title {
+        font-size: 28px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+
+    .header-subtitle {
+        color: #999;
+        font-size: 14px;
+    }
+
+    .form-section {
+        margin-bottom: 30px;
+    }
+
+    .form-section-title {
+        font-size: 14px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #2196F3;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 8px;
+        color: #333;
+        font-size: 14px;
+    }
+
+    .form-label-required {
+        color: #ff5252;
+        margin-left: 4px;
+    }
+
+    .form-input, .form-textarea, .form-select {
+        width: 100%;
+        padding: 10px 15px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: inherit;
+    }
+
+    .form-input:focus, .form-textarea:focus, .form-select:focus {
+        outline: none;
+        border-color: #2196F3;
+        box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+    }
+
+    .form-textarea {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .form-hint {
+        font-size: 12px;
+        color: #999;
+        margin-top: 5px;
+    }
+
+    .datetime-wrapper {
+        display: flex;
+        gap: 10px;
+    }
+
+    .datetime-wrapper input {
+        flex: 1;
+    }
+
+    .settings-group {
+        background: #f9f9f9;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .checkbox-group:last-child {
+        margin-bottom: 0;
+    }
+
+    input[type="checkbox"] {
+        cursor: pointer;
+        width: 16px;
+        height: 16px;
+    }
+
+    .checkbox-label {
+        cursor: pointer;
+        font-size: 14px;
+        color: #333;
+        margin: 0;
+    }
+
+    .message-box {
+        background: #f0f8ff;
+        border-left: 4px solid #2196F3;
+        padding: 12px 15px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        font-size: 13px;
+        color: #0066cc;
+    }
+
+    .button-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 30px;
+    }
+
+    .btn {
+        flex: 1;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-create {
+        background: #2196F3;
+        color: white;
+    }
+
+    .btn-create:hover {
+        background: #1976D2;
+    }
+
+    .btn-create:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+
+    .btn-cancel {
+        background: #f0f0f0;
+        color: #333;
+    }
+
+    .btn-cancel:hover {
+        background: #e0e0e0;
+    }
+
+    .spinner {
+        display: none;
+        width: 16px;
+        height: 16px;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid #fff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-left: 8px;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .success-message, .error-message {
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: none;
+        font-size: 14px;
+    }
+
+    .success-message {
+        background: #d4edda;
+        color: #155724;
+        border-left: 4px solid #28a745;
+    }
+
+    .error-message {
+        background: #f8d7da;
+        color: #721c24;
+        border-left: 4px solid #dc3545;
+    }
+
+    @media (max-width: 600px) {
+        .submission-box-container {
+            margin: 20px;
+            padding: 20px;
+        }
+
+        .datetime-wrapper {
+            flex-direction: column;
+        }
+
+        .button-group {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="submission-box-container">
+    <div class="header">
+        <div class="header-title">課題ボックスを作成</div>
+        <div class="header-subtitle">生徒が課題ファイルを提出するボックスを作成します</div>
+    </div>
+
+    <div id="success-message" class="success-message"></div>
+    <div id="error-message" class="error-message"></div>
+
+    <div class="message-box">
+        💡 作成したボックスはグループに共有され、メンバーが課題を提出できるようになります
+    </div>
+
+    <form id="submission-form" method="POST">
+        {% csrf_token %}
+
+        <!-- 基本情報セクション -->
+        <div class="form-section">
+            <div class="form-section-title">基本情報</div>
+
+            <div class="form-group">
+                <label class="form-label" for="box-name">
+                    ボックス名
+                    <span class="form-label-required">*</span>
+                </label>
+                <input type="text" id="box-name" name="box_name" class="form-input" 
+                       placeholder="例：英語 Unit 5 の課題" required>
+                <div class="form-hint">ボックス名は変更できます</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="description">説明</label>
+                <textarea id="description" name="description" class="form-textarea"
+                          placeholder="課題の説明や注意事項を入力してください..."></textarea>
+                <div class="form-hint">Markdown形式に対応しています</div>
+            </div>
+        </div>
+
+        <!-- 提出期限セクション -->
+        <div class="form-section">
+            <div class="form-section-title">提出期限設定</div>
+
+            <div class="form-group">
+                <label class="checkbox-group">
+                    <input type="checkbox" id="has-deadline" name="has_deadline" 
+                           onchange="toggleDeadline()">
+                    <label class="checkbox-label" for="has-deadline">提出期限を設定する</label>
+                </label>
+            </div>
+
+            <div id="deadline-section" style="display: none;">
+                <div class="form-group">
+                    <label class="form-label" for="deadline-date">
+                        提出期限日時
+                        <span class="form-label-required">*</span>
+                    </label>
+                    <div class="datetime-wrapper">
+                        <input type="date" id="deadline-date" name="deadline_date">
+                        <input type="time" id="deadline-time" name="deadline_time" value="23:59">
+                    </div>
+                    <div class="form-hint">期限を過ぎた提出は「遅延」と表示されます</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ファイル設定セクション -->
+        <div class="form-section">
+            <div class="form-section-title">ファイル設定</div>
+
+            <div class="settings-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="allow-multiple" name="allow_multiple" checked>
+                    <label class="checkbox-label" for="allow-multiple">複数ファイルの提出を許可</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="allow-resubmit" name="allow_resubmit" checked>
+                    <label class="checkbox-label" for="allow-resubmit">再提出を許可</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="notify-submission" name="notify_submission" checked>
+                    <label class="checkbox-label" for="notify-submission">提出時に通知を受け取る</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- 対象グループセクション -->
+        <div class="form-section">
+            <div class="form-section-title">対象グループ</div>
+
+            <div class="form-group">
+                <label class="form-label" for="target-group">
+                    グループを選択
+                    <span class="form-label-required">*</span>
+                </label>
+                <select id="target-group" name="target_group" class="form-select" required>
+                    <option value="">-- グループを選択 --</option>
+                    {% for group in user_groups %}
+                    <option value="{{ group.id }}">{{ group.name }}</option>
+                    {% endfor %}
+                </select>
+                <div class="form-hint">このグループのメンバーが提出できるようになります</div>
+            </div>
+        </div>
+
+        <!-- ボタングループ -->
+        <div class="button-group">
+            <button type="submit" class="btn btn-create" id="create-btn">
+                <span>作成する</span>
+                <span class="spinner" id="spinner"></span>
+            </button>
+            <button type="button" class="btn btn-cancel" onclick="window.history.back()">
+                キャンセル
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    const form = document.getElementById('submission-form');
+    const hasDeadlineCheckbox = document.getElementById('has-deadline');
+    const deadlineSection = document.getElementById('deadline-section');
+    const deadlineDateInput = document.getElementById('deadline-date');
+    const spinner = document.getElementById('spinner');
+    const createBtn = document.getElementById('create-btn');
+
+    // 提出期限チェックボックス処理
+    function toggleDeadline() {
+        if (hasDeadlineCheckbox.checked) {
+            deadlineSection.style.display = 'block';
+            deadlineDateInput.required = true;
+        } else {
+            deadlineSection.style.display = 'none';
+            deadlineDateInput.required = false;
+        }
+    }
+
+    // フォーム送信処理
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        // バリデーション
+        if (hasDeadlineCheckbox.checked && !deadlineDateInput.value) {
+            showError('提出期限を設定してください');
+            return;
+        }
+
+        spinner.style.display = 'inline-block';
+        createBtn.disabled = true;
+
+        const formData = new FormData(form);
+
+        try {
+            const response = await fetch('{% url "chat:submission_box_create" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            });
+
+            if (response.ok) {
+                showSuccess('課題ボックスを作成しました');
+                setTimeout(() => {
+                    window.location.href = '{% url "chat:list" %}';
+                }, 1500);
+            } else {
+                const error = await response.json();
+                showError(error.message || '作成に失敗しました');
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+            showError('エラーが発生しました');
+        } finally {
+            spinner.style.display = 'none';
+            createBtn.disabled = false;
+        }
+    });
+
+    function showSuccess(message) {
+        const el = document.getElementById('success-message');
+        el.textContent = '✓ ' + message;
+        el.style.display = 'block';
+    }
+
+    function showError(message) {
+        const el = document.getElementById('error-message');
+        el.textContent = '✗ ' + message;
+        el.style.display = 'block';
+        setTimeout(() => {
+            el.style.display = 'none';
+        }, 3000);
+    }
+</script>
+{% endblock %}

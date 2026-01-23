@@ -96,7 +96,7 @@
                   </a>
                   {% comment %} 教員ロールのメンバーは削除ボタンを表示しない {% endcomment %}
                   {% if m.role|default:'' != 'teacher' %}
-                    <a class="btn-delete" href="{% url 'codemon:group_remove_member' group_id m.member.user_id %}">
+                    <a class="btn-delete" href="{% url 'codemon:group_remove_member' group.group_id m.member.user_id %}">
                       <img src="{% static 'codemon/images/nav/delete.png' %}" alt="削除" style="height:40px;display:block;">
                     </a>
                   {% endif %}

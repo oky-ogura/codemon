@@ -2,6 +2,7 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 from . import views
+from accounts import views as accounts_views
 
 app_name = 'codemon'
 
@@ -38,7 +39,7 @@ urlpatterns = [
     path('groups/<int:group_id>/edit/', views.group_edit, name='group_edit'),
     path('groups/<int:group_id>/delete/', views.group_delete, name='group_delete'),
     path('groups/<int:group_id>/members/<int:member_id>/remove/', 
-        views.group_remove_member, name='group_remove_member'),
+        accounts_views.group_remove_member, name='group_remove_member'),
     path('groups/<int:group_id>/leave/', views.group_leave, name='group_leave'),
 
     # その他
@@ -63,6 +64,16 @@ urlpatterns = [
     path('chat/attachment/<int:attachment_id>/download/', views.download_attachment, name='download_attachment'),
     # メッセージ検索
     path('chat/search/', views.search_messages, name='search_messages'),
+    # UI demo routes for chat-related pages
+    path('chat/ui/', views.chat_ui_index, name='chat_ui_index'),
+    path('chat/ui/list/', views.chat_ui_list, name='chat_ui_list'),
+    path('chat/ui/room/', views.chat_ui_room, name='chat_ui_room'),
+    path('chat/ui/profile/', views.chat_ui_profile, name='chat_ui_profile'),
+    path('chat/ui/submission/box/', views.chat_ui_submission_box, name='chat_ui_submission_box'),
+    path('chat/ui/submission/submit/', views.chat_ui_submission_submit, name='chat_ui_submission_submit'),
+    path('chat/ui/score/student/', views.chat_ui_score_student, name='chat_ui_score_student'),
+    path('chat/ui/score/teacher/', views.chat_ui_score_teacher, name='chat_ui_score_teacher'),
+    path('chat/ui/group/manage/', views.chat_ui_group_manage, name='chat_ui_group_manage'),
     path('', views.index, name='index'),
     path('chat/upload_attachment/', views.upload_attachments, name='upload_attachments'),
     # AI Chat API

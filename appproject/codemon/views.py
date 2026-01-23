@@ -1,9 +1,6 @@
-import os
-import json
 from functools import wraps
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db import models
-from django.db import transaction
 from django.contrib import messages
 from django.conf import settings
 from django.contrib.auth.decorators import login_required as _login_required
@@ -15,11 +12,12 @@ from channels.layers import get_channel_layer
 from .permissions import teacher_required, can_access_thread, can_modify_message
 from .models import (
     Checklist, ChecklistItem, ChatThread, ChatScore, ChatMessage, ChatAttachment,
-    Group, GroupMember, AIConversation, AIMessage, System, Algorithm
+    Group, GroupMember, AIConversation, AIMessage
 )
 from accounts.models import Account
 from django.utils import timezone
 from django.db.models import Q
+from django.db import transaction
 
 # カスタムログイン必須デコレータ（セッションベース認証用）
 def session_login_required(view_func):
@@ -30,18 +28,24 @@ def session_login_required(view_func):
 	"""
 	@wraps(view_func)
 	def _wrapped_view(request, *args, **kwargs):
-		# デバッグ出力
-		print(f"DEBUG decorator: session_key = {request.session.session_key}")
-		print(f"DEBUG decorator: session data = {dict(request.session)}")
-		print(f"DEBUG decorator: is_account_authenticated = {request.session.get('is_account_authenticated')}")
-		
 		if not request.session.get('is_account_authenticated'):
-			from django.urls import reverse
-			login_url = reverse('accounts:student_login')
-			next_url = request.get_full_path()
-			print(f"DEBUG decorator: Redirecting to {login_url}?next={next_url}")
-			return redirect(f'{login_url}?next={next_url}')
+			return redirect('accounts:student_login')
 		return view_func(request, *args, **kwargs)
+		
+	return _wrapped_view
+
+# 教師専用のログイン必須デコレータ
+def teacher_login_required(view_func):
+	"""
+	教師認証をチェックするデコレータ。
+	認証されていない場合、教師ログインページにリダイレクトします。
+	"""
+	@wraps(view_func)
+	def _wrapped_view(request, *args, **kwargs):
+		if not request.session.get('is_account_authenticated'):
+			return redirect('accounts:teacher_login')
+		return view_func(request, *args, **kwargs)
+		
 	return _wrapped_view
 
 # When ALLOW_ANONYMOUS_VIEWS is True (development convenience), make
@@ -50,133 +54,59 @@ if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
 	def login_required(fn):
 		return fn
 else:
-	login_required = session_login_required  # カスタムデコレータを使用
+	login_required = _login_required
 
 
 def _get_write_owner(request):
-    """Return an Account instance for writes.
-    If user is authenticated, return that Account-like object. If anonymous and
-    ALLOW_ANONYMOUS_VIEWS is True, return or create a dev Account.
-    Otherwise return None.
-    """
-    # If Django auth is present, try to return the linked Account
-    if getattr(request, 'user', None) and getattr(request.user, 'is_authenticated', False):
-        try:
-            acct = Account.objects.get(user_id=request.user.id)
-            return acct
-        except Account.DoesNotExist:
-            # fall back to Django user object
-            return request.user
-
-    # Support custom session auth used elsewhere in this project
-    if request.session.get('is_account_authenticated'):
-        _account_user_id = request.session.get('account_user_id')
-        if _account_user_id:
-            try:
-                acct = Account.objects.get(user_id=_account_user_id)
-                return acct
-            except Account.DoesNotExist:
-                return None
-
-    # Dev convenience: return or create a dev anonymous Account
-    if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
-        acct, _ = Account.objects.get_or_create(
-            email='dev_anonymous@local',
-            defaults={
-                'user_name': '開発用匿名',
-                'password': 'dev',
-                'account_type': 'dev',
-                'age': 0,
-            }
-        )
-        return acct
-
-    return None
+	"""Return an Account instance for writes.
+	If user is authenticated, return that Account-like object. If anonymous and
+	ALLOW_ANONYMOUS_VIEWS is True, return or create a dev Account.
+	Otherwise return None.
+	"""
+	# セッションベース認証をチェック
+	if request.session.get('is_account_authenticated'):
+		account_user_id = request.session.get('account_user_id')
+		if account_user_id:
+			try:
+				return Account.objects.get(user_id=account_user_id)
+			except Account.DoesNotExist:
+				pass
+	
+	# Django標準認証のフォールバック
+	if getattr(request, 'user', None) and getattr(request.user, 'is_authenticated', False):
+		try:
+			return Account.objects.get(email=request.user.email)
+		except Account.DoesNotExist:
+			pass
+	
+	# 開発用の匿名アカウント
+	if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
+		acct, _ = Account.objects.get_or_create(
+			email='dev_anonymous@local',
+			defaults={'user_name': '開発用匿名', 'password': 'dev', 'account_type': 'dev', 'age': 0}
+		)
+		return acct
+	return None
 
 
-@login_required
 def systems_list(request):
-    owner = _get_write_owner(request)
-    if owner is None:
-        return redirect('accounts:student_login')
-    systems = System.objects.filter(user=owner).order_by('-updated_at')
-    # デバッグ: セッション情報をコンソールに出力
-    print(f"DEBUG systems_list: session keys = {list(request.session.keys())}")
-    print(f"DEBUG systems_list: is_account_authenticated = {request.session.get('is_account_authenticated')}")
-    return render(request, 'codemon/systems_list.html', {'systems': systems})
+	# placeholder: list systems belonging to user
+	systems = []
+	return render(request, 'codemon/systems_list.html', {'systems': systems})
 
 
-@login_required
 def algorithms_list(request):
-    owner = _get_write_owner(request)
-    if owner is None:
-        return redirect('accounts:student_login')
-    algorithms = Algorithm.objects.filter(user=owner).order_by('-updated_at')
-    return render(request, 'codemon/algorithms_list.html', {'algorithms': algorithms})
+	algorithms = []
+	return render(request, 'codemon/algorithms_list.html', {'algorithms': algorithms})
 
 
 def chat_view(request):
-    # Chat page: prepare sidebar data (groups + their threads) and optionally
-    # an initial selected thread if provided via GET param.
-    owner = _get_write_owner(request)
-    groups_with_threads = []
-    ungrouped_threads = []
-    selected_thread_id = request.GET.get('thread_id')
-    initial_messages = []
-
-    if owner is not None:
-        # Teacher: threads created by owner; Student: threads in member groups
-        if getattr(owner, 'type', '') == 'teacher':
-            groups = Group.objects.filter(owner=owner, is_active=True)
-            for g in groups:
-                threads = ChatThread.objects.filter(group=g, is_active=True).order_by('-created_at')
-                groups_with_threads.append({'group': g, 'threads': threads})
-            # ungrouped threads created by this teacher
-            ungrouped_threads = ChatThread.objects.filter(group__isnull=True, created_by=owner, is_active=True).order_by('-created_at')
-        else:
-            # student: groups where member
-            member_group_ids = GroupMember.objects.filter(member=owner).values_list('group_id', flat=True)
-            groups = Group.objects.filter(group_id__in=member_group_ids, is_active=True)
-            for g in groups:
-                threads = ChatThread.objects.filter(group=g, is_active=True).order_by('-created_at')
-                groups_with_threads.append({'group': g, 'threads': threads})
-            # also threads without group that the owner created
-            ungrouped_threads = ChatThread.objects.filter(group__isnull=True, created_by=owner, is_active=True).order_by('-created_at')
-
-        # If an initial thread was requested, load its recent messages
-        if selected_thread_id:
-            try:
-                st = ChatThread.objects.get(thread_id=selected_thread_id, is_active=True)
-                # Access control: reuse can_access_thread utility
-                if can_access_thread(owner, st):
-                    msgs = st.messages.filter(is_deleted=False).select_related('sender').order_by('created_at')[:200]
-                    for m in msgs:
-                        initial_messages.append({
-                            'id': m.message_id,
-                            'content': m.content,
-                            'user_id': getattr(m.sender, 'user_id', None),
-                            'username': getattr(m.sender, 'user_name', ''),
-                            'created_at': m.created_at.isoformat(),
-                            'attachments': [
-                                {'id': a.attachment_id, 'url': a.file.url, 'filename': os.path.basename(a.file.name)}
-                                for a in m.attachments.all()
-                            ]
-                        })
-            except Exception:
-                selected_thread_id = None
-
-    # Render chat template with sidebar data and optionally initial messages
-    return render(request, 'codemon/chat.html', {
-        'groups_with_threads': groups_with_threads,
-        'ungrouped_threads': ungrouped_threads,
-        'selected_thread_id': selected_thread_id,
-        'initial_messages': initial_messages,
-        'initial_messages_json': json.dumps(initial_messages),
-    })
+	# Placeholder chat page; AI integration can be added later
+	return render(request, 'codemon/chat.html')
 
 
 def thread_list(request):
-    """投函ボックス（スレッド）一覧。教師は作成したスレッド、学生は所属グループのスレッドを閲覧。"""
+    """投函ボックス(スレッド)一覧。教師は作成したスレッド、学生は所属グループのスレッドを閲覧。"""
     owner = _get_write_owner(request)
     if owner is None:
         return redirect('accounts:student_login')
@@ -230,43 +160,11 @@ def thread_detail(request, thread_id):
     # アクセス権: 教師は作成者、学生はグループメンバーであること
     if getattr(owner, 'type', '') != 'teacher':
         if thread.group:
-            if not GroupMember.objects.filter(group=thread.group, member=owner).exists():
+            if not GroupMember.objects.filter(group=thread.group, member=owner, is_active=True).exists():
                 return HttpResponseForbidden('このスレッドにアクセスする権限がありません')
 
     messages_qs = thread.messages.filter(is_deleted=False).select_related('sender').order_by('created_at')
     return render(request, 'codemon/thread_detail.html', {'thread': thread, 'messages': messages_qs})
-
-
-def thread_messages_api(request, thread_id):
-    """Return JSON list of messages for the given thread_id.
-    Used by the chat UI to fetch messages asynchronously.
-    """
-    owner = _get_write_owner(request)
-    if owner is None:
-        return JsonResponse({'error': 'authentication required'}, status=401)
-
-    thread = get_object_or_404(ChatThread, thread_id=thread_id, is_active=True)
-
-    # Access control: teacher or group member
-    if not can_access_thread(owner, thread):
-        return JsonResponse({'error': 'forbidden'}, status=403)
-
-    msgs = thread.messages.filter(is_deleted=False).select_related('sender').order_by('created_at')
-    out = []
-    for m in msgs:
-        out.append({
-            'id': m.message_id,
-            'content': m.content,
-            'user_id': getattr(m.sender, 'user_id', None),
-            'username': getattr(m.sender, 'user_name', ''),
-            'created_at': m.created_at.isoformat(),
-            'attachments': [
-                {'id': a.attachment_id, 'url': a.file.url, 'filename': os.path.basename(a.file.name)}
-                for a in m.attachments.all()
-            ]
-        })
-
-    return JsonResponse({'thread_id': thread.thread_id, 'messages': out})
 
 
 def thread_edit(request, thread_id):
@@ -490,173 +388,89 @@ def get_thread_readers(request, thread_id):
     })
 
 def checklist_selection(request):
+    owner = _get_write_owner(request)
+    if owner is None:
+        return redirect('accounts:student_login')
+    
     if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
         # 匿名ユーザーでも動作させる
         checklists = Checklist.objects.all()
     else:
-        owner = _get_write_owner(request)
-        if owner is None:
-            login_url = reverse('accounts:student_login') + '?next=' + request.path
-            messages.error(request, 'チェックリストの閲覧にはログインが必要です')
-            return redirect(login_url)
-
-        # ログイン済みユーザー向けの一覧を設定
-        checklists = Checklist.objects.filter(user=owner).order_by('-updated_at')
-
-    # --- AIキャラクター選択の反映 ---
-    try:
-        # 優先順: セッションの selected_appearance -> アカウントの AiConfig.appearance -> 既存の session.ai_character -> デフォルト
-        appearance_map = {
-            'dog': 'inu', 'dog.png': 'inu', 'イヌ': 'inu', '犬': 'inu',
-            'cat': 'neko', 'cat.png': 'neko', 'ネコ': 'neko', '猫': 'neko',
-            'rabbit': 'usagi', 'rabbit.png': 'usagi', 'ウサギ': 'usagi', '兎': 'usagi',
-            'panda': 'panda', 'panda.png': 'panda',
-            'fox': 'kitsune', 'fox.png': 'kitsune', 'キツネ': 'kitsune',
-            'squirrel': 'risu', 'squirrel.png': 'risu', 'リス': 'risu',
-            'owl': 'fukurou', 'owl.png': 'fukurou', 'フクロウ': 'fukurou',
-            'alpaca': 'arupaka', 'alpaca.png': 'arupaka', 'アルパカ.png': 'arupaka'
-        }
-
-        char = None
-        # 1) セッションに一時保存された選択肢
-        sel = request.session.get('selected_appearance')
-        if sel:
-            key = sel.lower().replace('.png', '')
-            char = appearance_map.get(key) or appearance_map.get(sel)
-
-        # 2) アカウントに保存された AiConfig
-        if not char:
-            try:
-                from accounts.models import AiConfig
-                owner_id = None
-                if not getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
-                    owner_id = getattr(owner, 'user_id', getattr(owner, 'id', None))
-                if owner_id:
-                    cfg = AiConfig.objects.filter(user_id=owner_id).first()
-                    if cfg and cfg.appearance:
-                        key = cfg.appearance.lower().replace('.png', '')
-                        char = appearance_map.get(key) or appearance_map.get(cfg.appearance)
-            except Exception:
-                # ignore and fallback
-                pass
-
-        # 3) 既にセッションに入っている値、またはデフォルト
-        if not char:
-            char = request.session.get('ai_character', 'inu')
-
-        request.session['ai_character'] = char
-        request.session.modified = True
-    except Exception:
-        # 安全性: 例外は握り潰してテンプレートは通常通り描画
-        pass
-
+        # owner（Accountオブジェクト）に紐づくチェックリストを取得
+        checklists = Checklist.objects.filter(user=owner)
     return render(request, 'codemon/checklist_selection.html', {'checklists': checklists})
 
 def checklist_list(request):
     """作成済みチェックリストの一覧を表示"""
-    # user_idパラメータがある場合は、そのユーザーのチェックリストを表示
+    owner = _get_write_owner(request)
+    if owner is None:
+        return redirect('accounts:student_login')
+    
+    # URLパラメータから対象ユーザーIDを取得
     target_user_id = request.GET.get('user_id')
     
     if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
-        if target_user_id:
-            # 特定ユーザーのチェックリストを表示
-            try:
-                target_user = Account.objects.get(user_id=target_user_id)
-                checklists = Checklist.objects.filter(user=target_user).order_by('-updated_at')
-            except Account.DoesNotExist:
-                checklists = Checklist.objects.none()
-        else:
-            checklists = Checklist.objects.all().order_by('-updated_at')
+        checklists = Checklist.objects.all().order_by('-updated_at')
     else:
-        owner = _get_write_owner(request)
-        if owner is None:
-            login_url = reverse('accounts:student_login') + '?next=' + request.path
-            messages.error(request, 'チェックリストの閲覧にはログインが必要です')
-            return redirect(login_url)
-        
+        # 対象ユーザーが指定されている場合
         if target_user_id:
-            # 教員が生徒のチェックリストを閲覧する場合
-            try:
-                target_user = Account.objects.get(user_id=target_user_id)
-                checklists = Checklist.objects.filter(user=target_user).order_by('-updated_at')
-            except Account.DoesNotExist:
-                checklists = Checklist.objects.none()
+            # 教師は他のユーザーのチェックリストを閲覧可能
+            if getattr(owner, 'type', '') == 'teacher':
+                try:
+                    target_account = Account.objects.get(user_id=target_user_id)
+                    checklists = Checklist.objects.filter(user=target_account).order_by('-updated_at')
+                except Account.DoesNotExist:
+                    messages.error(request, '指定されたユーザーが見つかりません')
+                    checklists = Checklist.objects.filter(user=owner).order_by('-updated_at')
+            else:
+                # 生徒は自分のチェックリストのみ閲覧可能
+                if str(target_user_id) == str(owner.user_id):
+                    checklists = Checklist.objects.filter(user=owner).order_by('-updated_at')
+                else:
+                    messages.error(request, '他のユーザーのチェックリストは閲覧できません')
+                    checklists = Checklist.objects.filter(user=owner).order_by('-updated_at')
         else:
-            # 自分のチェックリストを表示
+            # 対象ユーザーが指定されていない場合は自分のチェックリストを表示
             checklists = Checklist.objects.filter(user=owner).order_by('-updated_at')
     
     return render(request, 'codemon/checklist_list.html', {'checklists': checklists})
 
 def checklist_create(request):
-    if request.method == 'POST':
-        owner = _get_write_owner(request)
-        # Debug logging to help diagnose redirect-to-login issues
-        try:
-            print(f"DEBUG checklist_create: settings.DEBUG={getattr(settings, 'DEBUG', None)}")
-            print(f"DEBUG checklist_create: session_keys={list(request.session.keys())}")
-            print(f"DEBUG checklist_create: is_account_authenticated={request.session.get('is_account_authenticated')}")
-            print(f"DEBUG checklist_create: request.user.is_authenticated={getattr(request.user, 'is_authenticated', None)}")
-            print(f"DEBUG checklist_create: owner before handling = {repr(owner)}")
-        except Exception:
-            pass
-        # If no owner (not logged in), allow creation in DEBUG by creating/using a dev account.
-        if owner is None:
-            from django.urls import reverse
-            # In production, keep the redirect to login for security.
-            if not getattr(settings, 'DEBUG', False):
-                login_url = reverse('accounts:student_login') + '?next=' + request.path
-                messages.error(request, 'チェックリストの作成はログインが必要です。ログインしてください。')
-                return redirect(login_url)
-            # DEBUG mode: create or get a dev anonymous Account so creation can proceed
-            from accounts.models import Account as _Account
-            owner, _ = _Account.objects.get_or_create(
-                email='dev_auto@local',
-                defaults={
-                    'user_name': '開発用匿名',
-                    'password': 'dev',
-                    'account_type': 'dev',
-                    'age': 0,
-                }
-            )
-            # Bind the dev account to the current session so subsequent GETs
-            # (e.g. redirect to checklist_detail) recognize the owner.
-            try:
-                request.session['is_account_authenticated'] = True
-                # Use owner.user_id if available, otherwise owner.id
-                request.session['account_user_id'] = getattr(owner, 'user_id', getattr(owner, 'id', None))
-            except Exception:
-                pass
+	# 認証チェックを最初に実行
+	owner = _get_write_owner(request)
+	if owner is None:
+		return redirect('accounts:student_login')
+	
+	if request.method == 'POST':
+		name = request.POST.get('name')
+		description = request.POST.get('description', '')
+		if name:
+			cl = Checklist.objects.create(user=owner, checklist_name=name, checklist_description=description)
 
-        name = request.POST.get('name')
-        description = request.POST.get('description', '')
-        if name:
-            cl = Checklist.objects.create(user=owner, checklist_name=name, checklist_description=description)
+			# チェックリスト項目の保存
+			sort_order = 1
+			for key, value in request.POST.items():
+				if key.startswith('item_text_') and value.strip():
+					ChecklistItem.objects.create(
+						checklist=cl,
+						item_text=value.strip(),
+						sort_order=sort_order
+					)
+					sort_order += 1
 
-            # チェックリスト項目の保存
-            sort_order = 1
-            for key, value in request.POST.items():
-                if key.startswith('item_text_') and value.strip():
-                    ChecklistItem.objects.create(
-                        checklist=cl,
-                        item_text=value.strip(),
-                        sort_order=sort_order
-                    )
-                    sort_order += 1
-
-            messages.success(request, 'チェックリストを作成しました。')
-            return redirect('codemon:checklist_edit', pk=cl.checklist_id)
-    return render(request, 'codemon/checklist_create.html', {'user': request.user})
+			messages.success(request, 'チェックリストを作成しました。')
+			return redirect('codemon:checklist_detail', pk=cl.checklist_id)
+	return render(request, 'codemon/checklist_create.html', {'user': owner})
 
 
 def checklist_detail(request, pk):
+	owner = _get_write_owner(request)
+	if owner is None:
+		return redirect('accounts:student_login')
+	
 	if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
 		cl = get_object_or_404(Checklist, checklist_id=pk)
 	else:
-		owner = _get_write_owner(request)
-		if owner is None:
-			login_url = reverse('accounts:student_login') + '?next=' + request.path
-			messages.error(request, 'チェックリストの閲覧にはログインが必要です')
-			return redirect(login_url)
 		cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
 	if request.method == 'POST':
 		# new item
@@ -673,12 +487,7 @@ def checklist_toggle_item(request, pk, item_id):
 	if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
 		cl = get_object_or_404(Checklist, checklist_id=pk)
 	else:
-		owner = _get_write_owner(request)
-		if owner is None:
-			login_url = reverse('accounts:student_login') + '?next=' + request.path
-			messages.error(request, 'チェックリストの操作にはログインが必要です')
-			return redirect(login_url)
-		cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
+		cl = get_object_or_404(Checklist, checklist_id=pk, user=request.user)
 	item = get_object_or_404(ChecklistItem, checklist=cl, checklist_item_id=item_id)
 	item.is_done = not item.is_done
 	item.save()
@@ -686,16 +495,11 @@ def checklist_toggle_item(request, pk, item_id):
 
 
 def checklist_edit(request, pk):
-	if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
-		cl = get_object_or_404(Checklist, checklist_id=pk)
-	else:
-		owner = _get_write_owner(request)
-		if owner is None:
-			login_url = reverse('accounts:student_login') + '?next=' + request.path
-			messages.error(request, 'チェックリストの編集にはログインが必要です')
-			return redirect(login_url)
-		cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
-	return render(request, 'codemon/checklist_edit.html', {'checklist': cl})
+    if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
+        cl = get_object_or_404(Checklist, checklist_id=pk)
+    else:
+        cl = get_object_or_404(Checklist, checklist_id=pk, user=request.user)
+    return render(request, 'codemon/checklist_edit.html', {'checklist': cl})
 
 def checklist_save(request, pk):
     checklist = get_object_or_404(Checklist, checklist_id=pk)
@@ -743,16 +547,32 @@ def checklist_delete_confirm(request, pk):
 	if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
 		cl = get_object_or_404(Checklist, checklist_id=pk)
 	else:
-		owner = _get_write_owner(request)
-		if owner is None:
-			login_url = reverse('accounts:student_login') + '?next=' + request.path
-			messages.error(request, 'チェックリストの削除にはログインが必要です')
-			return redirect(login_url)
-		cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
+		cl = get_object_or_404(Checklist, checklist_id=pk, user=request.user)
 	return render(request, 'codemon/checklist_delete_confirm.html', {'checklist': cl})
 
 
 def checklist_delete(request, pk):
+    if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
+        cl = get_object_or_404(Checklist, checklist_id=pk)
+    else:
+        cl = get_object_or_404(Checklist, checklist_id=pk, user=request.user)
+
+    if request.method == 'POST':
+        deleted_pk = cl.checklist_id
+        deleted_name = cl.checklist_name
+        deleted_description = getattr(cl, 'checklist_description', '')
+        deleted_items = list(cl.items.values('checklist_item_id', 'item_text', 'is_done'))
+        items_count = len(deleted_items)
+        cl.delete()
+        messages.success(request,
+            f'チェックリスト「{checklist_name}」と{items_count}個の項目が削除されました。')
+        return render(request, 'codemon/checklist_delete_complete.html',
+            {'deleted_name': checklist_name, 'deleted_items_count': items_count})
+    return redirect('codemon:checklist_delete_confirm', pk=pk)
+
+
+def checklist_delete_complete(request, pk):
+    """削除処理を実行して、完了画面をレンダリング"""
     if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
         cl = get_object_or_404(Checklist, checklist_id=pk)
     else:
@@ -776,63 +596,15 @@ def checklist_delete(request, pk):
                 pass
         cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
     if request.method == 'POST':
-        deleted_pk = cl.checklist_id
-        deleted_name = cl.checklist_name
-        deleted_description = getattr(cl, 'checklist_description', '')
-        deleted_items = list(cl.items.values('checklist_item_id', 'item_text', 'is_done'))
-        items_count = len(deleted_items)
+        checklist_name = cl.checklist_name
+        items_count = cl.items.count()
         cl.delete()
         messages.success(request,
-            f'チェックリスト「{deleted_name}」と{items_count}個の項目が削除されました。')
-        return render(request, 'codemon/checklist_delete_complete.html', {
-            'deleted_pk': deleted_pk,
-            'deleted_name': deleted_name,
-            'deleted_description': deleted_description,
-            'deleted_items_count': items_count,
-            'deleted_items': deleted_items,
-        })
+            f'チェックリスト「{checklist_name}」と{items_count}個の項目が削除されました。')
+        return render(request, 'codemon/checklist_delete_complete.html',
+            {'deleted_name': checklist_name, 'deleted_items_count': items_count})
+
     return redirect('codemon:checklist_delete_confirm', pk=pk)
-
-
-def checklist_delete_complete(request, pk):
-    """削除処理を実行して、完了画面をレンダリング"""
-    if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
-        cl = get_object_or_404(Checklist, checklist_id=pk)
-    else:
-        owner = _get_write_owner(request)
-        if owner is None:
-            if not getattr(settings, 'DEBUG', False):
-                login_url = reverse('accounts:student_login') + '?next=' + request.path
-                messages.error(request, 'チェックリストの削除にはログインが必要です')
-                return redirect(login_url)
-            from accounts.models import Account as _Account
-            owner, _ = _Account.objects.get_or_create(
-                email='dev_auto@local',
-                defaults={'user_name': '開発用匿名', 'password': 'dev', 'account_type': 'dev', 'age': 0}
-            )
-            try:
-                request.session['is_account_authenticated'] = True
-                request.session['account_user_id'] = getattr(owner, 'user_id', getattr(owner, 'id', None))
-            except Exception:
-                pass
-        cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
-    
-    # 削除処理を実行
-    deleted_pk = cl.checklist_id
-    deleted_name = cl.checklist_name
-    deleted_description = getattr(cl, 'checklist_description', '')
-    deleted_items = list(cl.items.values('checklist_item_id', 'item_text', 'is_done'))
-    items_count = len(deleted_items)
-    cl.delete()
-    messages.success(request,
-        f'チェックリスト「{deleted_name}」と{items_count}個の項目が削除されました。')
-    return render(request, 'codemon/checklist_delete_complete.html', {
-        'deleted_pk': deleted_pk,
-        'deleted_name': deleted_name,
-        'deleted_description': deleted_description,
-        'deleted_items_count': items_count,
-        'deleted_items': deleted_items,
-    })
 
 
 @require_POST
@@ -962,7 +734,7 @@ def download_attachment(request, attachment_id):
 
     if thread.group:
         # グループに所属している必要がある
-        if not GroupMember.objects.filter(group=thread.group, member=owner).exists():
+        if not GroupMember.objects.filter(group=thread.group, member=owner, is_active=True).exists():
             return HttpResponseForbidden('このファイルにアクセスする権限がありません')
     elif owner.type != 'teacher' and thread.created_by != owner:
         # グループなしの場合、教師か作成者のみアクセス可能
@@ -1001,6 +773,7 @@ def download_attachment(request, attachment_id):
     return response
 
 # グループ管理ビュー
+
 def group_list(request):
     """グループ一覧を表示。教師は作成したグループ、学生は参加しているグループを表示。"""
     owner = _get_write_owner(request)
@@ -1014,17 +787,167 @@ def group_list(request):
     if owner.type == 'teacher':
         groups = Group.objects.filter(owner=owner, is_active=True)
     else:
-        # 一部の環境で reverse relation に対する lookup が許可されない場合があるため
-        # 明示的に GroupMember を参照して参加中のグループを取得する方式に変更する。
-        # DBのスキーマによっては group_member.is_active カラムが存在しないことがあるため
-        # まずは is_active を参照せずに参加中の group_id を取得する（後段で Group.is_active を確認する）
-        member_group_ids = GroupMember.objects.filter(member=owner).values_list('group_id', flat=True)
-        groups = Group.objects.filter(group_id__in=member_group_ids, is_active=True)
+        groups = Group.objects.filter(
+            memberships__member=owner,
+            memberships__is_active=True,
+            is_active=True
+        ).distinct()
 
     return render(request, 'codemon/group_list.html', {
         'groups': groups,
         'is_teacher': owner.type == 'teacher'
     })
+
+def group_invite(request, group_id):
+    """グループにメンバーを招待（教師のみ）"""
+    owner = _get_write_owner(request)
+    if owner is None or owner.type != 'teacher':
+        return HttpResponseForbidden('教師権限が必要です')
+
+    group = get_object_or_404(Group, group_id=group_id, is_active=True)
+    if group.owner != owner:
+        return HttpResponseForbidden('グループのオーナーのみメンバーを招待できます')
+
+    # メールアドレスまたはユーザーIDで招待
+    identifier = request.POST.get('identifier', '').strip()
+    role = request.POST.get('role', 'student')
+    
+    if not identifier:
+        return JsonResponse({'error': 'メールアドレスまたはユーザーIDを入力してください'}, status=400)
+
+    try:
+        # メールアドレスかユーザーIDで検索
+        if '@' in identifier:
+            member = Account.objects.get(email=identifier)
+        else:
+            member = Account.objects.get(user_id=identifier)
+
+        # 既存メンバーシップの確認
+        membership, created = GroupMember.objects.get_or_create(
+            group=group,
+            member=member,
+            defaults={'role': role, 'is_active': True}
+        )
+
+        if not created and not membership.is_active:
+            # 非アクティブなメンバーシップを再アクティブ化
+            membership.is_active = True
+            membership.role = role
+            membership.save()
+            return JsonResponse({
+                'status': 'ok',
+                'message': f'{member.user_name}をグループに再招待しました'
+            })
+        elif not created:
+            return JsonResponse({
+                'error': f'{member.user_name}は既にグループのメンバーです'
+            }, status=400)
+
+        return JsonResponse({
+            'status': 'ok',
+            'message': f'{member.user_name}をグループに招待しました',
+            'member': {
+                'id': member.user_id,
+                'name': member.user_name,
+                'role': role
+            }
+        })
+
+    except Account.DoesNotExist:
+        return JsonResponse({
+            'error': '指定されたユーザーが見つかりません'
+        }, status=404)
+    
+def group_invite(request, group_id):
+    """グループにメンバーを招待（教師のみ）"""
+    owner = _get_write_owner(request)
+    if owner is None or owner.type != 'teacher':
+        return HttpResponseForbidden('教師権限が必要です')
+
+    group = get_object_or_404(Group, group_id=group_id, is_active=True)
+    if group.owner != owner:
+        return HttpResponseForbidden('グループのオーナーのみメンバーを招待できます')
+
+    # メールアドレスまたはユーザーIDで招待
+    identifier = request.POST.get('identifier', '').strip()
+    role = request.POST.get('role', 'student')
+    
+    if not identifier:
+        return JsonResponse({'error': 'メールアドレスまたはユーザーIDを入力してください'}, status=400)
+
+    try:
+        # メールアドレスかユーザーIDで検索
+        if '@' in identifier:
+            member = Account.objects.get(email=identifier)
+        else:
+            member = Account.objects.get(user_id=identifier)
+
+        # 既存メンバーシップの確認
+        membership, created = GroupMember.objects.get_or_create(
+            group=group,
+            member=member,
+            defaults={'role': role, 'is_active': True}
+        )
+
+        if not created and not membership.is_active:
+            # 非アクティブなメンバーシップを再アクティブ化
+            membership.is_active = True
+            membership.role = role
+            membership.save()
+            return JsonResponse({
+                'status': 'ok',
+                'message': f'{member.user_name}をグループに再招待しました'
+            })
+        elif not created:
+            return JsonResponse({
+                'error': f'{member.user_name}は既にグループのメンバーです'
+            }, status=400)
+
+        return JsonResponse({
+            'status': 'ok',
+            'message': f'{member.user_name}をグループに招待しました',
+            'member': {
+                'id': member.user_id,
+                'name': member.user_name,
+                'role': role
+            }
+        })
+
+    except Account.DoesNotExist:
+        return JsonResponse({
+            'error': '指定されたユーザーが見つかりません'
+        }, status=404)
+
+
+def group_create(request):
+    """グループ新規作成（教師のみ）"""
+    owner = _get_write_owner(request)
+    if owner is None or owner.type != 'teacher':
+        messages.error(request, 'グループの作成には教師権限が必要です')
+        return redirect('codemon:group_list')
+
+    if request.method == 'POST':
+        name = request.POST.get('group_name', '').strip()
+        description = request.POST.get('description', '').strip()
+
+        if not name:
+            messages.error(request, 'グループ名は必須です')
+        else:
+            group = Group.objects.create(
+                group_name=name,
+                description=description,
+                owner=owner
+            )
+            # 作成者を教師権限のメンバーとして追加
+            GroupMember.objects.create(
+                group=group,
+                member=owner,
+                role='teacher'
+            )
+            messages.success(request, f'グループ「{name}」を作成しました')
+            return redirect('codemon:group_detail', group_id=group.group_id)
+
+    return render(request, 'codemon/group_create.html')
 
 
 def group_detail(request, group_id):
@@ -1051,8 +974,8 @@ def group_detail(request, group_id):
         is_active=True
     ).select_related('member')
 
-    # グループに関連するスレッドを取得
-    threads = ChatThread.objects.filter(group=group, is_active=True).order_by('-created_at')
+    # グループに関連するスレッドを取得（後で実装）
+    threads = []  # ChatThread.objects.filter(group=group).order_by('-created_at')
 
     return render(request, 'codemon/group_detail.html', {
         'group': group,
@@ -1063,177 +986,70 @@ def group_detail(request, group_id):
     })
 
 
-def group_create(request):
-    """グループ新規作成（教師のみ）"""
+@require_POST
+def group_invite(request, group_id):
+    """グループにメンバーを招待（教師のみ）"""
     owner = _get_write_owner(request)
     if owner is None or owner.type != 'teacher':
-        messages.error(request, 'グループの作成には教師権限が必要です')
-        return redirect('codemon:group_list')
-
-    if request.method == 'POST':
-        name = request.POST.get('group_name', '').strip()
-        description = request.POST.get('description', '').strip()
-
-        if not name:
-            messages.error(request, 'グループ名は必須です')
-        else:
-            # Some legacy DB schemas include a non-null `password` column
-            # on the `group` table that is not represented in the Django
-            # model. To avoid IntegrityError on insert, perform a raw
-            # INSERT specifying a safe empty password value and return
-            # the created primary key, then fetch the ORM object.
-            try:
-                from django.db import connection
-                now = timezone.now()
-                with connection.cursor() as cursor:
-                    # PostgreSQLの場合、シーケンスが遅れている可能性があるため
-                    # テーブル内の最大IDとシーケンスを比較して修正する
-                    if connection.vendor == 'postgresql':
-                        cursor.execute('SELECT MAX(group_id) FROM "group"')
-                        max_id = cursor.fetchone()[0]
-                        if max_id is not None:
-                            cursor.execute("SELECT setval('group_group_id_seq', GREATEST(nextval('group_group_id_seq'), %s))", [max_id + 1])
-                    
-                    cursor.execute(
-                        'INSERT INTO "group" (group_name, description, user_id, password, created_at, updated_at, is_active) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING group_id',
-                        [name, description, getattr(owner, 'user_id', getattr(owner, 'id', None)), '', now, now, True]
-                    )
-                    row = cursor.fetchone()
-                    group_id = row[0]
-                group = Group.objects.get(group_id=group_id)
-            except Exception as e:
-                # Fall back to the ORM create to let the original exception
-                # propagate if raw SQL fails for some reason.
-                messages.error(request, f'グループ作成に失敗しました: {e}')
-                return render(request, 'codemon/group_create.html')
-            # 作成者を教師権限のメンバーとして追加
-            try:
-                GroupMember.objects.create(
-                    group=group,
-                    member=owner,
-                    role='teacher'
-                )
-            except Exception:
-                # Some environments have different legacy column names or
-                # additional NOT NULL columns on `group_member`. Try several
-                # raw INSERT patterns (common variants) until one succeeds.
-                from django.db import connection
-                now = timezone.now()
-                member_val = getattr(owner, 'user_id', getattr(owner, 'id', None))
-                if not member_val:
-                    raise ValueError('owner has no id; cannot insert group member')
-
-                last_exc = None
-                inserted = False
-                variants = [
-                    # common: member_user_id column (the model's mapping)
-                    ('INSERT INTO "group_member" (group_id, member_user_id, role, created_at) VALUES (%s, %s, %s, %s)', [group.group_id, member_val, 'teacher', now]),
-                    # some older schemas: member_id column
-                    ('INSERT INTO "group_member" (group_id, member_id, role, created_at) VALUES (%s, %s, %s, %s)', [group.group_id, member_val, 'teacher', now]),
-                    # try inserting both columns where both exist and one of them is required
-                    ('INSERT INTO "group_member" (group_id, member_user_id, member_id, role, created_at) VALUES (%s, %s, %s, %s, %s)', [group.group_id, member_val, member_val, 'teacher', now]),
-                    # variants including is_active column if present
-                    ('INSERT INTO "group_member" (group_id, member_user_id, role, created_at, is_active) VALUES (%s, %s, %s, %s, %s)', [group.group_id, member_val, 'teacher', now, True]),
-                    ('INSERT INTO "group_member" (group_id, member_id, role, created_at, is_active) VALUES (%s, %s, %s, %s, %s)', [group.group_id, member_val, 'teacher', now, True]),
-                ]
-
-                with connection.cursor() as cursor:
-                    for sql, params in variants:
-                        try:
-                            cursor.execute(sql, params)
-                            inserted = True
-                            break
-                        except Exception as e:
-                            last_exc = e
-                            # try next variant
-                            continue
-
-                if not inserted:
-                    # Nothing worked — surface the last DB exception so the
-                    # developer can inspect the exact schema mismatch.
-                    raise last_exc
-            messages.success(request, f'グループ「{name}」を作成しました')
-            # Immediately render the group detail page so the user stays on the
-            # result of the creation without an extra redirect. This mirrors
-            # the logic in `group_detail` to assemble members and threads.
-            try:
-                membership = GroupMember.objects.get(group=group, member=owner, is_active=True)
-            except Exception:
-                # Fallback for legacy schemas without is_active
-                membership = GroupMember.objects.filter(group=group, member=owner).first()
-
-            members_qs = GroupMember.objects.filter(group=group).select_related('member')
-            threads = ChatThread.objects.filter(group=group, is_active=True).order_by('-created_at')
-
-            return render(request, 'codemon/group_detail.html', {
-                'group': group,
-                'membership': membership,
-                'members': members_qs,
-                'threads': threads,
-                'is_teacher': True,
-            })
-
-    return render(request, 'codemon/group_create.html')
-
-def group_remove_member(request, group_id, member_id):
-    """グループからメンバーを削除（教師のみ）。GETで確認画面、POSTで削除実行"""
-    owner = _get_write_owner(request)
-    if owner is None or owner.type != 'teacher':
-        messages.error(request, '教師権限が必要です')
-        return redirect('accounts:group_menu', group_id=group_id)
+        return HttpResponseForbidden('教師権限が必要です')
 
     group = get_object_or_404(Group, group_id=group_id, is_active=True)
     if group.owner != owner:
-        messages.error(request, 'グループのオーナーのみメンバーを削除できます')
-        return redirect('accounts:group_menu', group_id=group_id)
+        return HttpResponseForbidden('グループのオーナーのみメンバーを招待できます')
+
+    # メールアドレスまたはユーザーIDで招待
+    identifier = request.POST.get('identifier', '').strip()
+    role = request.POST.get('role', 'student')
+    
+    if not identifier:
+        return JsonResponse({'error': 'メールアドレスまたはユーザーIDを入力してください'}, status=400)
 
     try:
-        membership = GroupMember.objects.get(
-            group=group,
-            member_id=member_id
-        )
-        
-        if membership.member == group.owner:
-            messages.error(request, 'グループのオーナーは削除できません')
-            return redirect('accounts:group_menu', group_id=group_id)
-        
-        # GETリクエストの場合は削除確認画面を表示
-        if request.method == 'GET':
-            member_data = {
-                'user_id': membership.member.user_id,
-                'user_name': membership.member.user_name,
-                'joined_at': membership.joined_at.strftime('%Y/%m/%d') if hasattr(membership, 'joined_at') and membership.joined_at else membership.member.created_at.strftime('%Y/%m/%d') if hasattr(membership.member, 'created_at') else ''
-            }
-            return render(request, 'group/group_member_delete.html', {
-                'group': group,
-                'member': member_data
-            })
-        
-        # POSTリクエストの場合は削除を実行
-        if request.method == 'POST':
-            member_name = membership.member.user_name
-            
-            # トランザクション内で確実に両方のテーブルを更新
-            with transaction.atomic():
-                # accountテーブルのgroup_idをクリア
-                try:
-                    member_account = Account.objects.get(user_id=member_id)
-                    member_account.group_id = None
-                    member_account.save()
-                except Account.DoesNotExist:
-                    pass  # アカウントが見つからない場合は無視
-                
-                # group_memberテーブルから物理削除（論理削除ではなく完全削除）
-                membership.delete()
-            
-            messages.success(request, f'{member_name}をグループから削除しました')
-            return redirect('accounts:group_menu', group_id=group_id)
+        # メールアドレスかユーザーIDで検索
+        if '@' in identifier:
+            member = Account.objects.get(email=identifier)
+        else:
+            member = Account.objects.get(user_id=identifier)
 
-    except GroupMember.DoesNotExist:
-        messages.error(request, '指定されたメンバーが見つかりません')
-        return redirect('accounts:group_menu', group_id=group_id)
-        messages.error(request, '指定されたメンバーが見つかりません')
-        return redirect('accounts:group_menu', group_id=group_id)
+        # 既存メンバーシップの確認
+        membership, created = GroupMember.objects.get_or_create(
+            group=group,
+            member=member,
+            defaults={'role': role, 'is_active': True}
+        )
+
+        if not created and not membership.is_active:
+            # 非アクティブなメンバーシップを再アクティブ化
+            membership.is_active = True
+            membership.role = role
+            membership.save()
+            return JsonResponse({
+                'status': 'ok',
+                'message': f'{member.user_name}をグループに再招待しました'
+            })
+        elif not created:
+            return JsonResponse({
+                'error': f'{member.user_name}は既にグループのメンバーです'
+            }, status=400)
+
+        return JsonResponse({
+            'status': 'ok',
+            'message': f'{member.user_name}をグループに招待しました',
+            'member': {
+                'id': member.user_id,
+                'name': member.user_name,
+                'role': role
+            }
+        })
+
+    except Account.DoesNotExist:
+        return JsonResponse({
+            'error': '指定されたユーザーが見つかりません'
+        }, status=404)
+
+
+
+
 
 
 @require_POST
@@ -1248,9 +1064,14 @@ def group_leave(request, group_id):
         return HttpResponseForbidden('グループのオーナーは脱退できません')
 
     try:
-        membership = GroupMember.objects.get(group=group, member=owner)
-        # 実運用上は is_active カラムが存在しない環境もあるため、削除して対応
-        membership.delete()
+        membership = GroupMember.objects.get(
+            group=group,
+            member=owner,
+            is_active=True
+        )
+        # 論理削除
+        membership.is_active = False
+        membership.save()
 
         messages.success(request, f'グループ「{group.group_name}」から脱退しました')
         return redirect('codemon:group_list')
@@ -1297,48 +1118,15 @@ def group_delete(request, group_id):
         messages.error(request, 'ログインが必要です')
         return redirect('accounts:account_entry')
     
-    # グループの存在確認とowner権限チェック
-    try:
-        from django.db import connection
-        with connection.cursor() as cursor:
-            cursor.execute('SELECT group_id, group_name, user_id FROM "group" WHERE group_id = %s', [group_id])
-            row = cursor.fetchone()
-            if not row:
-                messages.error(request, '指定されたグループが見つかりません')
-                return redirect('accounts:account_entry')
-            
-            group_name = row[1]
-            owner_id = row[2]
-            
-            # owner権限チェック
-            if str(owner_id) != str(current_user_id):
-                messages.error(request, 'このグループを削除する権限がありません')
-                return redirect('accounts:account_entry')
-            
-            # トランザクション内で削除処理
-            cursor.execute('BEGIN')
-            try:
-                # メンバーシップ削除
-                cursor.execute('DELETE FROM group_member WHERE group_id = %s', [group_id])
-                # accountテーブルのgroup_id解除
-                cursor.execute('UPDATE account SET group_id = NULL WHERE group_id = %s', [group_id])
-                # グループ本体削除
-                cursor.execute('DELETE FROM "group" WHERE group_id = %s', [group_id])
-                cursor.execute('COMMIT')
-                
-                # AJAX呼び出しならJSONを返す
-                if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                    return JsonResponse({'status': 'ok', 'group_id': group_id})
-                
-                return redirect('accounts:account_entry')
-            except Exception as e:
-                cursor.execute('ROLLBACK')
-                raise e
-    except Exception as e:
-        import logging
-        logging.exception('group_delete failed for group_id=%s', group_id)
-        messages.error(request, f'グループの削除に失敗しました: {e}')
-        return redirect('accounts:account_entry')
+    # グループを非アクティブ化（論理削除）
+    group.is_active = False
+    group.save()
+
+    # メンバーシップも非アクティブ化
+    GroupMember.objects.filter(group=group).update(is_active=False)
+
+    messages.success(request, f'グループ「{group.group_name}」を削除しました')
+    return redirect('codemon:group_list')
 
 
 # If ALLOW_ANONYMOUS_VIEWS is False, wrap the view callables with the real
@@ -1346,26 +1134,24 @@ def group_delete(request, group_id):
 # flag is True (development), views are left undecorated so anonymous access
 # is allowed.
 if not getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
-    # Wrap only the view callables that are actually present in this module.
-    # Some view functions (e.g. group_detail) may be defined elsewhere or omitted
-    # in certain branches, so avoid referencing names that don't exist which
-    # caused import-time NameError in some environments.
-    _to_wrap = [
-        'systems_list', 'algorithms_list',
-        'checklist_toggle_item',
-        'score_thread', 'get_thread_readers',
-        # group management related
-        'group_list', 'group_create', 'group_detail', 'group_edit',
-        'group_invite', 'group_remove_member', 'group_leave'
-    ]
-    for _name in _to_wrap:
-        _fn = globals().get(_name)
-        if callable(_fn):
-            # Use the module-local `login_required` which may be the
-            # custom session-based decorator or a no-op in development
-            # when ALLOW_ANONYMOUS_VIEWS=True. Previously this used
-            # Django's `_login_required` which forced Django auth redirects.
-            globals()[_name] = login_required(_fn)
+    systems_list = _login_required(systems_list)
+    algorithms_list = _login_required(algorithms_list)
+    chat_view = _login_required(chat_view)
+    # checklist_selection, checklist_list, checklist_create, checklist_detail は _get_write_owner で認証チェック済み
+    checklist_toggle_item = _login_required(checklist_toggle_item)
+    checklist_save = _login_required(checklist_save)
+    checklist_delete_confirm = _login_required(checklist_delete_confirm)
+    checklist_delete = _login_required(checklist_delete)
+    score_thread = _login_required(score_thread)
+    get_thread_readers = _login_required(get_thread_readers)
+    # グループ管理関連のビュー
+    group_list = _login_required(group_list)
+    group_create = _login_required(group_create)
+    group_detail = _login_required(group_detail)
+    group_edit = _login_required(group_edit)
+    group_invite = _login_required(group_invite)
+    # group_remove_member は @teacher_login_required デコレータを使用しているため、ここではラップしない
+    group_leave = _login_required(group_leave)
 
 @login_required
 def search_messages(request):
@@ -1492,31 +1278,16 @@ def ai_chat_api(request):
 
 @account_or_login_required
 def ai_history_api(request):
+    from accounts.views import get_logged_account
+    acc = get_logged_account(request)
+    if not acc:
+        return JsonResponse({"error": "not authenticated"}, status=401)
+    
     conv_id = request.GET.get("conversation_id")
     if not conv_id:
         return JsonResponse({"error": "conversation_id required"}, status=400)
-    
-    # Get Account instance (same logic as ai_chat_api)
-    from accounts.models import Account
-    if request.user.is_authenticated:
-        account = Account.objects.filter(email=getattr(request.user, 'email', None)).first()
-        if not account:
-            account_user_id = request.session.get('account_user_id')
-            if account_user_id:
-                account = Account.objects.filter(user_id=account_user_id).first()
-        if not account:
-            return JsonResponse({"error": "account not found for user"}, status=404)
-    else:
-        account_user_id = request.session.get('account_user_id')
-        if not account_user_id:
-            return JsonResponse({"error": "user identification failed"}, status=401)
-        try:
-            account = Account.objects.get(user_id=account_user_id)
-        except Account.DoesNotExist:
-            return JsonResponse({"error": "account not found"}, status=404)
-    
     try:
-        conv = AIConversation.objects.get(id=conv_id, user=account)
+        conv = AIConversation.objects.get(id=conv_id, user_id=acc.user_id)
     except AIConversation.DoesNotExist:
         return JsonResponse({"error": "not found"}, status=404)
 
@@ -1528,3 +1299,146 @@ def ai_history_api(request):
             for m in conv.messages.order_by("created_at")
         ],
     })
+
+# ---- Demo UI views for chat templates ----
+def chat_ui_index(request):
+    """チャットUIデモ索引ページ"""
+    return render(request, 'chat/index.html')
+
+def chat_ui_list(request):
+    rooms = [
+        {
+            'name': '2年A組 グループチャット',
+            'is_group': True,
+            'avatar_url': None,
+            'updated_at': timezone.now(),
+            'last_message': '明日の提出物を確認してください。',
+            'participant_names': '田中, 鈴木, 佐藤',
+            'unread_count': 3,
+            'url': reverse('codemon:chat_ui_room'),
+        },
+        {
+            'name': '個別: 山田太郎',
+            'is_group': False,
+            'avatar_url': None,
+            'updated_at': timezone.now() - timezone.timedelta(hours=2),
+            'last_message': 'ファイルをアップロードしました。',
+            'participant_names': '山田太郎',
+            'unread_count': 0,
+            'url': reverse('codemon:chat_ui_room'),
+        },
+    ]
+    return render(request, 'chat/chat_list.html', {'chat_rooms': rooms})
+
+
+def chat_ui_room(request):
+    room = {
+        'name': '2年A組 グループチャット',
+        'is_group': True,
+        'member_count': 5,
+        'updated_at': timezone.now(),
+        'read_ratio': '4/5',
+        'unread_count': 1,
+        'members': [
+            {'name': '田中', 'role': 'teacher'},
+            {'name': '佐藤', 'role': 'student'},
+            {'name': '鈴木', 'role': 'student'},
+            {'name': '山田', 'role': 'student'},
+            {'name': '高橋', 'role': 'student'},
+        ]
+    }
+
+    messages = [
+        {
+            'author_name': '田中 (教師)',
+            'created_at': timezone.now() - timezone.timedelta(minutes=20),
+            'text': '課題の提出期限は金曜17:00です。',
+            'is_self': False,
+            'is_read': True,
+            'read_by': '5名',
+            'read_count': 5,
+            'read_by_list': ['佐藤', '鈴木', '山田', '高橋', '田中'],
+            'can_delete': False,
+        },
+        {
+            'author_name': 'あなた',
+            'created_at': timezone.now() - timezone.timedelta(minutes=2),
+            'text': '了解しました！ファイルも投函します。',
+            'is_self': True,
+            'is_read': False,
+            'read_by': '3名',
+            'read_count': 3,
+            'read_by_list': ['田中', '佐藤', '山田'],
+            'can_delete': True,
+            'delete_url': '#',
+            'file_url': '/media/sample.pdf',
+        },
+    ]
+
+    recent_files = [
+        {'name': '課題説明.pdf', 'url': '/media/sample.pdf'},
+        {'name': '参考画像.png', 'url': '/media/sample.png'},
+    ]
+
+    return render(request, 'chat/chat_room.html', {
+        'room': room,
+        'messages': messages,
+        'recent_files': recent_files,
+    })
+
+
+def chat_ui_profile(request):
+    return render(request, 'chat/profile_edit.html')
+
+
+def chat_ui_submission_box(request):
+    return render(request, 'chat/submission_box_create.html')
+
+
+def chat_ui_submission_submit(request):
+    assignment = {
+        'title': '第3回 レポート',
+        'description': 'AIと教育についての考察をまとめてください。',
+        'due_at': timezone.now() + timezone.timedelta(days=2),
+    }
+    submission = {'status': '未提出'}
+    return render(request, 'chat/submission_submit.html', {
+        'assignment': assignment,
+        'submission': submission,
+    })
+
+
+def chat_ui_score_student(request):
+    scores = [
+        {
+            'assignment_title': '第1回 課題',
+            'value': 85,
+            'max_score': 100,
+            'comment': '構成がわかりやすいです',
+            'updated_at': timezone.now() - timezone.timedelta(days=1),
+        },
+        {
+            'assignment_title': '第2回 小テスト',
+            'value': 92,
+            'max_score': 100,
+            'comment': '計算ミスに注意',
+            'updated_at': timezone.now(),
+        },
+    ]
+    return render(request, 'chat/score_view_student.html', {'scores': scores})
+
+
+def chat_ui_score_teacher(request):
+    score_rows = [
+        {'id': 1, 'student_name': '佐藤', 'score': 80, 'max_score': 100, 'comment': 'よくできました'},
+        {'id': 2, 'student_name': '鈴木', 'score': 70, 'max_score': 100, 'comment': 'もう一歩'},
+    ]
+    return render(request, 'chat/score_manage_teacher.html', {'score_rows': score_rows})
+
+
+def chat_ui_group_manage(request):
+    members = [
+        {'name': '佐藤', 'role': 'student', 'remove_url': '#'},
+        {'name': '鈴木', 'role': 'student', 'remove_url': '#'},
+    ]
+    return render(request, 'chat/group_manage.html', {'members': members})

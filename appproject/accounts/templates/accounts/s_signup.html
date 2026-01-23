@@ -1,165 +1,310 @@
-    <div class="container">
-        <section class="panel-right centered">
-            <h2>新しく始めよう！</h2>
-            <form method="post" class="signup-form">
-                {% csrf_token %}
-
-                {# 全体の非フィールドエラー表示 #}
-                {% if form.non_field_errors %}
-                    <div class="form-errors">
-                        {% for err in form.non_field_errors %}
-                            <div class="error">{{ err }}</div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-
-                <div class="form-grid">
-                    <div class="form-row">
-                        <label class="form-label">名前</label>
-                        <input type="text" class="form-input" id="id_name" name="user_name" required value="{{ form.user_name.value|default_if_none:'' }}">
-                        {% if form.user_name.errors %}
-                            <div class="error">{{ form.user_name.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="form-row">
-                        <label class="form-label">年齢</label>
-                        <select class="form-input" id="id_age" name="age">
-                            <option value="">▽</option>
-                            {% for i in ages %}
-                                <option value="{{ i }}"{% if form.age.value|stringformat:"s" == i|stringformat:"s" %} selected{% endif %}>{{ i }}歳</option>
-                            {% endfor %}
-                        </select>
-                        {% if form.age.errors %}
-                            <div class="error">{{ form.age.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="form-row">
-                        <label class="form-label">メールアドレス</label>
-                        <input type="email" class="form-input" id="id_email" name="email" required value="{{ form.email.value|default_if_none:'' }}">
-                        {% if form.email.errors %}
-                            <div class="error">{{ form.email.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="form-row">
-                        <label class="form-label">パスワード</label>
-                        <input type="password" class="form-input" id="id_password1" name="password1" required>
-                        {% if form.password1.errors %}
-                            <div class="error">{{ form.password1.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="form-row">
-                        <label class="form-label">パスワード確認</label>
-                        <input type="password" class="form-input" id="id_password2" name="password2" required>
-                        {% if form.password2.errors %}
-                            <div class="error">{{ form.password2.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-
-                    {# アカウント種別はこのテンプレートが生徒用なので固定する（ユーザーによる選択は外す） #}
-                    <input type="hidden" name="role" value="student">
-                </div>
-                
-                <div class="submit-area">
-                    <!-- フォームを送信してアカウントを作成し、次の AI 外見設定画面へ移動 -->
-                    <button type="submit" class="big-btn">決定</button>
-                </div>
-                
-            </form>
 {% load static %}
-            <div class="back-link" style="text-align:center;margin-top:12px">
-                    <a href="{% url 'accounts:student_login' %}">ログインページへ</a>
+<div class="container">
+    <div id="ai-characters-layer"></div>
+
+    <section class="main-panel">
+        <div class="form-header">
+            <h2>CodeMonを はじめよう！</h2>
+            <p>あなたの ことを おしえてね</p>
+        </div>
+        
+        <form method="post" class="signup-form" id="mainForm" novalidate>
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="error-summary-pop">
+                    {% for err in form.non_field_errors %}
+                        <div class="error-bubble">
+                            {% if "合致" in err or "match" in err or "確認" in err %}
+                                ⚠️ あれれ？ 合言葉（パスワード）が さっきと ちがうみたい！
+                            {% else %}
+                                ⚠️ どこかに まちがいが あるよ。もういちど たしかめてみてね！
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label-pop">あなたのなまえ</label>
+                    <input type="text" class="form-input-pop" id="id_name" name="user_name" placeholder="コデモンくん" required value="{{ form.user_name.value|default_if_none:'' }}">
+                    {% if form.user_name.errors %}
+                        <div class="error-msg-pop">⚠️ なまえを かならず 入力してね！</div>
+                    {% endif %}
                 </div>
 
-        
+                <div class="form-group">
+                    <label class="form-label-pop">あなたのとし</label>
+                    <div class="custom-dropdown" id="ageDropdown">
+                        <div class="dropdown-selected">
+                            {% if form.age.value %}{{ form.age.value }} さい{% else %}えらんでね{% endif %}
+                        </div>
+                        <div class="dropdown-options">
+                            {% for i in ages %}
+                                {% if i <= 20 %}
+                                    <div class="dropdown-option" data-value="{{ i }}">{{ i }} さい</div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="age" id="id_age_hidden" value="{{ form.age.value|default:'' }}" required>
+                    </div>
+                    {% if form.age.errors %}
+                        <div class="error-msg-pop">⚠️ あなたの としを えらんでね！わすれてるよ！</div>
+                    {% endif %}
+                </div>
 
-        <style>
-            :root{ --bg:#f8fafc; --muted:#444; --accent:#4b90ff }
-            body{
-                margin:0;
-                background:var(--bg);
-                font-family:Meiryo, 'Hiragino Kaku Gothic ProN', 'Segoe UI',sans-serif;
-                color:#222;
-                background-image:url('{% static "accounts/signup_bg.png" %}');
-                background-size:cover;
-                background-position:center;
-                background-repeat:no-repeat;
-                background-attachment:fixed;
-                overflow:hidden;
-                height:100vh;
+                <div class="form-group">
+                    <label class="form-label-pop">メールアドレス</label>
+                    <input type="email" class="form-input-pop" id="id_email" name="email" placeholder="example@mail.com" required value="{{ form.email.value|default_if_none:'' }}">
+                    {% if form.email.errors %}
+                        <div class="error-msg-pop">
+                            {% with err=form.email.errors.0 %}
+                                {% if "already exists" in err or "存在する" in err %}
+                                    ⚠️ おっとっと！ そのメールは もう だれかが 使っているみたい！
+                                {% elif "@" not in form.email.value %}
+                                    ⚠️ 「@（アットマーク）」が 足りないみたい！ 入れてみてね。
+                                {% elif "." not in form.email.value %}
+                                    ⚠️ 「.（ドット）」が 足りないみたい！ 正しいアドレスかな？
+                                {% else %}
+                                    ⚠️ メールアドレスの かたちが ちょっと へんかも？ たしかめてみてね。
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label-pop">パスワード</label>
+                    <input type="password" class="form-input-pop" id="id_password1" name="password1" placeholder="ないしょのあいことば" required value="{{ form.password1.value|default_if_none:'' }}">
+                    {% if form.password1.errors %}
+                        <div class="error-msg-pop">⚠️ ないしょのあいことばを きめてね！</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label-pop">もういちど！</label>
+                    <input type="password" class="form-input-pop" id="id_password2" name="password2" placeholder="おなじあいことばを入力してね" required>
+                    {% if form.password2.errors %}
+                        <div class="error-msg-pop">⚠️ こっちも おなじあいことばを 入力してね！</div>
+                    {% endif %}
+                </div>
+
+                <input type="hidden" name="role" value="student">
+            </div>
+
+            <div class="submit-area">
+                <button type="submit" class="hero-btn">けってい！</button>
+            </div>
+        </form>
+
+        <div class="footer-links">
+            <a href="{% url 'accounts:student_login' %}" class="back-pill">ログインページへもどる</a>
+        </div>
+    </section>
+</div>
+
+<style>
+    :root { 
+        --bg: #f0f4f8; 
+        --accent: #5BD4F0; 
+        --accent-dark: #3fbcd9;
+        --pop-yellow: #FFD200;
+        --pop-yellow-dark: #E6BD00;
+        --pop-red: #ff7675;
+        --panel-white: rgba(255, 255, 255, 0.95);
+    }
+
+    body { 
+        margin: 0; 
+        background: linear-gradient(rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.05)), url("{% static 'codemon/images/backgrounds/bg_common.png' %}");
+        background-size: cover; background-position: center; background-attachment: fixed;
+        font-family: 'Hiragino Sans', 'Meiryo', sans-serif; overflow: hidden; height: 100vh; 
+    }
+    
+    .container { position: relative; width: 100%; height: 100vh; display: flex; align-items: center; justify-content: center; }
+
+    .main-panel {
+        background: var(--panel-white); padding: 25px 40px; border-radius: 40px; border: 6px solid #fff;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15); width: 90%; max-width: 460px; z-index: 30; text-align: center;
+    }
+
+    .form-header h2 { font-size: 24px; color: var(--accent-dark); margin: 0 0 2px 0; }
+    .form-header p { font-size: 13px; color: #888; margin: 0 0 15px 0; }
+    .form-grid { display: grid; gap: 8px; }
+    .form-group { display: flex; flex-direction: column; text-align: left; position: relative; }
+    .form-label-pop { font-weight: bold; font-size: 13px; color: #666; margin-left: 12px; margin-bottom: 2px; }
+    
+    .form-input-pop { 
+        width: 100%; background: #fdfdfd; border: 3px solid #eef2f5; border-radius: 15px; 
+        padding: 10px 15px; font-size: 14px; box-sizing: border-box; transition: all 0.2s; color: #555;
+    }
+    .form-input-pop:focus { outline: none; border-color: var(--accent); background: #fff; box-shadow: 0 0 0 4px rgba(91, 212, 240, 0.2); }
+
+    /* --- カスタムプルダウンのデザイン --- */
+    .custom-dropdown { position: relative; width: 100%; user-select: none; }
+    
+    .dropdown-selected {
+        width: 100%; background: #fdfdfd; border: 3px solid #eef2f5; border-radius: 15px; 
+        padding: 10px 15px; font-size: 14px; box-sizing: border-box; cursor: pointer;
+        color: #555; position: relative; transition: all 0.2s;
+    }
+    .dropdown-selected::after {
+        content: '▼'; position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
+        color: var(--accent); font-size: 12px; transition: transform 0.3s;
+    }
+    .custom-dropdown.is-open .dropdown-selected { border-color: var(--accent); background: #fff; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+    .custom-dropdown.is-open .dropdown-selected::after { transform: translateY(-50%) rotate(180deg); }
+
+    .dropdown-options {
+        position: absolute; top: 100%; left: 0; right: 0; background: white;
+        border: 3px solid var(--accent); border-top: none; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px;
+        z-index: 100; max-height: 200px; overflow-y: auto; display: none;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    .custom-dropdown.is-open .dropdown-options { display: block; animation: slideDown 0.2s ease-out; }
+
+    .dropdown-option {
+        padding: 12px 15px; font-size: 15px; color: #555; cursor: pointer; transition: background 0.2s;
+        border-bottom: 1px dashed #eee;
+    }
+    .dropdown-option:last-child { border-bottom: none; }
+    .dropdown-option:hover { background: #f0faff; color: var(--accent-dark); font-weight: bold; }
+
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* --- スクロールバーもかわいく --- */
+    .dropdown-options::-webkit-scrollbar { width: 8px; }
+    .dropdown-options::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+    .dropdown-options::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+
+    /* 以下、共通デザイン */
+    .error-msg-pop { color: white; background: var(--pop-red); font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 8px; margin-top: 4px; display: inline-block; width: fit-content; animation: popIn 0.3s; }
+    .error-bubble { background: #fff0f0; border: 2px solid var(--pop-red); color: var(--pop-red); padding: 10px; border-radius: 15px; margin-bottom: 15px; font-size: 13px; font-weight: bold; }
+    @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+    .hero-btn { width: 100%; margin-top: 15px; background: var(--pop-yellow); color: #634a00; border: none; padding: 12px; font-size: 18px; font-weight: 900; border-radius: 15px; cursor: pointer; box-shadow: 0 5px 0 var(--pop-yellow-dark); transition: all 0.1s; }
+    .hero-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--pop-yellow-dark); }
+    .back-pill { display: inline-block; color: #999; text-decoration: none; font-size: 12px; padding: 6px 15px; border-radius: 20px; background: #f0f4f8; }
+
+    /* キャラクターアニメーション省略 */
+    .ai-guide { position: fixed; width: 160px; z-index: 20; pointer-events: none; }
+    .ai-guide img { width: 100%; height: auto; }
+    .peek-bottom { animation: anim-bottom 5s ease-in-out forwards; }
+    @keyframes anim-bottom { 0%, 100% { transform: translateY(100%); } 20%, 80% { transform: translateY(45%); } }
+    .peek-top { animation: anim-top 5s ease-in-out forwards; }
+    @keyframes anim-top { 0%, 100% { transform: translateY(-100%) rotate(180deg); } 20%, 80% { transform: translateY(-45%) rotate(180deg); } }
+    .peek-left { animation: anim-left 5s ease-in-out forwards; }
+    @keyframes anim-left { 0%, 100% { transform: translateX(-100%) rotate(90deg); } 20%, 80% { transform: translateX(-40%) rotate(90deg); } }
+    .peek-right { animation: anim-right 5s ease-in-out forwards; }
+    @keyframes anim-right { 0%, 100% { transform: translateX(100%) rotate(-90deg); } 20%, 80% { transform: translateX(55%) rotate(-90deg); } }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- カスタムプルダウンのロジック ---
+        const dropdown = document.getElementById('ageDropdown');
+        const selected = dropdown.querySelector('.dropdown-selected');
+        const hiddenInput = document.getElementById('id_age_hidden');
+        const options = dropdown.querySelectorAll('.dropdown-option');
+
+        // クリックで開閉
+        selected.addEventListener('click', (e) => {
+            dropdown.classList.toggle('is-open');
+            e.stopPropagation();
+        });
+
+        // オプション選択
+        options.forEach(opt => {
+            opt.addEventListener('click', () => {
+                const val = opt.getAttribute('data-value');
+                selected.textContent = opt.textContent;
+                hiddenInput.value = val;
+                dropdown.classList.remove('is-open');
+            });
+        });
+
+        // 外側をクリックしたら閉じる
+        document.addEventListener('click', () => {
+            dropdown.classList.remove('is-open');
+        });
+
+        // --- キャラクターアニメーション (既存) ---
+        const charLayer = document.getElementById('ai-characters-layer');
+        const staticBaseUrl = "{% static 'codemon/images/characters/' %}";
+        const characterData = {
+            'イヌ': ['', '笑顔'], 'パンダ': ['', '笑顔'], 'リス': ['', '笑顔'],
+            'キツネ': ['', '笑顔'], 'ウサギ': ['', '笑顔'], 'フクロウ': ['', '笑顔'], 'アルパカ': ['', '笑顔'], 'ネコ': ['', '笑顔']
+        };
+        const charNames = Object.keys(characterData);
+        const activeCharacters = [];
+
+        function isSpaceOccupied(edge, pos) {
+            const existingChars = document.querySelectorAll('.ai-guide');
+            for (let char of existingChars) {
+                if (char.dataset.edge == edge) {
+                    const existingPos = parseInt(char.dataset.pos);
+                    if (Math.abs(existingPos - pos) < 25) return true;
+                }
             }
-            .container{max-width:900px;margin:0 auto;padding:10px 20px;background:transparent;display:flex;align-items:center;justify-content:center;min-height:100vh}
-            .panel-right{background:transparent;padding:10px 30px;border-radius:20px;box-shadow:none}
-            .panel-right h2{text-align:center;margin:0 0 10px 0;font-size:26px}
-            .form-grid{display:flex;flex-direction:column;gap:8px;align-items:center}
-            .form-row{
-                display:flex;
-                align-items:center;
-                margin:8px 0;
-                gap:20px;
-                width:100%;
-                max-width:600px;
+            return false;
+        }
+
+        function spawnCharacter() {
+            const availableChars = charNames.filter(name => !activeCharacters.includes(name));
+            if (availableChars.length === 0) {
+                setTimeout(spawnCharacter, 5000);
+                return;
             }
-            .form-label{
-                background:#ffffff;
-                padding:8px 20px;
-                border-radius:40px;
-                font-size:18px;
-                font-weight:600;
-                color:#333;
-                flex-shrink:0;
-                box-shadow:0 2px 5px rgba(0,0,0,0.1);
-                min-width:180px;
-                text-align:center;
+            const name = availableChars[Math.floor(Math.random() * availableChars.length)];
+            const expressions = characterData[name];
+            const exp = expressions[Math.floor(Math.random() * expressions.length)];
+            const fileName = exp ? `${name} ${exp}.png` : `${name}.png`;
+
+            let edge, pos, attempts = 0;
+            do {
+                edge = Math.floor(Math.random() * 4); 
+                if (edge === 0 || edge === 1) { 
+                    pos = Math.random() < 0.5 ? Math.floor(Math.random() * 25) : Math.floor(Math.random() * 25) + 75;
+                } else {
+                    pos = Math.floor(Math.random() * 70) + 15;
+                }
+                attempts++;
+            } while (isSpaceOccupied(edge, pos) && attempts < 10);
+
+            if (attempts >= 10) {
+                setTimeout(spawnCharacter, 4000);
+                return;
             }
-            .form-input{
-                background:#5BD4F0;
-                border:none;
-                border-radius:40px;
-                padding:8px 16px;
-                height:38px;
-                font-size:16px;
-                outline:none;
-                flex-grow:1;
-                color:#fff;
-                appearance:none;
+
+            const charDiv = document.createElement('div');
+            charDiv.className = 'ai-guide';
+            charDiv.dataset.edge = edge;
+            charDiv.dataset.pos = pos;
+            activeCharacters.push(name);
+            const img = document.createElement('img');
+            img.src = `${staticBaseUrl}${fileName}`;
+            charDiv.appendChild(img);
+
+            let animClass = '';
+            switch(edge) {
+                case 0: animClass = 'peek-bottom'; charDiv.style.bottom = '0'; charDiv.style.left = pos + '%'; break;
+                case 1: animClass = 'peek-top'; charDiv.style.top = '0'; charDiv.style.left = pos + '%'; break;
+                case 2: animClass = 'peek-left'; charDiv.style.left = '0'; charDiv.style.top = pos + '%'; break;
+                case 3: animClass = 'peek-right'; charDiv.style.right = '0'; charDiv.style.top = pos + '%'; break;
             }
-            .form-input::placeholder{color:rgba(255,255,255,0.7)}
-            .form-input:focus{background:#4AC5E0}
-            select.form-input{
-                background-image:url('data:image/svg+xml;utf8,<svg fill="white" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
-                background-repeat:no-repeat;
-                background-position:right 15px center;
-                cursor:pointer;
-            }
-            select.form-input option{background:#fff;color:#333}
-            .submit-area{text-align:center;margin-top:15px}
-            .big-btn{
-                font-size:1rem;
-                color:#000000;
-                text-transform:uppercase;
-                padding:5px 10px;
-                border-radius:10px;
-                border-top:2px solid #ff8c00;
-                border-left:2px solid #ff8c00;
-                border-right:2px solid #fafafa;
-                border-bottom:2px solid #fafafa;
-                background:#ffffff;
-                box-shadow:5px 5px 0 #00bfff;
-                cursor:pointer;
-                margin:35px 0;
-                font-weight:bold;
-            }
-            .big-btn:hover{background:#f0f8ff}
-            .error{color:#e74c3c;margin-top:5px;font-size:14px}
-            @media(max-width:780px){
-                .container{padding:10px}
-                .panel-right{padding:25px}
-                .form-row{flex-direction:column;align-items:stretch;gap:8px}
-                .form-label{min-width:auto;text-align:center}
-                .form-input{width:100%}
-            }
-        </style>
+            charDiv.classList.add(animClass);
+            charLayer.appendChild(charDiv);
+
+            charDiv.addEventListener('animationend', () => {
+                const index = activeCharacters.indexOf(name);
+                if (index > -1) activeCharacters.splice(index, 1);
+                charDiv.remove();
+            });
+            setTimeout(spawnCharacter, Math.random() * 5000 + 10000);
+        }
+        setTimeout(spawnCharacter, 3000);
+    });
+</script>
