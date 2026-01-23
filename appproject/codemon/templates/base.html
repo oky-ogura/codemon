@@ -788,6 +788,9 @@
       {# アカウント画面を除外 #}
       {% elif '/accounts/account_entry/' in current_path %}
         {# 非表示 #}
+
+      {% elif '/groups/join_confirm/' in current_path %}
+
       {% else %}
         {# 他の画面ではsidebarモードで表示（accounts/block、accounts/systemを含む） #}
         {% include 'includes/character_widget.html' with mode='sidebar' %}

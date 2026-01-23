@@ -186,6 +186,55 @@
         #transition-curtain.active .curtain-panel {
             transform: translateY(0);
         }
+
+        /* --- 追加：タイトルエリアのスタイル --- */
+        .page-title-container {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            z-index: 10;
+            pointer-events: none; /* 下の要素の邪魔をしない */
+        }
+
+        .page-title-bubble {
+            background: white;
+            padding: 15px 40px;
+            border-radius: 100px;
+            border: 6px solid var(--theme-base);
+            box-shadow: 0 10px 0 var(--theme-light);
+            position: relative;
+            animation: titleFloat 3s ease-in-out infinite;
+        }
+
+        .page-title-text {
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--theme-deep);
+            margin: 0;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* 星のデコレーション */
+        .page-title-text::before,
+        .page-title-text::after {
+            content: '★';
+            color: var(--theme-base);
+            font-size: 24px;
+        }
+
+
+        /* 既存のcontainerの調整（タイトルと被らないように少し下げる） */
+        .container {
+            display: flex; width: 100%; height: 100%;
+            align-items: center; justify-content: center;
+            gap: 60px; z-index: 1; position: relative;
+            padding-top: 60px; /* タイトルの分だけ余白を追加 */
+        }
     </style>
 </head>
 <body>
@@ -199,6 +248,11 @@
     <div class="curtain-panel panel-3"></div>
     <div class="curtain-panel panel-4"></div>
     <div class="curtain-panel panel-5"></div>
+</div>
+<div class="page-title-container">
+    <div class="page-title-bubble">
+        <h1 class="page-title-text">あなたの あいぼうを えらぼう！</h1>
+    </div>
 </div>
 
 <div class="container">
@@ -225,14 +279,14 @@
 <script>
     const appearances = {{ appearances|safe }};
     const charDescriptions = {
-        'イヌ.png': '元気いっぱい！あきらめない心。',
-        'ウサギ.png': 'ぴょんぴょんはねるのがだいすき！',
-        'キツネ.png': 'ずこうが得意なおしゃれさん。',
-        'ネコ.png': 'さんすうが得意な女の子。',
-        'パンダ.png': '力もちでやさしいリーダー。',
-        'フクロウ.png': 'よるの森のものしり博士。',
-        'リス.png': 'ひらめき天才のアイデアマン。',
-        'アルパカ.png': 'ふわふわで癒し系の人気者。'
+        'イヌ.png': 'いつも元気いっぱい！<br>友だちをだいじにするやさしい子',
+        'ウサギ.png': 'ちょっぴりこわがりだけど<br>よく考えて行動するがんばり屋さん',
+        'キツネ.png': 'あたまがよくて<br>じょうだんがすきなおちゃめな子',
+        'ネコ.png': 'じぶんのペースをだいじにする<br>ちょっとふしぎな子',
+        'パンダ.png': 'のんびりやさしくて、休むのがじょうずな子',
+        'フクロウ.png': 'ものしりで、みんなにやさしく教えてくれる先生',
+        'リス.png': 'すなおじゃないけど<br>ほんとはとってもやさしいせいぎのみかた',
+        'アルパカ.png': 'たのもしくて、みんなをひっぱるおねえさん'
     };
 
     const colorMap = {
@@ -297,7 +351,7 @@
         bigImg.classList.add('pop-ani');
 
         document.getElementById('charName').innerText = filename.replace('.png', '');
-        document.getElementById('charDesc').innerText = charDescriptions[filename] || '';
+        document.getElementById('charDesc').innerHTML  = charDescriptions[filename] || '';
         document.getElementById('appearanceInput').value = filename;
     }
 
