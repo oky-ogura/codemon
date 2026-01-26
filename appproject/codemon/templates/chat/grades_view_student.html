@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body_class %} class="no-scroll"{% endblock %}
+
+{% block background_frame %}
+  <img src="{% static 'codemon/images/frames/bg_frame_yellow.png' %}" 
+       alt="" 
+       class="bg-frame frame-yellow"
+       onerror="this.style.display='none';">
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'codemon/css/grades_view.css' %}">
+<style>
+/* ここでチャット画面のサイズと位置を直接カスタマイズできます */
+:root {
+  /* デスクトップ中央配置(カード風) */
+  --chat-max-width: 800px;
+  --chat-max-height: 70vh;
+  --chat-margin: 20px auto;
+  --chat-border-radius: 12px;
+  --chat-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --chat-position: fixed;
+  --chat-position-x: 50px;
+  --chat-position-y: 130px;
+  --chat-margin: 0;
+  */
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="grades-view-container student">
+  <!-- ヘッダー -->
+  <div class="grades-header">
+    <button class="btn-back" onclick="history.back()">←</button>
+    <h1 class="grades-title">点数の閲覧</h1>
+  </div>
+
+  <!-- コンテンツ -->
+  <div class="grades-content">
+    <!-- フィルター -->
+    <div class="filter-section">
+      <select id="subject-filter" class="filter-dropdown">
+        <option value="all">すべての教科</option>
+        <option value="math">数学</option>
+        <option value="english">英語</option>
+        <option value="science">理科</option>
+        <option value="social">社会</option>
+      </select>
+    </div>
+
+    <!-- 点数一覧 -->
+    <div class="grades-list">
+      <!-- 点数データがここに動的に表示されます -->
+    </div>
+  </div>
+      <!-- 数学の点数 -->
+      <div class="grade-card">
+        <div class="grade-card-header">
+          <h3 class="grade-subject">数学</h3>
+          <span class="grade-date">2026-01-20</span>
+        </div>
+        <div class="grade-card-body">
+          <div class="grade-item-detail">
+            <span class="grade-item-name">第1回課題</span>
+            <div class="grade-display">
+              <span class="grade-score">85</span>
+              <span class="grade-unit">点</span>
+            </div>
+          </div>
+          <div class="grade-item-detail">
+            <span class="grade-item-name">テスト対策問題</span>
+            <div class="grade-display">
+              <span class="grade-score">92</span>
+              <span class="grade-unit">点</span>
+            </div>
+          </div>
+        </div>
+        <div class="grade-card-footer">
+          <span class="grade-average">平均: 88.5点</span>
+        </div>
+      </div>
+
+      <!-- 英語の点数 -->
+      <div class="grade-card">
+        <div class="grade-card-header">
+          <h3 class="grade-subject">英語</h3>
+          <span class="grade-date">2026-01-18</span>
+        </div>
+        <div class="grade-card-body">
+          <div class="grade-item-detail">
+            <span class="grade-item-name">和訳問題</span>
+            <div class="grade-display">
+              <span class="grade-score">78</span>
+              <span class="grade-unit">点</span>
+            </div>
+          </div>
+          <div class="grade-item-detail">
+            <span class="grade-item-name">リスニング</span>
+            <div class="grade-display">
+              <span class="grade-score">82</span>
+              <span class="grade-unit">点</span>
+            </div>
+          </div>
+        </div>
+        <div class="grade-card-footer">
+          <span class="grade-average">平均: 80点</span>
+        </div>
+      </div>
+
+      <!-- 理科の点数 -->
+      <div class="grade-card">
+        <div class="grade-card-header">
+          <h3 class="grade-subject">理科</h3>
+          <span class="grade-date">2026-01-15</span>
+        </div>
+        <div class="grade-card-body">
+          <div class="grade-item-detail">
+            <span class="grade-item-name">実験レポート</span>
+            <div class="grade-display">
+              <span class="grade-score">88</span>
+              <span class="grade-unit">点</span>
+            </div>
+          </div>
+          <div class="grade-item-detail">
+            <span class="grade-item-name">確認テスト</span>
+            <div class="grade-display">
+              <span class="grade-score">75</span>
+              <span class="grade-unit">点</span>
+            </div>
+          </div>
+        </div>
+        <div class="grade-card-footer">
+          <span class="grade-average">平均: 81.5点</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 点数統計 -->
+    <div class="stats-section">
+      <h2>統計情報</h2>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span class="stat-label">総合平均</span>
+          <span class="stat-value">83.3</span>
+          <span class="stat-unit">点</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">最高点数</span>
+          <span class="stat-value">92</span>
+          <span class="stat-unit">点</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">最低点数</span>
+          <span class="stat-value">75</span>
+          <span class="stat-unit">点</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">提出課題数</span>
+          <span class="stat-value">6</span>
+          <span class="stat-unit">件</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // フィルター機能
+  document.querySelector('#subject-filter').addEventListener('change', (e) => {
+    const filter = e.target.value;
+    const cards = document.querySelectorAll('.grade-card');
+    
+    cards.forEach(card => {
+      if (filter === 'all') {
+        card.style.display = 'block';
+      } else {
+        const subject = card.querySelector('.grade-subject').textContent.toLowerCase();
+        card.style.display = subject.includes(filter) ? 'block' : 'none';
+      }
+    });
+  });
+
+  // 点数カード選択時の詳細表示（必要に応じて）
+  document.querySelectorAll('.grade-card').forEach(card => {
+    card.addEventListener('click', () => {
+      console.log('詳細表示処理');
+    });
+  });
+</script>
+{% endblock %}

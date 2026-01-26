@@ -493,6 +493,7 @@ def checklist_selection(request):
     if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
         # 匿名ユーザーでも動作させる
         checklists = Checklist.objects.all()
+        owner = None
     else:
         owner = _get_write_owner(request)
         if owner is None:
@@ -550,7 +551,13 @@ def checklist_selection(request):
         # 安全性: 例外は握り潰してテンプレートは通常通り描画
         pass
 
-    return render(request, 'codemon/checklist_selection.html', {'checklists': checklists})
+    # Account オブジェクトをテンプレートコンテキストに追加
+    context = {
+        'checklists': checklists,
+        'account': owner,  # Account オブジェクトをテンプレートで使用可能に
+    }
+
+    return render(request, 'codemon/checklist_selection.html', context)
 
 def checklist_list(request):
     """作成済みチェックリストの一覧を表示"""
@@ -1674,3 +1681,86 @@ def chat_ui_group_manage(request):
         {'name': '鈴木', 'role': 'student', 'remove_url': '#'},
     ]
     return render(request, 'chat/group_manage.html', {'members': members})
+
+
+# ========================================
+# チャット機能 - 新しいUI画面
+# ========================================
+
+@login_required
+@login_required
+def chat_student(request):
+    """生徒側チャット画面"""
+    return render(request, 'chat/chat_student.html')
+
+
+@login_required
+def chat_teacher(request):
+    """教師側チャット画面"""
+    return render(request, 'chat/chat_teacher.html')
+
+
+@login_required
+def icon_settings_student(request):
+    """生徒側アイコン設定"""
+    return render(request, 'chat/icon_settings_student.html')
+
+
+@login_required
+def icon_settings_teacher(request):
+    """教師側アイコン設定"""
+    return render(request, 'chat/icon_settings_teacher.html')
+
+
+@login_required
+def upload_file_student(request):
+    """生徒側ファイル投函"""
+    return render(request, 'chat/upload_file_student.html')
+
+
+@login_required
+def upload_file_teacher(request):
+    """教師側ファイル投函"""
+    return render(request, 'chat/upload_file_teacher.html')
+
+
+@login_required
+def upload_image_student(request):
+    """生徒側画像投函"""
+    return render(request, 'chat/upload_image_student.html')
+
+
+@login_required
+def upload_image_teacher(request):
+    """教師側画像投函"""
+    return render(request, 'chat/upload_image_teacher.html')
+
+
+@login_required
+def grades_view_student(request):
+    """生徒側点数閲覧"""
+    return render(request, 'chat/grades_view_student.html')
+
+
+@login_required
+def submission_box_teacher(request):
+    """教師側投函ボックス管理"""
+    return render(request, 'chat/submission_box_teacher.html')
+
+
+@login_required
+def group_management_teacher(request):
+    """教師側グループ管理"""
+    return render(request, 'chat/group_management_teacher.html')
+
+
+@login_required
+def grading_teacher(request):
+    """教師側採点管理"""
+    return render(request, 'chat/grading_teacher.html')
+
+
+@login_required
+def chat_demo_index(request):
+    """チャット機能デモインデックス"""
+    return render(request, 'chat/index.html')

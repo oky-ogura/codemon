@@ -13,6 +13,9 @@ def global_character_data(request):
         account = Account.objects.filter(email=request.user.email).first()
         user_id = account.user_id if account else None
 
+        # Account情報をコンテキストに追加（通知ボタンなどで使用）
+        context['account'] = account
+
         # 最新のAiConfig取得
         ai_config = AiConfig.objects.filter(user_id=user_id).order_by('-created_at').first()
         if ai_config:

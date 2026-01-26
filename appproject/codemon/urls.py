@@ -73,6 +73,29 @@ urlpatterns = [
     path('chat/ui/score/student/', views.chat_ui_score_student, name='chat_ui_score_student'),
     path('chat/ui/score/teacher/', views.chat_ui_score_teacher, name='chat_ui_score_teacher'),
     path('chat/ui/group/manage/', views.chat_ui_group_manage, name='chat_ui_group_manage'),
+    
+    # ========================================
+    # チャット機能 - 新しいUI画面
+    # ========================================
+    # 生徒側
+    path('chat/student/', views.chat_student, name='chat_student'),
+    path('chat/student/icon-settings/', views.icon_settings_student, name='student_icon_settings'),
+    path('chat/student/upload-file/', views.upload_file_student, name='upload_file'),
+    path('chat/student/upload-image/', views.upload_image_student, name='upload_image'),
+    path('chat/student/grades/', views.grades_view_student, name='grades_view'),
+    
+    # 教師側
+    path('chat/teacher/', views.chat_teacher, name='chat_teacher'),
+    path('chat/teacher/icon-settings/', views.icon_settings_teacher, name='teacher_icon_settings'),
+    path('chat/teacher/upload-file/', views.upload_file_teacher, name='upload_file_teacher'),
+    path('chat/teacher/upload-image/', views.upload_image_teacher, name='upload_image_teacher'),
+    path('chat/teacher/submission-box/', views.submission_box_teacher, name='submission_box'),
+    path('chat/teacher/group-management/', views.group_management_teacher, name='group_management'),
+    path('chat/teacher/grading/', views.grading_teacher, name='grading'),
+    
+    # チャット機能デモインデックス
+    path('chat/demo/', views.chat_demo_index, name='chat_demo_index'),
+    
     path('', views.index, name='index'),
     path('chat/upload_attachment/', views.upload_attachments, name='upload_attachments'),
     # AI Chat API
