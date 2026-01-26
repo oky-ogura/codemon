@@ -1,0 +1,352 @@
+/* ========================================
+   画像アップロード - 共通スタイル
+   ======================================== */
+
+:root {
+  --primary-color: #06c755;
+  --primary-dark: #0ab251;
+  --secondary-color: #f3f3f5;
+  --text-primary: #111111;
+  --text-secondary: #999999;
+  --border-color: #e5e5ea;
+  --bg-white: #ffffff;
+  --shadow-light: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-medium: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --message-sent-bg: #06c755;
+  --message-received-bg: #e5e5ea;
+  
+  /* チャット画面のサイズと位置調整用変数 */
+  --chat-max-width: 100%;           /* チャット画面の最大幅 (例: 1200px, 90%, 100%) */
+  --chat-max-height: 100vh;         /* チャット画面の最大高さ (例: 800px, 90vh, 100vh) */
+  --chat-margin: 0 auto;            /* チャット画面の外側マージン (中央配置: 0 auto) */
+  --chat-padding: 0;                /* チャット画面の内側パディング */
+  --chat-top-offset: 0;             /* 上部からのオフセット (ナビゲーションバー分など) */
+  --chat-border-radius: 0;          /* チャット画面の角丸 (例: 12px) */
+  --chat-box-shadow: none;          /* チャット画面の影 (例: 0 4px 12px rgba(0,0,0,0.1)) */
+  
+  /* XY座標による位置調整 (position: fixed使用時) */
+  --chat-position: relative;        /* 配置方法 (relative, fixed, absolute) */
+  --chat-position-x: auto;          /* X座標 (left: 50px, center など) */
+  --chat-position-y: auto;          /* Y座標 (top: 50px など) */
+  --chat-transform: none;           /* 位置調整用transform (例: translateX(-50%)) */
+}
+
+body.no-scroll {
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+}
+
+.image-upload-container {
+  display: flex;
+  flex-direction: column;
+  height: var(--chat-max-height) !important;
+  max-width: var(--chat-max-width) !important;
+  margin: var(--chat-margin) !important;
+  padding: var(--chat-padding) !important;
+  margin-top: var(--chat-top-offset) !important;
+  background-color: var(--bg-white);
+  position: var(--chat-position) !important;
+  left: var(--chat-position-x) !important;
+  top: var(--chat-position-y) !important;
+  transform: var(--chat-transform) !important;
+  border-radius: var(--chat-border-radius) !important;
+  overflow: hidden;
+  box-shadow: var(--chat-box-shadow) !important;
+  width: 100%;
+}
+
+/* ===== ヘッダー ===== */
+.upload-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: var(--bg-white);
+  border-bottom: 1px solid var(--border-color);
+  gap: 12px;
+}
+
+.btn-back {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 8px;
+  color: var(--text-primary);
+  transition: opacity 0.2s;
+}
+
+.btn-back:hover {
+  opacity: 0.6;
+}
+
+.upload-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ===== コンテンツ ===== */
+.upload-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+/* 宛先選択 */
+.recipient-section {
+  margin-bottom: 24px;
+}
+
+.recipient-section h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+}
+
+.recipient-dropdown {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 15px;
+  background-color: var(--bg-white);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.recipient-dropdown:focus {
+  border-color: var(--primary-color);
+}
+
+/* 画像選択 */
+.image-selection-section {
+  margin-bottom: 24px;
+}
+
+.image-selection-section h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+}
+
+.upload-area {
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+  padding: 32px 16px;
+  text-align: center;
+  transition: all 0.2s;
+  cursor: pointer;
+  background-color: var(--bg-white);
+  margin-bottom: 16px;
+}
+
+.upload-area:hover {
+  border-color: var(--primary-color);
+  background-color: rgba(6, 199, 85, 0.05);
+}
+
+.upload-area.drag-over {
+  border-color: var(--primary-color);
+  background-color: rgba(6, 199, 85, 0.1);
+}
+
+.image-input {
+  display: none;
+}
+
+.upload-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.upload-icon {
+  font-size: 32px;
+}
+
+.upload-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.upload-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: block;
+}
+
+/* 選択された画像プレビュー */
+.image-preview-section {
+  margin-top: 16px;
+}
+
+.image-preview-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+}
+
+.image-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.preview-item {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.btn-remove-image {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 32px;
+  height: 32px;
+  background-color: #ff3b30;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-remove-image:hover {
+  background-color: #ff453a;
+}
+
+/* メッセージ入力 */
+.message-section {
+  margin-bottom: 24px;
+}
+
+.message-section h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+}
+
+.message-textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 100px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.message-textarea:focus {
+  border-color: var(--primary-color);
+}
+
+/* ===== フッター ===== */
+.upload-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background-color: var(--secondary-color);
+  border-top: 1px solid var(--border-color);
+}
+
+.btn-cancel,
+.btn-upload {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-cancel {
+  background-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.btn-cancel:hover {
+  background-color: #d1d1d6;
+}
+
+.btn-upload {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btn-upload:hover {
+  background-color: var(--primary-dark);
+}
+
+/* ===== スクロール ===== */
+.upload-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.upload-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.upload-content::-webkit-scrollbar-thumb {
+  background-color: #cccccc;
+  border-radius: 4px;
+}
+
+.upload-content::-webkit-scrollbar-thumb:hover {
+  background-color: #999999;
+}
+
+/* ===== レスポンシブ ===== */
+@media (max-width: 768px) {
+  .upload-area {
+    padding: 24px 12px;
+  }
+
+  .upload-icon {
+    font-size: 28px;
+  }
+
+  .upload-text {
+    font-size: 13px;
+  }
+
+  .image-preview-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .image-preview-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

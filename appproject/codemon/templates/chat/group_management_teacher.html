@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body_class %} class="no-scroll"{% endblock %}
+
+{% block background_frame %}
+  <img src="{% static 'codemon/images/frames/bg_frame_yellow.png' %}" 
+       alt="" 
+       class="bg-frame frame-yellow"
+       onerror="this.style.display='none';">
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'codemon/css/group_management.css' %}">
+<style>
+/* ここでチャット画面のサイズと位置を直接カスタマイズできます */
+:root {
+  /* デスクトップ中央配置(カード風) */
+  --chat-max-width: 800px;
+  --chat-max-height: 70vh;
+  --chat-margin: 20px auto;
+  --chat-border-radius: 12px;
+  --chat-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --chat-position: fixed;
+  --chat-position-x: 50px;
+  --chat-position-y: 130px;
+  --chat-margin: 0;
+  */
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="group-management-container">
+  <!-- ヘッダー -->
+  <div class="management-header">
+    <button class="btn-back" onclick="history.back()">←</button>
+    <h1 class="management-title">グループ管理</h1>
+    <button class="btn-create-group">新規作成</button>
+  </div>
+
+  <!-- コンテンツ -->
+  <div class="management-content">
+    <!-- グループ一覧 -->
+    <div class="groups-list">
+      <!-- グループがここに動的に表示されます -->
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const groupModal = document.querySelector('#create-group-modal');
+  const membersModal = document.querySelector('#members-modal');
+  const createGroupBtn = document.querySelector('.btn-create-group');
+
+  createGroupBtn.addEventListener('click', () => {
+    groupModal.classList.remove('hidden');
+  });
+
+  document.querySelectorAll('.btn-close-modal').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      if (e.target.closest('#create-group-modal')) {
+        groupModal.classList.add('hidden');
+      } else if (e.target.closest('#members-modal')) {
+        membersModal.classList.add('hidden');
+      }
+    });
+  });
+
+  document.querySelectorAll('.btn-cancel-modal').forEach(btn => {
+    btn.addEventListener('click', () => {
+      groupModal.classList.add('hidden');
+    });
+  });
+
+  document.querySelectorAll('.btn-close-modal-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      membersModal.classList.add('hidden');
+    });
+  });
+
+  document.querySelector('.btn-submit-modal').addEventListener('click', () => {
+    const name = document.querySelector('#group-name').value;
+    const description = document.querySelector('#group-description').value;
+
+    if (name) {
+      console.log('グループ作成:', { name, description });
+      alert('グループが作成されました！');
+      groupModal.classList.add('hidden');
+      document.querySelector('#create-group-form').reset();
+    } else {
+      alert('グループ名を入力してください');
+    }
+  });
+
+  function viewMembers(id) {
+    membersModal.classList.remove('hidden');
+  }
+
+  function editGroup(id) {
+    console.log('グループ編集:', id);
+    alert('グループの編集機能');
+  }
+
+  function deleteGroup(id) {
+    if (confirm('このグループを削除してもよろしいですか？')) {
+      console.log('グループ削除:', id);
+      alert('グループが削除されました');
+    }
+  }
+
+  function removeMember(id) {
+    if (confirm('このメンバーを削除してもよろしいですか？')) {
+      console.log('メンバー削除:', id);
+      alert('メンバーが削除されました');
+    }
+  }
+
+  document.querySelector('.btn-add-member').addEventListener('click', () => {
+    const memberSelect = document.querySelector('#member-select').value;
+    if (memberSelect) {
+      console.log('メンバー追加:', memberSelect);
+      alert('メンバーが招待されました！');
+      document.querySelector('#member-select').value = '';
+    } else {
+      alert('メンバーを選択してください');
+    }
+  });
+</script>
+{% endblock %}
