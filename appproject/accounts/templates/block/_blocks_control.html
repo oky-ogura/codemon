@@ -1,0 +1,213 @@
+<script>
+// ---------------------- 繰り返しブロック ----------------------
+Blockly.Blocks['controls_repeat_custom'] = {
+  init: function() {
+    this.appendValueInput("TIMES")
+      .setCheck("Number")
+      .appendField("つぎのことを");
+    this.appendDummyInput()
+      .appendField("かい くりかえす");
+    this.appendStatementInput("DO")
+      .appendField("すること");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(120);
+  }
+};
+
+// ---------------------- 条件分岐ブロック ----------------------
+Blockly.Blocks['controls_if_custom'] = {
+  init: function() {
+    this.appendValueInput("LEFT")
+      .setCheck(null)
+      .appendField("もし");
+    this.appendDummyInput()
+        .appendField("が")
+        .appendField(new Blockly.FieldDropdown([
+          ["=","EQ"],
+          ["≠","NEQ"],
+          [">","GT"],
+          ["<","LT"],
+          ["≥","GTE"],
+          ["≤","LTE"]
+        ]), "OP");
+    this.appendValueInput("RIGHT")
+        .setCheck(null);
+    this.appendDummyInput()
+        .appendField("なら");
+    this.appendStatementInput("DO")
+      .appendField("すること");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(120);
+  }
+};
+
+// ---------------------- Whileブロック（条件が真の間繰り返す） ----------------------
+Blockly.Blocks['controls_while'] = {
+  init: function() {
+    this.appendValueInput("COND")
+      .setCheck(null)
+      .appendField("じょうけんのあいだくりかえす: じょうけん");
+    this.appendStatementInput("DO")
+      .appendField("すること");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(120);
+  }
+};
+
+// ---------------------- Repeat Until（〜になるまで繰り返す） ----------------------
+Blockly.Blocks['controls_repeat_until'] = {
+  init: function() {
+    this.appendValueInput("COND")
+      .setCheck(null)
+      .appendField("じょうけんになるまでくりかえす: じょうけん");
+    this.appendStatementInput("DO")
+      .appendField("すること");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(120);
+  }
+};
+
+// ---------------------- Do-Until（最初の1回は必ず実行） ----------------------
+Blockly.Blocks['controls_do_until'] = {
+  init: function() {
+    this.appendStatementInput("DO")
+      .appendField("まず1かいする: すること");
+    this.appendValueInput("COND")
+      .setCheck(null)
+      .appendField("つぎにじょうけんになるまでくりかえす: じょうけん");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(120);
+  }
+};
+
+// ---------------------- Forever（常時実行・無限ループ） ----------------------
+Blockly.Blocks['controls_forever'] = {
+  init: function() {
+    this.appendStatementInput('DO')
+      .appendField('ずっとつづける: すること');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(120);
+  }
+};
+
+// ---------------------- Try / Catch / Finally（例外処理） ----------------------
+Blockly.Blocks['controls_try'] = {
+  init: function() {
+    this.appendStatementInput('TRY')
+      .appendField('ためしてみる:');
+    this.appendDummyInput()
+      .appendField('エラー名:')
+      .appendField(new Blockly.FieldTextInput('e'), 'ERRVAR');
+    this.appendStatementInput('CATCH')
+      .appendField('エラーのときのこと');
+    this.appendStatementInput('FINALLY')
+      .appendField('あとしまつ');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(120);
+  }
+};
+
+// ---------------------- For（インデックス付きループ） ----------------------
+Blockly.Blocks['controls_for'] = {
+  init: function() {
+    this.appendValueInput("FROM")
+      .setCheck("Number")
+      .appendField("はじめ");
+    this.appendValueInput("TO")
+      .setCheck("Number")
+      .appendField("まで");
+    this.appendValueInput("BY")
+      .setCheck("Number")
+      .appendField("ふやしかた");
+    this.appendStatementInput("DO")
+      .appendField("すること");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(120);
+  }
+};
+
+// ---------------------- For Each（配列/リスト走査） ----------------------
+Blockly.Blocks['controls_for_each'] = {
+  init: function() {
+    this.appendValueInput("LIST")
+      .setCheck(null)
+      .appendField("リスト（,でわける）:");
+    this.appendDummyInput()
+      .appendField("なまえ:")
+      .appendField(new Blockly.FieldTextInput("item"), "VAR");
+    this.appendStatementInput("DO")
+      .appendField("それぞれにすること");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(120);
+  }
+};
+
+// ---------------------- Break / Continue（ループ制御） ----------------------
+Blockly.Blocks['controls_break'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField('ループをやめる');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(120);
+  }
+};
+
+Blockly.Blocks['controls_continue'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField('つぎへすすむ');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(120);
+  }
+};
+
+// ---------------------- Switch / Case / Default（多分岐） ----------------------
+Blockly.Blocks['controls_switch'] = {
+  init: function() {
+    this.appendValueInput('VALUE')
+      .setCheck(null)
+      .appendField('値');
+    this.appendStatementInput('DO')
+      .appendField('ばあい');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(120);
+  }
+};
+
+Blockly.Blocks['controls_case'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField('ばあい')
+      .appendField(new Blockly.FieldTextInput('値'), 'VALUE');
+    this.appendStatementInput('DO')
+      .appendField('すること');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(120);
+  }
+};
+
+Blockly.Blocks['controls_default'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField('どれにもあてはまらないとき');
+    this.appendStatementInput('DO')
+      .appendField('すること');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(120);
+  }
+};
+</script>

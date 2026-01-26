@@ -4,315 +4,356 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>設定確認</title>
+    <title>設定確認 - CodeMon Start!</title>
     <style>
-        body{
-            margin:0;
-            font-family:'M PLUS Rounded 1c', Meiryo, 'Hiragino Kaku Gothic ProN',sans-serif;
-            min-height:100vh;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            position:relative;
-            overflow:hidden;
+        :root {
+            --main-blue: #3fbcd9;
+            --main-yellow: #FFD200;
+            --main-bg: #f0f4f8;
+            --panel-white: rgba(255, 255, 255, 0.95);
+            --text-color: #4a5568;
+            --buddy-color: #3fbcd9;
+            --buddy-color-deep: #2a8da3;
         }
-        /* 装飾要素 */
-        .deco-shape{position:absolute;z-index:1}
-        .hexagon{width:100px;height:100px;border:8px solid rgba(147,112,219,0.5);transform:rotate(45deg);top:50px;left:200px;border-radius:15px}
-        .circle{width:60px;height:60px;border:6px solid rgba(255,105,180,0.6);border-radius:50%;top:120px;left:400px}
-        .triangle{width:0;height:0;border-left:40px solid transparent;border-right:40px solid transparent;border-bottom:70px solid rgba(147,200,255,0.5);top:80px;right:250px}
-        .pentagon{width:120px;height:120px;background:rgba(144,238,144,0.4);clip-path:polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);top:50px;right:100px}
-        .dots{position:absolute;bottom:100px;left:80px;display:grid;grid-template-columns:repeat(6,8px);gap:8px}
-        .dot{width:8px;height:8px;background:rgba(100,200,255,0.6);border-radius:50%}
-        .line1{position:absolute;width:200px;height:5px;background:rgba(255,105,180,0.7);transform:rotate(45deg);bottom:150px;right:200px;border-radius:3px}
-        .line2{position:absolute;width:150px;height:5px;background:rgba(100,200,255,0.7);transform:rotate(-45deg);top:200px;left:150px;border-radius:3px}
-        .cross{position:absolute;bottom:200px;right:400px;font-size:60px;color:rgba(255,105,180,0.5);font-weight:bold}
-        .curve{position:absolute;bottom:100px;right:100px;width:100px;height:100px;border:5px solid rgba(100,200,255,0.6);border-color:transparent rgba(100,200,255,0.6) rgba(100,200,255,0.6) transparent;border-radius:50%;transform:rotate(45deg)}
-        
-        .wrap{
-            max-width:1200px;
-            width:90%;
-            margin:0 auto;
-            padding:40px 50px;
-            position:relative;
-            z-index:10;
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--main-bg);
+            background-image: linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), url("{% static 'codemon/images/backgrounds/bg_common.png' %}");
+            background-size: cover; 
+            background-position: center; 
+            background-attachment: fixed;
+            font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-color);
         }
-        h1{
-            text-align:center;
-            margin:0 0 30px;
-            font-size:36px;
-            font-weight:bold;
-            position:relative;
+
+        .container {
+            width: 95%;
+            max-width: 1100px;
+            height: 90vh; /* 少し余裕を持たせる */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* 上・中・下を均等に配置 */
+            align-items: center;
         }
-        h1::before, h1::after{
-            content:'///';
-            position:absolute;
-            top:50%;
-            transform:translateY(-50%);
-            color:#FFD700;
-            font-size:20px;
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 10px;
         }
-        h1::before{left:calc(50% - 200px)}
-        h1::after{right:calc(50% - 200px)}
-        
-        .content{display:flex;gap:40px;align-items:flex-start}
-        .section{flex:1}
-        .section-title{
-            display:inline-block;
-            background:#fff;
-            border:3px solid #FF69B4;
-            border-radius:15px;
-            padding:8px 25px;
-            margin-bottom:30px;
-            font-size:18px;
-            font-weight:bold;
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--main-blue);
+            margin: 0;
+            display: inline-block;
+            position: relative;
         }
         
-        .info-group{display:flex;flex-direction:column;gap:18px;margin-left:40px}
-        .info-row{display:flex;align-items:center;gap:15px}
-        .info-label{
-            font-size:16px;
-            font-weight:500;
-            min-width:140px;
+        .page-title::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: var(--main-yellow);
+            border-radius: 10px;
+            opacity: 0.6;
+            z-index: -1;
         }
-        .info-value{
-            background:linear-gradient(135deg, #7DD3FC 0%, #60C1FC 100%);
-            color:#000;
-            padding:12px 35px;
-            border-radius:25px;
-            font-size:16px;
-            font-weight:500;
-            flex:1;
-            max-width:350px;
+
+        /* １．追加：サブタイトル */
+        .page-subtitle {
+            margin-top: 15px;
+            font-weight: 700;
+            color: #718096;
+            font-size: 1.1rem;
         }
-        
-        .center-section{
-            display:flex;
-            flex-direction:column;
-            align-items:center;
-            gap:20px;
-            padding:0 30px;
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 340px 1fr;
+            gap: 20px;
+            align-items: center;
+            width: 100%;
+            flex-grow: 1; /* 中央部分を広げる */
         }
-        .ai-illustration-frame{
-            width:200px;
-            height:280px;
-            background:#fff;
-            border-radius:15px;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            overflow:hidden;
-            position:relative;
+
+        .card {
+            background: var(--panel-white);
+            border-radius: 25px;
+            padding: 30px 20px 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            border: 5px solid #fff;
+            position: relative;
+            z-index: 5;
         }
-        .ai-illustration{
-            width:100%;
-            height:100%;
-            object-fit:contain;
+
+        .card-header {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            padding: 4px 20px;
+            border-radius: 50px;
+            font-weight: 800;
+            font-size: 0.9rem;
+            white-space: nowrap;
         }
-        
-        .button-row{
-            display:flex;
-            justify-content:center;
-            gap:20px;
-            margin-top:30px;
-            height:50px;
-            align-items:center;
+
+        .card.user-card .card-header { background: var(--main-blue); }
+        .card.buddy-card .card-header { background: var(--buddy-color); }
+
+        .info-list { list-style: none; padding: 0; margin: 0; }
+        .info-item {
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px dotted #e2e8f0;
         }
-        .btn{
-            font-size:1rem;
-            color:#000000;
-            text-transform:uppercase;
-            padding:5px 10px;
-            border-radius:10px;
-            border-top:2px solid #ff8c00;
-            border-left:2px solid #ff8c00;
-            border-right:2px solid #fafafa;
-            border-bottom:2px solid #fafafa;
-            background:#ffffff;
-            box-shadow:5px 5px 0 #00bfff;
-            cursor:pointer;
-            font-weight:bold;
-            text-decoration:none;
-            display:inline-block;
-            transition:transform 0.2s;
-            height:40px;
-            line-height:40px;
-            padding:0 20px;
+
+        .info-label {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #94a3b8;
+            margin-bottom: 2px;
+            display: block;
         }
-        .btn:hover{transform:translateY(-2px)}
-        .btn-primary{
-            background:#ffffff;
-            color:#000000;
+
+        .info-value { font-size: 1rem; font-weight: 700; }
+
+        .center-stage {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 350px; /* ボタンを出したので少し高さを調整 */
         }
-        .btn-secondary{
-            background:#ffffff;
-            color:#000000;
+
+        .character-glow {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 220px; height: 220px;
+            background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 70%);
+            border-radius: 50%;
+            z-index: 1;
         }
-        
-        /* レスポンシブ対応 */
-        @media (max-width: 1000px) {
-            .content{flex-direction:column;align-items:center}
-            .section{width:100%;max-width:500px}
-            .info-group{margin-left:0}
-            h1::before, h1::after{display:none}
+
+        .center-stage::before {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 280px; height: 280px;
+            border: 6px dotted var(--buddy-color);
+            border-radius: 50%;
+            opacity: 0.4;
+            z-index: 0;
+            animation: rotateRight 40s linear infinite;
+        }
+
+        .center-stage::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 210px; height: 210px;
+            border: 4px dotted var(--buddy-color);
+            border-radius: 50%;
+            opacity: 0.3;
+            z-index: 0;
+            animation: rotateLeft 25s linear infinite;
+        }
+
+        @keyframes rotateRight {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        @keyframes rotateLeft {
+            from { transform: translate(-50%, -50%) rotate(360deg); }
+            to { transform: translate(-50%, -50%) rotate(0deg); }
+        }
+
+        .ai-illustration {
+            width: 220px;
+            height: 220px;
+            object-fit: contain;
+            position: relative;
+            z-index: 2;
+            filter: drop-shadow(0 8px 15px rgba(0,0,0,0.1));
+        }
+
+        /* ２．決定ボタンエリアの調整 */
+        .footer-action {
+            width: 100%;
+            max-width: 400px; /* 横に広がりすぎないように制限 */
+            padding-bottom: 20px;
+        }
+
+        .btn-main {
+            background: var(--main-yellow);
+            color: #634A00;
+            font-size: 1.6rem;
+            font-weight: 900;
+            padding: 15px 0;
+            border-radius: 50px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #d4af00;
+            transition: all 0.1s;
+            width: 100%;
+            position: relative;
+            z-index: 10;
+        }
+
+        .btn-main:hover { transform: translateY(2px); box-shadow: 0 4px 0 #d4af00; }
+        .btn-main:active { transform: translateY(6px); box-shadow: none; }
+
+        .btn-edit {
+            display: inline-block;
+            margin-top: 10px;
+            color: #94a3b8;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-decoration: none;
+            padding: 4px 10px;
+        }
+
+        @media (max-width: 900px) {
+            body { overflow-y: auto; height: auto; }
+            .container { height: auto; padding: 20px; }
+            .dashboard { grid-template-columns: 1fr; }
+            .center-stage { height: 300px; }
+            .center-stage::before, .center-stage::after, .character-glow { display: none; }
+            .footer-action { margin-top: 30px; }
         }
     </style>
 </head>
 <body>
-<!-- 装飾要素 -->
-<div class="deco-shape hexagon"></div>
-<div class="deco-shape circle"></div>
-<div class="deco-shape triangle"></div>
-<div class="deco-shape pentagon"></div>
-<div class="deco-shape dots">
-    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
-    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
-    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
-</div>
-<div class="deco-shape line1"></div>
-<div class="deco-shape line2"></div>
-<div class="deco-shape cross">+</div>
-<div class="deco-shape curve"></div>
 
-<div class="wrap">
-    <h1>これで大丈夫？</h1>
-    
-    <div class="content">
-        <!-- 左側：あなたの情報 -->
-        <div class="section">
-            <div class="section-title">あなたの情報</div>
-            <div class="info-group">
-                {% if request.user.is_authenticated %}
-                    <div class="info-row">
-                        <div class="info-label">名前</div>
-                        <div class="info-value">{{ request.user.user_name|default:request.user.get_full_name|default:request.user.username }}</div>
+<div class="container">
+    <header class="page-header">
+        <h1 class="page-title">さいごの かくにん!</h1>
+        <div class="page-subtitle">このせっていではじめてもいいかな？</div>
+    </header>
+
+    <div class="dashboard">
+        <div class="card user-card">
+            <div class="card-header">あなたの こと</div>
+            <ul class="info-list">
+                <li class="info-item">
+                    <span class="info-label">なまえ</span>
+                    <div class="info-value">
+                        {% if request.user.is_authenticated %}
+                            {{ request.user.user_name|default:request.user.get_full_name|default:request.user.username }}
+                        {% else %}
+                            {{ request.session.pending_account_name|default:request.session.account_user_name|default:"なまえがないよ" }}
+                        {% endif %}
                     </div>
-                    <div class="info-row">
-                        <div class="info-label">年齢</div>
-                        <div class="info-value">
-                            {% if request.user.age %}
-                                {{ request.user.age }} 歳
-                            {% elif request.session.account_age %}
-                                {{ request.session.account_age }} 歳
-                            {% elif request.session.pending_account_age %}
-                                {{ request.session.pending_account_age }} 歳
-                            {% else %}
-                                未設定
-                            {% endif %}
-                        </div>
+                </li>
+                <li class="info-item">
+                    <span class="info-label">ねんれい</span>
+                    <div class="info-value">
+                        {% if request.user.age %}{{ request.user.age }}{% else %}{{ request.session.pending_account_age|default:request.session.account_age|default:"-" }}{% endif %} 歳
                     </div>
-                    <div class="info-row">
-                        <div class="info-label">メールアドレス</div>
-                        <div class="info-value">{{ request.user.email }}</div>
+                </li>
+                <li class="info-item">
+                    <span class="info-label">メールアドレス</span>
+                    <div class="info-value" style="font-size:0.85rem; word-break: break-all;">
+                        {% if request.user.email %}{{ request.user.email }}{% else %}{{ request.session.pending_account_email|default:request.session.account_email|default:"-" }}{% endif %}
                     </div>
-                    <div class="info-row">
-                        <div class="info-label">パスワード</div>
-                        <div class="info-value">••••••••</div>
-                    </div>
-                {% elif 'pending_account_name' in request.session or 'account_user_name' in request.session %}
-                    <div class="info-row">
-                        <div class="info-label">名前</div>
-                        <div class="info-value">
-                            {% if 'pending_account_name' in request.session %}
-                                {{ request.session.pending_account_name }}
-                            {% else %}
-                                {{ request.session.account_user_name }}
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-label">年齢</div>
-                        <div class="info-value">
-                            {% if 'pending_account_age' in request.session %}
-                                {{ request.session.pending_account_age }} 歳
-                            {% elif 'account_age' in request.session %}
-                                {{ request.session.account_age }} 歳
-                            {% else %}
-                                未設定
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-label">メールアドレス</div>
-                        <div class="info-value">
-                            {% if 'pending_account_email' in request.session %}
-                                {{ request.session.pending_account_email }}
-                            {% else %}
-                                {{ request.session.account_email }}
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-label">パスワード</div>
-                        <div class="info-value">••••••••</div>
-                    </div>
-                {% else %}
-                    <div class="info-row">
-                        <div class="info-label" style="min-width:100%">(未ログイン — 登録・ログインするとここに表示されます)</div>
-                    </div>
-                {% endif %}
-            </div>
-            <div class="button-row">
-                <a href="{% url 'accounts:student_signup' %}" class="btn btn-secondary">情報を変更</a>
+                </li>
+                <li class="info-item" style="border:none">
+                    <span class="info-label">パスワード</span>
+                    <div class="info-value">●●●●●●●●</div>
+                </li>
+            </ul>
+            <div style="text-align:center">
+                <a href="{% url 'accounts:student_signup' %}" class="btn-edit">✎ なおす</a>
             </div>
         </div>
-        
-        <!-- 中央：AIイラスト -->
-        <div class="center-section">
-            <div class="ai-illustration-frame">
-                <img class="ai-illustration" id="ai_ill" src="" alt="AIのイラスト">
-            </div>
-            <div style="height:45px"></div>
-            <form method="post" action="{% url 'accounts:ai_initial_save' %}">
-                {% csrf_token %}
-                <input type="hidden" name="ai_name" value="{{ ai_name }}">
-                <input type="hidden" name="ai_personality" value="{{ ai_personality }}">
-                <input type="hidden" name="ai_speech" value="{{ ai_speech }}">
-                <input type="hidden" name="appearance" value="{{ appearance }}">
-                <button type="submit" class="btn btn-primary">決定</button>
-            </form>
+
+        <div class="center-stage">
+            <div class="character-glow"></div>
+            <img class="ai-illustration" id="ai_ill" src="" alt="AIのイラスト">
         </div>
-        
-        <!-- 右側：CodeMonの情報 -->
-        <div class="section">
-            <div class="section-title">CodeMonの情報</div>
-            <div class="info-group">
-                <div class="info-row">
-                    <div class="info-label">名前</div>
-                    <div class="info-value">{{ ai_name }}</div>
-                </div>
-                <div class="info-row">
-                    <div class="info-label"></div>
-                    <div class="info-value" style="background:transparent"></div>
-                </div>
-                <div class="info-row">
-                    <div class="info-label"></div>
-                    <div class="info-value" style="background:transparent"></div>
-                </div>
-                <div class="info-row">
-                    <div class="info-label"></div>
-                    <div class="info-value" style="background:transparent"></div>
-                </div>
-                <div class="info-row">
-                    <div class="info-label"></div>
-                    <div class="info-value" style="background:transparent"></div>
-                </div>
-            </div>
-            <div class="button-row">
-                <a href="{% url 'accounts:ai_appearance' %}" class="btn btn-secondary">情報を変更</a>
+
+        <div class="card buddy-card" id="buddy_card">
+            <div class="card-header">あいぼうの こと</div>
+            <ul class="info-list">
+                <li class="info-item">
+                    <span class="info-label">なまえ</span>
+                    <div class="info-value" style="color:var(--buddy-color-deep)">{{ ai_name }}</div>
+                </li>
+                <li class="info-item">
+                    <span class="info-label">しゅぞく</span>
+                    <div class="info-value" id="display_appearance"></div>
+                </li>
+                <li class="info-item">
+                    <span class="info-label">せいかく</span>
+                    <div class="info-value">
+                        {% if ai_personality == "undefined" or not ai_personality %}
+                            まだ決まってないよ
+                        {% else %}
+                            {{ ai_personality }}
+                        {% endif %}
+                    </div>
+                </li>
+                <li class="info-item" style="border:none">
+                    <span class="info-label">はなしことば</span>
+                    <div class="info-value">
+                        {% if ai_speech == "undefined" or not ai_speech %}
+                            まだ決まってないよ
+                        {% else %}
+                            {{ ai_speech }}
+                        {% endif %}
+                    </div>
+                </li>
+            </ul>
+            <div style="text-align:center">
+                <a href="{% url 'accounts:ai_appearance' %}" class="btn-edit">✎ なおす</a>
             </div>
         </div>
+    </div>
+
+    <div class="footer-action">
+        <form method="post" action="{% url 'accounts:ai_initial_save' %}" style="width:100%">
+            {% csrf_token %}
+            <input type="hidden" name="ai_name" value="{{ ai_name }}">
+            <input type="hidden" name="ai_personality" value="{{ ai_personality }}">
+            <input type="hidden" name="ai_speech" value="{{ ai_speech }}">
+            <input type="hidden" name="appearance" value="{{ appearance }}">
+            <button type="submit" class="btn-main">けってい！</button>
+        </form>
     </div>
 </div>
 
 <script>
+    const colorMap = {
+        'イヌ.png': '#FFD700', 'ウサギ.png': '#FFB6C1', 'キツネ.png': '#E5A020',
+        'ネコ.png': '#4DB6AC', 'パンダ.png': '#E0E0E0', 'フクロウ.png': '#92B7D6',
+        'リス.png': '#FEB6AC', 'アルパカ.png': '#E5D580'
+    };
+
     const baseStatic = "{% static 'codemon/images/characters/' %}";
     const appearance = "{{ appearance|default:''|escapejs }}";
-    const ill = document.getElementById('ai_ill');
-    if(appearance){
-        // appearanceはそのまま動物名（例：イヌ、ウサギ）なので、.pngを付けるだけ
+    
+    if(appearance && appearance !== "undefined") {
+        const ill = document.getElementById('ai_ill');
         ill.src = baseStatic + encodeURIComponent(appearance);
-        ill.alt = appearance;
+        document.getElementById('display_appearance').innerText = appearance.replace('.png', '');
+
+        const mainColor = colorMap[appearance] || '#3fbcd9';
+        document.documentElement.style.setProperty('--buddy-color', mainColor);
     }
 </script>
 </body>

@@ -1,0 +1,115 @@
+<script>
+const visual = document.getElementById("visual-area");
+
+// グローバルなエンティティ状態（位置・角度・速度・フラグ）
+if(typeof window._actor === 'undefined'){
+  window._actor = { x:0, y:0, orientation:0, speed:1, paused:false, stopped:false, simTime:0 };
+}
+
+// システム一覧をグローバル変数に保存
+window._systemsList = [];
+try {
+  const systemsData = '{{ systems_json|escapejs }}';
+  if (systemsData && systemsData !== '[]' && systemsData !== '') {
+    window._systemsList = JSON.parse(systemsData);
+  }
+} catch(e) {
+  console.error('システム一覧の読み込みエラー:', e);
+}
+
+/* ---------------------- ナビタブ（見た目切替 / 遷移） ---------------------- */
+(function(){
+  try{
+    const tabs = document.querySelectorAll('.nav-tab');
+    tabs.forEach(tab=>{
+      tab.addEventListener('click', (e)=>{
+        try{
+          // クリックで見た目を切替（押せるようにする）
+          tabs.forEach(t=>{
+            t.classList.remove('active');
+            t.setAttribute('aria-pressed','false');
+          });
+          tab.classList.add('active');
+          tab.setAttribute('aria-pressed','true');
+          if(typeof tab.blur === 'function') tab.blur();
+
+          // システムタブ
+          if(tab.id === 'tab-system'){
+            // system_choice.html へ遷移
+            window.location.href = '/accounts/system/choice/';
+            return;
+          }
+          // 変更: アルゴリズムタブ押下で block/choiceへ遷移
+          if(tab.id === 'tab-algorithm'){
+            window.location.href = '/accounts/block/choice';
+            return;
+          }
+          // 他タブは現状見た目のみ（遷移未実装）
+        }catch(err){
+          console.error('tab click handler error', err);
+        }
+      });
+    });
+  }catch(err){
+    console.error('tabs init error', err);
+  }
+})();
+
+// ---------------------- ワークスペース ----------------------
+const workspace = Blockly.inject('blocklyDiv', {
+  toolbox: document.getElementById('toolbox')
+});
+
+// 編集モードの場合、既存のBlocklyデータを読み込む
+(function loadBlocklyData(){
+  const blocklyXml = '{{ blockly_xml|escapejs }}';
+  
+  // 戻るボタン経由で戻ってきた場合は、一時保存されたBlocklyデータを優先
+  const returnedFromCreate = sessionStorage.getItem('returned_from_create');
+  let xmlToLoad = blocklyXml;
+  
+  if (returnedFromCreate === 'true') {
+    const tempBlocklyXml = sessionStorage.getItem('temp_blockly_xml');
+    if (tempBlocklyXml) {
+      xmlToLoad = tempBlocklyXml;
+      console.log('戻るボタン経由: 一時保存されたBlocklyデータを復元しました');
+    }
+    // 一時保存データを削除
+    sessionStorage.removeItem('temp_blockly_xml');
+    sessionStorage.removeItem('returned_from_create');
+  }
+  
+  if (xmlToLoad && xmlToLoad.trim() !== '') {
+    try {
+      const xml = Blockly.utils.xml.textToDom(xmlToLoad);
+      Blockly.Xml.domToWorkspace(xml, workspace);
+    } catch(e) {
+      console.error('Blocklyデータの読み込みに失敗しました:', e);
+    }
+  }
+})();
+
+// Undoボタン
+document.getElementById('undoBtn').addEventListener('click', function() {
+  workspace.undo(false);
+});
+
+// Redoボタン
+document.getElementById('redoBtn').addEventListener('click', function() {
+  workspace.undo(true);
+});
+
+// ショートカットキー（Ctrl+Z, Ctrl+Y）
+document.addEventListener('keydown', function(e) {
+  // Ctrl+Z（元に戻す）
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+    e.preventDefault();
+    workspace.undo(false);
+  }
+  // Ctrl+Y（やり直し）
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+    e.preventDefault();
+    workspace.undo(true);
+  }
+});
+</script>

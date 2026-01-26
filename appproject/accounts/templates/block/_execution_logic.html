@@ -1,0 +1,925 @@
+<script>
+// ---------------------- 条件評価関数 ----------------------
+function evalCondition(block){
+  if(!block) return 0;
+  if(block.getValue) {
+    const val = block.getValue();
+    if(typeof val === "string") return val !== "" ? 1 : 0;
+    return Number(val);
+  }
+  if(block.type === "direct_number") return Number(block.getFieldValue("value"));
+  if(block.type === "arithmetic") {
+    const A = evalCondition(block.getInputTargetBlock("A")) || 0;
+    const B = evalCondition(block.getInputTargetBlock("B")) || 0;
+    const op = block.getFieldValue("OP");
+    switch(op){
+      case "ADD": return A + B;
+      case "MINUS": return A - B;
+      case "MULTIPLY": return A * B;
+      case "DIVIDE": return B !== 0 ? A / B : 0;
+    }
+  }
+  // 追加演算の評価
+  if(block.type === 'modulo'){
+    const A = Number(evalCondition(block.getInputTargetBlock('A')) || 0);
+    const B = Number(evalCondition(block.getInputTargetBlock('B')) || 0);
+    return B !== 0 ? (A % B) : 0;
+  }
+  if(block.type === 'power'){
+    const A = Number(evalCondition(block.getInputTargetBlock('A')) || 0);
+    const B = Number(evalCondition(block.getInputTargetBlock('B')) || 0);
+    return Math.pow(A, B);
+  }
+  if(block.type === 'sqrt'){
+    const v = Number(evalCondition(block.getInputTargetBlock('NUM')) || 0);
+    return Math.sqrt(v);
+  }
+  if(block.type === 'abs'){
+    const v = Number(evalCondition(block.getInputTargetBlock('NUM')) || 0);
+    return Math.abs(v);
+  }
+  if(block.type === 'negate'){
+    const v = Number(evalCondition(block.getInputTargetBlock('NUM')) || 0);
+    return -v;
+  }
+  if(block.type === 'round'){
+    const v = Number(evalCondition(block.getInputTargetBlock('NUM')) || 0);
+    return Math.round(v);
+  }
+  if(block.type === 'floor'){
+    const v = Number(evalCondition(block.getInputTargetBlock('NUM')) || 0);
+    return Math.floor(v);
+  }
+  if(block.type === 'ceil'){
+    const v = Number(evalCondition(block.getInputTargetBlock('NUM')) || 0);
+    return Math.ceil(v);
+  }
+  if(block.type === 'min'){
+    const A = Number(evalCondition(block.getInputTargetBlock('A')) || 0);
+    const B = Number(evalCondition(block.getInputTargetBlock('B')) || 0);
+    return Math.min(A,B);
+  }
+  if(block.type === 'max'){
+    const A = Number(evalCondition(block.getInputTargetBlock('A')) || 0);
+    const B = Number(evalCondition(block.getInputTargetBlock('B')) || 0);
+    return Math.max(A,B);
+  }
+  if(block.type === 'clamp'){
+    const val = Number(evalCondition(block.getInputTargetBlock('VAL')) || 0);
+    const mn = Number(evalCondition(block.getInputTargetBlock('MIN')) || 0);
+    const mx = Number(evalCondition(block.getInputTargetBlock('MAX')) || 0);
+    if(isNaN(mn) || isNaN(mx)) return val;
+    const low = Math.min(mn,mx), high = Math.max(mn,mx);
+    return Math.min(Math.max(val, low), high);
+  }
+  if(block.type === 'random_int'){
+    let mn = Number(evalCondition(block.getInputTargetBlock('MIN')) || 0);
+    let mx = Number(evalCondition(block.getInputTargetBlock('MAX')) || 0);
+    mn = Math.ceil(mn); mx = Math.floor(mx);
+    if(mx < mn){ const t = mn; mn = mx; mx = t; }
+    const range = mx - mn + 1;
+    if(range <= 0) return mn;
+    return Math.floor(Math.random() * range) + mn;
+  }
+  if(block.type === 'random_float'){
+    return Math.random();
+  }
+  if(block.type === 'length'){
+    try{
+      const inBlock = block.getInputTargetBlock('INPUT');
+      if(inBlock && inBlock.getValue){
+        const v = inBlock.getValue();
+        if(Array.isArray(v)) return v.length;
+        if(typeof v === 'string') return v.length;
+        if(typeof v === 'number') return String(v).length;
+      }
+      // fallback: evaluate nested block
+      const maybe = evalCondition(inBlock);
+      if(Array.isArray(maybe)) return maybe.length;
+      if(typeof maybe === 'string') return maybe.length;
+      if(typeof maybe === 'number') return String(maybe).length;
+    }catch(e){/* ignore */}
+    return 0;
+  }
+  if(block.type === 'date_add_days'){
+    try{
+      const dateBlock = block.getInputTargetBlock('DATE');
+      let baseDate = null;
+      if(dateBlock){
+        // try getValue() from form-like blocks
+        if(typeof dateBlock.getValue === 'function'){
+          const gv = dateBlock.getValue();
+          if(typeof gv === 'string' && gv.trim() !== '') baseDate = new Date(gv);
+          else if(typeof gv === 'number') baseDate = new Date(gv);
+        }
+        if(!baseDate){
+          try{
+            const txt = dateBlock.getFieldValue && (dateBlock.getFieldValue('value') || dateBlock.getFieldValue('label') || dateBlock.getFieldValue('TEXT') || '');
+            if(txt) baseDate = new Date(txt);
+          }catch(e){}
+        }
+        if(!baseDate){
+          const num = evalCondition(dateBlock);
+          if(typeof num === 'number' && !isNaN(num)){
+            if(num > 1e11) baseDate = new Date(num);
+            else {
+              const s = String(num);
+              if(s.length === 8){
+                const y = Number(s.slice(0,4)), m = Number(s.slice(4,6))-1, d = Number(s.slice(6,8));
+                baseDate = new Date(y,m,d);
+              } else {
+                baseDate = new Date(num);
+              }
+            }
+          }
+        }
+      }
+      if(!baseDate || isNaN(baseDate.getTime())) baseDate = new Date();
+      const days = Number(evalCondition(block.getInputTargetBlock('DAYS')) || 0);
+      const result = new Date(baseDate.getTime() + days * 24 * 60 * 60 * 1000);
+      const y = result.getFullYear();
+      const m = String(result.getMonth()+1).padStart(2,'0');
+      const d = String(result.getDate()).padStart(2,'0');
+      return `${y}-${m}-${d}`;
+    }catch(e){ return ''; }
+  }
+  // get_position: return current actor position as "x,y"
+  if(block.type === 'get_position'){
+    try{
+      const a = window._actor || {x:0,y:0};
+      return `${a.x},${a.y}`;
+    }catch(e){ return '0,0'; }
+  }
+  return 0;
+}
+
+function evalIfCondition(block){
+  if(!block) return false;
+  const left = evalCondition(block.getInputTargetBlock("LEFT"));
+  const right = evalCondition(block.getInputTargetBlock("RIGHT"));
+  const op = block.getFieldValue("OP");
+  switch(op){
+    case "EQ": return left == right;
+    case "NEQ": return left != right;
+    case "GT": return left > right;
+    case "LT": return left < right;
+    case "GTE": return left >= right;
+    case "LTE": return left <= right;
+  }
+  return false;
+}
+
+// Collect answers rendered in #visual-area: label -> value
+function collectAnswers(){
+  const pairs = {};
+  try{
+    const rows = Array.from(document.querySelectorAll('#visual-area .form-row'));
+    rows.forEach(row => {
+      // Determine label robustly: prefer <label for="...">, then leading text node, then any <label>
+      let label = '';
+      const labelFor = row.querySelector('label[for]');
+      if(labelFor) label = labelFor.innerText.trim();
+      if(!label){
+        // look for leading text node (used by radio_choice and others)
+        for(const node of row.childNodes){
+          if(node.nodeType === Node.TEXT_NODE){
+            const t = node.textContent.trim();
+            if(t){ label = t; break; }
+          }
+          // if it's an element and not an input/label, try its text
+          if(node.nodeType === Node.ELEMENT_NODE && !['INPUT','LABEL'].includes(node.tagName)){
+            const t = node.textContent.trim(); if(t){ label = t; break; }
+          }
+        }
+      }
+      if(!label){
+        const anyLabel = row.querySelector('label');
+        if(anyLabel) label = anyLabel.innerText.trim();
+      }
+      if(!label) label = (row.dataset.label || '').trim();
+      if(!label) return;
+
+      // Collect value by input type
+      const inputText = row.querySelector('input[type="text"], textarea');
+      if(inputText){ pairs[label] = inputText.value; return; }
+      const inputNumber = row.querySelector('input[type="number"]');
+      if(inputNumber){ pairs[label] = inputNumber.value; return; }
+      const inputFile = row.querySelector('input[type="file"]');
+      if(inputFile){
+        const files = inputFile.files;
+        if(files && files.length){
+          pairs[label] = Array.from(files).map(f=>f.name).join(', ');
+        } else {
+          pairs[label] = '';
+        }
+        return;
+      }
+      const radios = row.querySelectorAll('input[type="radio"]');
+      if(radios && radios.length){
+        const name = radios[0].name;
+        const checked = row.querySelector(`input[name="${name}"]:checked`);
+        pairs[label] = checked ? checked.value : '';
+        return;
+      }
+      const checkboxes = row.querySelectorAll('input[type="checkbox"]');
+      if(checkboxes && checkboxes.length){
+        const vals = Array.from(checkboxes).filter(c=>c.checked).map(c=>c.value);
+        pairs[label] = vals.join(',');
+        return;
+      }
+      // fallback: take visible text
+      pairs[label] = row.innerText.replace(/\n/g,' ').trim();
+    });
+  }catch(e){ console.error('collectAnswers error', e); }
+  return pairs;
+}
+
+// ---------------------- 実行関数 ----------------------
+async function runBlocks(){
+  visual.innerHTML = "";
+  const blocks = workspace.getTopBlocks(true);
+
+  async function processBlock(block){
+    if(!block) return;
+
+    if(block.updateVisual) block.updateVisual(visual);
+    else{
+      switch(block.type){
+        case 'controls_repeat_custom':
+          const times = evalCondition(block.getInputTargetBlock("TIMES")) || 0;
+          const doBlock = block.getInputTargetBlock("DO");
+          for(let i = 0; i < times; i++){
+            if(doBlock){
+              try{ await processBlock(doBlock); }
+              catch(ctrl){
+                if(ctrl && ctrl.control === 'continue') { continue; }
+                if(ctrl && ctrl.control === 'break') { break; }
+                throw ctrl;
+              }
+            }
+          }
+          break;
+
+        case 'controls_if_custom':
+          if(evalIfCondition(block)){
+            const doBlock = block.getInputTargetBlock("DO");
+            if(doBlock) await processBlock(doBlock);
+          }
+          break;
+
+        case 'controls_while':
+          try{
+            const condBlock = block.getInputTargetBlock("COND");
+            const doBlock = block.getInputTargetBlock("DO");
+            // 安全策: 無限ループ防止のため最大反復回数を設ける
+            const MAX_ITER = 1000;
+            let iter = 0;
+            while((evalCondition(condBlock) || 0) !== 0){
+              if(!doBlock) break;
+              try{ await processBlock(doBlock); }
+              catch(ctrl){
+                if(ctrl && ctrl.control === 'continue') { /* next iteration */ }
+                else if(ctrl && ctrl.control === 'break') { break; }
+                else throw ctrl;
+              }
+              iter++;
+              if(iter >= MAX_ITER){
+                visual.innerHTML += `<div class="form-row">(ループが最大反復 ${MAX_ITER} に達しました — 無限ループを防止して停止)</div>`;
+                break;
+              }
+            }
+          }catch(e){ console.error('controls_while error', e); }
+          break;
+
+        case 'controls_repeat_until':
+          try{
+            const condBlockRU = block.getInputTargetBlock("COND");
+            const doBlockRU = block.getInputTargetBlock("DO");
+            const MAX_ITER_RU = 1000;
+            let iterRU = 0;
+            // 条件が真になるまで繰り返す -> 条件が偽の間ループ
+            while(((evalCondition(condBlockRU) || 0) === 0)){
+              if(!doBlockRU) break;
+              try{ await processBlock(doBlockRU); }
+              catch(ctrl){
+                if(ctrl && ctrl.control === 'continue') { /* next */ }
+                else if(ctrl && ctrl.control === 'break') { break; }
+                else throw ctrl;
+              }
+              iterRU++;
+              if(iterRU >= MAX_ITER_RU){
+                visual.innerHTML += `<div class="form-row">(Repeat Until: 反復が最大 ${MAX_ITER_RU} に達しました — 停止)</div>`;
+                break;
+              }
+            }
+          }catch(e){ console.error('controls_repeat_until error', e); }
+          break;
+
+        case 'controls_do_until':
+          try{
+            const doBlockDU = block.getInputTargetBlock("DO");
+            const condBlockDU = block.getInputTargetBlock("COND");
+            const MAX_ITER_DU = 1000;
+            let iterDU = 0;
+            // 最低1回は実行してから条件を評価
+            if(doBlockDU){
+              try{ await processBlock(doBlockDU); }
+              catch(ctrl){
+                if(ctrl && ctrl.control === 'continue') { /* continue to condition check */ }
+                else if(ctrl && ctrl.control === 'break') { /* break outer do-until */ return; }
+                else throw ctrl;
+              }
+            }
+            while(((evalCondition(condBlockDU) || 0) === 0)){
+              if(!doBlockDU) break;
+              try{ await processBlock(doBlockDU); }
+              catch(ctrl){
+                if(ctrl && ctrl.control === 'continue') { /* next iteration */ }
+                else if(ctrl && ctrl.control === 'break') { break; }
+                else throw ctrl;
+              }
+              iterDU++;
+              if(iterDU >= MAX_ITER_DU){
+                visual.innerHTML += `<div class="form-row">(Do-Until: 反復が最大 ${MAX_ITER_DU} に達しました — 停止)</div>`;
+                break;
+              }
+            }
+          }catch(e){ console.error('controls_do_until error', e); }
+          break;
+
+        case 'controls_for':
+          try{
+            const fromBlock = block.getInputTargetBlock("FROM");
+            const toBlock = block.getInputTargetBlock("TO");
+            const byBlock = block.getInputTargetBlock("BY");
+            const doBlockF = block.getInputTargetBlock("DO");
+            let from = Number(evalCondition(fromBlock) || 0);
+            let to = Number(evalCondition(toBlock) || 0);
+            let by = Number(evalCondition(byBlock) || 1);
+            if(by === 0) by = 1; // 増分0は避ける
+
+            const MAX_ITER_F = 10000;
+            let iterF = 0;
+
+            // ループ方向に応じて条件を判定
+            const forward = by > 0;
+            // expose current index to potential custom blocks via global (将来的に専用ブロックで取得可能)
+            if(typeof window._for_index === 'undefined') window._for_index = null;
+
+            if(forward){
+              for(let i = from; i <= to; i += by){
+                window._for_index = i;
+                if(doBlockF){
+                  try{ await processBlock(doBlockF); }
+                  catch(ctrl){
+                    if(ctrl && ctrl.control === 'continue') { continue; }
+                    if(ctrl && ctrl.control === 'break') { break; }
+                    throw ctrl;
+                  }
+                }
+                iterF++;
+                if(iterF >= MAX_ITER_F){
+                  visual.innerHTML += `<div class="form-row">(For: 反復が最大 ${MAX_ITER_F} に達しました — 停止)</div>`;
+                  break;
+                }
+              }
+            } else {
+              for(let i = from; i >= to; i += by){
+                window._for_index = i;
+                if(doBlockF){
+                  try{ await processBlock(doBlockF); }
+                  catch(ctrl){
+                    if(ctrl && ctrl.control === 'continue') { continue; }
+                    if(ctrl && ctrl.control === 'break') { break; }
+                    throw ctrl;
+                  }
+                }
+                iterF++;
+                if(iterF >= MAX_ITER_F){
+                  visual.innerHTML += `<div class="form-row">(For: 反復が最大 ${MAX_ITER_F} に達しました — 停止)</div>`;
+                  break;
+                }
+              }
+            }
+            window._for_index = null;
+          }catch(e){ console.error('controls_for error', e); }
+          break;
+
+        case 'controls_forever':
+          try{
+            const doBlockForever = block.getInputTargetBlock('DO');
+            const MAX_FOREVER = 100000;
+            let iterFv = 0;
+            while(true){
+              if(doBlockForever){
+                try{ await processBlock(doBlockForever); }
+                catch(ctrl){
+                  if(ctrl && ctrl.control === 'continue') { /* next iteration */ }
+                  else if(ctrl && ctrl.control === 'break') { break; }
+                  else throw ctrl;
+                }
+              }
+              iterFv++;
+              if(iterFv >= MAX_FOREVER){
+                visual.innerHTML += `<div class="form-row">(Forever: 反復が最大 ${MAX_FOREVER} に達しました — 停止)</div>`;
+                break;
+              }
+            }
+          }catch(e){ console.error('controls_forever error', e); }
+          break;
+
+        case 'controls_for_each':
+          try{
+            const listBlock = block.getInputTargetBlock("LIST");
+            const varName = block.getFieldValue("VAR") || 'item';
+            const doBlockFE = block.getInputTargetBlock("DO");
+
+            function resolveList(lb){
+              if(!lb) return [];
+              // If block provides a getValue() (form blocks), use it
+              if(lb.getValue){
+                try{
+                  const v = lb.getValue();
+                  if(Array.isArray(v)) return v;
+                  if(typeof v === 'string') return v.split(',').map(s=>s.trim()).filter(s=>s!=='');
+                  if(typeof v === 'number') return [v];
+                }catch(e){ /* ignore */ }
+              }
+              // If it's a direct number or arithmetic, evaluate as number
+              if(lb.type === 'direct_number' || lb.type === 'arithmetic'){
+                const n = evalCondition(lb);
+                return [n];
+              }
+              // Fallback: try evalCondition (may return number)
+              const maybe = evalCondition(lb);
+              if(typeof maybe === 'number' && !isNaN(maybe)) return [maybe];
+              // If lb has a field 'value' (rare), read it
+              try{
+                const f = lb.getFieldValue && lb.getFieldValue('value');
+                if(typeof f === 'string') return f.split(',').map(s=>s.trim()).filter(s=>s!=='');
+              }catch(e){}
+              return [];
+            }
+
+            const items = resolveList(listBlock);
+            const MAX_FE = 10000;
+            let iterFE = 0;
+            if(typeof window._for_each_item === 'undefined') window._for_each_item = null;
+            if(typeof window._for_each_index === 'undefined') window._for_each_index = null;
+            if(typeof window._vars === 'undefined') window._vars = {};
+
+            for(let idx = 0; idx < items.length; idx++){
+              window._for_each_index = idx;
+              window._for_each_item = items[idx];
+              // expose variable name for potential use blocks
+              window._vars[varName] = items[idx];
+              if(doBlockFE){
+                try{ await processBlock(doBlockFE); }
+                catch(ctrl){
+                  if(ctrl && ctrl.control === 'continue') { /* next item */ continue; }
+                  if(ctrl && ctrl.control === 'break') { break; }
+                  throw ctrl;
+                }
+              }
+              iterFE++;
+              if(iterFE >= MAX_FE){
+                visual.innerHTML += `<div class="form-row">(ForEach: 反復が最大 ${MAX_FE} に達しました — 停止)</div>`;
+                break;
+              }
+            }
+            // cleanup
+            window._for_each_item = null;
+            window._for_each_index = null;
+            delete window._vars[varName];
+          }catch(e){ console.error('controls_for_each error', e); }
+          break;
+
+        case 'controls_switch':
+          try{
+            const valBlock = block.getInputTargetBlock('VALUE');
+            const switchValRaw = (function(){
+              // try numeric evaluation first
+              const num = evalCondition(valBlock);
+              if(typeof num === 'number' && !isNaN(num) && String(num) !== '0') return num;
+              // if evalCondition returned 0, it could be falsy for strings; try fieldValue
+              try{
+                if(valBlock && valBlock.getFieldValue){
+                  const f = valBlock.getFieldValue('value') || valBlock.getFieldValue('label') || valBlock.getFieldValue('TEXT') || valBlock.getFieldValue('VALUE');
+                  if(typeof f === 'string') return f;
+                }
+              }catch(e){}
+              return num;
+            })();
+
+            let matched = false;
+            let executed = false;
+            let caseBlock = block.getInputTargetBlock('DO');
+            // iterate case/default blocks linked under DO
+            while(caseBlock){
+              if(caseBlock.type === 'controls_case'){
+                const caseVal = caseBlock.getFieldValue('VALUE');
+                // compare: numeric vs numeric or string vs string
+                let isMatch = false;
+                // numeric compare when both numeric
+                if(!isNaN(Number(switchValRaw)) && !isNaN(Number(caseVal))){
+                  isMatch = Number(switchValRaw) === Number(caseVal);
+                } else {
+                  const a = (switchValRaw===null||switchValRaw===undefined)?'':String(switchValRaw).trim();
+                  const b = (caseVal===null||caseVal===undefined)?'':String(caseVal).trim();
+                  // remove surrounding quotes if present
+                  const strip = s => (s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'")) ? s.slice(1,-1) : s;
+                  isMatch = strip(a) === strip(b);
+                }
+
+                if(isMatch){
+                  // execute case body and then stop unless break/continue control is used
+                  const body = caseBlock.getInputTargetBlock('DO');
+                  if(body){
+                    try{ await processBlock(body); }
+                    catch(ctrl){
+                      if(ctrl && ctrl.control === 'continue') { /* continue to next case */ }
+                      else if(ctrl && ctrl.control === 'break') { executed = true; matched = true; break; }
+                      else throw ctrl;
+                    }
+                    executed = true; matched = true; break;
+                  } else { matched = true; break; }
+                }
+              } else if(caseBlock.type === 'controls_default'){
+                // default runs if no previous match
+                if(!matched){
+                  const body = caseBlock.getInputTargetBlock('DO');
+                  if(body){
+                    try{ await processBlock(body); }
+                    catch(ctrl){
+                      if(ctrl && ctrl.control === 'continue') { /* no-op */ }
+                      else if(ctrl && ctrl.control === 'break') { executed = true; break; }
+                      else throw ctrl;
+                    }
+                    executed = true; break;
+                  }
+                }
+              }
+              caseBlock = caseBlock.getNextBlock();
+            }
+          }catch(e){ console.error('controls_switch error', e); }
+          break;
+
+          case 'controls_try':
+            try{
+              const tryBlock = block.getInputTargetBlock('TRY');
+              const catchBlock = block.getInputTargetBlock('CATCH');
+              const finallyBlock = block.getInputTargetBlock('FINALLY');
+              const errVar = (block.getFieldValue && block.getFieldValue('ERRVAR')) || '';
+              try{
+                if(tryBlock) await processBlock(tryBlock);
+              }catch(err){
+                // loop control signals (break/continue) should propagate
+                if(err && err.control) throw err;
+                // expose caught exception
+                try{ window._last_exception = err; }catch(e){}
+                if(errVar && typeof window._vars === 'undefined') window._vars = {};
+                if(errVar) window._vars[errVar] = err;
+                if(catchBlock) {
+                  try{ await processBlock(catchBlock); }
+                  catch(ctrl){
+                    // if catch body raises loop control, propagate
+                    if(ctrl && ctrl.control) throw ctrl;
+                    else throw ctrl;
+                  }
+                } else {
+                  visual.innerHTML += `<div class="form-row">(例外捕捉) ${String(err)}</div>`;
+                }
+                if(errVar) delete window._vars[errVar];
+              } finally {
+                // always run finally block
+                if(finallyBlock){
+                  try{ await processBlock(finallyBlock); }
+                  catch(ctrl){
+                    if(ctrl && ctrl.control) throw ctrl;
+                    else throw ctrl;
+                  }
+                }
+                try{ delete window._last_exception; }catch(e){}
+              }
+            }catch(e){ console.error('controls_try error', e); }
+            break;
+
+        case 'print_text':
+          const textVal = block.getFieldValue("TEXT");
+          visual.innerHTML += `<p>${textVal}</p>`;
+          break;
+
+        case 'load_system':
+          const systemId = block.getFieldValue('SYSTEM_ID');
+          if (systemId && systemId !== '0') {
+            visual.innerHTML += `<div class="form-row">システム(ID: ${systemId})を読み込みました</div>`;
+            // 実際のシステム読み込み処理をここに追加可能
+            // 例: window.location.href = `/accounts/system/preview/${systemId}/`;
+          } else {
+            visual.innerHTML += `<div class="form-row">読み込むシステムが選択されていません</div>`;
+          }
+          break;
+
+        case 'system_condition':
+          const sysId = block.getFieldValue('SYSTEM_ID');
+          const elementName = block.getFieldValue('ELEMENT_NAME');
+          const op = block.getFieldValue('OP');
+          const expectedValue = block.getFieldValue('VALUE');
+          
+          // APIを使ってサーバーから要素の値を取得
+          try {
+            const apiUrl = `/accounts/api/system/${sysId}/element/${encodeURIComponent(elementName)}/`;
+            console.log('🔍 API呼び出し:', apiUrl);
+            console.log('📝 検索する要素名:', elementName);
+            
+            const response = await fetch(apiUrl);
+            console.log('📡 レスポンスステータス:', response.status);
+            
+            const data = await response.json();
+            console.log('📦 取得したデータ:', data);
+            
+            let actualValue = '';
+            if (data.success && data.element_value) {
+              actualValue = data.element_value;
+            } else if (data.element_value === '') {
+              actualValue = '';
+            }
+            
+            console.log('✅ 実際の値:', actualValue);
+            
+            // 条件評価
+            let conditionMet = false;
+            switch(op) {
+              case 'EQ': 
+                conditionMet = (actualValue == expectedValue); 
+                break;
+              case 'NEQ': 
+                conditionMet = (actualValue != expectedValue); 
+                break;
+              case 'GT': 
+                conditionMet = (Number(actualValue) > Number(expectedValue)); 
+                break;
+              case 'LT': 
+                conditionMet = (Number(actualValue) < Number(expectedValue)); 
+                break;
+              case 'GTE': 
+                conditionMet = (Number(actualValue) >= Number(expectedValue)); 
+                break;
+              case 'LTE': 
+                conditionMet = (Number(actualValue) <= Number(expectedValue)); 
+                break;
+              case 'CONTAINS': 
+                conditionMet = actualValue.includes(expectedValue); 
+                break;
+              case 'SELECTED':
+                // ラジオボタンの判定: 値が期待値と一致するか（複数値のOR条件もサポート）
+                console.log('🔍 ラジオボタン判定:', {
+                  actualValue: actualValue,
+                  expectedValue: expectedValue
+                });
+                
+                // 期待値が/区切りの場合は複数条件をチェック（いずれかに一致すればOK）
+                if (expectedValue.includes('/')) {
+                  const expectedValues = expectedValue.split('/').map(v => v.trim());
+                  conditionMet = expectedValues.some(ev => {
+                    const matched = (actualValue === ev);
+                    console.log(`  - "${ev}" との比較: ${matched ? '✓' : '✗'}`);
+                    return matched;
+                  });
+                  console.log('  → 最終判定:', conditionMet ? '条件満たす' : '条件満たさない');
+                } else {
+                  // 単一値の場合
+                  conditionMet = (actualValue === expectedValue);
+                  console.log('  → 単一値判定:', conditionMet ? '条件満たす' : '条件満たさない');
+                }
+                break;
+              case 'CHECKED':
+                // チェックボックスの判定: カンマ区切りの値に期待値が含まれているか
+                // 複数の値を/区切りで指定できる (例: "読書/音楽/スポーツ")
+                if (actualValue && typeof actualValue === 'string') {
+                  const checkedValues = actualValue.split(',').map(v => v.trim());
+                  console.log('🔍 チェックボックス判定:', {
+                    actualValue: actualValue,
+                    checkedValues: checkedValues,
+                    expectedValue: expectedValue
+                  });
+                  
+                  // 期待値が/区切りの場合は複数条件をチェック
+                  if (expectedValue.includes('/')) {
+                    const expectedValues = expectedValue.split('/').map(v => v.trim());
+                    // いずれか一つでもチェックされていればtrue
+                    conditionMet = expectedValues.some(ev => {
+                      const matched = checkedValues.includes(ev);
+                      console.log(`  - "${ev}" のチェック: ${matched ? '✓' : '✗'}`);
+                      return matched;
+                    });
+                    console.log('  → 最終判定:', conditionMet ? '条件満たす' : '条件満たさない');
+                  } else {
+                    // 単一値の場合
+                    conditionMet = checkedValues.includes(expectedValue);
+                    console.log('  → 単一値判定:', conditionMet ? '条件満たす' : '条件満たさない');
+                  }
+                } else {
+                  conditionMet = (actualValue === expectedValue);
+                  console.log('⚠️ actualValueが文字列ではない:', actualValue);
+                }
+                break;
+            }
+            
+            visual.innerHTML += `<div class="form-row">システム${sysId}の「${elementName}」の値: "${actualValue}" ${conditionMet ? '✓条件満たす' : '✗条件満たさない'}</div>`;
+            
+            if (conditionMet) {
+              const doBlock = block.getInputTargetBlock('DO');
+              if (doBlock) await processBlock(doBlock);
+            } else {
+              const elseBlock = block.getInputTargetBlock('ELSE');
+              if (elseBlock) await processBlock(elseBlock);
+            }
+          } catch (error) {
+            console.error('システム要素の値取得エラー:', error);
+            visual.innerHTML += `<div class="form-row">⚠️ システム要素の値を取得できませんでした: ${error.message}</div>`;
+          }
+          break;
+
+        case 'display_system':
+          const displaySysId = block.getFieldValue('SYSTEM_ID');
+          if (displaySysId && displaySysId !== '0') {
+            visual.innerHTML += `<div class="form-row">📺 システム(ID: ${displaySysId})を表示</div>`;
+          } else {
+            visual.innerHTML += `<div class="form-row">⚠️ 表示するシステムが選択されていません</div>`;
+          }
+          break;
+
+        case 'controls_break':
+          throw { control: 'break' };
+
+        case 'controls_continue':
+          throw { control: 'continue' };
+
+        case 'compare_values':
+          try{
+            const label = block.getFieldValue('label') || '';
+            const expect = String(block.getFieldValue('expect') || '');
+            const answers = collectAnswers();
+            // If there's a rendered answer for this label, use it. Otherwise treat the label itself as a literal value (allow comparing two literals).
+            let actual = '';
+            if(Object.prototype.hasOwnProperty.call(answers, label)){
+              actual = String(answers[label]);
+            } else {
+              // fallback: if label looks like a number, use it; if quoted string, unquote; otherwise use label as-is
+              const trimmed = label.trim();
+              if(/^[-+]?\d+(?:\.\d+)?$/.test(trimmed)){
+                actual = trimmed;
+              } else if((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))){
+                actual = trimmed.slice(1,-1);
+              } else {
+                actual = trimmed;
+              }
+            }
+
+            const eqNumeric = !isNaN(Number(actual)) && !isNaN(Number(expect)) && Number(actual) === Number(expect);
+            const eqString = typeof actual === 'string' && typeof expect === 'string' && actual.trim().toLowerCase() === expect.trim().toLowerCase();
+            const ok = (actual === expect) || eqNumeric || eqString;
+
+            visual.innerHTML += `<div class="form-row">${label}: ${actual} → <strong>${ok? '正解':'不正解'}</strong></div>`;
+            const row = Array.from(document.querySelectorAll('#visual-area .form-row')).find(r=>{
+              const l = r.querySelector('label'); return l && l.innerText.trim() === label;
+            });
+            if(row) row.style.outline = ok ? '2px solid #4caf50' : '2px solid #e53935';
+          }catch(e){ console.error('compare_values error', e); }
+          break;
+
+        case 'radio_choice':
+        case 'radio_free':
+        case 'checkbox_free':
+        case 'number_input':
+        case 'show_text':
+          const val = block.getValue?.();
+          if(val !== undefined && val !== null && val !== "") {
+            visual.innerHTML += `<p>${val}</p>`;
+          }
+          break;
+
+        case 'move_steps':
+          visual.innerHTML += `<p>${block.getFieldValue('steps')}歩動かす</p>`; break;
+        case 'turn_right':
+          visual.innerHTML += `<p>${block.getFieldValue('degrees')}度右に回す</p>`; break;
+        case 'turn_left':
+          visual.innerHTML += `<p>${block.getFieldValue('degrees')}度左に回す</p>`; break;
+        case 'goto_xy':
+          // 即時テレポート的に位置をセット
+          try{
+            const tx = Number(block.getFieldValue('x') || 0);
+            const ty = Number(block.getFieldValue('y') || 0);
+            if(window._actor.stopped){ visual.innerHTML += `<p>(停止中) テレポートは実行されません</p>`; break; }
+            if(window._actor.paused){ visual.innerHTML += `<p>(一時停止中) テレポートは保留されます</p>`; break; }
+            const prevX = window._actor.x, prevY = window._actor.y;
+            const dx = tx - prevX, dy = ty - prevY;
+            const dist = Math.hypot(dx,dy);
+            // update position immediately; simulate elapsed time based on speed if speed>0
+            const duration = window._actor.speed > 0 ? (dist / window._actor.speed) : 0;
+            window._actor.x = tx; window._actor.y = ty; window._actor.simTime += duration;
+            visual.innerHTML += `<p>座標を (${tx}, ${ty}) にする — 距離 ${dist.toFixed(2)}、経過 ${duration.toFixed(2)}s</p>`;
+          }catch(e){ visual.innerHTML += `<p>座標設定エラー</p>`; }
+          break;
+
+        case 'move_relative':
+          try{
+            if(window._actor.stopped){ visual.innerHTML += `<p>(停止中) 移動は実行されません</p>`; break; }
+            if(window._actor.paused){ visual.innerHTML += `<p>(一時停止中) 移動は保留されます</p>`; break; }
+            const dx = Number(block.getFieldValue('dx') || 0);
+            const dy = Number(block.getFieldValue('dy') || 0);
+            const prevX = window._actor.x, prevY = window._actor.y;
+            window._actor.x = prevX + dx; window._actor.y = prevY + dy;
+            const dist = Math.hypot(dx,dy);
+            const duration = window._actor.speed > 0 ? (dist / window._actor.speed) : 0;
+            window._actor.simTime += duration;
+            visual.innerHTML += `<p>相対移動 dx:${dx} dy:${dy} → 新座標 (${window._actor.x}, ${window._actor.y}) 経過 ${duration.toFixed(2)}s</p>`;
+          }catch(e){ console.error(e); }
+          break;
+
+        case 'move_to_duration':
+          try{
+            if(window._actor.stopped){ visual.innerHTML += `<p>(停止中) 移動は実行されません</p>`; break; }
+            if(window._actor.paused){ visual.innerHTML += `<p>(一時停止中) 移動は保留されます</p>`; break; }
+            const tx = Number(block.getFieldValue('x') || 0);
+            const ty = Number(block.getFieldValue('y') || 0);
+            const dur = Number(block.getFieldValue('duration') || 0) || 0;
+            const prevX = window._actor.x, prevY = window._actor.y;
+            const dist = Math.hypot(tx - prevX, ty - prevY);
+            // simulate: set position immediately but account for duration in simTime
+            window._actor.x = tx; window._actor.y = ty; window._actor.simTime += dur;
+            const impliedSpeed = dur > 0 ? (dist / dur) : 0;
+            visual.innerHTML += `<p>滑らかに移動 to (${tx},${ty}) 所要 ${dur}s (距離 ${dist.toFixed(2)}、速さ ${impliedSpeed.toFixed(2)})</p>`;
+          }catch(e){ console.error(e); }
+          break;
+
+        case 'set_speed':
+          try{
+            const sp = Number(block.getFieldValue('speed') || 1);
+            window._actor.speed = sp;
+            visual.innerHTML += `<p>速度を ${sp} に設定しました</p>`;
+          }catch(e){ console.error(e); }
+          break;
+
+        case 'wait_seconds':
+          try{
+            const s = Number(block.getFieldValue('secs') || 0);
+            window._actor.simTime += s;
+            visual.innerHTML += `<p>待機: ${s} 秒（擬似）</p>`;
+          }catch(e){ console.error(e); }
+          break;
+
+        case 'stop':
+          window._actor.stopped = true; window._actor.paused = false;
+          visual.innerHTML += `<p>停止: すべての移動が無効化されます</p>`;
+          break;
+
+        case 'pause':
+          window._actor.paused = true;
+          visual.innerHTML += `<p>一時停止: 動作は保留されます</p>`;
+          break;
+
+        case 'resume':
+          window._actor.paused = false;
+          visual.innerHTML += `<p>再開: 保留中の動作は再開されます（停止は解除されません）</p>`;
+          break;
+
+        case 'get_position':
+          try{
+            const a = window._actor || {x:0,y:0};
+            visual.innerHTML += `<p>現在位置: (${a.x}, ${a.y})</p>`;
+          }catch(e){ }
+          break;
+        case 'direct_number':
+        case 'arithmetic':
+        case 'modulo':
+        case 'power':
+        case 'sqrt':
+        case 'abs':
+        case 'negate':
+        case 'round':
+        case 'floor':
+        case 'ceil':
+        case 'min':
+        case 'max':
+        case 'clamp':
+        case 'random_int':
+        case 'random_float':
+        case 'length':
+        case 'date_add_days':
+          visual.innerHTML += `<p>演算結果: ${evalCondition(block)}</p>`; break;
+      }
+    }
+
+    const next = block.getNextBlock();
+    if(next) await processBlock(next);
+  }
+
+  for(const b of blocks) {
+    await processBlock(b);
+  }
+}
+
+visual.innerHTML = "ここに実行結果が表示されます";
+</script>

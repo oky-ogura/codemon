@@ -1,129 +1,299 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}グループ参加確認{% endblock %}
+{% block title %}グループにはいるかな？ - CodeMon{% endblock %}
 
 {% block background_frame %}
-<img src="{% static 'codemon/images/frames/bg_frame_yellow.png' %}" 
-     alt="" 
-     class="bg-frame">
+<img src="{% static 'codemon/images/frames/bg_frame_yellow.png' %}" alt="" class="bg-frame">
 {% endblock %}
 
 {% block extra_css %}
 <style>
-  /* ナビゲーションを非表示 */
-  .top-tabs {
-    display: none !important;
-  }
+@import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@800;900&display=swap');
 
-  /* 確認画面コンテナ */
-  .confirm-container {
-    position: relative;
-    width: 100%;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    box-sizing: border-box;
-  }
+:root {
+  --main-blue: #3fbcd9;
+  --main-yellow: #FFD200;
+  --main-bg: #f0f4f8;
+  --panel-white: rgba(255, 255, 255, 0.95);
+  --error-red: #ff7675;
+}
 
-  .box {
-    width: 760px;
-    max-width: 90%;
-    background: #fff;
-    border: 1px solid #ddd;
-    padding: 32px;
-    border-radius: 8px;
-    text-align: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    z-index: 10;
-  }
+.top-tabs { display: none !important; }
 
-  .box h1 {
-    font-size: 20px;
-    margin-bottom: 12px;
-    color: #333;
-  }
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--main-bg);
+  background-image: linear-gradient(rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.6)), url("{% static 'codemon/images/backgrounds/bg_common.png' %}");
+  background-size: cover;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  /* 中央寄せを確実に */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-  p.question {
-    font-size: 18px;
-    color: #333;
-    margin: 26px 0;
-    font-weight: 600;
-  }
+/* ===== レイアウト ===== */
+.container {
+  width: 100%;
+  max-width: 1100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
 
-  .controls {
-    display: flex;
-    justify-content: center;
-    gap: 40px;
-    margin-top: 36px;
-  }
+.page-header {
+  text-align: center;
+  margin-bottom: 50px;
+}
 
-  .btn {
-    padding: 18px 36px;
-    border-radius: 12px;
-    border: none;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: 600;
-    transition: transform 0.2s, box-shadow 0.2s;
-  }
+.page-title {
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: var(--main-blue);
+  margin: 0;
+  position: relative;
+  display: inline-block;
+}
 
-  .btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-  }
+.page-title::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 100%;
+  height: 8px;
+  background: var(--main-yellow);
+  border-radius: 10px;
+  opacity: 0.6;
+}
 
-  .btn-cancel {
-    background: #f6c6c6;
-    color: #333;
-  }
+/* ダッシュボード */
+.dashboard {
+  display: grid;
+  grid-template-columns: 1fr 400px 1fr;
+  gap: 30px;
+  align-items: center;
+  width: 100%;
+  justify-content: center;
+}
 
-  .btn-cancel:hover {
-    background: #f0b0b0;
-  }
+/* ===== カードスタイル ===== */
+.card {
+  background: var(--panel-white);
+  border-radius: 25px;
+  padding: 40px 25px 30px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+  border: 5px solid #fff;
+  position: relative;
+  text-align: center;
+}
 
-  .btn-join {
-    background: #cfe6ff;
-    color: #333;
-  }
+/* サイドカード（付箋風）のアニメーション */
+.card-side {
+  animation: floatCard 4s ease-in-out infinite;
+}
 
-  .btn-join:hover {
-    background: #b0d4ff;
-  }
+.card-left {
+  transform: rotate(-3deg);
+}
 
-  .group-name {
-    font-weight: 700;
-    margin-top: 6px;
-  }
+.card-right {
+  transform: rotate(3deg);
+  animation-delay: -2s; /* 左右で動きをずらす */
+}
 
-  @media (max-width: 600px) {
-    .controls {
-      flex-direction: column;
-      gap: 20px;
-    }
-    .btn {
-      width: 100%;
-      max-width: 250px;
-    }
-  }
+@keyframes floatCard {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-15px) rotate(-1deg); }
+}
+
+/* 右側用のアニメーション（回転方向を合わせる） */
+.card-right { animation-name: floatCardRight; }
+@keyframes floatCardRight {
+  0%, 100% { transform: translateY(0) rotate(3deg); }
+  50% { transform: translateY(-15px) rotate(1deg); }
+}
+
+.card-label {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--main-blue);
+  color: #fff;
+  padding: 6px 24px;
+  border-radius: 50px;
+  font-weight: 800;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.card p {
+  color: #555;
+  font-weight: 800;
+  line-height: 1.8;
+  margin: 0;
+}
+
+/* 中央のメインカード */
+.main-card {
+  background: white;
+  border: 8px solid rgba(63, 188, 217, 0.2);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.08);
+  z-index: 10;
+}
+
+/* フラットなアイコンのスタイル */
+.group-icon-area {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.flat-envelope {
+  width: 100px;
+  height: 100px;
+}
+
+.group-name {
+  font-size: 1.8rem;
+  color: #333;
+  margin: 0 0 25px;
+  font-weight: 900;
+  line-height: 1.4;
+}
+
+.group-name span {
+  color: var(--main-blue);
+  display: block;
+  font-size: 1.1rem;
+  margin-bottom: 5px;
+}
+
+/* ===== ボタン ===== */
+.controls {
+  display: flex;
+  gap: 20px;
+}
+
+.btn {
+  flex: 1;
+  padding: 16px 0;
+  border-radius: 100px;
+  border: none;
+  font-size: 1.5rem;
+  font-weight: 900;
+  cursor: pointer;
+  font-family: inherit;
+  transition: 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.btn-join {
+  background: var(--main-yellow);
+  color: #634A00;
+  box-shadow: 0 8px 0 #d4af00;
+}
+
+.btn-cancel {
+  background: var(--error-red);
+  color: #fff;
+  box-shadow: 0 8px 0 #d65554;
+}
+
+.btn:hover {
+  transform: translateY(-3px);
+}
+
+.btn:active {
+  transform: translateY(6px);
+  box-shadow: none !important;
+}
+
+/* 四隅の装飾 */
+.decor {
+  position: absolute;
+  font-size: 4rem;
+  color: var(--main-blue);
+  opacity: 0.15;
+  z-index: 0;
+  user-select: none;
+}
+.decor-tl { top: 5%; left: 5%; transform: rotate(-15deg); }
+.decor-tr { top: 5%; right: 5%; transform: rotate(15deg); }
+
+@media (max-width: 950px) {
+  .dashboard { grid-template-columns: 1fr; }
+  .card:not(.main-card) { display: none; }
+  .container { height: auto; padding: 40px 0; }
+  body { overflow-y: auto; height: auto; }
+}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="confirm-container">
-  <div class="box">
-    <h1>グループ参加確認画面</h1>
-    <p class="question">グループに参加する？</p>
-    <form method="post" style="margin-top:28px">
-      {% csrf_token %}
-      <div class="controls">
-        <button type="submit" name="action" value="cancel" class="btn btn-cancel">しない！</button>
-        <button type="submit" name="action" value="join" class="btn btn-join">する！</button>
+<div class="container">
+  
+  <div class="decor decor-tl">★</div>
+  <div class="decor decor-tr">●</div>
+
+  <header class="page-header">
+    <h1 class="page-title">グループの おさそい</h1>
+  </header>
+
+  <div class="dashboard">
+
+    <div class="card card-side card-left">
+      <div class="card-label">なかまと いっしょ</div>
+      <p>
+        あたらしい なかまと<br>
+        出会える チャンス！<br>
+        みんなで いっしょに<br>
+        がんばろう！
+      </p>
+    </div>
+
+    <div class="card main-card">
+      <div class="group-icon-area">
+        <svg class="flat-envelope" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="10" y="25" width="80" height="55" rx="8" fill="#3fbcd9" />
+          <path d="M10 33L50 58L90 33" stroke="white" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M10 75L40 52" stroke="white" stroke-width="4" stroke-opacity="0.5" stroke-linecap="round" />
+          <path d="M90 75L60 52" stroke="white" stroke-width="4" stroke-opacity="0.5" stroke-linecap="round" />
+        </svg>
       </div>
-    </form>
+
+      <div class="group-name">
+        <span>とどいた 招待状</span>
+        グループに<br>さんかする？
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+        <div class="controls">
+          <button type="submit" name="action" value="cancel" class="btn btn-cancel">しない</button>
+          <button type="submit" name="action" value="join" class="btn btn-join">する！</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card card-side card-right">
+      <div class="card-label">やる気が アップ</div>
+      <p>
+        みんなの がんばりを<br>
+        おうえん しあうと<br>
+        もっと 楽しく<br>
+        べんきょう できるよ！
+      </p>
+    </div>
+
   </div>
 </div>
 {% endblock %}

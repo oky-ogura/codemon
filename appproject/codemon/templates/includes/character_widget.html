@@ -1,0 +1,1014 @@
+{% load static %}
+{# モード: 'karihome' (デフォルト) または 'sidebar' #}
+{# 使用例: {% include 'includes/character_widget.html' with mode='sidebar' %} #}
+
+<div class="character-widget {% if mode == 'sidebar' %}sidebar-mode{% else %}karihome-mode{% endif %}" id="characterWidget" data-character="{{ appearance|default:'イヌ.png' }}">
+  
+  {# karihomeモード: 吹き出し表示 #}
+  {% if mode != 'sidebar' %}
+  <div class="speech-bubble-container">
+    <div class="speech-bubble">
+      <p class="text-fun" id="characterMumble" style="margin: 0;"></p>
+    </div>
+  </div>
+  <button class="chat-trigger-btn" id="chatTriggerBtn">
+    💬 話しかける
+    <span class="sparkle">✨</span>
+    <span class="sparkle">⭐</span>
+    <span class="sparkle">✨</span>
+    <span class="sparkle">⭐</span>
+  </button>
+  {% endif %}
+  
+  {# sidebarモード: 最小化ボタン #}
+  {% if mode == 'sidebar' %}
+  <button class="widget-minimize-btn" id="widgetMinimizeBtn" title="最小化">−</button>
+  {% endif %}
+  
+  <div class="character-container">
+    <img src="{% if character_img %}{{ character_img }}{% else %}{% static 'codemon/images/characters/イヌ.png' %}{% endif %}" 
+         alt="AIキャラクター" 
+         class="character-image"
+         onerror="this.onerror=null;this.src='{% static 'codemon/images/characters/イヌ.png' %}';">
+  </div>
+</div>
+
+{# sidebarモード: 最小化時のアイコン #}
+{% if mode == 'sidebar' %}
+<div class="character-mini-icon" id="characterMiniIcon" title="キャラクターを表示">
+  <img src="{% if character_img %}{{ character_img }}{% else %}{% static 'codemon/images/characters/イヌ.png' %}{% endif %}" 
+       alt="AI"
+       onerror="this.onerror=null;this.src='{% static 'codemon/images/characters/イヌ.png' %}';">
+</div>
+{% endif %}
+
+{# チャットモーダル（共通） #}
+<div class="chat-modal" id="chatModal">
+  <div class="chat-window">
+    <div class="chat-header">
+      <h2 id="chatHeaderTitle">{{ ai_name|default:'うたー' }} と おはなし</h2>
+      <button class="chat-close-btn" id="closeChatBtn">×</button>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-message ai">
+        <div class="chat-message-content" id="initialGreeting">
+          <!-- キャラクター別の挨拶がJavaScriptで設定されます -->
+        </div>
+      </div>
+    </div>
+    <div class="chat-loading" id="chatLoading">
+      {{ ai_name|default:'うたー' }}が考え中...🤔
+    </div>
+    <div class="chat-input-area">
+      <input type="text" class="chat-input" id="chatInput" placeholder="メッセージを入力してね！">
+      <button class="chat-send-btn" id="sendChatBtn">送信</button>
+    </div>
+  </div>
+</div>
+
+<link rel="stylesheet" href="{% static 'codemon/css/redesign.css' %}">
+<style>
+  /* ========================================
+     キャラクター別テーマカラー（CSS変数）
+     ======================================== */
+  :root {
+    /* デフォルト（イヌ）の色 */
+    --theme-primary: #FFD700;
+    --theme-secondary: #FFA500;
+    --theme-dark: #FF8C00;
+    --theme-light: #FFF9E6;
+    --theme-shadow: rgba(255, 165, 0, 0.4);
+    --theme-shadow-strong: rgba(255, 165, 0, 0.6);
+    --theme-glow: rgba(255, 215, 0, 0.3);
+  }
+  
+  /* ウサギ */
+  .character-widget[data-character="ウサギ.png"],
+  .character-widget[data-character="ウサギ.png"] ~ .character-mini-icon,
+  .character-widget[data-character="ウサギ.png"] ~ .chat-modal,
+  .character-widget[data-character="usagi"],
+  .character-widget[data-character="usagi"] ~ .character-mini-icon,
+  .character-widget[data-character="usagi"] ~ .chat-modal {
+    --theme-primary: #F5E3F4;
+    --theme-secondary: #E8C4E8;
+    --theme-dark: #D4A5D4;
+    --theme-light: #FDF5FC;
+    --theme-shadow: rgba(245, 227, 244, 0.6);
+    --theme-shadow-strong: rgba(232, 196, 232, 0.7);
+    --theme-glow: rgba(245, 227, 244, 0.5);
+  }
+  
+  /* キツネ */
+  .character-widget[data-character="キツネ.png"],
+  .character-widget[data-character="キツネ.png"] ~ .character-mini-icon,
+  .character-widget[data-character="キツネ.png"] ~ .chat-modal,
+  .character-widget[data-character="kitsune"],
+  .character-widget[data-character="kitsune"] ~ .character-mini-icon,
+  .character-widget[data-character="kitsune"] ~ .chat-modal {
+    --theme-primary: #FCD37D;
+    --theme-secondary: #F5B942;
+    --theme-dark: #E5A020;
+    --theme-light: #FFFAED;
+    --theme-shadow: rgba(252, 211, 125, 0.6);
+    --theme-shadow-strong: rgba(245, 185, 66, 0.7);
+    --theme-glow: rgba(252, 211, 125, 0.5);
+  }
+  
+  /* イヌ（デフォルト） */
+  .character-widget[data-character="イヌ.png"],
+  .character-widget[data-character="イヌ.png"] ~ .character-mini-icon,
+  .character-widget[data-character="イヌ.png"] ~ .chat-modal,
+  .character-widget[data-character="inu"],
+  .character-widget[data-character="inu"] ~ .character-mini-icon,
+  .character-widget[data-character="inu"] ~ .chat-modal {
+    --theme-primary: #FFD700;
+    --theme-secondary: #FFA500;
+    --theme-dark: #FF8C00;
+    --theme-light: #FFF9E6;
+    --theme-shadow: rgba(255, 165, 0, 0.4);
+    --theme-shadow-strong: rgba(255, 165, 0, 0.6);
+    --theme-glow: rgba(255, 215, 0, 0.3);
+  }
+  
+  /* パンダ */
+  .character-widget[data-character="パンダ.png"],
+  .character-widget[data-character="パンダ.png"] ~ .character-mini-icon,
+  .character-widget[data-character="パンダ.png"] ~ .chat-modal,
+  .character-widget[data-character="panda"],
+  .character-widget[data-character="panda"] ~ .character-mini-icon,
+  .character-widget[data-character="panda"] ~ .chat-modal {
+    --theme-primary: #FEF5DB;
+    --theme-secondary: #F5E6B8;
+    --theme-dark: #E5D090;
+    --theme-light: #FFFDF5;
+    --theme-shadow: rgba(254, 245, 219, 0.6);
+    --theme-shadow-strong: rgba(245, 230, 184, 0.7);
+    --theme-glow: rgba(254, 245, 219, 0.5);
+  }
+  
+  /* リス */
+  .character-widget[data-character="リス.png"],
+  .character-widget[data-character="リス.png"] ~ .character-mini-icon,
+  .character-widget[data-character="リス.png"] ~ .chat-modal,
+  .character-widget[data-character="risu"],
+  .character-widget[data-character="risu"] ~ .character-mini-icon,
+  .character-widget[data-character="risu"] ~ .chat-modal {
+    --theme-primary: #FEB6AC;
+    --theme-secondary: #F59A8E;
+    --theme-dark: #E57A6E;
+    --theme-light: #FFF5F3;
+    --theme-shadow: rgba(254, 182, 172, 0.6);
+    --theme-shadow-strong: rgba(245, 154, 142, 0.7);
+    --theme-glow: rgba(254, 182, 172, 0.5);
+  }
+  
+  /* フクロウ */
+  .character-widget[data-character="フクロウ.png"],
+  .character-widget[data-character="フクロウ.png"] ~ .character-mini-icon,
+  .character-widget[data-character="フクロウ.png"] ~ .chat-modal,
+  .character-widget[data-character="fukurou"],
+  .character-widget[data-character="fukurou"] ~ .character-mini-icon,
+  .character-widget[data-character="fukurou"] ~ .chat-modal {
+    --theme-primary: #92B7D6;
+    --theme-secondary: #6A9BC5;
+    --theme-dark: #4A7BA5;
+    --theme-light: #F0F6FA;
+    --theme-shadow: rgba(146, 183, 214, 0.6);
+    --theme-shadow-strong: rgba(106, 155, 197, 0.7);
+    --theme-glow: rgba(146, 183, 214, 0.5);
+  }
+  
+  /* ネコ */
+  .character-widget[data-character="ネコ.png"],
+  .character-widget[data-character="ネコ.png"] ~ .character-mini-icon,
+  .character-widget[data-character="ネコ.png"] ~ .chat-modal,
+  .character-widget[data-character="neko"],
+  .character-widget[data-character="neko"] ~ .character-mini-icon,
+  .character-widget[data-character="neko"] ~ .chat-modal {
+    --theme-primary: #9CBDB6;
+    --theme-secondary: #7AA59D;
+    --theme-dark: #5A8A80;
+    --theme-light: #F2F8F6;
+    --theme-shadow: rgba(156, 189, 182, 0.6);
+    --theme-shadow-strong: rgba(122, 165, 157, 0.7);
+    --theme-glow: rgba(156, 189, 182, 0.5);
+  }
+  
+  /* アルパカ */
+  .character-widget[data-character="アルパカ.png"],
+  .character-widget[data-character="アルパカ.png"] ~ .character-mini-icon,
+  .character-widget[data-character="アルパカ.png"] ~ .chat-modal,
+  .character-widget[data-character="arupaka"],
+  .character-widget[data-character="arupaka"] ~ .character-mini-icon,
+  .character-widget[data-character="arupaka"] ~ .chat-modal {
+    --theme-primary: #FFF5CD;
+    --theme-secondary: #F5E8A5;
+    --theme-dark: #E5D580;
+    --theme-light: #FFFDF0;
+    --theme-shadow: rgba(255, 245, 205, 0.6);
+    --theme-shadow-strong: rgba(245, 232, 165, 0.7);
+    --theme-glow: rgba(255, 245, 205, 0.5);
+  }
+
+  /* ========================================
+     共通スタイル
+     ======================================== */
+  .character-widget {
+    pointer-events: none;
+    position: fixed;
+    z-index: 100;
+  }
+  .character-container, .chat-trigger-btn, .speech-bubble-container, .widget-minimize-btn {
+    pointer-events: auto;
+  }
+  .character-image {
+    pointer-events: auto;
+    transition: transform 0.3s ease;
+    transform-origin: bottom center;
+    display: block;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    cursor: pointer;
+  }
+  .character-container img {
+    border: none !important;
+    outline: none !important;
+  }
+  .character-image:hover {
+    transform: scale(1.05) rotate(2deg) !important;
+  }
+
+  /* ========================================
+     karihomeモード（大きい表示）
+     ======================================== */
+  .karihome-mode {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .karihome-mode .character-container {
+    position: fixed !important;
+    left: 48%;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 100 !important;
+    display: flex;
+    align-items: center;
+  }
+  .karihome-mode .character-image {
+    max-width: 350px !important;
+    max-height: 450px !important;
+  }
+  .karihome-mode .speech-bubble-container {
+    position: fixed !important;
+    left: 28%;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 101;
+    max-width: 400px;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .karihome-mode .speech-bubble {
+    background: white;
+    border-radius: 30px;
+    padding: 35px 45px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    position: relative;
+    font-size: 24px;
+    line-height: 1.8;
+    color: #333;
+    border: 3px solid var(--theme-primary, #FFD700);
+    animation: bubbleFloat 2s ease-in-out infinite;
+  }
+  .karihome-mode .speech-bubble::after {
+    content: '';
+    position: absolute;
+    right: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 25px solid white;
+    border-top: 20px solid transparent;
+    border-bottom: 20px solid transparent;
+  }
+  .karihome-mode .chat-trigger-btn {
+    position: fixed;
+    left: 31%;
+    top: 65%;
+    background: linear-gradient(135deg, var(--theme-primary, #FFD700), var(--theme-secondary, #FFA500));
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 50px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 5px 15px var(--theme-shadow, rgba(255, 165, 0, 0.4));
+    z-index: 102;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s;
+  }
+  .karihome-mode .chat-trigger-btn .sparkle {
+    position: absolute;
+    font-size: 24px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .karihome-mode .chat-trigger-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 8px 20px var(--theme-shadow-strong, rgba(255, 165, 0, 0.6));
+  }
+  .karihome-mode .chat-trigger-btn:hover .sparkle {
+    opacity: 1;
+    animation: sparkleFloat 1.5s ease-in-out infinite;
+  }
+  .sparkle:nth-child(1) { top: -10px; left: -10px; animation-delay: 0s; }
+  .sparkle:nth-child(2) { top: -10px; right: -10px; animation-delay: 0.2s; }
+  .sparkle:nth-child(3) { bottom: -10px; left: -10px; animation-delay: 0.4s; }
+  .sparkle:nth-child(4) { bottom: -10px; right: -10px; animation-delay: 0.6s; }
+
+  /* ========================================
+     sidebarモード（小さい常駐表示）
+     ======================================== */
+  .sidebar-mode {
+    right: 20px;
+    bottom: -100px;
+    width: auto;
+    height: auto;
+  }
+  .sidebar-mode .character-container {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+  }
+  .sidebar-mode .character-image {
+    max-width: 225px !important;
+    max-height: 225px !important;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+  }
+  .sidebar-mode .widget-minimize-btn {
+    position: absolute;
+    top: -60px;
+    left: -65px;
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(135deg, var(--theme-primary, #FFD700), var(--theme-secondary, #FFA500));
+    border: 2px solid white;
+    border-radius: 50%;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 101;
+    transition: all 0.3s;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  }
+  .sidebar-mode .widget-minimize-btn:hover {
+    transform: scale(1.1);
+    background: linear-gradient(135deg, var(--theme-secondary, #FFA500), var(--theme-dark, #FF8C00));
+  }
+
+  /* 最小化時のアイコン */
+  .character-mini-icon {
+    position: fixed;
+    right: 40px;
+    bottom: 30px;
+    width: 100px;
+    height: 100px;
+    background: linear-gradient(135deg, var(--theme-primary, #FFD700), var(--theme-secondary, #FFA500));
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px var(--theme-shadow, rgba(255, 165, 0, 0.4));
+    z-index: 100;
+    transition: all 0.3s;
+    overflow: hidden;
+    padding: 5px;
+  }
+  .character-mini-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+  .character-mini-icon:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px var(--theme-shadow-strong, rgba(255, 165, 0, 0.6));
+  }
+  .character-mini-icon.active {
+    display: flex;
+  }
+
+  /* 非表示状態 */
+  .character-widget.minimized {
+    display: none;
+  }
+
+  /* ========================================
+     アニメーション
+     ======================================== */
+  @keyframes bubbleFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  @keyframes sparkleFloat {
+    0%, 100% { opacity: 0; transform: translateY(0) scale(0.5); }
+    50% { opacity: 1; transform: translateY(-20px) scale(1); }
+  }
+
+  /* ========================================
+     チャットモーダル（共通）
+     ======================================== */
+  .chat-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99999 !important;
+    justify-content: center;
+    align-items: center;
+  }
+  .chat-modal.active {
+    display: flex;
+  }
+  .chat-window {
+    background: white;
+    border-radius: 30px;
+    width: 90%;
+    max-width: 800px;
+    height: 80%;
+    max-height: 600px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: modalSlideIn 0.3s ease-out;
+    position: relative !important;
+    z-index: 100000 !important;
+  }
+  @keyframes modalSlideIn {
+    from { transform: scale(0.8) translateY(-50px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
+  }
+  .chat-header {
+    background: linear-gradient(135deg, var(--theme-primary, #FFD700), var(--theme-secondary, #FFA500));
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 3px solid var(--theme-dark, #FF8C00);
+  }
+  .chat-header h2 {
+    margin: 0;
+    color: white;
+    font-size: 24px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  .chat-close-btn {
+    background: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    color: var(--theme-dark, #FF8C00);
+    font-weight: bold;
+  }
+  .chat-close-btn:hover {
+    transform: rotate(90deg) scale(1.1);
+    background: var(--theme-light, #FFE4B5);
+  }
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background: var(--theme-light, #FFF9E6);
+  }
+  .chat-message {
+    display: flex;
+    margin-bottom: 15px;
+    animation: messageSlideIn 0.3s ease-out;
+  }
+  @keyframes messageSlideIn {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .chat-message.user {
+    flex-direction: row-reverse;
+    background: none !important;
+    background-color: transparent !important;
+  }
+  .chat-message-content {
+    max-width: 70%;
+    padding: 15px 20px;
+    border-radius: 20px;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .chat-message.ai .chat-message-content {
+    background: white;
+    border: 3px solid var(--theme-primary, #FFD700);
+    color: #333;
+  }
+  .chat-message.user .chat-message-content {
+    background: var(--theme-primary, #FFD700) !important;
+    background-color: var(--theme-primary, #FFD700) !important;
+    color: #333;
+    font-weight: bold;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  .chat-input-area {
+    padding: 20px;
+    background: white;
+    border-top: 3px solid var(--theme-primary, #FFD700);
+    display: flex;
+    gap: 10px;
+  }
+  .chat-input {
+    flex: 1;
+    padding: 15px 20px;
+    border: 3px solid var(--theme-primary, #FFD700);
+    border-radius: 25px;
+    font-size: 16px;
+    outline: none;
+    transition: all 0.3s;
+  }
+  .chat-input:focus {
+    border-color: var(--theme-secondary, #FFA500);
+    box-shadow: 0 0 15px var(--theme-glow, rgba(255, 215, 0, 0.3));
+  }
+  .chat-send-btn {
+    background: linear-gradient(135deg, var(--theme-primary, #FFD700), var(--theme-secondary, #FFA500));
+    border: none;
+    padding: 15px 30px;
+    border-radius: 25px;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+  }
+  .chat-send-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px var(--theme-shadow, rgba(255, 165, 0, 0.4));
+  }
+  .chat-send-btn:active {
+    transform: scale(0.98);
+  }
+  .chat-loading {
+    display: none;
+    text-align: center;
+    padding: 10px;
+    color: #666;
+  }
+  .chat-loading.active {
+    display: block;
+  }
+</style>
+
+<script src="{% static 'codemon/js/interactions.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const widget = document.getElementById('characterWidget');
+  const character = document.querySelector('.character-image');
+  const chatModal = document.getElementById('chatModal');
+  const closeChatBtn = document.getElementById('closeChatBtn');
+  const sendChatBtn = document.getElementById('sendChatBtn');
+  const chatInput = document.getElementById('chatInput');
+  const chatMessages = document.getElementById('chatMessages');
+    if (isSidebarMode) {
+      // ユーザーIDをテンプレートから取得
+      const userId = '{{ request.user.id|default:"anon" }}';
+      // 最小化状態のキー
+      const minimizedKey = `character_minimized_${userId}`;
+
+      // 最小化ボタン
+      if (minimizeBtn) {
+        minimizeBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          widget.classList.add('minimized');
+          if (miniIcon) miniIcon.classList.add('active');
+          // 最小化状態を保存
+          localStorage.setItem(minimizedKey, 'true');
+        });
+      }
+      // ミニアイコンクリックで復元
+      if (miniIcon) {
+        miniIcon.addEventListener('click', function() {
+          widget.classList.remove('minimized');
+          miniIcon.classList.remove('active');
+          // 復元状態を保存
+          localStorage.setItem(minimizedKey, 'false');
+        });
+      }
+      // キャラクタークリックでチャットを開く（sidebarモード）
+      if (character) {
+        character.addEventListener('click', function() {
+          openChat();
+        });
+      }
+      // ページ表示時に最小化状態を復元
+      const minimized = localStorage.getItem(minimizedKey);
+      if (minimized === 'true') {
+        widget.classList.add('minimized');
+        if (miniIcon) miniIcon.classList.add('active');
+      } else {
+        widget.classList.remove('minimized');
+        if (miniIcon) miniIcon.classList.remove('active');
+      }
+    }
+      ],
+      greeting: 'こ、こんにちは…！ ぼ、ぼくは{{ ai_name }}です。<br>え、えっと…なんでも聞いてね…！'
+    },
+    // キツネ（皮肉屋、飄々）
+    'キツネ.png': {
+      mumbles: [
+        'ふぁ…退屈だなぁ',
+        'なんか面白いことないかね',
+        'ま、暇つぶしにはなるか',
+        'おまえ、そこにいるんだろ？',
+        'へぇ…見てるのさ',
+        'あくびが出ちゃうな',
+        '誰か構ってくれないかねぇ',
+        'ま、気が向いたら話しかけなよ'
+      ],
+      greeting: 'よぉ。オレは{{ ai_name }}ってやつさ。<br>なんか聞きたいことあるなら、聞いてやるよ。'
+    },
+    // イヌ（明るく前向き）
+    'イヌ.png': {
+      mumbles: [
+        '今日もいい天気だな！',
+        '誰か遊びに来ないかな',
+        'お腹すいてきたぞ',
+        'よし、やる気出てきた！',
+        'なんかワクワクするな',
+        'ちょっと眠くなってきた…',
+        '散歩したいな',
+        '話しかけてくれよ！'
+      ],
+      greeting: 'こんにちは！おれは{{ ai_name }}だ！<br>なんでも聞いてくれよな！'
+    },
+    // パンダ（のんびり癒し）
+    'パンダ.png': {
+      mumbles: [
+        'ふぁぁ…のんびりするねぇ',
+        'お昼寝したいなぁ',
+        'ゆっくりでいいよぉ',
+        '笹が食べたいなぁ',
+        'まったりしてるねぇ',
+        'あったかいねぇ…',
+        '急がなくていいよぉ',
+        'ぼく、ここにいるよぉ'
+      ],
+      greeting: 'やぁ…ぼくは{{ ai_name }}だよぉ。<br>ゆっくりでいいから、なんでも聞いてねぇ。'
+    },
+    // リス（ツンデレ世話焼き）
+    'リス.png': {
+      mumbles: [
+        'もう、何してるのよ',
+        'ちゃんとやってる？',
+        'しょうがないわね…',
+        'アタシに任せなさいよ',
+        'ふん、別に暇じゃないし',
+        '何か手伝ってあげようか？',
+        'ちょっと、聞いてるの？',
+        'まったく、世話が焼けるわね'
+      ],
+      greeting: 'ふん、アタシは{{ ai_name }}よ。<br>しょうがないから、質問があれば聞いてあげるわ。'
+    },
+    // フクロウ（知的で穏やか）
+    'フクロウ.png': {
+      mumbles: [
+        'ふむ…考え事をしていました',
+        '静かで落ち着きますね',
+        '知識は宝ですよ',
+        '何かお困りですか？',
+        'ゆっくり考えましょう',
+        'なるほど…興味深いですね',
+        '学ぶことは楽しいですよ',
+        'いつでもお手伝いしますよ'
+      ],
+      greeting: 'こんにちは。わたしは{{ ai_name }}です。<br>何かお困りのことがあれば、お気軽にどうぞ。'
+    },
+    // ネコ（けだるげ、気まぐれ）
+    'ネコ.png': {
+      mumbles: [
+        '……ふぁ',
+        '……眠い',
+        '……なに？',
+        '……ま、いいけど',
+        '……暇だな',
+        '……そこにいるの？',
+        '……気が向いたら話す',
+        '……別に待ってないし'
+      ],
+      greeting: '……ああ、ぼくは{{ ai_name }}。<br>……聞きたいことがあるなら、聞けば？'
+    },
+    // アルパカ（お嬢様）
+    'アルパカ.png': {
+      mumbles: [
+        'ごきげんよう',
+        'お紅茶が飲みたいですわ',
+        'よくってよ',
+        'わたくしに任せなさい',
+        'ふふ、素敵ですわね',
+        '何かお手伝いしましょうか？',
+        'ついていらっしゃい',
+        'さあ、何でもおっしゃって'
+      ],
+      greeting: 'ごきげんよう。わたくしは{{ ai_name }}ですわ。<br>何でもお聞きになって。お力になりますわよ。'
+    }
+  };
+  
+  // 現在のキャラクターを取得
+  const currentAppearance = widget ? widget.getAttribute('data-character') : 'イヌ.png';
+  const currentDialogue = characterDialogues[currentAppearance] || characterDialogues['イヌ.png'];
+  const aiName = '{{ ai_name|default:"うたー"|escapejs }}';
+  
+  // 初期挨拶を設定
+  const initialGreeting = document.getElementById('initialGreeting');
+  if (initialGreeting) {
+    initialGreeting.innerHTML = currentDialogue.greeting.replace(/\{\{ ai_name \}\}/g, aiName);
+  }
+  
+  // ========================================
+  // karihomeモード: 吹き出し機能
+  // ========================================
+  if (!isSidebarMode && characterMumble) {
+    const mumbles = currentDialogue.mumbles;
+    let mumbleIndex = 0;
+    
+    function showMumble(idx) {
+      characterMumble.textContent = mumbles[idx % mumbles.length];
+    }
+    showMumble(mumbleIndex);
+    setInterval(function() {
+      mumbleIndex++;
+      showMumble(mumbleIndex);
+    }, 5000);
+    
+    // キャラクタークリックで次の会話（karihomeモード）
+    if (character) {
+      character.addEventListener('click', function() {
+        mumbleIndex++;
+        showMumble(mumbleIndex);
+      });
+    }
+    
+    // 吹き出しクリックで次の会話（karihomeモード）
+    const speechBubble = document.querySelector('.speech-bubble');
+    if (speechBubble) {
+      speechBubble.style.cursor = 'pointer';
+      speechBubble.addEventListener('click', function() {
+        mumbleIndex++;
+        showMumble(mumbleIndex);
+      });
+    }
+  }
+  
+  // ========================================
+  // sidebarモード: 最小化/復元機能
+  // ========================================
+  if (isSidebarMode) {
+    // 最小化ボタン
+    if (minimizeBtn) {
+      minimizeBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        widget.classList.add('minimized');
+        if (miniIcon) miniIcon.classList.add('active');
+      });
+    }
+    
+    // ミニアイコンクリックで復元
+    if (miniIcon) {
+      miniIcon.addEventListener('click', function() {
+        widget.classList.remove('minimized');
+        miniIcon.classList.remove('active');
+      });
+    }
+    
+    // キャラクタークリックでチャットを開く（sidebarモード）
+    if (character) {
+      character.addEventListener('click', function() {
+        openChat();
+      });
+    }
+  }
+  
+  // ========================================
+  // 共通: ホバーエフェクト
+  // ========================================
+  if (character) {
+    character.addEventListener('mouseenter', function() {
+      this.style.transform = 'scale(1.05) rotate(2deg)';
+    });
+    character.addEventListener('mouseleave', function() {
+      this.style.transform = 'scale(1) rotate(0deg)';
+    });
+  }
+  
+  // ========================================
+  // 共通: チャット機能
+  // ========================================
+  function openChat() {
+    chatModal.classList.add('active');
+    chatInput.focus();
+    const navBar = document.querySelector('.top-tabs');
+    if (navBar) navBar.style.display = 'none';
+  }
+  
+  function closeChat() {
+    chatModal.classList.remove('active');
+    const navBar = document.querySelector('.top-tabs');
+    if (navBar) navBar.style.display = '';
+  }
+  
+  // 話しかけるボタン（karihomeモード）
+  if (chatTriggerBtn) {
+    chatTriggerBtn.addEventListener('click', openChat);
+  }
+  
+  // 閉じるボタン
+  if (closeChatBtn) {
+    closeChatBtn.addEventListener('click', closeChat);
+  }
+  
+  // 背景クリックで閉じる
+  if (chatModal) {
+    chatModal.addEventListener('click', function(e) {
+      if (e.target === chatModal) closeChat();
+    });
+  }
+
+  // ========================================
+  // コピー時にプレフィックス付与
+  // ========================================
+  if (chatMessages) {
+    chatMessages.addEventListener('copy', function(e) {
+      const selection = window.getSelection();
+      if (!selection.rangeCount) return;
+
+      // 選択範囲内のメッセージ要素を取得
+      const range = selection.getRangeAt(0);
+      const container = document.createElement('div');
+      container.appendChild(range.cloneContents());
+
+      // メッセージを整形
+      let formattedText = '';
+      const messages = container.querySelectorAll('.chat-message');
+      
+      if (messages.length > 0) {
+        // 複数メッセージが選択された場合
+        messages.forEach(msg => {
+          const content = msg.querySelector('.chat-message-content');
+          if (content) {
+            const prefix = msg.classList.contains('user') ? 'ユーザー：' : 'ＡＩ：';
+            formattedText += prefix + content.textContent.trim() + '\n\n';
+          }
+        });
+      } else {
+        // 単一メッセージ内の部分選択の場合
+        const selectedNode = selection.anchorNode;
+        let messageElement = selectedNode.nodeType === Node.TEXT_NODE 
+          ? selectedNode.parentElement 
+          : selectedNode;
+        
+        // .chat-message要素を探す
+        while (messageElement && !messageElement.classList?.contains('chat-message')) {
+          messageElement = messageElement.parentElement;
+        }
+        
+        if (messageElement && messageElement.classList.contains('chat-message')) {
+          const prefix = messageElement.classList.contains('user') ? 'ユーザー：' : 'ＡＩ：';
+          formattedText = prefix + selection.toString().trim();
+        } else {
+          // フォールバック: そのままのテキスト
+          formattedText = selection.toString();
+        }
+      }
+
+      // クリップボードにカスタムテキストを設定
+      e.clipboardData.setData('text/plain', formattedText.trim());
+      e.preventDefault();
+    });
+  }
+  
+  // メッセージ追加
+  function addMessage(text, type) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message ${type}`;
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'chat-message-content';
+    contentDiv.textContent = text;
+    messageDiv.appendChild(contentDiv);
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+  
+  // CSRFトークン取得
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+  
+  // キャラクター名からAPIで使用するIDへのマッピング
+  const characterNameToId = {
+    'ウサギ.png': 'usagi',
+    'キツネ.png': 'kitsune',
+    'イヌ.png': 'inu',
+    'パンダ.png': 'panda',
+    'リス.png': 'risu',
+    'フクロウ.png': 'fukurou',
+    'ネコ.png': 'neko',
+    'アルパカ.png': 'arupaka',
+    // 拡張子なしの場合も対応
+    'ウサギ': 'usagi',
+    'キツネ': 'kitsune',
+    'イヌ': 'inu',
+    'パンダ': 'panda',
+    'リス': 'risu',
+    'フクロウ': 'fukurou',
+    'ネコ': 'neko',
+    'アルパカ': 'arupaka',
+  };
+  
+  // ユーザーの選択したキャラクターを取得
+  const userAppearance = '{{ appearance|default:"イヌ.png" }}';
+  const currentCharacterId = characterNameToId[userAppearance] || 'inu';
+  
+  // 送信処理
+  if (sendChatBtn) {
+    sendChatBtn.addEventListener('click', function() {
+      const message = chatInput.value.trim();
+      if (!message) return;
+      addMessage(message, 'user');
+      chatInput.value = '';
+      chatLoading.classList.add('active');
+      
+      fetch('/codemon/api/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+          message: message,
+          character: currentCharacterId
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        let reply = data.reply || 'エラー: 返答がありません';
+        addMessage(reply, 'ai');
+        chatLoading.classList.remove('active');
+      })
+      .catch(err => {
+        addMessage('エラー: AIとの通信に失敗しました', 'ai');
+        chatLoading.classList.remove('active');
+      });
+    });
+  }
+  
+  // Enterで送信
+  if (chatInput) {
+    chatInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendChatBtn.click();
+      }
+    });
+  }
+});
+</script>

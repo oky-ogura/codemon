@@ -1,0 +1,80 @@
+<script>
+// ---------------------- システム読み込みブロック ----------------------
+Blockly.Blocks['load_system'] = {
+  init: function() {
+    // グローバル変数からシステム一覧を取得
+    const systems = window._systemsList || [];
+    
+    // ドロップダウンの選択肢を作成
+    const options = systems.length > 0 
+      ? systems.map(sys => [sys.system_name, sys.system_id.toString()])
+      : [['システムがありません', '0']];
+    
+    this.appendDummyInput()
+      .appendField("システムをよみこむ:")
+      .appendField(new Blockly.FieldDropdown(options), "SYSTEM_ID");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(290);
+  }
+};
+
+// ---------------------- システム条件分岐ブロック ----------------------
+Blockly.Blocks['system_condition'] = {
+  init: function() {
+    const systems = window._systemsList || [];
+    
+    const options = systems.length > 0 
+      ? systems.map(sys => [sys.system_name, sys.system_id.toString()])
+      : [['システムがありません', '0']];
+    
+    this.appendDummyInput()
+      .appendField("もし システム")
+      .appendField(new Blockly.FieldDropdown(options), "SYSTEM_ID")
+      .appendField("の");
+    this.appendDummyInput()
+      .appendField("ラベル：")
+      .appendField(new Blockly.FieldTextInput("文字："), "ELEMENT_NAME")
+      .appendField("が");
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["=","EQ"],
+        ["≠","NEQ"],
+        [">","GT"],
+        ["<","LT"],
+        ["≥","GTE"],
+        ["≤","LTE"],
+        ["ふくむ","CONTAINS"],
+        ["せんたくされている","SELECTED"],
+        ["チェックされている","CHECKED"]
+      ]), "OP")
+      .appendField(new Blockly.FieldTextInput("あたい (複数指定は/区切り)"), "VALUE")
+      .appendField("なら");
+    this.appendStatementInput("DO")
+      .appendField("すること");
+    this.appendStatementInput("ELSE")
+      .appendField("そうでなければ");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(290);
+  }
+};
+
+// ---------------------- システム表示ブロック ----------------------
+Blockly.Blocks['display_system'] = {
+  init: function() {
+    const systems = window._systemsList || [];
+    
+    const options = systems.length > 0 
+      ? systems.map(sys => [sys.system_name, sys.system_id.toString()])
+      : [['システムがありません', '0']];
+    
+    this.appendDummyInput()
+      .appendField("システムをひょうじ:")
+      .appendField(new Blockly.FieldDropdown(options), "SYSTEM_ID");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(290);
+  }
+};
+</script>

@@ -425,14 +425,17 @@
       font-size: 13px;
     }
     
+    /* チャットメッセージのスタイルはcharacter_widget.htmlで定義されているためコメントアウト */
+    /*
     .chat-message.user {
-      background: linear-gradient(90deg, #fff59d 0%, #ffd54f 100%); /* 黄色系 */
+      background: linear-gradient(90deg, #fff59d 0%, #ffd54f 100%);
       color: #333;
       margin-left: 40px;
       text-align: right;
       font-weight: 600;
       box-shadow: 0 4px 12px rgba(0,0,0,0.06);
     }
+    */
     
     .chat-message.assistant {
       background: white;
@@ -484,6 +487,10 @@
   </style>
 </head>
 <body{% block body_class %}{% endblock %}>
+
+  <!-- ページ固有バナー表示用 block（karihome などで上書き可能） -->
+  {% block banner_nav %}{% endblock %}
+
   <!-- 背景画像（全画面共通） -->
   <img src="{% static 'codemon/images/backgrounds/bg_common.png' %}" 
        alt="" 
@@ -495,6 +502,7 @@
   <!-- 各ページでbg_frame_*.pngを指定 -->
   {% endblock %}
 
+  {% block global_navigation %}
   <!-- ナビゲーションタブ -->
   <header class="top-tabs">
     <nav class="tabs">
@@ -574,6 +582,7 @@
       </ul>
     </nav>
   </header>
+  {% endblock %}
 
   <!-- コンテンツエリア -->
   <div class="content-wrapper">
@@ -816,22 +825,29 @@
   </script>
   
   {% block extra_js %}{% endblock %}
-  </script>
 
   {% block global_character_widget %}
-    {% if user.is_authenticated %}
-      {% with current_path=request.path %}
-        {# --- 表示・非表示の制御ロジック --- #}
-        {# 1. accountsアプリ内のページを除外 (karihome/homeは許可) #}
-        {% if '/accounts/' in current_path and '/accounts/karihome/' not in current_path and '/accounts/home/' not in current_path %}
-          {# 非表示 #}
-        {% elif '/group/' in current_path %}
-          {# 非表示 #}
-        {% else %}
-          {% include 'includes/character_widget.html' %}
-        {% endif %}
-      {% endwith %}
-    {% endif %}
+    {% with current_path=request.path %}
+      {# --- 表示・非表示の制御ロジック --- #}
+      {# karihomeページは自身でwidgetをオーバーライドするのでここでは何もしない #}
+      {% if '/accounts/karihome/' in current_path or '/accounts/home/' in current_path %}
+        {# karihome.htmlが自身でwidgetを表示するので非表示 #}
+      {# ログイン/サインアップページを除外 #}
+      {% elif '/accounts/student/' in current_path or '/accounts/teacher/' in current_path %}
+        {# 非表示 #}
+      {% elif '/group/' in current_path %}
+        {# 非表示 #}
+      {# アカウント画面を除外 #}
+      {% elif '/accounts/account_entry/' in current_path %}
+        {# 非表示 #}
+
+      {% elif '/groups/join_confirm/' in current_path %}
+
+      {% else %}
+        {# 他の画面ではsidebarモードで表示（accounts/block、accounts/systemを含む） #}
+        {% include 'includes/character_widget.html' with mode='sidebar' %}
+      {% endif %}
+    {% endwith %}
   {% endblock %}
 </body>
 </html>

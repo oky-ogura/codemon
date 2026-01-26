@@ -1,0 +1,46 @@
+{# 共通ナビゲーションバー: 全画面でinclude可能 #}
+<header class="top-tabs">
+  <nav class="tabs">
+    <ul>
+      <li>
+        <a href="{% url 'accounts:karihome' %}" id="tab-home">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+          </svg>
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'accounts:system_choice' %}" id="tab-systems">
+          <div class="nav-image-container">
+            <img src="{% static 'codemon/images/nav/system.png' %}" class="nav-normal" alt="システム">
+            <img src="{% static 'codemon/images/nav/system_active.png' %}" class="nav-active" alt="システム">
+          </div>
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'accounts:block_choice' %}" id="tab-algorithms">
+          <div class="nav-image-container">
+            <img src="{% static 'codemon/images/nav/algorithm.png' %}" class="nav-normal" alt="アルゴリズム">
+            <img src="{% static 'codemon/images/nav/algorithm_active.png' %}" class="nav-active" alt="アルゴリズム">
+          </div>
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'codemon:checklist_selection' %}" id="tab-checklist">
+          <div class="nav-image-container">
+            <img src="{% static 'codemon/images/nav/checklist.png' %}" class="nav-normal" alt="チェックリスト">
+            <img src="{% static 'codemon/images/nav/checklist_active.png' %}" class="nav-active" alt="チェックリスト">
+          </div>
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'accounts:account_entry' %}" id="tab-account">
+          <div class="nav-image-container">
+            <img src="{% static 'codemon/images/nav/account.png' %}" class="nav-normal" alt="アカウント">
+            <img src="{% static 'codemon/images/nav/account_active.png' %}" class="nav-active" alt="アカウント">
+          </div>
+        </a>
+      </li>
+    </ul>
+  </nav>
+</header>
