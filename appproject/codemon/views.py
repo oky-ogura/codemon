@@ -1708,7 +1708,11 @@ def unequip_accessory(request):
     UserAccessory.objects.filter(user=user, is_equipped=True).update(is_equipped=False)
     
     messages.success(request, 'アクセサリーを外しました。')
+<<<<<<< HEAD
     return redirect('codemon:accessory_shop')
+=======
+
+>>>>>>> main
 # ========================================
 # チャット機能 - 新しいUI画面
 # ========================================
@@ -1790,3 +1794,7 @@ def grading_teacher(request):
 def chat_demo_index(request):
     """チャット機能デモインデックス"""
     return render(request, 'chat/index.html')
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
