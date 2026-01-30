@@ -2,369 +2,333 @@
 {% load static %}
 
 {% block title %}チェックリスト一覧 - Codemon{% endblock %}
-{% block body_class %} class="no-scroll"{% endblock %}
-
-{% block background_frame %}
-  <img src="{% static 'codemon/images/frames/bg_frame_green.png' %}" 
-       alt="" 
-       class="bg-frame frame-green"
-       onerror="this.style.display='none';">
-{% endblock %}
 
 {% block extra_css %}
 <style>
 /* --- 全体レイアウト --- */
 .content-wrapper { padding-top: 100px !important; }
 
-.checklist-list-container {
+/* --- リスト部分（カード形式） --- */
+.list-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 25px;
     max-width: 1000px;
-    width: 92vw;
-    margin: 0 auto;
-    padding: 25px;
-    background-color: rgba(255, 255, 255, 0.98);
+    margin: 0 auto 100px;
+    padding: 20px;
+    transition: opacity 0.4s ease;
+}
+
+.checklist-card {
+    background: white;
     border-radius: 30px;
-    border: 8px solid #ffffff;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-    position: relative;
-    z-index: 20;
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 160px); 
-    min-height: 500px;
-}
-
-/* --- アクションバー（固定） --- */
-.action-bar {
-    flex-shrink: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    gap: 10px;
-}
-.left-actions { display: flex; gap: 12px; }
-
-/* 共通ボタンアニメーション：ホバーで浮き上がる */
-.btn-pop {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 22px;
-    border-radius: 50px;
-    text-decoration: none;
-    font-weight: 900;
-    font-size: 14px;
-    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* ぷるんとした動き */
-    border: none;
+    border: 6px solid #ffffff;
+    padding: 25px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
     cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
 }
-.btn-pop:hover {
-    transform: translateY(-4px) scale(1.05); /* 少し浮いて大きくなる */
+
+.checklist-card:hover {
+    transform: translateY(-8px);
+    border-color: #3fbcd9;
+    box-shadow: 0 20px 40px rgba(63, 188, 217, 0.15);
 }
 
-.btn-create { background: #3fbcd9; color: white; box-shadow: 0 5px 0 #2a8da4; }
-.btn-create:hover { background: #4ad0ef; box-shadow: 0 7px 0 #2a8da4; }
-.btn-create:active { transform: translateY(2px); box-shadow: 0 2px 0 #2a8da4; }
-
-.btn-back-small { background: #ff7675; color: white; box-shadow: 0 5px 0 #e55a5a; }
-.btn-back-small:hover { background: #ff8e8d; box-shadow: 0 7px 0 #e55a5a; }
-.btn-back-small:active { transform: translateY(2px); box-shadow: 0 2px 0 #e55a5a; }
-
-/* --- 並び替えボタン --- */
-.sort-controls { display: flex; background: #edf2f7; padding: 5px; border-radius: 50px; }
-.btn-sort {
-    padding: 6px 15px; border-radius: 50px; font-size: 12px; font-weight: 800;
-    color: #718096; background: transparent; border: none; cursor: pointer;
-    transition: all 0.2s;
-}
-.btn-sort:hover:not(.active) { background: rgba(255,255,255,0.5); color: #3fbcd9; }
-.btn-sort.active { background: white; color: #3fbcd9; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-
-/* --- リストヘッダー --- */
-.checklist-header-row {
-    flex-shrink: 0;
-    background: #3fbcd9;
-    display: flex;
-    align-items: center; /* ヘッダー内も中央揃え */
-    padding: 12px 20px;
-    border-radius: 15px 15px 8px 8px;
-    color: #fff;
+.checklist-card h3 {
+    margin: 0 0 12px 0;
+    color: #3fbcd9;
+    font-size: 20px;
     font-weight: 900;
-    margin-bottom: 8px;
 }
 
-/* --- スクロールリスト --- */
-.checklist-scroll-area {
-    flex-grow: 1;
+.card-meta {
+    font-size: 13px;
+    color: #a0aec0;
+    font-weight: 700;
+}
+
+/* アニメーション用：移動中のカード */
+.checklist-card.fixed {
+    position: fixed;
+    z-index: 1000;
+    pointer-events: none;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+}
+
+/* --- 詳細オーバーレイ（中央パネル） --- */
+#detail-overlay {
+    position: fixed;
+    top: 50%;
+    left: 55%;
+    transform: translate(-50%, -50%) scale(0.8);
+    width: 90%;
+    max-width: 550px;
+    max-height: 80vh;
+    background: white;
+    border-radius: 40px;
+    border: 10px solid #ffffff;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.25);
+    z-index: 900;
+    display: none;
+    flex-direction: column;
+    padding: 30px;
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+#detail-overlay.active {
+    display: flex;
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.detail-scroll-area {
     overflow-y: auto;
-    padding-right: 8px;
+    flex-grow: 1;
+    margin: 20px 0;
+    padding-right: 10px;
 }
 
-.checklist-row.list-item {
-    display: flex; 
-    align-items: center; /* ← これで上下の中央を揃える */
+/* --- アイテムカード（詳細内） --- */
+.item-card {
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border: 3px solid #f1f5f9;
+    border-radius: 20px;
     padding: 15px 20px;
     margin-bottom: 12px;
-    background: #f8fafc;
-    border-radius: 20px;
-    border: 3px solid transparent;
     transition: all 0.2s;
-}
-.checklist-row.list-item.hidden { display: none; }
-.checklist-row.list-item:hover { 
-    background: white; 
-    border-color: #3fbcd9; 
-    transform: translateX(8px); /* ホバーで少し横にスライド */
-    box-shadow: 5px 5px 15px rgba(0,0,0,0.05);
+    cursor: pointer;
 }
 
-/* 名前エリア */
-.cell-name { 
-    flex: 2; 
-    min-width: 0; 
-    font-weight: 800; 
-    color: #2d3748;
-    display: flex;
-    align-items: center;
-}
-.name-scroll-container {
-    display: block; 
-    white-space: nowrap; 
-    overflow-x: auto; 
-    scrollbar-width: none; 
-    -ms-overflow-style: none;
-    line-height: 1.2; /* 行の高さを整えてズレ防止 */
-}
-.name-scroll-container::-webkit-scrollbar { display: none; }
+.item-card:hover { border-color: #3fbcd9; background: #f0f9ff; }
+.item-card.is-done { background: #f8fafc; border-color: transparent; }
 
-/* 日付バッジ */
-.cell-date { flex: 1; text-align: center; }
-.date-badge {
-    display: inline-block;
-    background: #e2e8f0;
-    color: #4a5568;
-    padding: 4px 12px;
+/* カスタムチェックボックス */
+.custom-checkbox {
+    width: 32px; height: 32px;
+    border: 4px solid #3fbcd9;
     border-radius: 10px;
-    font-size: 12px;
-    font-weight: 800;
-}
-.date-badge.today {
-    background: #ff9f43;
-    color: white;
-    box-shadow: 0 3px 0 #e67e22;
-    transform: rotate(-1deg);
-}
-
-/* アクションボタン：垂直中央に固定 */
-.cell-action { 
-    width: 140px; 
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-}
-.btn-view {
-    display: inline-block;
-    background: #FFD200; 
-    color: #333; 
-    padding: 10px 18px; 
-    border-radius: 50px;
-    text-decoration: none; 
-    font-weight: 900; 
-    font-size: 13px; 
-    box-shadow: 0 4px 0 #d9b300;
+    display: flex; align-items: center; justify-content: center;
     transition: all 0.2s;
-    line-height: 1; /* ボタン内のテキスト位置を固定 */
-}
-.btn-view:hover {
-    background: #ffe04d;
-    transform: translateY(-3px) scale(1.05);
-    box-shadow: 0 6px 0 #d9b300;
-}
-.btn-view:active {
-    transform: translateY(2px);
-    box-shadow: 0 1px 0 #d9b300;
-}
-
-/* --- ページネーション --- */
-.pagination-container {
+    background: white;
+    margin-right: 15px;
     flex-shrink: 0;
-    display: flex; justify-content: center; align-items: center;
-    gap: 12px; padding-top: 15px; border-top: 3px dashed #edf2f7;
-}
-.page-btn {
-    width: 42px; height: 42px; border-radius: 12px; border: none;
-    background: #edf2f7; color: #4a5568; font-weight: 900; cursor: pointer; 
-    transition: all 0.2s;
-    box-shadow: 0 3px 0 #cbd5e0;
-}
-.page-btn:hover:not(.active) {
-    background: #e2e8f0;
-    transform: translateY(-2px);
-}
-.page-btn.active { 
-    background: #3fbcd9; 
-    color: white; 
-    box-shadow: 0 4px 0 #2a8da4;
-    transform: scale(1.1);
 }
 
-@media (max-width: 768px) {
-    .checklist-list-container { height: auto; max-height: 95vh; }
-    .checklist-header-row { display: none; }
-    .checklist-row.list-item { flex-direction: column; align-items: stretch; gap: 12px; }
-    .cell-action { justify-content: center; width: 100%; }
-    .btn-view { width: 100%; text-align: center; }
+input[type="checkbox"] { display: none; }
+
+input[type="checkbox"]:checked + .custom-checkbox {
+    background: #3fbcd9;
 }
+
+input[type="checkbox"]:checked + .custom-checkbox::after {
+    content: "✓"; color: white; font-size: 20px; font-weight: 900;
+}
+
+.item-text { font-size: 18px; font-weight: 800; color: #2d3748; }
+input[type="checkbox"]:checked ~ .item-text {
+    text-decoration: line-through; color: #a0aec0;
+}
+
+/* --- 接続線用SVG --- */
+#connector-svg { position: fixed; inset: 0; pointer-events: none; z-index: 850; }
+#connector-path {
+    fill: none; stroke: #3fbcd9; stroke-width: 5;
+    stroke-dasharray: 12, 8; animation: lineFlow 1s linear infinite;
+    stroke-linecap: round; opacity: 0; transition: opacity 0.3s;
+}
+@keyframes lineFlow { to { stroke-dashoffset: -20; } }
+
+/* --- ボタン --- */
+.btn-pop {
+    padding: 12px 25px; border-radius: 50px; text-decoration: none;
+    font-weight: 900; border: none; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: transform 0.2s;
+}
+.btn-pop:hover { transform: scale(1.05); }
+.btn-back { background: #cbd5e0; color: #4a5568; }
+.btn-edit { background: #FFD200; color: #333; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="checklist-list-container">
-    <h1 style="text-align:center; color:#3fbcd9; font-weight:900; margin-bottom:20px; font-size: 26px; letter-spacing: 1px;">
-        🔍 チェックリストをえらぼう
-    </h1>
+<div class="page-header" style="text-align: center; margin-bottom: 50px;">
+    <h1 style="color: #3fbcd9; font-weight: 900; font-size: 32px;">📝 チェックリストをえらぼう</h1>
+</div>
 
-    <div class="action-bar">
-        <div class="left-actions">
-            <a href="{% url 'codemon:checklist_selection' %}" class="btn-pop btn-back-small">
-                ← もどる
-            </a>
-            <a href="{% url 'codemon:checklist_create' %}" class="btn-pop btn-create">
-                ＋ あたらしいリストを作る
-            </a>
-        </div>
-        
-        <div class="sort-controls">
-            <button class="btn-sort active" onclick="handleSort('new')">新しい順</button>
-            <button class="btn-sort" onclick="handleSort('old')">古い順</button>
-        </div>
+<svg id="connector-svg"><path id="connector-path"></path></svg>
+
+<div class="list-container" id="list-grid">
+    {% for checklist in checklists %}
+    <div class="checklist-card" 
+         onclick="openDetailMotion(this, '{{ checklist.checklist_name|escapejs }}', '{{ checklist.checklist_description|default:''|escapejs }}', {{ checklist.checklist_id }})">
+        <h3>{{ checklist.checklist_name }}</h3>
+        <div class="card-meta">📅 {{ checklist.created_at|date:"Y/m/d" }}</div>
     </div>
+    {% empty %}
+    <p style="text-align:center; color:#999;">まだないよ。つくってみよう！</p>
+    {% endfor %}
+</div>
 
-    <div class="checklist-header-row">
-        <div class="cell-name">なまえ</div>
-        <div class="cell-date">作った日</div>
-        <div class="cell-date">さいごの更新</div>
-        <div class="cell-action"></div>
-    </div>
-
-    <div class="checklist-scroll-area" id="checklist-list">
-        {% for checklist in checklists %}
-        <div class="checklist-row list-item" 
-             data-timestamp="{{ checklist.created_at|date:'U' }}"
-             data-updated-timestamp="{{ checklist.updated_at|date:'U' }}">
-            <div class="cell-name">
-                <div class="name-scroll-container">
-                    {{ checklist.checklist_name }}
-                </div>
-            </div>
-            <div class="cell-date"><span class="date-badge create-date"></span></div>
-            <div class="cell-date"><span class="date-badge update-date"></span></div>
-            <div class="cell-action">
-                <a href="{% url 'codemon:checklist_detail' pk=checklist.checklist_id %}" class="btn-view">
-                    なかみを見る
-                </a>
-            </div>
+<div id="detail-overlay">
+    <h2 id="dt-title" style="color: #3fbcd9; margin: 0; font-size: 26px;"></h2>
+    <p id="dt-desc" style="color: #718096; margin-top: 10px; font-weight: 600;"></p>
+    
+    <div class="detail-scroll-area" id="dt-items">
         </div>
-        {% empty %}
-        <div style="text-align: center; padding: 50px; color: #a0aec0;">
-            <p style="font-weight: 800;">まだリストがないよ。<br>上のボタンから作ってみてね！</p>
-        </div>
-        {% endfor %}
-    </div>
 
-    <div class="pagination-container" id="pagination"></div>
+    <div style="display: flex; gap: 10px; justify-content: center; padding-top: 10px;">
+        <button class="btn-pop btn-back" onclick="closeDetailMotion()">❌ とじる</button>
+        <a id="dt-edit-btn" href="#" class="btn-pop btn-edit">✏️ へんしゅう</a>
+    </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// JSロジックは前回同様ですが、念のためそのまま記載します
-let currentPage = 1;
-const itemsPerPage = 10;
+let activeCard = null;
+const overlay = document.getElementById('detail-overlay');
+const path = document.getElementById('connector-path');
+const grid = document.getElementById('list-grid');
 
-function getFriendlyDate(timestamp) {
-    const now = Math.floor(Date.now() / 1000);
-    const diff = now - timestamp;
-    const oneDay = 86400;
+// CSRFトークン取得用
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
 
-    if (diff < oneDay) return "きょう";
-    if (diff < oneDay * 2) return "きのう";
-    if (diff < oneDay * 7) return Math.floor(diff / oneDay) + "日前";
+// 💡 詳細を開く
+async function openDetailMotion(card, name, desc, id) {
+    if (activeCard) return;
+    activeCard = card;
+
+    document.getElementById('dt-title').innerText = name;
+    document.getElementById('dt-desc').innerText = desc;
+    document.getElementById('dt-edit-btn').href = `/codemon/checklists/${id}/edit/`;
     
-    const date = new Date(timestamp * 1000);
-    return date.getFullYear() + "/" + (date.getMonth() + 1) + "/" + date.getDate();
+    // データを取得して表示
+    loadActualItems(id);
+
+    const rect = card.getBoundingClientRect();
+    card.style.width = rect.width + 'px';
+    card.style.height = rect.height + 'px';
+    card.style.top = rect.top + 'px';
+    card.style.left = rect.left + 'px';
+    card.dataset.origTop = rect.top;
+    card.dataset.origLeft = rect.left;
+    card.classList.add('fixed');
+
+    setTimeout(() => {
+        card.style.transition = "all 0.6s cubic-bezier(0.19, 1, 0.22, 1)";
+        card.style.top = "100px";
+        card.style.left = "40px";
+        card.style.width = "200px";
+        card.style.transform = "rotate(-5deg) scale(0.9)";
+        grid.style.opacity = "0.2";
+        overlay.classList.add('active');
+        setTimeout(drawCurve, 500);
+    }, 10);
 }
 
-function updateDates() {
-    document.querySelectorAll('.list-item').forEach(item => {
-        const createTs = item.getAttribute('data-timestamp');
-        const updateTs = item.getAttribute('data-updated-timestamp');
-        const createBadge = item.querySelector('.create-date');
-        const updateBadge = item.querySelector('.update-date');
+// 💡 サーバーからアイテムを取得
+async function loadActualItems(checklistId) {
+    const container = document.getElementById('dt-items');
+    container.innerHTML = "<p style='text-align:center; padding:20px;'>さがしてるよ...</p>";
 
-        const createText = getFriendlyDate(createTs);
-        createBadge.innerText = createText;
-        if (createText === "きょう") createBadge.classList.add('today');
+    try {
+        // ※このAPI用URLが未実装の場合は、views.pyで作る必要があります
+        const response = await fetch(`/codemon/api/checklists/${checklistId}/items/`);
+        const data = await response.json();
+        container.innerHTML = "";
 
-        const updateText = getFriendlyDate(updateTs);
-        updateBadge.innerText = updateText;
-        if (updateText === "きょう") updateBadge.classList.add('today');
-    });
-}
+        if (data.items.length === 0) {
+            container.innerHTML = "<p style='text-align:center; color:#999;'>項目がありません</p>";
+            return;
+        }
 
-function updateDisplay() {
-    const list = document.getElementById('checklist-list');
-    const items = Array.from(list.getElementsByClassName('list-item'));
-    const totalPages = Math.ceil(items.length / itemsPerPage);
-
-    items.forEach(item => item.classList.add('hidden'));
-    const start = (currentPage - 1) * itemsPerPage;
-    const end = start + itemsPerPage;
-    items.slice(start, end).forEach(item => item.classList.remove('hidden'));
-
-    renderPagination(totalPages);
-}
-
-function renderPagination(totalPages) {
-    const pagination = document.getElementById('pagination');
-    pagination.innerHTML = '';
-    if (totalPages <= 1) return;
-    for (let i = 1; i <= totalPages; i++) {
-        const btn = document.createElement('button');
-        btn.innerText = i;
-        btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
-        btn.onclick = () => { 
-            currentPage = i; 
-            updateDisplay(); 
-            document.querySelector('.checklist-scroll-area').scrollTop = 0; 
-        };
-        pagination.appendChild(btn);
+        data.items.forEach(item => {
+            const label = document.createElement('label');
+            label.className = `item-card ${item.is_done ? 'is-done' : ''}`;
+            // idのキー名はDjangoのモデルに合わせて調整してください
+            const itemId = item.checklist_item_id || item.id;
+            
+            label.innerHTML = `
+                <div class="checkbox-wrapper">
+                    <input type="checkbox" ${item.is_done ? 'checked' : ''} 
+                           onchange="handleToggle(this, ${checklistId}, ${itemId})">
+                    <div class="custom-checkbox"></div>
+                </div>
+                <span class="item-text">${item.item_text}</span>
+            `;
+            container.appendChild(label);
+        });
+    } catch (e) {
+        container.innerHTML = "<p style='color:red;'>データの読み込みに失敗しました</p>";
     }
 }
 
-function handleSort(order) {
-    const list = document.getElementById('checklist-list');
-    const items = Array.from(list.getElementsByClassName('list-item'));
-    const buttons = document.querySelectorAll('.btn-sort');
-    
-    buttons.forEach(btn => btn.classList.toggle('active', 
-        (order === 'new' && btn.innerText === '新しい順') || 
-        (order === 'old' && btn.innerText === '古い順')));
+// 💡 チェックの保存（詳細画面の関数を流用）
+function handleToggle(checkbox, checklistId, itemId) {
+    const card = checkbox.closest('.item-card');
+    card.classList.toggle('is-done', checkbox.checked);
 
-    items.sort((a, b) => {
-        const timeA = parseInt(a.getAttribute('data-timestamp'));
-        const timeB = parseInt(b.getAttribute('data-timestamp'));
-        return order === 'new' ? timeB - timeA : timeA - timeB;
+    fetch(`/codemon/checklists/${checklistId}/items/${itemId}/toggle/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 'is_done': checkbox.checked })
+    }).catch(error => {
+        alert('保存に失敗しました。');
+        checkbox.checked = !checkbox.checked;
+        card.classList.toggle('is-done');
     });
-
-    items.forEach(item => list.appendChild(item));
-    currentPage = 1;
-    updateDisplay();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    updateDates();
-    updateDisplay();
-});
+function drawCurve() {
+    if (!activeCard) return;
+    const cardRect = activeCard.getBoundingClientRect();
+    const detailRect = overlay.getBoundingClientRect();
+    const startX = cardRect.right;
+    const startY = cardRect.top + cardRect.height / 2;
+    const endX = detailRect.left;
+    const endY = detailRect.top + detailRect.height / 2;
+    const cpX = (startX + endX) / 2;
+    path.setAttribute('d', `M ${startX} ${startY} Q ${cpX} ${startY}, ${endX} ${endY}`);
+    path.style.opacity = "1";
+}
+
+function closeDetailMotion() {
+    overlay.classList.remove('active');
+    path.style.opacity = "0";
+    grid.style.opacity = "1";
+    activeCard.style.top = activeCard.dataset.origTop + 'px';
+    activeCard.style.left = activeCard.dataset.origLeft + 'px';
+    activeCard.style.width = "";
+    activeCard.style.transform = "rotate(0deg) scale(1)";
+    setTimeout(() => {
+        activeCard.classList.remove('fixed');
+        activeCard.style.transition = "none";
+        activeCard = null;
+    }, 600);
+}
+
+window.addEventListener('resize', () => { if(activeCard) drawCurve(); });
 </script>
 {% endblock %}

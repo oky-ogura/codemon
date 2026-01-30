@@ -2,11 +2,14 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 from . import views
+    # チェックリストアイテム一覧API
+
 from accounts import views as accounts_views
 
 app_name = 'codemon'
 
 urlpatterns = [
+    path('api/checklists/<int:checklist_id>/items/', views.get_checklist_items_api, name='get_items_api'),
 
     # 項目の完了／未完了切り替え（最優先でマッチさせるため一番上に移動）
     path('checklists/<int:pk>/items/<int:item_id>/toggle/', views.checklist_toggle_item, name='checklist_toggle_item'),

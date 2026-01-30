@@ -7,6 +7,21 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required as _login_required
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse, HttpResponseForbidden, FileResponse
+# チェックリストアイテム一覧API
+from django.views.decorators.http import require_GET
+
+@require_GET
+def get_checklist_items_api(request, checklist_id):
+    """
+    特定のチェックリストに紐づくアイテムをJSON形式で返します
+    """
+    # checklist_id に紐づくアイテムを取得
+    # フィールド名（checklist_id, item_text, is_done）は実際のモデルに合わせて修正してください
+    items = ChecklistItem.objects.filter(checklist_id=checklist_id).values(
+        'checklist_item_id', 'item_text', 'is_done'
+    )
+    # 取得したデータをリストにして返す
+    return JsonResponse({'items': list(items)})
 from django.urls import reverse
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
@@ -1693,7 +1708,11 @@ def unequip_accessory(request):
     UserAccessory.objects.filter(user=user, is_equipped=True).update(is_equipped=False)
     
     messages.success(request, 'アクセサリーを外しました。')
+<<<<<<< HEAD
+    return redirect('codemon:accessory_shop')
+=======
 
+>>>>>>> main
 # ========================================
 # チャット機能 - 新しいUI画面
 # ========================================
@@ -1775,4 +1794,7 @@ def grading_teacher(request):
 def chat_demo_index(request):
     """チャット機能デモインデックス"""
     return render(request, 'chat/index.html')
+<<<<<<< HEAD
+=======
 
+>>>>>>> main
