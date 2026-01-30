@@ -21,8 +21,8 @@
       margin: 0;
       padding: 0;
       background: #f5f5f5;
-      overflow: hidden; /* スクロール無効化 */
-      height: 100vh;
+      overflow-y: auto; /* 縦スクロールを有効化 */
+      min-height: 100vh;
     }
     
     /* 背景システム（全画面共通） */
@@ -849,5 +849,108 @@
       {% endif %}
     {% endwith %}
   {% endblock %}
+  
+  <!-- トースト通知エリア -->
+  <div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 10000;"></div>
+  
+  <script>
+  // トースト通知表示関数
+  function showAchievementToast(achievement) {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'achievement-toast';
+    toast.innerHTML = `
+      <div class="achievement-toast-icon">${achievement.icon}</div>
+      <div class="achievement-toast-content">
+        <div class="achievement-toast-title">🎉 実績達成！</div>
+        <div class="achievement-toast-name">${achievement.name}</div>
+        <div class="achievement-toast-reward">💰 ${achievement.reward}コイン 獲得！</div>
+      </div>
+    `;
+    
+    container.appendChild(toast);
+    
+    // アニメーション
+    setTimeout(() => toast.classList.add('show'), 10);
+    
+    // 5秒後に削除
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 300);
+    }, 5000);
+  }
+  
+  // セッションから通知を取得して表示
+  {% if request.session.achievement_notifications %}
+    const notifications = {{ request.session.achievement_notifications|safe }};
+    notifications.forEach((achievement, index) => {
+      setTimeout(() => showAchievementToast(achievement), index * 300);
+    });
+    // 表示後にセッションから削除
+    fetch('{% url "codemon:clear_achievement_notifications" %}', {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      }
+    });
+  {% endif %}
+  </script>
+  
+  <style>
+  .achievement-toast {
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+    color: white;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 10px;
+    box-shadow: 0 10px 30px rgba(255, 215, 0, 0.5);
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    min-width: 300px;
+    opacity: 0;
+    transform: translateX(400px);
+    transition: all 0.3s ease;
+  }
+  
+  .achievement-toast.show {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  
+  .achievement-toast-icon {
+    font-size: 3rem;
+    animation: bounce 0.6s ease infinite alternate;
+  }
+  
+  @keyframes bounce {
+    from { transform: translateY(0); }
+    to { transform: translateY(-10px); }
+  }
+  
+  .achievement-toast-content {
+    flex: 1;
+  }
+  
+  .achievement-toast-title {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    margin-bottom: 5px;
+  }
+  
+  .achievement-toast-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  
+  .achievement-toast-reward {
+    font-size: 1rem;
+    background: rgba(255,255,255,0.2);
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 8px;
+  }
+  </style>
 </body>
 </html>

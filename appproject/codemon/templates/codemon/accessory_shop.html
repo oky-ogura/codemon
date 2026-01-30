@@ -1,0 +1,567 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load accessory_filters %}
+
+{% block title %}アクセサリーショップ - Codemon{% endblock %}
+
+{# スクロールを有効にするため、body_classを設定しない #}
+{% block body_class %}{% endblock %}
+
+{% block background_frame %}
+<!-- アクセサリーショップ用外枠（黄色） -->
+<img src="{% static 'codemon/images/frames/bg_frame_yellow.png' %}" 
+     alt="" 
+     class="bg-frame frame-yellow"
+     onerror="this.style.display='none';">
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'codemon/css/redesign.css' %}">
+<style>
+  /* アクセサリーショップ用のスクロール設定 */
+  body {
+    overflow-y: auto !important;
+    height: auto !important;
+  }
+  
+  /* コンテンツラッパーのスクロールを有効化 */
+  .content-wrapper {
+    overflow-y: visible !important;
+    height: auto !important;
+    min-height: auto !important;
+  }
+  
+  .shop-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 30px 20px;
+  }
+  
+  .shop-header {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    padding: 30px;
+    border-radius: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 5px 15px rgba(255, 165, 0, 0.3);
+  }
+  
+  .shop-header h1 {
+    margin: 0 0 15px 0;
+    color: white;
+    font-size: 32px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  
+  .coin-display {
+    background: white;
+    display: inline-block;
+    padding: 10px 25px;
+    border-radius: 25px;
+    font-size: 24px;
+    font-weight: bold;
+    color: #FFA500;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .equipped-display {
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 30px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .equipped-display h2 {
+    margin: 0 0 10px 0;
+    font-size: 20px;
+    color: #333;
+  }
+  
+  .equipped-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: #FFF9E6;
+    border-radius: 10px;
+    border: 2px solid #FFD700;
+  }
+  
+  /* 装備中アクセサリーのプレビュー */
+  .equipped-item .acc-preview {
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #F5F5F5;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+  
+  .equipped-item .acc-preview .use-image {
+    width: 60px !important;
+    height: 60px !important;
+    background-size: contain !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    border-radius: 0 !important;
+    background-color: transparent !important;
+    position: static !important;
+    border: none !important;
+  }
+  .equipped-item .acc-preview .use-image::before {
+    display: none !important;
+  }
+  
+  .accessory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+  
+  .category-section {
+    margin-bottom: 40px;
+  }
+  
+  .category-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 3px solid #FFD700;
+  }
+  
+  .accessory-card {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s;
+    border: 3px solid transparent;
+  }
+  
+  .accessory-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(255, 215, 0, 0.3);
+    border-color: #FFD700;
+  }
+  
+  .accessory-card.owned {
+    border-color: #90EE90;
+  }
+  
+  .accessory-card.equipped {
+    border-color: #FFD700;
+    background: linear-gradient(135deg, #FFF9E6, #FFFACD);
+  }
+  
+  .accessory-preview {
+    width: 100%;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #F5F5F5;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    position: relative;
+  }
+  
+  .accessory-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+  }
+  
+  .badge-owned {
+    background: #90EE90;
+  }
+  
+  .badge-equipped {
+    background: #FFD700;
+    color: #333;
+  }
+  
+  .badge-locked {
+    background: #999;
+  }
+  
+  .accessory-name {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #333;
+  }
+  
+  .accessory-description {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 15px;
+    min-height: 40px;
+  }
+  
+  .accessory-action {
+    width: 100%;
+  }
+  
+  .btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    width: 100%;
+  }
+  
+  .btn-purchase {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: white;
+  }
+  
+  .btn-purchase:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(255, 165, 0, 0.4);
+  }
+  
+  .btn-equip {
+    background: linear-gradient(135deg, #90EE90, #3CB371);
+    color: white;
+  }
+  
+  .btn-equip:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(60, 179, 113, 0.4);
+  }
+  
+  .btn-unequip {
+    background: #E0E0E0;
+    color: #666;
+  }
+  
+  .btn-unequip:hover {
+    background: #D0D0D0;
+  }
+  
+  .btn-locked {
+    background: #CCC;
+    color: #666;
+    cursor: not-allowed;
+  }
+  
+  .btn-equipped {
+    background: #FFD700;
+    color: #333;
+    cursor: default;
+  }
+  
+  .unlock-info {
+    font-size: 14px;
+    color: #666;
+    margin-top: 10px;
+    text-align: center;
+  }
+  
+  .back-link {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 12px 30px;
+    background: white;
+    color: #FFA500;
+    text-decoration: none;
+    border-radius: 25px;
+    font-weight: bold;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s;
+  }
+  
+  .back-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 165, 0, 0.3);
+  }
+
+  /* アクセサリープレビュー用の実際のスタイル */
+  .acc-preview {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* 画像アクセサリー用の共通スタイル（最優先） */
+  .acc-preview .use-image {
+    width: 80px !important;
+    height: 80px !important;
+    background-size: contain !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    border-radius: 0 !important;
+    background-color: transparent !important;
+    position: static !important;
+    border: none !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+  }
+  .acc-preview .use-image::before {
+    display: none !important;
+  }
+  
+  /* CSS描画のアクセサリー（従来・画像がない場合のみ） */
+  .acc-preview .flower:not(.use-image) {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    position: absolute;
+    top: 30px;
+    left: 30px;
+  }
+  
+  .flower.inu:not(.use-image) { background: #FFD700; }
+  .flower.usagi:not(.use-image) { background: #FFB6C1; }
+  .flower.kitsune:not(.use-image) { background: #E5A020; }
+  .flower.neko:not(.use-image) { background: #4DB6AC; }
+  .flower.panda:not(.use-image) { background: #E0E0E0; }
+  .flower.fukurou:not(.use-image) { background: #92B7D6; }
+  .flower.risu:not(.use-image) { background: #FEB6AC; }
+  .flower.alpaca:not(.use-image) { background: #E5D580; }
+  
+  .acc-preview .glasses:not(.use-image) {
+    width: 32px;
+    height: 12px;
+    border: 3px solid currentColor;
+    border-radius: 12px;
+    position: absolute;
+    top: 44px;
+    left: 34px;
+  }
+  
+  .glasses.inu:not(.use-image) { color: #FFD700; }
+  .glasses.usagi:not(.use-image) { color: #FFB6C1; }
+  .glasses.kitsune:not(.use-image) { color: #E5A020; }
+  .glasses.neko:not(.use-image) { color: #4DB6AC; }
+  .glasses.panda:not(.use-image) { color: #E0E0E0; }
+  .glasses.fukurou:not(.use-image) { color: #92B7D6; }
+  .glasses.risu:not(.use-image) { color: #FEB6AC; }
+  .glasses.alpaca:not(.use-image) { color: #E5D580; }
+  
+  .acc-preview .ribbon:not(.use-image) {
+    width: 24px;
+    height: 12px;
+    background: linear-gradient(90deg, currentColor 0%, currentColor 40%, transparent 40%, transparent 60%, currentColor 60%, currentColor 100%);
+    border-radius: 4px;
+    position: absolute;
+    top: 30px;
+    right: 30px;
+  }
+  
+  .ribbon.inu:not(.use-image) { color: #FFD700; }
+  .ribbon.usagi:not(.use-image) { color: #FFB6C1; }
+  .ribbon.kitsune:not(.use-image) { color: #E5A020; }
+  .ribbon.neko:not(.use-image) { color: #4DB6AC; }
+  .ribbon.panda:not(.use-image) { color: #E0E0E0; }
+  .ribbon.fukurou:not(.use-image) { color: #92B7D6; }
+  .ribbon.risu:not(.use-image) { color: #FEB6AC; }
+  .ribbon.alpaca:not(.use-image) { color: #E5D580; }
+  
+  .acc-preview .star:not(.use-image) {
+    width: 18px;
+    height: 18px;
+    position: absolute;
+    top: 30px;
+    right: 30px;
+  }
+  .acc-preview .star:not(.use-image)::before {
+    content: "★";
+    font-size: 22px;
+    color: currentColor;
+    position: absolute;
+    top: -3px;
+    left: -2px;
+  }
+  
+  .star.inu:not(.use-image) { color: #FFD700; }
+  .star.usagi:not(.use-image) { color: #FFB6C1; }
+  .star.kitsune:not(.use-image) { color: #E5A020; }
+  .star.neko:not(.use-image) { color: #4DB6AC; }
+  .star.panda:not(.use-image) { color: #E0E0E0; }
+  .star.fukurou:not(.use-image) { color: #92B7D6; }
+  .star.risu:not(.use-image) { color: #FEB6AC; }
+  .star.alpaca:not(.use-image) { color: #E5D580; }
+  
+  .acc-preview .hat:not(.use-image) {
+    width: 0;
+    height: 0;
+    border-left: 12px solid transparent;
+    border-right: 12px solid transparent;
+    border-bottom: 16px solid currentColor;
+    position: absolute;
+    top: 25px;
+    left: 44px;
+  }
+  
+  .hat.inu:not(.use-image) { color: #FFD700; }
+  .hat.usagi:not(.use-image) { color: #FFB6C1; }
+  .hat.kitsune:not(.use-image) { color: #E5A020; }
+  .hat.neko:not(.use-image) { color: #4DB6AC; }
+  .hat.panda:not(.use-image) { color: #E0E0E0; }
+  .hat.fukurou:not(.use-image) { color: #92B7D6; }
+  .hat.risu:not(.use-image) { color: #FEB6AC; }
+  .hat.alpaca:not(.use-image) { color: #E5D580; }
+  
+  .acc-preview .crown:not(.use-image) {
+    width: 24px;
+    height: 18px;
+    position: absolute;
+    top: 28px;
+    left: 44px;
+  }
+  .acc-preview .crown:not(.use-image)::before {
+    content: "👑";
+    font-size: 24px;
+    position: absolute;
+    top: -4px;
+    left: 0;
+  }
+  
+  .crown.inu:not(.use-image) { color: #FFD700; }
+  .crown.usagi:not(.use-image) { color: #FFB6C1; }
+  .crown.kitsune:not(.use-image) { color: #E5A020; }
+  .crown.neko:not(.use-image) { color: #4DB6AC; }
+  .crown.panda:not(.use-image) { color: #E0E0E0; }
+  .crown.fukurou:not(.use-image) { color: #92B7D6; }
+  .crown.risu:not(.use-image) { color: #FEB6AC; }
+  .crown.alpaca:not(.use-image) { color: #E5D580; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="shop-container">
+  <!-- メッセージ表示 -->
+  {% if messages %}
+    <div style="margin-bottom: 20px;">
+      {% for message in messages %}
+        <div style="padding: 15px; border-radius: 10px; margin-bottom: 10px; 
+                    {% if message.tags == 'success' %}background: #d4edda; color: #155724; border: 2px solid #c3e6cb;
+                    {% elif message.tags == 'error' %}background: #f8d7da; color: #721c24; border: 2px solid #f5c6cb;
+                    {% else %}background: #d1ecf1; color: #0c5460; border: 2px solid #bee5eb;{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- ヘッダー -->
+  <div class="shop-header">
+    <h1>🎀 アクセサリーショップ</h1>
+    <div class="coin-display">
+      💰 {{ user_coin.balance }} コイン
+    </div>
+  </div>
+
+  <!-- 装備中のアクセサリー -->
+  <div class="equipped-display">
+    <h2>現在の装備</h2>
+    {% if equipped_accessory %}
+      <div class="equipped-item">
+        <div class="acc-preview">
+          {% if equipped_accessory.accessory.use_image and equipped_accessory.accessory.image_path %}
+            {# 画像を使用するアクセサリー #}
+            <span class="acc use-image {{ equipped_accessory.accessory.css_class|css_class_to_html }}" 
+                  style="background-image: url('{% static equipped_accessory.accessory.image_path %}');"></span>
+          {% else %}
+            {# CSS描画のアクセサリー（従来） #}
+            <span class="acc {{ equipped_accessory.accessory.css_class|css_class_to_html }}"></span>
+          {% endif %}
+        </div>
+        <div style="flex: 1;">
+          <strong>{{ equipped_accessory.accessory.name }}</strong>
+        </div>
+        <form method="post" action="{% url 'codemon:unequip_accessory' %}" style="display: inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-unequip" style="width: auto; padding: 8px 20px;">外す</button>
+        </form>
+      </div>
+    {% else %}
+      <p style="color: #999; margin: 15px 0;">アクセサリーを装備していません</p>
+    {% endif %}
+  </div>
+
+  <!-- アクセサリー一覧 -->
+  {% regroup accessories by accessory.get_category_display as category_list %}
+  {% for category in category_list %}
+    <div class="category-section">
+      <h2 class="category-title">{{ category.grouper }}</h2>
+      <div class="accessory-grid">
+        {% for item in category.list %}
+          <div class="accessory-card {% if item.is_owned %}owned{% endif %} {% if item.is_equipped %}equipped{% endif %}">
+            <!-- プレビュー -->
+            <div class="accessory-preview">
+              <div class="acc-preview">
+                {% if item.accessory.use_image and item.accessory.image_path %}
+                  {# 画像を使用するアクセサリー #}
+                  <span class="acc use-image {{ item.accessory.css_class|css_class_to_html }}" 
+                        style="background-image: url('{% static item.accessory.image_path %}');"></span>
+                {% else %}
+                  {# CSS描画のアクセサリー（従来） #}
+                  <span class="acc {{ item.accessory.css_class|css_class_to_html }}"></span>
+                {% endif %}
+              </div>
+              
+              {% if item.is_equipped %}
+                <div class="accessory-badge badge-equipped">装備中</div>
+              {% elif item.is_owned %}
+                <div class="accessory-badge badge-owned">所持</div>
+              {% else %}
+                <div class="accessory-badge badge-locked">🔒</div>
+              {% endif %}
+            </div>
+            
+            <!-- 情報 -->
+            <div class="accessory-name">{{ item.accessory.name }}</div>
+            <div class="accessory-description">
+              {{ item.accessory.description|default:"可愛いアクセサリーです" }}
+            </div>
+            
+            <!-- アクション -->
+            <div class="accessory-action">
+              {% if item.is_equipped %}
+                <button class="btn btn-equipped" disabled>装備中</button>
+              {% elif item.is_owned %}
+                <form method="post" action="{% url 'codemon:equip_accessory' item.accessory.accessory_id %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-equip">装備する</button>
+                </form>
+              {% elif item.can_unlock %}
+                <form method="post" action="{% url 'codemon:purchase_accessory' item.accessory.accessory_id %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-purchase">
+                    {{ item.accessory.unlock_coins }}コインで購入
+                  </button>
+                </form>
+              {% else %}
+                <button class="btn btn-locked" disabled>解放不可</button>
+                <div class="unlock-info">{{ item.unlock_reason }}</div>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endfor %}
+
+  <!-- 戻るリンク -->
+  <a href="{% url 'accounts:karihome' %}" class="back-link">← ホームに戻る</a>
+</div>
+{% endblock %}
