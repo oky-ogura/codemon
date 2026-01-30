@@ -1,0 +1,9 @@
+/* ========================================
+   ファイルアップロード - 教師側
+   ======================================== */
+
+@import url('file_upload.css');
+
+.file-upload-container.teacher {
+  background-color: var(--bg-white);
+}

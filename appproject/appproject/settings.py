@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'accounts',
     'codemon',
+    
     # Channels for WebSocket/real-time chat
     'channels',
 ]

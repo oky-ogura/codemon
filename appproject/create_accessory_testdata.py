@@ -346,6 +346,8 @@ def create_test_data():
             'css_class': 'crown.neko',
             'description': '王でもマイペース',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/crown_neko.png',
         },
         {
             'name': 'リラックスクラウン・パンダ',
