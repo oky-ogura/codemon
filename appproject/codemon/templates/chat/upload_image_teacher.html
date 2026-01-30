@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body_class %} class="no-scroll"{% endblock %}
+
+{% block background_frame %}
+  <img src="{% static 'codemon/images/frames/bg_frame_yellow.png' %}" 
+       alt="" 
+       class="bg-frame frame-yellow"
+       onerror="this.style.display='none';">
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'codemon/css/image_upload_teacher.css' %}">
+<style>
+/* ここでチャット画面のサイズと位置を直接カスタマイズできます */
+:root {
+  /* デスクトップ中央配置(カード風) */
+  --chat-max-width: 800px;
+  --chat-max-height: 70vh;
+  --chat-margin: 20px auto;
+  --chat-border-radius: 12px;
+  --chat-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --chat-position: fixed;
+  --chat-position-x: 50px;
+  --chat-position-y: 130px;
+  --chat-margin: 0;
+  */
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="image-upload-container teacher">
+  <!-- ヘッダー -->
+  <div class="upload-header">
+    <button class="btn-back" onclick="history.back()">←</button>
+    <h1 class="upload-title">画像を投函</h1>
+  </div>
+
+  <!-- コンテンツ -->
+  <div class="upload-content">
+    <!-- 宛先選択 -->
+    <div class="recipient-section">
+      <h2>宛先を選択</h2>
+      <select id="recipient-select" class="recipient-dropdown">
+        <option value="">選択してください</option>
+        <!-- 宛先がここに動的に表示されます -->
+      </select>
+    </div>
+
+    <!-- 画像選択エリア -->
+    <div class="image-selection-section">
+      <h2>画像を選択</h2>
+      <div class="upload-area" id="upload-area">
+        <input type="file" id="image-input" class="image-input" accept="image/*" multiple>
+        <label for="image-input" class="upload-label">
+          <span class="upload-icon">🖼️</span>
+          <span class="upload-text">ここをクリックまたは画像をドラッグ＆ドロップ</span>
+          <span class="upload-hint">対応形式: JPG、PNG、GIF等</span>
+        </label>
+      </div>
+
+      <!-- 選択された画像一覧 -->
+      <div class="selected-images-section">
+        <h3>選択された画像</h3>
+        <div id="image-preview-grid" class="image-preview-grid">
+          <!-- 画像プレビューがここに表示されます -->
+        </div>
+      </div>
+    </div>
+
+    <!-- メッセージ入力 -->
+    <div class="message-section">
+      <h2>メッセージ（オプション）</h2>
+      <textarea id="message" class="message-textarea" placeholder="画像に関するメッセージを入力..."></textarea>
+    </div>
+  </div>
+
+  <!-- フッター -->
+  <div class="upload-footer">
+    <button class="btn-cancel" onclick="history.back()">キャンセル</button>
+    <button class="btn-upload">投函する</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let selectedImages = [];
+
+  const uploadArea = document.querySelector('#upload-area');
+  const imageInput = document.querySelector('#image-input');
+  const previewGrid = document.querySelector('#image-preview-grid');
+
+  // ドラッグ＆ドロップ処理
+  uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('drag-over');
+  });
+
+  uploadArea.addEventListener('dragleave', () => {
+    uploadArea.classList.remove('drag-over');
+  });
+
+  uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('drag-over');
+    
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+    handleImages(files);
+  });
+
+  // 画像選択処理
+  imageInput.addEventListener('change', (e) => {
+    const files = Array.from(e.target.files);
+    handleImages(files);
+  });
+
+  function handleImages(files) {
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        selectedImages.push({
+          file: file,
+          data: event.target.result
+        });
+        updatePreviewGrid();
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function updatePreviewGrid() {
+    previewGrid.innerHTML = '';
+    selectedImages.forEach((image, index) => {
+      const div = document.createElement('div');
+      div.className = 'preview-item';
+      div.innerHTML = `
+        <img src="${image.data}" alt="Preview ${index}">
+        <button class="btn-remove-image" onclick="removeImage(${index})">×</button>
+      `;
+      previewGrid.appendChild(div);
+    });
+  }
+
+  function removeImage(index) {
+    selectedImages.splice(index, 1);
+    updatePreviewGrid();
+  }
+
+  // 投函処理
+  document.querySelector('.btn-upload').addEventListener('click', () => {
+    const recipient = document.querySelector('#recipient-select').value;
+    const message = document.querySelector('#message').value;
+
+    if (!recipient) {
+      alert('宛先を選択してください');
+      return;
+    }
+
+    if (selectedImages.length === 0) {
+      alert('画像を選択してください');
+      return;
+    }
+
+    console.log('画像投函:', {
+      recipient: recipient,
+      images: selectedImages.map(img => img.file.name),
+      message: message
+    });
+
+    alert('画像が投函されました！');
+    history.back();
+  });
+</script>
+{% endblock %}

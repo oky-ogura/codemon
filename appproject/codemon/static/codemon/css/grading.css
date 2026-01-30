@@ -1,0 +1,555 @@
+/* ========================================
+   採点管理 - 教師側
+   ======================================== */
+
+:root {
+  --primary-color: #06c755;
+  --primary-dark: #0ab251;
+  --secondary-color: #f3f3f5;
+  --text-primary: #111111;
+  --text-secondary: #999999;
+  --border-color: #e5e5ea;
+  --bg-white: #ffffff;
+  --shadow-light: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-medium: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --message-sent-bg: #06c755;
+  --message-received-bg: #e5e5ea;
+  
+  /* チャット画面のサイズと位置調整用変数 */
+  --chat-max-width: 100%;           /* チャット画面の最大幅 (例: 1200px, 90%, 100%) */
+  --chat-max-height: 100vh;         /* チャット画面の最大高さ (例: 800px, 90vh, 100vh) */
+  --chat-margin: 0 auto;            /* チャット画面の外側マージン (中央配置: 0 auto) */
+  --chat-padding: 0;                /* チャット画面の内側パディング */
+  --chat-top-offset: 0;             /* 上部からのオフセット (ナビゲーションバー分など) */
+  --chat-border-radius: 0;          /* チャット画面の角丸 (例: 12px) */
+  --chat-box-shadow: none;          /* チャット画面の影 (例: 0 4px 12px rgba(0,0,0,0.1)) */
+  
+  /* XY座標による位置調整 (position: fixed使用時) */
+  --chat-position: relative;        /* 配置方法 (relative, fixed, absolute) */
+  --chat-position-x: auto;          /* X座標 (left: 50px, center など) */
+  --chat-position-y: auto;          /* Y座標 (top: 50px など) */
+  --chat-transform: none;           /* 位置調整用transform (例: translateX(-50%)) */
+}
+
+body.no-scroll {
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+}
+
+.grading-container {
+  display: flex;
+  flex-direction: column;
+  height: var(--chat-max-height) !important;
+  max-width: var(--chat-max-width) !important;
+  margin: var(--chat-margin) !important;
+  padding: var(--chat-padding) !important;
+  margin-top: var(--chat-top-offset) !important;
+  background-color: var(--bg-white);
+  position: var(--chat-position) !important;
+  left: var(--chat-position-x) !important;
+  top: var(--chat-position-y) !important;
+  transform: var(--chat-transform) !important;
+  border-radius: var(--chat-border-radius) !important;
+  overflow: hidden;
+  box-shadow: var(--chat-box-shadow) !important;
+  width: 100%;
+}
+  height: 100vh;
+  background-color: var(--bg-white);
+}
+
+/* ===== ヘッダー ===== */
+.grading-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: var(--bg-white);
+  border-bottom: 1px solid var(--border-color);
+  gap: 12px;
+}
+
+.btn-back {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 8px;
+  color: var(--text-primary);
+  transition: opacity 0.2s;
+}
+
+.btn-back:hover {
+  opacity: 0.6;
+}
+
+.grading-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ===== コンテンツ ===== */
+.grading-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+/* フィルター */
+.filter-section {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-dropdown {
+  flex: 1;
+  min-width: 150px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: var(--bg-white);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.filter-dropdown:focus {
+  border-color: var(--primary-color);
+}
+
+/* 提出一覧 */
+.submissions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.submission-card {
+  background-color: var(--bg-white);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow-light);
+  transition: all 0.2s;
+}
+
+.submission-card:hover {
+  box-shadow: var(--shadow-medium);
+}
+
+.submission-card-header {
+  padding: 12px 16px;
+  background-color: var(--secondary-color);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.student-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.submission-date {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  margin-left: 12px;
+}
+
+.submission-card-body {
+  padding: 12px 16px;
+}
+
+.assignment-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.assignment-name {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.status-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.status-badge.not-graded {
+  background-color: #ff9500;
+  color: white;
+}
+
+.status-badge.graded {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.grade-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px;
+  background-color: var(--secondary-color);
+  border-radius: 4px;
+}
+
+.grade-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.grade-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: var(--secondary-color);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.file-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.file-name {
+  flex: 1;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btn-download {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 6px;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+}
+
+.btn-download:hover {
+  opacity: 0.6;
+}
+
+.submission-card-footer {
+  padding: 12px 16px;
+  background-color: var(--secondary-color);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 8px;
+}
+
+.btn-view-submission,
+.btn-grade,
+.btn-edit-grade {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-view-submission {
+  background-color: #007aff;
+  color: white;
+}
+
+.btn-view-submission:hover {
+  background-color: #0051d5;
+}
+
+.btn-grade,
+.btn-edit-grade {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btn-grade:hover,
+.btn-edit-grade:hover {
+  background-color: var(--primary-dark);
+}
+
+/* ===== モーダル ===== */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  z-index: 1000;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-content {
+  width: 100%;
+  background-color: var(--bg-white);
+  border-radius: 12px 12px 0 0;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--secondary-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.btn-close-modal {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-primary);
+  padding: 4px 8px;
+  transition: opacity 0.2s;
+}
+
+.btn-close-modal:hover {
+  opacity: 0.6;
+}
+
+.modal-body {
+  padding: 16px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.required {
+  color: #ff3b30;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group select,
+.form-group textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="number"]:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--primary-color);
+}
+
+.form-group input[type="text"]:read-only {
+  background-color: var(--secondary-color);
+  cursor: not-allowed;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.grade-input-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.grade-input-group input {
+  width: 80px;
+}
+
+.form-group.checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.form-group.checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.form-group.checkbox label {
+  margin: 0;
+}
+
+.modal-footer {
+  padding: 16px;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--secondary-color);
+  display: flex;
+  gap: 12px;
+}
+
+.btn-cancel-modal,
+.btn-submit-grade-modal {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-cancel-modal {
+  background-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.btn-cancel-modal:hover {
+  background-color: #d1d1d6;
+}
+
+.btn-submit-grade-modal {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btn-submit-grade-modal:hover {
+  background-color: var(--primary-dark);
+}
+
+/* ===== スクロール ===== */
+.grading-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.grading-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.grading-content::-webkit-scrollbar-thumb {
+  background-color: #cccccc;
+  border-radius: 4px;
+}
+
+.grading-content::-webkit-scrollbar-thumb:hover {
+  background-color: #999999;
+}
+
+/* ===== アニメーション ===== */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.submission-card {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* ===== レスポンシブ ===== */
+@media (max-width: 768px) {
+  .submission-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .submission-date {
+    margin-left: 0;
+  }
+
+  .btn-view-submission,
+  .btn-grade,
+  .btn-edit-grade {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+
+  .filter-section {
+    flex-direction: column;
+  }
+
+  .filter-dropdown {
+    width: 100%;
+  }
+}
