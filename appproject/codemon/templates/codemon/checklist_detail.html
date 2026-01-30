@@ -177,6 +177,37 @@ input[type="checkbox"]:checked ~ .item-text {
     .checklist-title { font-size: 22px; }
     .btn-pop { padding: 10px 20px; font-size: 14px; flex: 1; justify-content: center; }
 }
+
+/* 詳細画面から移植したアイテムカードのスタイル */
+.item-card {
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border: 3px solid #f1f5f9;
+    border-radius: 20px;
+    padding: 12px 18px;
+    margin-bottom: 10px;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+.item-card:hover { border-color: #3fbcd9; background: #f0f9ff; }
+.item-card.is-done { background: #f1f5f9; opacity: 0.8; }
+
+/* チェックボックスのデザイン */
+.custom-checkbox {
+    width: 28px; height: 28px;
+    border: 3px solid #3fbcd9;
+    border-radius: 8px;
+    margin-right: 12px;
+    display: flex; align-items: center; justify-content: center;
+    background: white;
+}
+input[type="checkbox"]:checked + .custom-checkbox { background: #3fbcd9; }
+input[type="checkbox"]:checked + .custom-checkbox::after {
+    content: "✓"; color: white; font-size: 18px; font-weight: 900;
+}
+.item-text { font-size: 16px; font-weight: 800; color: #2d3748; }
+input[type="checkbox"]:checked ~ .item-text { text-decoration: line-through; color: #a0aec0; }
 </style>
 {% endblock %}
 

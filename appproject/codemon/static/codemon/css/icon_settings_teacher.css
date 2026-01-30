@@ -1,0 +1,9 @@
+/* ========================================
+   アイコン設定 - 教師側
+   ======================================== */
+
+@import url('icon_settings.css');
+
+.icon-settings-container.teacher {
+  background-color: var(--bg-white);
+}

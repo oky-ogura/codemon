@@ -1,0 +1,9 @@
+/* ========================================
+   画像アップロード - 教師側
+   ======================================== */
+
+@import url('image_upload.css');
+
+.image-upload-container.teacher {
+  background-color: var(--bg-white);
+}

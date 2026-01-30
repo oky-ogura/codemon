@@ -7,6 +7,21 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required as _login_required
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse, HttpResponseForbidden, FileResponse
+# チェックリストアイテム一覧API
+from django.views.decorators.http import require_GET
+
+@require_GET
+def get_checklist_items_api(request, checklist_id):
+    """
+    特定のチェックリストに紐づくアイテムをJSON形式で返します
+    """
+    # checklist_id に紐づくアイテムを取得
+    # フィールド名（checklist_id, item_text, is_done）は実際のモデルに合わせて修正してください
+    items = ChecklistItem.objects.filter(checklist_id=checklist_id).values(
+        'checklist_item_id', 'item_text', 'is_done'
+    )
+    # 取得したデータをリストにして返す
+    return JsonResponse({'items': list(items)})
 from django.urls import reverse
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
@@ -444,10 +459,71 @@ def checklist_selection(request):
     if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
         # 匿名ユーザーでも動作させる
         checklists = Checklist.objects.all()
+        owner = None
     else:
+        owner = _get_write_owner(request)
+        if owner is None:
+            login_url = reverse('accounts:student_login') + '?next=' + request.path
+            messages.error(request, 'チェックリストの閲覧にはログインが必要です')
+            return redirect(login_url)
+
         # owner（Accountオブジェクト）に紐づくチェックリストを取得
-        checklists = Checklist.objects.filter(user=owner)
-    return render(request, 'codemon/checklist_selection.html', {'checklists': checklists})
+        checklists = Checklist.objects.filter(user=owner).order_by('-updated_at')
+
+    # --- AIキャラクター選択の反映 ---
+    try:
+        # 優先順: セッションの selected_appearance -> アカウントの AiConfig.appearance -> 既存の session.ai_character -> デフォルト
+        appearance_map = {
+            'dog': 'inu', 'dog.png': 'inu', 'イヌ': 'inu', '犬': 'inu',
+            'cat': 'neko', 'cat.png': 'neko', 'ネコ': 'neko', '猫': 'neko',
+            'rabbit': 'usagi', 'rabbit.png': 'usagi', 'ウサギ': 'usagi', '兎': 'usagi',
+            'panda': 'panda', 'panda.png': 'panda',
+            'fox': 'kitsune', 'fox.png': 'kitsune', 'キツネ': 'kitsune',
+            'squirrel': 'risu', 'squirrel.png': 'risu', 'リス': 'risu',
+            'owl': 'fukurou', 'owl.png': 'fukurou', 'フクロウ': 'fukurou',
+            'alpaca': 'arupaka', 'alpaca.png': 'arupaka', 'アルパカ.png': 'arupaka'
+        }
+
+        char = None
+        # 1) セッションに一時保存された選択肢
+        sel = request.session.get('selected_appearance')
+        if sel:
+            key = sel.lower().replace('.png', '')
+            char = appearance_map.get(key) or appearance_map.get(sel)
+
+        # 2) アカウントに保存された AiConfig
+        if not char:
+            try:
+                from accounts.models import AiConfig
+                owner_id = None
+                if not getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
+                    owner_id = getattr(owner, 'user_id', getattr(owner, 'id', None))
+                if owner_id:
+                    cfg = AiConfig.objects.filter(user_id=owner_id).first()
+                    if cfg and cfg.appearance:
+                        key = cfg.appearance.lower().replace('.png', '')
+                        char = appearance_map.get(key) or appearance_map.get(cfg.appearance)
+            except Exception:
+                # ignore and fallback
+                pass
+
+        # 3) 既にセッションに入っている値、またはデフォルト
+        if not char:
+            char = request.session.get('ai_character', 'inu')
+
+        request.session['ai_character'] = char
+        request.session.modified = True
+    except Exception:
+        # 安全性: 例外は握り潰してテンプレートは通常通り描画
+        pass
+
+    # Account オブジェクトをテンプレートコンテキストに追加
+    context = {
+        'checklists': checklists,
+        'account': owner,  # Account オブジェクトをテンプレートで使用可能に
+    }
+
+    return render(request, 'codemon/checklist_selection.html', context)
 
 def checklist_list(request):
     """作成済みチェックリストの一覧を表示"""
@@ -1633,3 +1709,84 @@ def unequip_accessory(request):
     
     messages.success(request, 'アクセサリーを外しました。')
     return redirect('codemon:accessory_shop')
+# ========================================
+# チャット機能 - 新しいUI画面
+# ========================================
+
+@login_required
+@login_required
+def chat_student(request):
+    """生徒側チャット画面"""
+    return render(request, 'chat/chat_student.html')
+
+
+@login_required
+def chat_teacher(request):
+    """教師側チャット画面"""
+    return render(request, 'chat/chat_teacher.html')
+
+
+@login_required
+def icon_settings_student(request):
+    """生徒側アイコン設定"""
+    return render(request, 'chat/icon_settings_student.html')
+
+
+@login_required
+def icon_settings_teacher(request):
+    """教師側アイコン設定"""
+    return render(request, 'chat/icon_settings_teacher.html')
+
+
+@login_required
+def upload_file_student(request):
+    """生徒側ファイル投函"""
+    return render(request, 'chat/upload_file_student.html')
+
+
+@login_required
+def upload_file_teacher(request):
+    """教師側ファイル投函"""
+    return render(request, 'chat/upload_file_teacher.html')
+
+
+@login_required
+def upload_image_student(request):
+    """生徒側画像投函"""
+    return render(request, 'chat/upload_image_student.html')
+
+
+@login_required
+def upload_image_teacher(request):
+    """教師側画像投函"""
+    return render(request, 'chat/upload_image_teacher.html')
+
+
+@login_required
+def grades_view_student(request):
+    """生徒側点数閲覧"""
+    return render(request, 'chat/grades_view_student.html')
+
+
+@login_required
+def submission_box_teacher(request):
+    """教師側投函ボックス管理"""
+    return render(request, 'chat/submission_box_teacher.html')
+
+
+@login_required
+def group_management_teacher(request):
+    """教師側グループ管理"""
+    return render(request, 'chat/group_management_teacher.html')
+
+
+@login_required
+def grading_teacher(request):
+    """教師側採点管理"""
+    return render(request, 'chat/grading_teacher.html')
+
+
+@login_required
+def chat_demo_index(request):
+    """チャット機能デモインデックス"""
+    return render(request, 'chat/index.html')
