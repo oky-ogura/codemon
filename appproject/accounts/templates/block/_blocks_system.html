@@ -19,24 +19,90 @@ Blockly.Blocks['load_system'] = {
   }
 };
 
+// ---------------------- ヘルパー関数 ----------------------
+window.blockSystemHelpers = {
+  // システムのラベル一覧を取得
+  async getSystemLabels(systemId) {
+    if (!systemId || systemId === '0') {
+      return [['せんたくしてね', '']];
+    }
+    
+    try {
+      const response = await fetch(`/accounts/system/api/system-elements/${systemId}/`);
+      if (!response.ok) throw new Error('Failed to fetch labels');
+      
+      const data = await response.json();
+      const labels = [['せんたくしてね', '']];
+      
+      if (data.elements && Array.isArray(data.elements)) {
+        data.elements.forEach(elem => {
+          if (elem.element_label) {
+            labels.push([elem.element_label, JSON.stringify({
+              label: elem.element_label,
+              type: elem.element_type,
+              config: elem.element_config
+            })]);
+          }
+        });
+      }
+      
+      console.log('📋 ラベル一覧取得:', labels);
+      return labels;
+    } catch (error) {
+      console.error('❌ ラベル取得エラー:', error);
+      return [['エラー', '']];
+    }
+  },
+  
+  // チェックボックス/ラジオの項目一覧を取得
+  getCheckboxItems(labelData) {
+    try {
+      const data = JSON.parse(labelData);
+      if (data.config && data.config.options && Array.isArray(data.config.options)) {
+        const items = [['せんたくしてね', '']];
+        data.config.options.forEach(opt => {
+          items.push([opt, opt]);
+        });
+        console.log('✅ 項目一覧:', items);
+        return items;
+      }
+    } catch (e) {
+      console.error('❌ 項目取得エラー:', e);
+    }
+    return [['項目なし', '']];
+  }
+};
+
 // ---------------------- システム条件分岐ブロック ----------------------
 Blockly.Blocks['system_condition'] = {
   init: function() {
+    const block = this;
     const systems = window._systemsList || [];
     
-    const options = systems.length > 0 
-      ? systems.map(sys => [sys.system_name, sys.system_id.toString()])
+    const systemOptions = systems.length > 0 
+      ? [['せんたくしてね', '0'], ...systems.map(sys => [sys.system_name, sys.system_id.toString()])]
       : [['システムがありません', '0']];
     
-    this.appendDummyInput()
+    // システム選択プルダウン
+    this.appendDummyInput('SYSTEM_INPUT')
       .appendField("もし システム")
-      .appendField(new Blockly.FieldDropdown(options), "SYSTEM_ID")
+      .appendField(new Blockly.FieldDropdown(systemOptions, function(newValue) {
+        console.log('🔄 システム選択:', newValue);
+        block.onSystemChange(newValue);
+      }), "SYSTEM_ID")
       .appendField("の");
-    this.appendDummyInput()
+    
+    // ラベル選択プルダウン
+    this.appendDummyInput('LABEL_INPUT')
       .appendField("ラベル：")
-      .appendField(new Blockly.FieldTextInput("文字："), "ELEMENT_NAME")
-      .appendField("が");
-    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([['せんたくしてね', '']], function(newValue) {
+        console.log('🔄 ラベル選択:', newValue);
+        block.onLabelChange(newValue);
+      }), "ELEMENT_NAME");
+    
+    // 条件入力（初期は手入力）
+    this.appendDummyInput('CONDITION_INPUT')
+      .appendField("が")
       .appendField(new Blockly.FieldDropdown([
         ["=","EQ"],
         ["≠","NEQ"],
@@ -45,11 +111,11 @@ Blockly.Blocks['system_condition'] = {
         ["≥","GTE"],
         ["≤","LTE"],
         ["ふくむ","CONTAINS"],
-        ["せんたくされている","SELECTED"],
         ["チェックされている","CHECKED"]
       ]), "OP")
-      .appendField(new Blockly.FieldTextInput("あたい (複数指定は/区切り)"), "VALUE")
+      .appendField(new Blockly.FieldTextInput("あたい"), "VALUE")
       .appendField("なら");
+    
     this.appendStatementInput("DO")
       .appendField("すること");
     this.appendStatementInput("ELSE")
@@ -57,6 +123,307 @@ Blockly.Blocks['system_condition'] = {
     this.setPreviousStatement(true);
     this.setNextStatement(true);
     this.setColour(290);
+    
+    // 項目数カウンター（チェックボックス/ラジオ用）
+    this.itemCount = 0;
+    this.isCheckboxMode = false;
+    
+    // システム変更時のハンドラ
+    this.onSystemChange = async function(systemId) {
+      console.log('📍 onSystemChange called:', systemId);
+      const labels = await window.blockSystemHelpers.getSystemLabels(systemId);
+      const labelField = this.getField('ELEMENT_NAME');
+      if (labelField) {
+        labelField.menuGenerator_ = labels;
+        labelField.setValue(labels[0][1]);
+        console.log('✅ ラベル一覧更新完了');
+      }
+    };
+    
+    // ラベル変更時のハンドラ
+    this.onLabelChange = function(labelData) {
+      console.log('📍 onLabelChange called:', labelData);
+      if (!labelData) return;
+      
+      try {
+        const data = JSON.parse(labelData);
+        console.log('📦 ラベルデータ:', data);
+        
+        // 既存の条件入力を削除
+        if (this.getInput('CONDITION_INPUT')) {
+          this.removeInput('CONDITION_INPUT');
+        }
+        // 既存の項目入力を全削除
+        for (let i = 0; i < this.itemCount; i++) {
+          if (this.getInput('ITEM_INPUT_' + i)) {
+            this.removeInput('ITEM_INPUT_' + i);
+          }
+        }
+        if (this.getInput('LOGIC_INPUT')) {
+          this.removeInput('LOGIC_INPUT');
+        }
+        if (this.getInput('CHECK_STATUS_INPUT')) {
+          this.removeInput('CHECK_STATUS_INPUT');
+        }
+        if (this.getInput('BUTTONS_INPUT')) {
+          this.removeInput('BUTTONS_INPUT');
+        }
+        
+        // DO/ELSEを一旦削除
+        const doConnection = this.getInput('DO') ? this.getInput('DO').connection.targetConnection : null;
+        const elseConnection = this.getInput('ELSE') ? this.getInput('ELSE').connection.targetConnection : null;
+        if (this.getInput('DO')) this.removeInput('DO');
+        if (this.getInput('ELSE')) this.removeInput('ELSE');
+        
+        // チェックボックス/ラジオの場合
+        if (data.type === 'checkbox_group' || data.type === 'radio_group') {
+          const items = window.blockSystemHelpers.getCheckboxItems(labelData);
+          this.itemCount = 1;
+          this.currentItems = items;
+          this.isCheckboxMode = true;
+          
+          // 項目選択入力（最初の1つ - 削除ボタンなし）
+          this.appendDummyInput('ITEM_INPUT_0')
+            .appendField("の　項目：")
+            .appendField(new Blockly.FieldDropdown(items), "ITEM_0");
+          
+          // プラスボタンのみ
+          this.appendDummyInput('BUTTONS_INPUT')
+    .appendField(new Blockly.FieldImage('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjNGNhZjUwIi8+PHBhdGggZD0iTTEwIDUgdjEwIE01IDEwIGgxMCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9zdmc+', 20, 20, '+', function() {
+        block.addItem();
+    }));
+          
+          // AND/OR選択（「のみ」「ふくめる」）
+          this.appendDummyInput('LOGIC_INPUT')
+            .appendField(new Blockly.FieldDropdown([
+              ["のみ","AND"],
+              ["ふくめる","OR"]
+            ]), "LOGIC")
+            .appendField("が");
+          
+          // チェック状態選択
+          this.appendDummyInput('CHECK_STATUS_INPUT')
+            .appendField(new Blockly.FieldDropdown([
+              ["チェックされている","CHECKED"],
+              ["チェックされていない","UNCHECKED"]
+            ]), "CHECK_STATUS")
+            .appendField("なら");
+          
+          console.log('✅ チェックボックス/ラジオモードに変更');
+        } else {
+          // テキスト入力の場合
+          this.itemCount = 0;
+          this.isCheckboxMode = false;
+          this.appendDummyInput('CONDITION_INPUT')
+            .appendField("が")
+            .appendField(new Blockly.FieldDropdown([
+              ["=","EQ"],
+              ["≠","NEQ"],
+              [">","GT"],
+              ["<","LT"],
+              ["≥","GTE"],
+              ["≤","LTE"],
+              ["ふくむ","CONTAINS"],
+              ["チェックされている","CHECKED"]
+            ]), "OP")
+            .appendField(new Blockly.FieldTextInput("あたい"), "VALUE")
+            .appendField("なら");
+          
+          console.log('✅ テキスト入力モードに変更');
+        }
+        
+        // DO/ELSEを再追加
+        this.appendStatementInput("DO")
+          .appendField("すること");
+        this.appendStatementInput("ELSE")
+          .appendField("そうでなければ");
+        
+        // 接続を復元
+        if (doConnection) {
+          this.getInput('DO').connection.connect(doConnection);
+        }
+        if (elseConnection) {
+          this.getInput('ELSE').connection.connect(elseConnection);
+        }
+        
+      } catch (e) {
+        console.error('❌ ラベル変更エラー:', e);
+        // エラー時はデフォルトに戻す
+        if (!this.getInput('CONDITION_INPUT')) {
+          this.appendDummyInput('CONDITION_INPUT')
+            .appendField("が")
+            .appendField(new Blockly.FieldDropdown([
+              ["=","EQ"],
+              ["≠","NEQ"],
+              [">","GT"],
+              ["<","LT"],
+              ["≥","GTE"],
+              ["≤","LTE"],
+              ["ふくむ","CONTAINS"],
+              ["チェックされている","CHECKED"]
+            ]), "OP")
+            .appendField(new Blockly.FieldTextInput("あたい"), "VALUE")
+            .appendField("なら");
+        }
+        // DO/ELSEを再追加
+        if (!this.getInput('DO')) {
+          this.appendStatementInput("DO")
+            .appendField("すること");
+        }
+        if (!this.getInput('ELSE')) {
+          this.appendStatementInput("ELSE")
+            .appendField("そうでなければ");
+        }
+      }
+    };
+    
+    // 項目追加
+    this.addItem = function() {
+      if (!this.currentItems || this.itemCount >= 10) return;
+      
+      const newIndex = this.itemCount;
+      const block = this;
+      
+      // BUTTONS_INPUTの前に挿入（削除ボタン付き）
+      this.appendDummyInput('ITEM_INPUT_' + newIndex)
+        .appendField("　　　　　")
+        .appendField(new Blockly.FieldDropdown(this.currentItems), "ITEM_" + newIndex)
+        .appendField(new Blockly.FieldImage('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjZjQ0MzM2Ii8+PHBhdGggZD0iTTUgMTAgaDEwIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=', 20, 20, '-', (function(index) {
+          return function() {
+            block.removeItem(index);
+          };
+        })(newIndex)));
+      this.moveInputBefore('ITEM_INPUT_' + newIndex, 'BUTTONS_INPUT');
+      
+      this.itemCount++;
+      console.log('➕ 項目追加:', newIndex);
+    };
+    
+    // 項目削除（個別削除）
+    this.removeItem = function(index) {
+      if (this.getInput('ITEM_INPUT_' + index)) {
+        this.removeInput('ITEM_INPUT_' + index);
+        console.log('➖ 項目削除:', index);
+      }
+    };
+  },
+  
+  // 保存機能（mutationを使用）
+  mutationToDom: function() {
+    const container = document.createElement('mutation');
+    container.setAttribute('item_count', this.itemCount);
+    container.setAttribute('is_checkbox', this.isCheckboxMode);
+    if (this.currentItems) {
+      container.setAttribute('items_json', JSON.stringify(this.currentItems));
+    }
+    // SYSTEM_IDとELEMENT_NAMEの値を保存
+    const systemIdField = this.getField('SYSTEM_ID');
+    const elementNameField = this.getField('ELEMENT_NAME');
+    if (systemIdField) {
+      container.setAttribute('system_id_value', systemIdField.getValue());
+    }
+    if (elementNameField) {
+      container.setAttribute('element_name_value', elementNameField.getValue());
+    }
+    // 各項目の値を保存
+    for (let i = 0; i < this.itemCount; i++) {
+      const field = this.getField('ITEM_' + i);
+      if (field) {
+        container.setAttribute('item_' + i + '_value', field.getValue());
+      }
+    }
+    return container;
+  },
+  
+  // 復元機能
+  domToMutation: function(xmlElement) {
+    const itemCount = parseInt(xmlElement.getAttribute('item_count')) || 0;
+    const isCheckbox = xmlElement.getAttribute('is_checkbox') === 'true';
+    const itemsJson = xmlElement.getAttribute('items_json');
+    
+    if (isCheckbox && itemCount > 0) {
+      this.isCheckboxMode = true;
+      this.currentItems = itemsJson ? JSON.parse(itemsJson) : [['せんたくしてね', '']];
+      
+      // 既存の入力を削除
+      if (this.getInput('CONDITION_INPUT')) {
+        this.removeInput('CONDITION_INPUT');
+      }
+      
+      // DO/ELSEを一旦削除
+      const doConnection = this.getInput('DO') ? this.getInput('DO').connection.targetConnection : null;
+      const elseConnection = this.getInput('ELSE') ? this.getInput('ELSE').connection.targetConnection : null;
+      if (this.getInput('DO')) this.removeInput('DO');
+      if (this.getInput('ELSE')) this.removeInput('ELSE');
+      
+      // 最初の項目を追加
+      this.appendDummyInput('ITEM_INPUT_0')
+        .appendField("の　項目：")
+        .appendField(new Blockly.FieldDropdown(this.currentItems), "ITEM_0");
+      
+      // 2番目以降の項目を復元
+      for (let i = 1; i < itemCount; i++) {
+        const block = this;
+        this.appendDummyInput('ITEM_INPUT_' + i)
+          .appendField("　　　　　")
+          .appendField(new Blockly.FieldDropdown(this.currentItems), "ITEM_" + i)
+          .appendField(new Blockly.FieldImage('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjZjQ0MzM2Ii8+PHBhdGggZD0iTTUgMTAgaDEwIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=', 20, 20, '-', (function(index) {
+            return function() {
+              block.removeItem(index);
+            };
+          })(i)));
+      }
+      
+      // プラスボタン
+      this.appendDummyInput('BUTTONS_INPUT')
+        .appendField(new Blockly.FieldImage('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjNGNhZjUwIi8+PHBhdGggZD0iTTEwIDUgdjEwIE01IDE0IGgxMCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9zdmc+', 20, 20, '+', () => {
+          this.addItem();
+        }));
+      
+      // LOGIC と CHECK_STATUS
+      this.appendDummyInput('LOGIC_INPUT')
+        .appendField(new Blockly.FieldDropdown([
+          ["のみ","AND"],
+          ["ふくめる","OR"]
+        ]), "LOGIC")
+        .appendField("が");
+      
+      this.appendDummyInput('CHECK_STATUS_INPUT')
+        .appendField(new Blockly.FieldDropdown([
+          ["チェックされている","CHECKED"],
+          ["チェックされていない","UNCHECKED"]
+        ]), "CHECK_STATUS")
+        .appendField("なら");
+      
+      this.itemCount = itemCount;
+      
+      // DO/ELSEを再追加
+      this.appendStatementInput("DO")
+        .appendField("すること");
+      this.appendStatementInput("ELSE")
+        .appendField("そうでなければ");
+      
+      // 接続を復元
+      if (doConnection) {
+        this.getInput('DO').connection.connect(doConnection);
+      }
+      if (elseConnection) {
+        this.getInput('ELSE').connection.connect(elseConnection);
+      }
+      
+      // 各項目の値を復元
+      setTimeout(() => {
+        for (let i = 0; i < itemCount; i++) {
+          const savedValue = xmlElement.getAttribute('item_' + i + '_value');
+          if (savedValue) {
+            const field = this.getField('ITEM_' + i);
+            if (field) {
+              field.setValue(savedValue);
+            }
+          }
+        }
+      }, 100);
+    }
   }
 };
 

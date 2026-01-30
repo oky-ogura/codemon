@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
-{% block banner_nav %}{% endblock %}
 {% load static %}
+{% block banner_nav %}{% endblock %}
 
 {% block title %}ホーム - Codemon{% endblock %}
 
@@ -377,15 +377,78 @@
   .chat-loading.active {
     display: block;
   }
+  
+  /* アクセサリーショップボタン */
+  .accessory-shop-btn {
+    position: fixed;
+    right: 30px;
+    top: 150px;
+    background: linear-gradient(135deg, #FF69B4, #FF1493);
+    color: white;
+    border: none;
+    padding: 15px 25px;
+    border-radius: 50px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(255, 105, 180, 0.4);
+    z-index: 1001;
+    transition: all 0.3s;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .accessory-shop-btn:hover {
+    transform: scale(1.1) rotate(-2deg);
+    box-shadow: 0 8px 20px rgba(255, 105, 180, 0.6);
+  }
+  
+  /* トロフィーボタン */
+  .trophy-btn {
+    position: fixed;
+    right: 30px;
+    top: 230px;
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: white;
+    border: none;
+    padding: 15px 25px;
+    border-radius: 50px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4);
+    z-index: 1001;
+    transition: all 0.3s;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .trophy-btn:hover {
+    transform: scale(1.1) rotate(2deg);
+    box-shadow: 0 8px 20px rgba(255, 215, 0, 0.6);
+  }
 
 </style>
 {% endblock %}
 
 {% block content %}
 {# karihomeでは空のコンテンツ（キャラクターウィジェットがメイン） #}
+<!-- アクセサリーショップへのリンク -->
+<a href="{% url 'codemon:accessory_shop' %}" class="accessory-shop-btn">
+  🎀 アクセサリー
+</a>
+
+<!-- トロフィーページへのリンク -->
+<a href="{% url 'codemon:achievements' %}" class="trophy-btn">
+  🏆 トロフィー
+</a>
 {% endblock %}
 
 {# karihomeページでは global_character_widget ブロックをオーバーライドしてkarihomeモードで表示 #}
 {% block global_character_widget %}
-  {% include 'includes/character_widget.html' with mode='karihome' %}
+  {% include 'includes/character_widget.html' with mode='karihome' equipped_accessory=equipped_accessory %}
 {% endblock %}

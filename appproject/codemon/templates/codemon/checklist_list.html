@@ -13,203 +13,358 @@
 
 {% block extra_css %}
 <style>
-/* ページ固有：ナビゲーションの高さ分だけコンテンツを下げる */
-.content-wrapper { padding-top: 110px !important; }
+/* --- 全体レイアウト --- */
+.content-wrapper { padding-top: 100px !important; }
 
-/* ページヘッダー用画像 */
-.page-hero { text-align: center; margin-bottom: 6px; }
-.page-hero h1 { font-size: 44px; margin: 8px 0 18px; font-weight:800; }
-.page-hero-img { display:block; margin: 0 auto 12px; }
-
-/* コンテナ */
-.checklist-list-container { max-width: 1100px; width: min(94vw,1100px); margin: 80px auto 120px; padding: 30px 36px 120px; position: relative; z-index:20; background-color:transparent; border:none; border-radius:12px; }
-.checklist-list-container h1 { text-align: center; margin-bottom: 8px; font-size:28px; }
-
-/* テーブル（カード風の行に置き換え） */
-.checklist-table { width: 100%; margin-top: 10px; }
-.checklist-row { 
-  display:flex; 
-  align-items:center; 
-  background: var(--row-background, transparent); 
-  border-radius: var(--row-radius, 28px); 
-  padding: var(--row-padding, 14px 18px); 
-  margin: var(--row-margin, 12px 0); 
-  width: var(--row-width, 100%);
-  max-width: var(--row-max-width, 100%);
-  min-height: var(--row-min-height, auto);
-  transform: translate(var(--row-tx, 0), var(--row-ty, -70px)) scale(var(--row-scale, 1));
+.checklist-list-container {
+    max-width: 1000px;
+    width: 92vw;
+    margin: 0 auto;
+    padding: 25px;
+    background-color: rgba(255, 255, 255, 0.98);
+    border-radius: 30px;
+    border: 8px solid #ffffff;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 160px); 
+    min-height: 500px;
 }
-/* 表示されるチェックリスト行のみ、CSS変数で個別調整可能に */
+
+/* --- アクションバー（固定） --- */
+.action-bar {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 10px;
+}
+.left-actions { display: flex; gap: 12px; }
+
+/* 共通ボタンアニメーション：ホバーで浮き上がる */
+.btn-pop {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 22px;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: 900;
+    font-size: 14px;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* ぷるんとした動き */
+    border: none;
+    cursor: pointer;
+}
+.btn-pop:hover {
+    transform: translateY(-4px) scale(1.05); /* 少し浮いて大きくなる */
+}
+
+.btn-create { background: #3fbcd9; color: white; box-shadow: 0 5px 0 #2a8da4; }
+.btn-create:hover { background: #4ad0ef; box-shadow: 0 7px 0 #2a8da4; }
+.btn-create:active { transform: translateY(2px); box-shadow: 0 2px 0 #2a8da4; }
+
+.btn-back-small { background: #ff7675; color: white; box-shadow: 0 5px 0 #e55a5a; }
+.btn-back-small:hover { background: #ff8e8d; box-shadow: 0 7px 0 #e55a5a; }
+.btn-back-small:active { transform: translateY(2px); box-shadow: 0 2px 0 #e55a5a; }
+
+/* --- 並び替えボタン --- */
+.sort-controls { display: flex; background: #edf2f7; padding: 5px; border-radius: 50px; }
+.btn-sort {
+    padding: 6px 15px; border-radius: 50px; font-size: 12px; font-weight: 800;
+    color: #718096; background: transparent; border: none; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-sort:hover:not(.active) { background: rgba(255,255,255,0.5); color: #3fbcd9; }
+.btn-sort.active { background: white; color: #3fbcd9; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+
+/* --- リストヘッダー --- */
+.checklist-header-row {
+    flex-shrink: 0;
+    background: #3fbcd9;
+    display: flex;
+    align-items: center; /* ヘッダー内も中央揃え */
+    padding: 12px 20px;
+    border-radius: 15px 15px 8px 8px;
+    color: #fff;
+    font-weight: 900;
+    margin-bottom: 8px;
+}
+
+/* --- スクロールリスト --- */
+.checklist-scroll-area {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
 .checklist-row.list-item {
-  background: var(--row-background, transparent);
-  border-radius: var(--row-radius, 28px);
-  padding: var(--row-padding, 14px 18px);
-  margin: var(--row-margin, 12px 0);
-  width: var(--row-width, 100%);
-  max-width: var(--row-max-width, 700px);
-  min-height: var(--row-min-height, auto);
-  transform: translate(var(--row-tx, 60px), var(--row-ty, -140px)) scale(var(--row-scale, 1));
+    display: flex; 
+    align-items: center; /* ← これで上下の中央を揃える */
+    padding: 15px 20px;
+    margin-bottom: 12px;
+    background: #f8fafc;
+    border-radius: 20px;
+    border: 3px solid transparent;
+    transition: all 0.2s;
 }
-.checklist-row.header { background:transparent; box-shadow:none; border-radius:4px; padding:8px 6px; margin-top:0; }
-.checklist-cell { padding: 8px 12px; }
-.checklist-name { flex:1; display:flex; align-items:center; gap:12px; font-weight:700; }
-.checklist-meta { width:180px; text-align:center; color:#444; }
-.checklist-updated { width:200px; text-align:center; color:#444; }
-/* リストアイテム内の文字スタイルのみCSS変数で調整可能 */
-.list-item .checklist-name {
-  font-weight: var(--name-font-weight, 700);
-  font-size: var(--name-font-size, 16px);
-  color: var(--name-color, inherit);
-  transform: translate(var(--name-tx, -10px), var(--name-ty, 0)) scale(var(--name-scale, 1));
-}
-.list-item .checklist-meta {
-  color: var(--meta-color, #444);
-  font-size: var(--meta-font-size, 14px);
-  font-weight: var(--meta-font-weight, 400);
-  transform: translate(var(--meta-tx, 110px), var(--meta-ty, 0)) scale(var(--meta-scale, 1));
-}
-.list-item .checklist-updated {
-  color: var(--updated-color, #444);
-  font-size: var(--updated-font-size, 14px);
-  font-weight: var(--updated-font-weight, 400);
-  transform: translate(var(--updated-tx, 90px), var(--updated-ty, 0)) scale(var(--updated-scale, 1));
-}
-.checklist-action { width:240px; text-align:center; }
-.checklist-action .btn-view { display:inline-block; }
-.no-items { text-align: center; color: #999; font-style: italic; padding: 40px 0 !important; }
-.checklist-row.list-item {
-  background-image: url("{% static 'codemon/images/backgrounds/checklist_list_bg.png' %}");
-  background-repeat: var(--row-bg-repeat, no-repeat);
-  background-position: var(--row-bg-pos, center);
-  background-size: var(--row-bg-size, contain);
-}
-.checklist-tag { display:block; margin:0 auto; width: var(--tag-width, auto); max-width: var(--tag-max-width, 260px); height: var(--tag-height, 36px); object-fit: contain; transform: translate(var(--tag-tx, 0), var(--tag-ty, 0)) scale(var(--tag-scale, 1)); }
-.checklist-tag-name { --tag-width: var(--tag-name-width, auto); --tag-max-width: var(--tag-name-max-width, 180px); --tag-height: var(--tag-name-height, 36px); --tag-tx: var(--tag-name-tx, -40px); --tag-ty: var(--tag-name-ty, -20px); --tag-scale: var(--tag-name-scale, 1); }
-.checklist-tag-date { --tag-width: var(--tag-date-width, auto); --tag-max-width: var(--tag-date-max-width, 130px); --tag-height: var(--tag-date-height, 36px); --tag-tx: var(--tag-date-tx, -160px); --tag-ty: var(--tag-date-ty, -20px); --tag-scale: var(--tag-date-scale, 1); }
-.checklist-tag-update { --tag-width: var(--tag-update-width, auto); --tag-max-width: var(--tag-update-max-width, 130px); --tag-height: var(--tag-update-height, 36px); --tag-tx: var(--tag-update-tx, -190px); --tag-ty: var(--tag-update-ty, -20px); --tag-scale: var(--tag-update-scale, 1); }
-.checklist-line { display:block; width: var(--line-width, 100%); max-width: var(--line-max-width, 100%); height: var(--line-height, auto); margin: var(--line-margin, 6px 0 10px); object-fit: contain; transform: translate(var(--line-tx, 0), var(--line-ty, 0)) scale(var(--line-scale, 1)); }
-.checklist-line-first { --line-width: var(--line-first-width, 100%); --line-max-width: var(--line-first-max-width, 763px); --line-height: var(--line-first-height, auto); --line-margin: var(--line-first-margin, 6px 0 10px); --line-tx: var(--line-first-tx, 20px); --line-ty: var(--line-first-ty, -120px); --line-scale: var(--line-first-scale, 1); }
-.checklist-line-between { --line-width: var(--line-between-width, 100%); --line-max-width: var(--line-between-max-width, 100%); --line-height: var(--line-between-height, auto); --line-margin: var(--line-between-margin, 6px 0 10px); --line-tx: var(--line-between-tx, 0); --line-ty: var(--line-between-ty, 0); --line-scale: var(--line-between-scale, 1); }
-.checklist-divider { padding: 0 6px; }
-
-/* 閲覧ボタン(緑の丸角) */
-.btn-view { 
-  display:inline-block; 
-  background: var(--btn-bg, #bfead8); 
-  color: var(--btn-color, rgb(12, 12, 12)); 
-  padding: var(--btn-padding, 10px 18px); 
-  border-radius: var(--btn-radius, 20px); 
-  text-decoration:none; 
-  font-weight: var(--btn-font-weight, 700);
-  font-size: var(--btn-font-size, 14px);
-  width: var(--btn-width, auto);
-  max-width: var(--btn-max-width, auto);
-  height: var(--btn-height, auto);  white-space: nowrap;
-  writing-mode: horizontal-tb;  transform: translate(var(--btn-tx, 60px), var(--btn-ty, 0)) scale(var(--btn-scale, 1));
-}
-.btn-view:hover { filter:brightness(var(--btn-hover-brightness, 0.96)); }
-
-/* 戻るボタンコンテナもCSS変数で調整可能に */
-.back-button-container {
-  position: fixed;
-  bottom: 40px;
-  left: 90px;
-  transform: translateX(-50%);
-  z-index: 1000;
-}
-.back-button-container .btn-back img {
-  height: var(--back-img-height, 56px);
-  width: var(--back-img-width, auto);
+.checklist-row.list-item.hidden { display: none; }
+.checklist-row.list-item:hover { 
+    background: white; 
+    border-color: #3fbcd9; 
+    transform: translateX(8px); /* ホバーで少し横にスライド */
+    box-shadow: 5px 5px 15px rgba(0,0,0,0.05);
 }
 
-@media (max-width:800px) {
-  .checklist-meta, .checklist-updated, .checklist-action { width:auto; text-align:left; }
-  .checklist-row { flex-direction:column; align-items:stretch; gap:8px; }
+/* 名前エリア */
+.cell-name { 
+    flex: 2; 
+    min-width: 0; 
+    font-weight: 800; 
+    color: #2d3748;
+    display: flex;
+    align-items: center;
+}
+.name-scroll-container {
+    display: block; 
+    white-space: nowrap; 
+    overflow-x: auto; 
+    scrollbar-width: none; 
+    -ms-overflow-style: none;
+    line-height: 1.2; /* 行の高さを整えてズレ防止 */
+}
+.name-scroll-container::-webkit-scrollbar { display: none; }
+
+/* 日付バッジ */
+.cell-date { flex: 1; text-align: center; }
+.date-badge {
+    display: inline-block;
+    background: #e2e8f0;
+    color: #4a5568;
+    padding: 4px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 800;
+}
+.date-badge.today {
+    background: #ff9f43;
+    color: white;
+    box-shadow: 0 3px 0 #e67e22;
+    transform: rotate(-1deg);
 }
 
-@media (max-width: 800px) {
-  .checklist-list-container { margin: 80px 12px; }
-  .list-actions img { height:44px; }
+/* アクションボタン：垂直中央に固定 */
+.cell-action { 
+    width: 140px; 
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+.btn-view {
+    display: inline-block;
+    background: #FFD200; 
+    color: #333; 
+    padding: 10px 18px; 
+    border-radius: 50px;
+    text-decoration: none; 
+    font-weight: 900; 
+    font-size: 13px; 
+    box-shadow: 0 4px 0 #d9b300;
+    transition: all 0.2s;
+    line-height: 1; /* ボタン内のテキスト位置を固定 */
+}
+.btn-view:hover {
+    background: #ffe04d;
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 6px 0 #d9b300;
+}
+.btn-view:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #d9b300;
 }
 
+/* --- ページネーション --- */
+.pagination-container {
+    flex-shrink: 0;
+    display: flex; justify-content: center; align-items: center;
+    gap: 12px; padding-top: 15px; border-top: 3px dashed #edf2f7;
+}
+.page-btn {
+    width: 42px; height: 42px; border-radius: 12px; border: none;
+    background: #edf2f7; color: #4a5568; font-weight: 900; cursor: pointer; 
+    transition: all 0.2s;
+    box-shadow: 0 3px 0 #cbd5e0;
+}
+.page-btn:hover:not(.active) {
+    background: #e2e8f0;
+    transform: translateY(-2px);
+}
+.page-btn.active { 
+    background: #3fbcd9; 
+    color: white; 
+    box-shadow: 0 4px 0 #2a8da4;
+    transform: scale(1.1);
+}
+
+@media (max-width: 768px) {
+    .checklist-list-container { height: auto; max-height: 95vh; }
+    .checklist-header-row { display: none; }
+    .checklist-row.list-item { flex-direction: column; align-items: stretch; gap: 12px; }
+    .cell-action { justify-content: center; width: 100%; }
+    .btn-view { width: 100%; text-align: center; }
+}
 </style>
 {% endblock %}
 
 {% block content %}
-
-<!-- ページヘッダー画像 -->
-
 <div class="checklist-list-container">
-  <div class="checklist-table">
-    <div class="checklist-row header">
-      <div class="checklist-cell checklist-name">
-        <img src="{% static 'codemon/images/tags/checklist_list_name.png' %}" alt="チェックリスト名" class="checklist-tag checklist-tag-name">
-      </div>
-      <div class="checklist-cell checklist-meta">
-        <img src="{% static 'codemon/images/tags/checklist_list_date.png' %}" alt="作成日" class="checklist-tag checklist-tag-date">
-      </div>
-      <div class="checklist-cell checklist-updated">
-        <img src="{% static 'codemon/images/tags/checklist_list_update.png' %}" alt="更新日" class="checklist-tag checklist-tag-update">
-      </div>
-      <div class="checklist-cell checklist-action"></div>
-    </div>
+    <h1 style="text-align:center; color:#3fbcd9; font-weight:900; margin-bottom:20px; font-size: 26px; letter-spacing: 1px;">
+        🔍 チェックリストをえらぼう
+    </h1>
 
-    <div class="checklist-divider">
-      <img src="{% static 'codemon/images/tags/checklist_list_line.png' %}" alt="" class="checklist-line checklist-line-first" onerror="this.style.display='none'">
-    </div>
-
-    {% for checklist in checklists %}
-      <div class="checklist-row list-item">
-        <div class="checklist-cell checklist-name">
-          <span>{{ checklist.checklist_name }}</span>
-        </div>
-        <div class="checklist-cell checklist-meta">{{ checklist.created_at|date:"Y/m/d H:i" }}</div>
-        <div class="checklist-cell checklist-updated">{{ checklist.updated_at|date:"Y/m/d H:i" }}</div>
-        <div class="checklist-cell checklist-action">
-            <a href="{% url 'codemon:checklist_detail' pk=checklist.checklist_id %}" class="btn-view" aria-label="チェックリスト閲覧">
-              <img src="{% static 'codemon/images/buttons/checklist_detail_button.png' %}" alt="" onerror="this.style.display='none'">
-              <span class="btn-label">チェックリスト閲覧</span>
+    <div class="action-bar">
+        <div class="left-actions">
+            <a href="{% url 'codemon:checklist_selection' %}" class="btn-pop btn-back-small">
+                ← もどる
+            </a>
+            <a href="{% url 'codemon:checklist_create' %}" class="btn-pop btn-create">
+                ＋ あたらしいリストを作る
             </a>
         </div>
-      </div>
-    {% endfor %}
-  </div>
+        
+        <div class="sort-controls">
+            <button class="btn-sort active" onclick="handleSort('new')">新しい順</button>
+            <button class="btn-sort" onclick="handleSort('old')">古い順</button>
+        </div>
+    </div>
 
-  <!-- 戻るボタン（下部） -->
-  <div class="back-button-container">
-    <a href="{% url 'codemon:checklist_selection' %}" class="btn-back">
-      <img src="{% static 'codemon/images/buttons/back.png' %}" alt="戻る" style="height:56px;">
-    </a>
-  </div>
+    <div class="checklist-header-row">
+        <div class="cell-name">なまえ</div>
+        <div class="cell-date">作った日</div>
+        <div class="cell-date">さいごの更新</div>
+        <div class="cell-action"></div>
+    </div>
 
+    <div class="checklist-scroll-area" id="checklist-list">
+        {% for checklist in checklists %}
+        <div class="checklist-row list-item" 
+             data-timestamp="{{ checklist.created_at|date:'U' }}"
+             data-updated-timestamp="{{ checklist.updated_at|date:'U' }}">
+            <div class="cell-name">
+                <div class="name-scroll-container">
+                    {{ checklist.checklist_name }}
+                </div>
+            </div>
+            <div class="cell-date"><span class="date-badge create-date"></span></div>
+            <div class="cell-date"><span class="date-badge update-date"></span></div>
+            <div class="cell-action">
+                <a href="{% url 'codemon:checklist_detail' pk=checklist.checklist_id %}" class="btn-view">
+                    なかみを見る
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <div style="text-align: center; padding: 50px; color: #a0aec0;">
+            <p style="font-weight: 800;">まだリストがないよ。<br>上のボタンから作ってみてね！</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="pagination-container" id="pagination"></div>
 </div>
-
 {% endblock %}
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  const accountTab = document.getElementById('account-tab');
-  {% if request.user.role == 'teacher' %}
-    if (accountTab) accountTab.href = "{% url 'accounts:account_entry' %}";
-  {% endif %}
-  // Ensure chat bubble is attached to <body> so position:fixed is viewport-relative
-  try {
-    const chat = document.querySelector('.chat-ai-bubble');
-    if (chat && chat.parentElement !== document.body) {
-      document.body.appendChild(chat);
+// JSロジックは前回同様ですが、念のためそのまま記載します
+let currentPage = 1;
+const itemsPerPage = 10;
+
+function getFriendlyDate(timestamp) {
+    const now = Math.floor(Date.now() / 1000);
+    const diff = now - timestamp;
+    const oneDay = 86400;
+
+    if (diff < oneDay) return "きょう";
+    if (diff < oneDay * 2) return "きのう";
+    if (diff < oneDay * 7) return Math.floor(diff / oneDay) + "日前";
+    
+    const date = new Date(timestamp * 1000);
+    return date.getFullYear() + "/" + (date.getMonth() + 1) + "/" + date.getDate();
+}
+
+function updateDates() {
+    document.querySelectorAll('.list-item').forEach(item => {
+        const createTs = item.getAttribute('data-timestamp');
+        const updateTs = item.getAttribute('data-updated-timestamp');
+        const createBadge = item.querySelector('.create-date');
+        const updateBadge = item.querySelector('.update-date');
+
+        const createText = getFriendlyDate(createTs);
+        createBadge.innerText = createText;
+        if (createText === "きょう") createBadge.classList.add('today');
+
+        const updateText = getFriendlyDate(updateTs);
+        updateBadge.innerText = updateText;
+        if (updateText === "きょう") updateBadge.classList.add('today');
+    });
+}
+
+function updateDisplay() {
+    const list = document.getElementById('checklist-list');
+    const items = Array.from(list.getElementsByClassName('list-item'));
+    const totalPages = Math.ceil(items.length / itemsPerPage);
+
+    items.forEach(item => item.classList.add('hidden'));
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    items.slice(start, end).forEach(item => item.classList.remove('hidden'));
+
+    renderPagination(totalPages);
+}
+
+function renderPagination(totalPages) {
+    const pagination = document.getElementById('pagination');
+    pagination.innerHTML = '';
+    if (totalPages <= 1) return;
+    for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement('button');
+        btn.innerText = i;
+        btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+        btn.onclick = () => { 
+            currentPage = i; 
+            updateDisplay(); 
+            document.querySelector('.checklist-scroll-area').scrollTop = 0; 
+        };
+        pagination.appendChild(btn);
     }
-  } catch(e) {
-    console.error('chat bubble reposition failed', e);
-  }
-  
-  // ページ読み込み時にチェックリスト位置までスクロール
-  setTimeout(function() {
-    const firstListItem = document.querySelector('.checklist-row.list-item');
-    if (firstListItem) {
-      firstListItem.scrollIntoView({ behavior: 'instant', block: 'center' });
-    }
-  }, 100);
+}
+
+function handleSort(order) {
+    const list = document.getElementById('checklist-list');
+    const items = Array.from(list.getElementsByClassName('list-item'));
+    const buttons = document.querySelectorAll('.btn-sort');
+    
+    buttons.forEach(btn => btn.classList.toggle('active', 
+        (order === 'new' && btn.innerText === '新しい順') || 
+        (order === 'old' && btn.innerText === '古い順')));
+
+    items.sort((a, b) => {
+        const timeA = parseInt(a.getAttribute('data-timestamp'));
+        const timeB = parseInt(b.getAttribute('data-timestamp'));
+        return order === 'new' ? timeB - timeA : timeA - timeB;
+    });
+
+    items.forEach(item => list.appendChild(item));
+    currentPage = 1;
+    updateDisplay();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    updateDates();
+    updateDisplay();
 });
 </script>
 {% endblock %}

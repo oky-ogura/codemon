@@ -4,11 +4,15 @@ def global_character_data(request):
     """
     ログイン中ユーザーのAIキャラクター情報をテンプレートへ渡す
     セッションベースの認証とDjango認証の両方をサポート
+    アクセサリー情報も含む
     """
+    from codemon.models import UserAccessory
+    
     context = {
         'ai_name': 'うたー',
         'character': 'inu',
-        'character_img': "/static/codemon/images/characters/イヌ.png"
+        'character_img': "/static/codemon/images/characters/イヌ.png",
+        'equipped_accessory': None,
     }
     
     user_id = None
@@ -32,6 +36,19 @@ def global_character_data(request):
                 context['character'] = appearance
                 context['appearance'] = appearance
                 context['character_img'] = f"/static/codemon/images/characters/{appearance}"
+            
+            # 装備中のアクセサリーを取得
+            try:
+                account = Account.objects.get(user_id=user_id)
+                equipped = UserAccessory.objects.filter(
+                    user=account,
+                    is_equipped=True
+                ).select_related('accessory').first()
+                if equipped:
+                    context['equipped_accessory'] = equipped
+            except Exception as e:
+                print(f"Accessory fetch error: {e}")
+                
     except Exception as e:
         print(f"Context Processor Error: {e}")
     

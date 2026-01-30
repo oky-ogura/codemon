@@ -13,6 +13,7 @@ from django.core import signing
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.contrib.auth.forms import SetPasswordForm
+from django.contrib.auth.decorators import login_required
 
 # 以下のブロックは、HEADとmainのインポートを統合したもの
 from django.contrib.auth.forms import UserCreationForm
@@ -299,6 +300,22 @@ def student_login(request):
                 request.session.save()
             except Exception:
                 pass
+            
+            # 実績チェック: ログイン
+            from codemon.achievement_utils import update_login_stats
+            newly_achieved = update_login_stats(acc)
+            if newly_achieved:
+                # 通知用にセッションに保存
+                if 'achievement_notifications' not in request.session:
+                    request.session['achievement_notifications'] = []
+                for achievement in newly_achieved:
+                    request.session['achievement_notifications'].append({
+                        'name': achievement.name,
+                        'icon': achievement.icon,
+                        'reward': achievement.reward_coins
+                    })
+                request.session.modified = True
+            
             # ログイン成功後は新しい karihome ページへリダイレクトする
             return redirect('accounts:karihome')
         else:
@@ -358,9 +375,13 @@ def karihome(request):
     
     # AI設定を取得してAI名前とキャラクターをテンプレートに渡す
     from .models import AiConfig
+    from codemon.models import UserAccessory
+    
     ai_name = 'うたー'  # デフォルト値
     character = 'inu'  # デフォルト値（イヌ）
     appearance = 'イヌ.png'  # デフォルト値（実際のファイル名）
+    equipped_accessory = None
+    
     try:
         acc = get_logged_account(request)
         if acc:
@@ -376,13 +397,29 @@ def karihome(request):
                         appearance = appearance + '.png'
                     # 外見からキャラクターIDを取得（APPEARANCE_TO_CHARACTERマッピングを使用）
                     character = APPEARANCE_TO_CHARACTER.get(appearance, 'inu')
+            
+            # 装備中のアクセサリーを取得
+            try:
+                equipped_accessory = UserAccessory.objects.filter(
+                    user=acc, 
+                    is_equipped=True
+                ).select_related('accessory').first()
+                print(f"DEBUG karihome: equipped_accessory = {equipped_accessory}")
+                if equipped_accessory:
+                    print(f"  - Accessory: {equipped_accessory.accessory.name}")
+                    print(f"  - CSS class: {equipped_accessory.accessory.css_class}")
+            except Exception as e:
+                print(f"アクセサリー取得エラー: {e}")
     except Exception as e:
         print(f"AI設定の取得エラー: {e}")
+    
+    print(f"DEBUG karihome context: equipped_accessory = {equipped_accessory}")
     
     return render(request, 'accounts/karihome.html', {
         'ai_name': ai_name,
         'character': character,
-        'appearance': appearance
+        'appearance': appearance,
+        'equipped_accessory': equipped_accessory
     })
 
 
@@ -778,6 +815,60 @@ def get_system_element_value(request, system_id, element_name):
     システムの特定の要素の値を取得するAPIエンドポイント
     アルゴリズム実行時にシステム要素の値を取得するために使用
     """
+
+def api_get_system_elements(request, system_id):
+    """
+    指定されたシステムの要素データをJSON形式で返すAPIエンドポイント（アルゴリズムエディタ用）
+    認証不要で他のユーザーのシステム要素も取得可能（プレビュー用）
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"=== api_get_system_elements called ===")
+    logger.info(f"system_id: {system_id}")
+    
+    try:
+        # システムを取得（所有者チェックなし - プレビュー用）
+        system = System.objects.get(system_id=system_id)
+        logger.info(f"System found: {system.system_name}")
+
+        # システム要素を取得
+        elements = SystemElement.objects.filter(system=system).order_by('sort_order', 'element_id')
+        logger.info(f"Found {elements.count()} elements")
+        
+        elements_list = []
+        for elem in elements:
+            elements_list.append({
+                'element_id': elem.element_id,
+                'element_type': elem.element_type,
+                'element_label': elem.element_label or '',
+                'element_value': elem.element_value or '',
+                'position_x': elem.position_x,
+                'position_y': elem.position_y,
+                'width': elem.width,
+                'height': elem.height,
+                'style_data': elem.style_data or {},
+                'element_config': elem.element_config or {}
+            })
+
+        return JsonResponse({
+            'success': True,
+            'system_id': system.system_id,
+            'system_name': system.system_name,
+            'elements': elements_list
+        })
+    except System.DoesNotExist:
+        logger.error(f"System not found: system_id={system_id}")
+        return JsonResponse({'error': 'System not found'}, status=404)
+    except Exception as e:
+        logger.error(f"Error in api_get_system_elements: {str(e)}", exc_info=True)
+        return JsonResponse({'error': str(e)}, status=500)
+
+def get_system_element_value(request, system_id, element_name):
+    """
+    システムの特定の要素の値を取得するAPIエンドポイント
+    アルゴリズム実行時にシステム要素の値を取得するために使用
+    """
     import logging
     logger = logging.getLogger(__name__)
     
@@ -912,6 +1003,21 @@ def system_create(request):
                     system_description=system_detail
                 )
                 messages.success(request, f'システム「{system_name}」を保存しました。')
+                
+                # 実績チェック: システム作成
+                from codemon.achievement_utils import update_system_count
+                newly_achieved = update_system_count(account)
+                if newly_achieved:
+                    # 通知用にセッションに保存
+                    if 'achievement_notifications' not in request.session:
+                        request.session['achievement_notifications'] = []
+                    for achievement in newly_achieved:
+                        request.session['achievement_notifications'].append({
+                            'name': achievement.name,
+                            'icon': achievement.icon,
+                            'reward': achievement.reward_coins
+                        })
+                    request.session.modified = True
 
             # 要素データを解析して保存
             if elements_json:
@@ -1179,6 +1285,21 @@ def block_create(request):
                     blockly_xml=blockly_xml if blockly_xml else None
                 )
                 messages.success(request, f'アルゴリズム「{algorithm_name}」を保存しました。')
+                
+                # 実績チェック: アルゴリズム作成
+                from codemon.achievement_utils import update_algorithm_count
+                newly_achieved = update_algorithm_count(account)
+                if newly_achieved:
+                    # 通知用にセッションに保存
+                    if 'achievement_notifications' not in request.session:
+                        request.session['achievement_notifications'] = []
+                    for achievement in newly_achieved:
+                        request.session['achievement_notifications'].append({
+                            'name': achievement.name,
+                            'icon': achievement.icon,
+                            'reward': achievement.reward_coins
+                        })
+                    request.session.modified = True
 
             # 保存成功後はsave画面にリダイレクト
             return redirect('accounts:block_save')

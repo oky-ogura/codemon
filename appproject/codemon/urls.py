@@ -7,6 +7,10 @@ from accounts import views as accounts_views
 app_name = 'codemon'
 
 urlpatterns = [
+
+    # 項目の完了／未完了切り替え（最優先でマッチさせるため一番上に移動）
+    path('checklists/<int:pk>/items/<int:item_id>/toggle/', views.checklist_toggle_item, name='checklist_toggle_item'),
+
     # 開発用レガシーURL（旧ルート）
     path('checklist_create/', views.checklist_create, name='checklist_create'),
 
@@ -30,7 +34,7 @@ urlpatterns = [
     path('checklists/<int:pk>/delete/', views.checklist_delete, name='checklist_delete'),
 
     # 項目の完了／未完了切り替え
-    path('checklists/<int:pk>/items/<int:item_id>/toggle/', views.checklist_toggle_item, name='checklist_toggle_item'),
+    path('checklists/<int:pk>/items/<int:item_id>/toggle2/', views.checklist_toggle_item, name='checklist_toggle_item'),
 
     # グループ管理
     path('groups/', views.group_list, name='group_list'),
@@ -79,6 +83,17 @@ urlpatterns = [
     # AI Chat API
     path('api/ai/chat', views.ai_chat_api, name='ai_chat_api'),
     path('api/ai/history', views.ai_history_api, name='ai_history_api'),
+    
+    # アクセサリー管理
+    path('accessories/', views.accessory_shop, name='accessory_shop'),
+    path('accessories/equip/<int:accessory_id>/', views.equip_accessory, name='equip_accessory'),
+    path('accessories/unequip/', views.unequip_accessory, name='unequip_accessory'),
+    path('accessories/purchase/<int:accessory_id>/', views.purchase_accessory, name='purchase_accessory'),
+    
+    # 実績システム
+    path('achievements/', views.achievements_view, name='achievements'),
+    path('achievements/claim/<int:achievement_id>/', views.claim_achievement_reward, name='claim_achievement_reward'),
+    path('achievements/clear_notifications/', views.clear_achievement_notifications, name='clear_achievement_notifications'),
 ]
 
 # 開発環境での静的ファイル配信設定

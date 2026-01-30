@@ -1,4 +1,5 @@
 {% load static %}
+{% load accessory_filters %}
 {# モード: 'karihome' (デフォルト) または 'sidebar' #}
 {# 使用例: {% include 'includes/character_widget.html' with mode='sidebar' %} #}
 
@@ -26,10 +27,29 @@
   {% endif %}
   
   <div class="character-container">
-    <img src="{% if character_img %}{{ character_img }}{% else %}{% static 'codemon/images/characters/イヌ.png' %}{% endif %}" 
-         alt="AIキャラクター" 
-         class="character-image"
-         onerror="this.onerror=null;this.src='{% static 'codemon/images/characters/イヌ.png' %}';">
+    {# キャラクター画像とアクセサリーをラップするコンテナ #}
+    <div class="character-with-accessory">
+      <img src="{% if character_img %}{{ character_img }}{% else %}{% static 'codemon/images/characters/イヌ.png' %}{% endif %}" 
+           alt="AIキャラクター" 
+           class="character-image"
+           onerror="this.onerror=null;this.src='{% static 'codemon/images/characters/イヌ.png' %}';">
+      
+      {# アクセサリー表示 #}
+      {% if equipped_accessory %}
+        <!-- DEBUG: Accessory Name: {{ equipped_accessory.accessory.name }} -->
+        <!-- DEBUG: use_image: {{ equipped_accessory.accessory.use_image }} -->
+        <!-- DEBUG: image_path: {{ equipped_accessory.accessory.image_path }} -->
+        <!-- DEBUG: css_class: {{ equipped_accessory.accessory.css_class }} -->
+        {% if equipped_accessory.accessory.use_image and equipped_accessory.accessory.image_path %}
+          {# 画像を使用するアクセサリー #}
+          <span class="character-accessory acc use-image {{ equipped_accessory.accessory.css_class|css_class_to_html }}" 
+                style="background-image: url('{% static equipped_accessory.accessory.image_path %}');"></span>
+        {% else %}
+          {# CSS描画のアクセサリー（従来） #}
+          <span class="character-accessory acc {{ equipped_accessory.accessory.css_class|css_class_to_html }}"></span>
+        {% endif %}
+      {% endif %}
+    </div>
   </div>
 </div>
 
@@ -221,22 +241,787 @@
   .character-container, .chat-trigger-btn, .speech-bubble-container, .widget-minimize-btn {
     pointer-events: auto;
   }
+  
+  /* キャラクター＋アクセサリーのラッパー */
+  .character-with-accessory {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+  }
+  
   .character-image {
     pointer-events: auto;
-    transition: transform 0.3s ease;
-    transform-origin: bottom center;
     display: block;
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
-    cursor: pointer;
+    max-width: 400px !important;
+    max-height: 500px !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain;
   }
+  
+  /* ホバー時のtransform効果を無効化 */
+  .character-image:hover {
+    transform: none !important;
+  }
+  
+  /* ホバー時に笑顔画像に切り替え */
+  .character-widget[data-character="ネコ.png"] .character-with-accessory:hover .character-image,
+  .character-widget[data-character="neko"] .character-with-accessory:hover .character-image {
+    content: url('{% static "codemon/images/characters/ネコ 笑顔.png" %}');
+  }
+  .character-widget[data-character="イヌ.png"] .character-with-accessory:hover .character-image,
+  .character-widget[data-character="inu"] .character-with-accessory:hover .character-image {
+    content: url('{% static "codemon/images/characters/イヌ 笑顔.png" %}');
+  }
+  .character-widget[data-character="ウサギ.png"] .character-with-accessory:hover .character-image,
+  .character-widget[data-character="usagi"] .character-with-accessory:hover .character-image {
+    content: url('{% static "codemon/images/characters/ウサギ 笑顔.png" %}');
+  }
+  .character-widget[data-character="キツネ.png"] .character-with-accessory:hover .character-image,
+  .character-widget[data-character="kitsune"] .character-with-accessory:hover .character-image {
+    content: url('{% static "codemon/images/characters/キツネ 笑顔.png" %}');
+  }
+  .character-widget[data-character="パンダ.png"] .character-with-accessory:hover .character-image,
+  .character-widget[data-character="panda"] .character-with-accessory:hover .character-image {
+    content: url('{% static "codemon/images/characters/パンダ 笑顔.png" %}');
+  }
+  .character-widget[data-character="フクロウ.png"] .character-with-accessory:hover .character-image,
+  .character-widget[data-character="fukurou"] .character-with-accessory:hover .character-image {
+    content: url('{% static "codemon/images/characters/フクロウ 笑顔.png" %}');
+  }
+  .character-widget[data-character="リス.png"] .character-with-accessory:hover .character-image,
+  .character-widget[data-character="risu"] .character-with-accessory:hover .character-image {
+    content: url('{% static "codemon/images/characters/リス 笑顔.png" %}');
+  }
+  .character-widget[data-character="アルパカ.png"] .character-with-accessory:hover .character-image,
+  .character-widget[data-character="arupaka"] .character-with-accessory:hover .character-image {
+    content: url('{% static "codemon/images/characters/アルパカ 笑顔.png" %}');
+  }
+  
   .character-container img {
     border: none !important;
     outline: none !important;
   }
-  .character-image:hover {
-    transform: scale(1.05) rotate(2deg) !important;
+  
+  /* ==================== アクセサリー共通スタイル ==================== */
+  .acc {
+    position: absolute;
+    pointer-events: none;
+  }
+  
+  /* ==================== 画像を使用するアクセサリー（最優先） ==================== */
+  /* 画像アクセサリー用の共通スタイル */
+  .character-accessory.use-image {
+    background-size: contain !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    border-radius: 0 !important; /* 画像の形をそのまま使う */
+    background-color: transparent !important; /* 背景色を無効化 */
+    width: 96px !important;
+    height: 96px !important;
+    border: none !important;
+  }
+  .character-accessory.use-image::before {
+    display: none !important;
+  }
+  
+  /* ==================== キャラクター別・アクセサリー別の画像スタイル（48パターン） ==================== */
+  
+  /* ========== ネコ（neko）========== */
+  .character-widget[data-character="ネコ.png"] .character-accessory.use-image.flower,
+  .character-widget[data-character="neko"] .flower {
+    width: 120px !important;
+    height: 120px !important;
+    top: 52px !important;
+    right: 60px !important;
+    left: auto !important;
+    transform: rotate(-15deg) !important;
+  }
+  .character-widget[data-character="ネコ.png"] .character-accessory.use-image.glasses,
+  .character-widget[data-character="neko"] .character-accessory.use-image.glasses {
+    width: 260px !important;
+    height: 260px !important;
+    top: 23px !important;
+    left: 45% !important;
+    transform: translateX(-50%) rotate(17deg) !important;
+  }
+  .character-widget[data-character="ネコ.png"] .character-accessory.use-image.ribbon,
+  .character-widget[data-character="neko"] .character-accessory.use-image.ribbon {
+    width: 200px !important;
+    height: 200px !important;
+    top: -10px !important;
+    left: 65% !important;
+    transform: translateX(-50%) rotate(20deg) !important;
+  }
+  .character-widget[data-character="ネコ.png"] .character-accessory.use-image.star,
+  .character-widget[data-character="neko"] .character-accessory.use-image.star {
+    width: 120px !important;
+    height: 120px !important;
+    top: 45px !important;
+    left: 68% !important;
+    transform: translateX(-50%) rotate(10deg) !important;
+  }
+  .character-widget[data-character="ネコ.png"] .character-accessory.use-image.hat,
+  .character-widget[data-character="neko"] .character-accessory.use-image.hat {
+    width: 280px !important;
+    height: 280px !important;
+    top: -75px !important;
+    left: 60% !important;
+    transform: translateX(-50%) rotate(10deg) !important;
+  }
+  .character-widget[data-character="ネコ.png"] .character-accessory.use-image.crown,
+  .character-widget[data-character="neko"] .character-accessory.use-image.crown {
+    width: 210px !important;
+    height: 210px !important;
+    top: -30px !important;
+    left: 61% !important;
+    transform: translateX(-50%) rotate(25deg) !important;
+  }
+  
+  /* ========== イヌ（inu）========== */
+  .character-widget[data-character="イヌ.png"] .character-accessory.use-image.flower,
+  .character-widget[data-character="inu"] .character-accessory.use-image.flower {
+    width: 96px !important;
+    height: 96px !important;
+    top: 50px !important;
+    right: 180px !important;
+    left: auto !important;
+  }
+  .character-widget[data-character="イヌ.png"] .character-accessory.use-image.glasses,
+  .character-widget[data-character="inu"] .character-accessory.use-image.glasses {
+    width: 150px !important;
+    height: 150px !important;
+    top: 180px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  .character-widget[data-character="イヌ.png"] .character-accessory.use-image.ribbon,
+  .character-widget[data-character="inu"] .character-accessory.use-image.ribbon {
+    width: 96px !important;
+    height: 96px !important;
+    top: 50px !important;
+    right: 180px !important;
+    left: auto !important;
+  }
+  .character-widget[data-character="イヌ.png"] .character-accessory.use-image.star,
+  .character-widget[data-character="inu"] .character-accessory.use-image.star {
+    width: 96px !important;
+    height: 96px !important;
+    top: 50px !important;
+    right: 180px !important;
+    left: auto !important;
+  }
+  .character-widget[data-character="イヌ.png"] .character-accessory.use-image.hat,
+  .character-widget[data-character="inu"] .character-accessory.use-image.hat {
+    width: 96px !important;
+    height: 96px !important;
+    top: 20px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  .character-widget[data-character="イヌ.png"] .character-accessory.use-image.crown,
+  .character-widget[data-character="inu"] .character-accessory.use-image.crown {
+    width: 96px !important;
+    height: 96px !important;
+    top: 15px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  
+  /* ========== ウサギ（usagi）========== */
+  .character-widget[data-character="ウサギ.png"] .character-accessory.use-image.flower,
+  .character-widget[data-character="usagi"] .character-accessory.use-image.flower {
+    width: 96px !important;
+    height: 96px !important;
+    top: 60px !important;
+    right: 180px !important;
+    left: auto !important;
+  }
+  .character-widget[data-character="ウサギ.png"] .character-accessory.use-image.glasses,
+  .character-widget[data-character="usagi"] .character-accessory.use-image.glasses {
+    width: 150px !important;
+    height: 150px !important;
+    top: 190px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  .character-widget[data-character="ウサギ.png"] .character-accessory.use-image.ribbon,
+  .character-widget[data-character="usagi"] .character-accessory.use-image.ribbon {
+    width: 96px !important;
+    height: 96px !important;
+    top: 60px !important;
+    right: 180px !important;
+    left: auto !important;
+  }
+  .character-widget[data-character="ウサギ.png"] .character-accessory.use-image.star,
+  .character-widget[data-character="usagi"] .character-accessory.use-image.star {
+    width: 96px !important;
+    height: 96px !important;
+    top: 60px !important;
+    right: 180px !important;
+    left: auto !important;
+  }
+  .character-widget[data-character="ウサギ.png"] .character-accessory.use-image.hat,
+  .character-widget[data-character="usagi"] .character-accessory.use-image.hat {
+    width: 96px !important;
+    height: 96px !important;
+    top: 20px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  .character-widget[data-character="ウサギ.png"] .character-accessory.use-image.crown,
+  .character-widget[data-character="usagi"] .character-accessory.use-image.crown {
+    width: 96px !important;
+    height: 96px !important;
+    top: 15px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  
+  /* ========== キツネ（kitsune）========== */
+  .character-widget[data-character="キツネ.png"] .character-accessory.use-image.flower,
+  .character-widget[data-character="kitsune"] .character-accessory.use-image.flower {
+    width: 96px !important;
+    height: 96px !important;
+    top: 45px !important;
+    right: 180px !important;
+    left: auto !important;
+  }
+  .character-widget[data-character="キツネ.png"] .character-accessory.use-image.glasses,
+  .character-widget[data-character="kitsune"] .character-accessory.use-image.glasses {
+    width: 150px !important;
+    height: 150px !important;
+    top: 175px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  .character-widget[data-character="キツネ.png"] .character-accessory.use-image.ribbon,
+  .character-widget[data-character="kitsune"] .character-accessory.use-image.ribbon {
+    width: 96px !important;
+    height: 96px !important;
+    top: 45px !important;
+    right: 180px !important;
+    left: auto !important;
+  }
+  .character-widget[data-character="キツネ.png"] .character-accessory.use-image.star,
+  .character-widget[data-character="kitsune"] .character-accessory.use-image.star {
+    width: 96px !important;
+    height: 96px !important;
+    top: 45px !important;
+    right: 180px !important;
+    left: auto !important;
+  }
+  .character-widget[data-character="キツネ.png"] .character-accessory.use-image.hat,
+  .character-widget[data-character="kitsune"] .character-accessory.use-image.hat {
+    width: 96px !important;
+    height: 96px !important;
+    top: 20px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  .character-widget[data-character="キツネ.png"] .character-accessory.use-image.crown,
+  .character-widget[data-character="kitsune"] .character-accessory.use-image.crown {
+    width: 96px !important;
+    height: 96px !important;
+    top: 15px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  
+  /* ========== パンダ（panda）========== */
+  .character-widget[data-character="パンダ.png"] .character-accessory.use-image.flower,
+  .character-widget[data-character="panda"] .character-accessory.use-image.flower {
+    width: 96px !important;
+    height: 96px !important;
+    top: 45px !important;
+    right: 180px !important;
+    left: auto !important;
+  }
+  .character-widget[data-character="パンダ.png"] .character-accessory.use-image.glasses,
+  .character-widget[data-character="panda"] .character-accessory.use-image.glasses {
+    width: 150px !important;
+    height: 150px !important;
+    top: 185px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  .character-widget[data-character="パンダ.png"] .character-accessory.use-image.ribbon,
+  .character-widget[data-character="panda"] .character-accessory.use-image.ribbon {
+    width: 96px !important;
+    height: 96px !important;
+    top: 45px !important;
+    right: 180px !important;
+    left: auto !important;
+  }
+  .character-widget[data-character="パンダ.png"] .character-accessory.use-image.star,
+  .character-widget[data-character="panda"] .character-accessory.use-image.star {
+    width: 96px !important;
+    height: 96px !important;
+    top: 45px !important;
+    right: 180px !important;
+    left: auto !important;
+  }
+  .character-widget[data-character="パンダ.png"] .character-accessory.use-image.hat,
+  .character-widget[data-character="panda"] .character-accessory.use-image.hat {
+    width: 96px !important;
+    height: 96px !important;
+    top: 20px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  .character-widget[data-character="パンダ.png"] .character-accessory.use-image.crown,
+  .character-widget[data-character="panda"] .character-accessory.use-image.crown {
+    width: 96px !important;
+    height: 96px !important;
+    top: 15px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  
+  /* ========== フクロウ（fukurou）========== */
+  .character-widget[data-character="フクロウ.png"] .character-accessory.use-image.flower,
+  .character-widget[data-character="fukurou"] .character-accessory.use-image.flower {
+    width: 96px !important;
+    height: 96px !important;
+    top: 55px !important;
+    right: 180px !important;
+    left: auto !important;
+  }
+  .character-widget[data-character="フクロウ.png"] .character-accessory.use-image.glasses,
+  .character-widget[data-character="fukurou"] .character-accessory.use-image.glasses {
+    width: 150px !important;
+    height: 150px !important;
+    top: 195px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  .character-widget[data-character="フクロウ.png"] .character-accessory.use-image.ribbon,
+  .character-widget[data-character="fukurou"] .character-accessory.use-image.ribbon {
+    width: 96px !important;
+    height: 96px !important;
+    top: 55px !important;
+    right: 180px !important;
+    left: auto !important;
+  }
+  .character-widget[data-character="フクロウ.png"] .character-accessory.use-image.star,
+  .character-widget[data-character="fukurou"] .character-accessory.use-image.star {
+    width: 96px !important;
+    height: 96px !important;
+    top: 55px !important;
+    right: 180px !important;
+    left: auto !important;
+  }
+  .character-widget[data-character="フクロウ.png"] .character-accessory.use-image.hat,
+  .character-widget[data-character="fukurou"] .character-accessory.use-image.hat {
+    width: 96px !important;
+    height: 96px !important;
+    top: 20px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  .character-widget[data-character="フクロウ.png"] .character-accessory.use-image.crown,
+  .character-widget[data-character="fukurou"] .character-accessory.use-image.crown {
+    width: 96px !important;
+    height: 96px !important;
+    top: 15px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  
+  /* ========== リス（risu）========== */
+  .character-widget[data-character="リス.png"] .character-accessory.use-image.flower,
+  .character-widget[data-character="risu"] .character-accessory.use-image.flower {
+    width: 96px !important;
+    height: 96px !important;
+    top: 48px !important;
+    right: 180px !important;
+    left: auto !important;
+  }
+  .character-widget[data-character="リス.png"] .character-accessory.use-image.glasses,
+  .character-widget[data-character="risu"] .character-accessory.use-image.glasses {
+    width: 150px !important;
+    height: 150px !important;
+    top: 178px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  .character-widget[data-character="リス.png"] .character-accessory.use-image.ribbon,
+  .character-widget[data-character="risu"] .character-accessory.use-image.ribbon {
+    width: 96px !important;
+    height: 96px !important;
+    top: 48px !important;
+    right: 180px !important;
+    left: auto !important;
+  }
+  .character-widget[data-character="リス.png"] .character-accessory.use-image.star,
+  .character-widget[data-character="risu"] .character-accessory.use-image.star {
+    width: 96px !important;
+    height: 96px !important;
+    top: 48px !important;
+    right: 180px !important;
+    left: auto !important;
+  }
+  .character-widget[data-character="リス.png"] .character-accessory.use-image.hat,
+  .character-widget[data-character="risu"] .character-accessory.use-image.hat {
+    width: 96px !important;
+    height: 96px !important;
+    top: 20px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  .character-widget[data-character="リス.png"] .character-accessory.use-image.crown,
+  .character-widget[data-character="risu"] .character-accessory.use-image.crown {
+    width: 96px !important;
+    height: 96px !important;
+    top: 15px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  
+  /* ========== アルパカ（arupaka）========== */
+  .character-widget[data-character="アルパカ.png"] .character-accessory.use-image.flower,
+  .character-widget[data-character="arupaka"] .character-accessory.use-image.flower {
+    width: 96px !important;
+    height: 96px !important;
+    top: 40px !important;
+    right: 180px !important;
+    left: auto !important;
+  }
+  .character-widget[data-character="アルパカ.png"] .character-accessory.use-image.glasses,
+  .character-widget[data-character="arupaka"] .character-accessory.use-image.glasses {
+    width: 150px !important;
+    height: 150px !important;
+    top: 170px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  .character-widget[data-character="アルパカ.png"] .character-accessory.use-image.ribbon,
+  .character-widget[data-character="arupaka"] .character-accessory.use-image.ribbon {
+    width: 96px !important;
+    height: 96px !important;
+    top: 40px !important;
+    right: 180px !important;
+    left: auto !important;
+  }
+  .character-widget[data-character="アルパカ.png"] .character-accessory.use-image.star,
+  .character-widget[data-character="arupaka"] .character-accessory.use-image.star {
+    width: 96px !important;
+    height: 96px !important;
+    top: 40px !important;
+    right: 180px !important;
+    left: auto !important;
+  }
+  .character-widget[data-character="アルパカ.png"] .character-accessory.use-image.hat,
+  .character-widget[data-character="arupaka"] .character-accessory.use-image.hat {
+    width: 96px !important;
+    height: 96px !important;
+    top: 20px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  .character-widget[data-character="アルパカ.png"] .character-accessory.use-image.crown,
+  .character-widget[data-character="arupaka"] .character-accessory.use-image.crown {
+    width: 96px !important;
+    height: 96px !important;
+    top: 15px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  
+  /* ==================== CSS描画のアクセサリー（画像がない場合のみ） ==================== */
+  /* 大きいキャラクター用アクセサリー（karihomeモード・通常サイズ） */
+  .character-with-accessory .character-accessory.flower:not(.use-image) {
+    width: 96px;  /* 24px → 48px に変更 */
+    height: 96px; /* 24px → 48px に変更 */
+    border-radius: 50%;
+    top: 50px;
+    right: 180px;
+  }
+  
+  .character-with-accessory .character-accessory.glasses:not(.use-image) {
+    width: 1000px;
+    height: 1000px;
+    border: 4px solid currentColor;
+    border-radius: 12px;
+    top: 180px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  
+  /* 小アイコン用アクセサリー（90px基準） */
+  .mini-icon-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    height: 100%;
+  }
+  
+  .mini-icon-wrapper .mini-accessory.flower {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    top: 8px;
+    right: 8px;
+  }
+  
+  .mini-icon-wrapper .mini-accessory.glasses {
+    width: 16px;
+    height: 6px;
+    border: 2px solid currentColor;
+    border-radius: 6px;
+    top: 40px;
+    left: 37px;
+  }
+  
+  /* ==================== CSS描画のアクセサリー（従来） ==================== */
+  /* アクセサリーの色バリエーション（use-imageが無い場合のみ） */
+  .flower.inu:not(.use-image) { background: #FFD700; }
+  .flower.usagi:not(.use-image) { background: #FFB6C1; }
+  .flower.kitsune:not(.use-image) { background: #E5A020; }
+  .flower.neko:not(.use-image) { background: #4DB6AC; }
+  .flower.panda:not(.use-image) { background: #E0E0E0; }
+  .flower.fukurou:not(.use-image) { background: #92B7D6; }
+  .flower.risu:not(.use-image) { background: #FEB6AC; }
+  .flower.alpaca:not(.use-image) { background: #E5D580; }
+  
+  .glasses.inu:not(.use-image) { color: #FFD700; }
+  .glasses.usagi:not(.use-image) { color: #FFB6C1; }
+  .glasses.kitsune:not(.use-image) { color: #E5A020; }
+  .glasses.neko:not(.use-image) { color: #4DB6AC; }
+  .glasses.panda:not(.use-image) { color: #E0E0E0; }
+  .glasses.fukurou:not(.use-image) { color: #92B7D6; }
+  .glasses.risu:not(.use-image) { color: #FEB6AC; }
+  .glasses.alpaca:not(.use-image) { color: #E5D580; }
+  
+
+  /* ==================== 新しいアクセサリー形状 ==================== */
+  /* リボン - 蝶ネクタイ型 */
+  .character-with-accessory .character-accessory.ribbon:not(.use-image) {
+    width: 32px;
+    height: 16px;
+    background: linear-gradient(90deg, currentColor 0%, currentColor 40%, transparent 40%, transparent 60%, currentColor 60%, currentColor 100%);
+    border-radius: 4px;
+    top: 45px;
+    right: 55px;
+  }
+  .ribbon.inu:not(.use-image) { color: #FFD700; }
+  .ribbon.usagi:not(.use-image) { color: #FFB6C1; }
+  .ribbon.kitsune:not(.use-image) { color: #E5A020; }
+  .ribbon.neko:not(.use-image) { color: #4DB6AC; }
+  .ribbon.panda:not(.use-image) { color: #E0E0E0; }
+  .ribbon.fukurou:not(.use-image) { color: #92B7D6; }
+  .ribbon.risu:not(.use-image) { color: #FEB6AC; }
+  .ribbon.alpaca:not(.use-image) { color: #E5D580; }
+  
+  
+  /* 星 - Unicode文字を使用 */
+  .character-with-accessory .character-accessory.star:not(.use-image) {
+    width: 24px;
+    height: 24px;
+    top: 48px;
+    right: 60px;
+  }
+  .character-accessory.star:not(.use-image)::before {
+    content: "★";
+    font-size: 28px;
+    color: currentColor;
+    position: absolute;
+    top: -4px;
+    left: -2px;
+  }
+  
+  .star.inu:not(.use-image) { color: #FFD700; }
+  .star.usagi:not(.use-image) { color: #FFB6C1; }
+  .star.kitsune:not(.use-image) { color: #E5A020; }
+  .star.neko:not(.use-image) { color: #4DB6AC; }
+  .star.panda:not(.use-image) { color: #E0E0E0; }
+  .star.fukurou:not(.use-image) { color: #92B7D6; }
+  .star.risu:not(.use-image) { color: #FEB6AC; }
+  .star.alpaca:not(.use-image) { color: #E5D580; }
+  
+  
+  /* 帽子 - シンプルな台形 */
+  .character-with-accessory .character-accessory.hat:not(.use-image) {
+    width: 0;
+    height: 0;
+    border-left: 15px solid transparent;
+    border-right: 15px solid transparent;
+    border-bottom: 20px solid currentColor;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .hat.inu:not(.use-image) { color: #FFD700; }
+  .hat.usagi:not(.use-image) { color: #FFB6C1; }
+  .hat.kitsune:not(.use-image) { color: #E5A020; }
+  .hat.neko:not(.use-image) { color: #4DB6AC; }
+  .hat.panda:not(.use-image) { color: #E0E0E0; }
+  .hat.fukurou:not(.use-image) { color: #92B7D6; }
+  .hat.risu:not(.use-image) { color: #FEB6AC; }
+  .hat.alpaca:not(.use-image) { color: #E5D580; }
+  
+  /* 王冠 - Unicode文字を使用 */
+  .character-with-accessory .character-accessory.crown:not(.use-image) {
+    width: 30px;
+    height: 24px;
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .character-accessory.crown:not(.use-image)::before {
+    content: "👑";
+    font-size: 30px;
+    position: absolute;
+    top: -5px;
+    left: 0;
+  }
+  .crown.inu:not(.use-image) { color: #FFD700; }
+  .crown.usagi:not(.use-image) { color: #FFB6C1; }
+  .crown.kitsune:not(.use-image) { color: #E5A020; }
+  .crown.neko:not(.use-image) { color: #4DB6AC; }
+  .crown.panda:not(.use-image) { color: #E0E0E0; }
+  .crown.fukurou:not(.use-image) { color: #92B7D6; }
+  .crown.risu:not(.use-image) { color: #FEB6AC; }
+  .crown.alpaca:not(.use-image) { color: #E5D580; }
+  
+  /* 小アイコン用の新しいアクセサリー */
+  .mini-icon-wrapper .mini-accessory.ribbon {
+    width: 12px;
+    height: 6px;
+    background: linear-gradient(90deg, currentColor 0%, currentColor 40%, transparent 40%, transparent 60%, currentColor 60%, currentColor 100%);
+    border-radius: 2px;
+    top: 7px;
+    right: 7px;
+  }
+  
+  .mini-icon-wrapper .mini-accessory.heart::before,
+  .mini-icon-wrapper .mini-accessory.star::before {
+    font-size: 10px;
+    top: -2px;
+    left: -1px;
+  }
+  
+  .mini-icon-wrapper .mini-accessory.heart,
+  .mini-icon-wrapper .mini-accessory.star {
+    width: 8px;
+    height: 8px;
+    top: 8px;
+    right: 8px;
+  }
+  
+  .mini-icon-wrapper .mini-accessory.crown::before {
+    font-size: 12px;
+    top: -2px;
+  }
+  
+  .mini-icon-wrapper .mini-accessory.crown {
+    width: 12px;
+    height: 10px;
+    top: 3px;
+    left: 39px;
+  }
+
+  /* ==================== キャラクター別アクセサリー位置調整 ==================== */
+  /* ウサギ - 耳が高いので花を少し下に */
+  .character-widget[data-character="ウサギ.png"] .character-accessory.flower,
+  .character-widget[data-character="usagi"] .character-accessory.flower {
+    top: 60px;
+    right: 180px;
+  }
+  .character-widget[data-character="ウサギ.png"] .character-accessory.glasses,
+  .character-widget[data-character="usagi"] .character-accessory.glasses {
+    top: 190px;
+  }
+  
+  /* キツネ - 顔が細いので花を右寄りに */
+  .character-widget[data-character="キツネ.png"] .character-accessory.flower,
+  .character-widget[data-character="kitsune"] .character-accessory.flower {
+    top: 45px;
+    right: 180px;
+  }
+  .character-widget[data-character="キツネ.png"] .character-accessory.glasses,
+  .character-widget[data-character="kitsune"] .character-accessory.glasses {
+    top: 175px;
+  }
+  
+  /* イヌ - デフォルト位置（変更なし） */
+  
+  /* パンダ - 丸顔なので花を少し上に */
+  .character-widget[data-character="パンダ.png"] .character-accessory.flower,
+  .character-widget[data-character="panda"] .character-accessory.flower {
+    top: 45px;
+    right: 180px;
+  }
+  .character-widget[data-character="パンダ.png"] .character-accessory.glasses,
+  .character-widget[data-character="panda"] .character-accessory.glasses {
+    top: 185px;
+  }
+  
+  /* リス - 小さめなので花も少し中央寄りに */
+  .character-widget[data-character="リス.png"] .character-accessory.flower,
+  .character-widget[data-character="risu"] .character-accessory.flower {
+    top: 48px;
+    right: 180px;
+  }
+  .character-widget[data-character="リス.png"] .character-accessory.glasses,
+  .character-widget[data-character="risu"] .character-accessory.glasses {
+    top: 178px;
+  }
+  
+  /* フクロウ - 顔が丸く大きいので花を外側に */
+  .character-widget[data-character="フクロウ.png"] .character-accessory.flower,
+  .character-widget[data-character="fukurou"] .character-accessory.flower {
+    top: 55px;
+    right: 180px;
+  }
+  .character-widget[data-character="フクロウ.png"] .character-accessory.glasses,
+  .character-widget[data-character="fukurou"] .character-accessory.glasses {
+    top: 195px;
+  }
+  
+  /* ネコ - 顔が小さめなので花も小さめに配置 */
+  .character-widget[data-character="ネコ.png"] .character-accessory.flower,
+  .character-widget[data-character="neko"] .character-accessory.flower {
+    top: 52px;
+    right: 75px;
+  }
+  .character-widget[data-character="ネコ.png"] .character-accessory.glasses,
+  .character-widget[data-character="neko"] .character-accessory.glasses {
+    top: 182px;
+  }
+  
+  /* アルパカ - 首が長いので花を上に */
+  .character-widget[data-character="アルパカ.png"] .character-accessory.flower,
+  .character-widget[data-character="arupaka"] .character-accessory.flower {
+    top: 40px;
+    right: 180px;
+  }
+  .character-widget[data-character="アルパカ.png"] .character-accessory.glasses,
+  .character-widget[data-character="arupaka"] .character-accessory.glasses {
+    top: 170px;
+  }
+  
+  /* 小アイコン用のキャラクター別調整 */
+  .character-widget[data-character="ウサギ.png"] .mini-accessory.flower,
+  .character-widget[data-character="usagi"] .mini-accessory.flower {
+    top: 10px;
+    right: 9px;
+  }
+  
+  .character-widget[data-character="キツネ.png"] .mini-accessory.flower,
+  .character-widget[data-character="kitsune"] .mini-accessory.flower {
+    top: 7px;
+    right: 7px;
+  }
+  
+  .character-widget[data-character="フクロウ.png"] .mini-accessory.flower,
+  .character-widget[data-character="fukurou"] .mini-accessory.flower {
+    top: 9px;
+    right: 10px;
   }
 
   /* ========================================
@@ -1018,7 +1803,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }),
         credentials: 'include' // セッション認証を必ず送信
       })
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(err => {
+            throw new Error(err.error || `HTTP ${response.status}`);
+          }).catch(() => {
+            throw new Error(`HTTP ${response.status}`);
+          });
+        }
+        return response.json();
+      })
       .then(data => {
         if (data && data.error) {
           addMessage('エラー: ' + data.error, 'ai');
@@ -1029,7 +1823,8 @@ document.addEventListener('DOMContentLoaded', function() {
         chatLoading.classList.remove('active');
       })
       .catch(err => {
-        addMessage('エラー: AIとの通信に失敗しました', 'ai');
+        console.error('AI Chat Error:', err);
+        addMessage('エラー: ' + (err.message || 'AIとの通信に失敗しました'), 'ai');
         chatLoading.classList.remove('active');
       });
     });

@@ -7,15 +7,29 @@ import json
 
 @csrf_exempt
 def ai_chat_api(request):
+    print(f"[DEBUG AI CHAT] Method: {request.method}")
+    print(f"[DEBUG AI CHAT] Content-Type: {request.content_type}")
+    print(f"[DEBUG AI CHAT] Body length: {len(request.body)}")
+    
     if request.method != 'POST':
         return JsonResponse({'error': 'POST only'}, status=405)
+    
     try:
-        data = request.POST or request.body
-        if hasattr(data, 'get'):
+        # JSON形式のリクエストボディを解析
+        if request.content_type == 'application/json':
+            body_str = request.body.decode('utf-8')
+            print(f"[DEBUG AI CHAT] Body: {body_str}")
+            data = json.loads(body_str)
             message = data.get('message', '')
+            print(f"[DEBUG AI CHAT] Message: {message}")
         else:
-            data = json.loads(data)
-            message = data.get('message', '')
+            # フォームデータの場合
+            message = request.POST.get('message', '')
+            print(f"[DEBUG AI CHAT] Form message: {message}")
+        
+        if not message:
+            print(f"[ERROR AI CHAT] Message is empty!")
+            return JsonResponse({'error': 'メッセージが空です'}, status=400)
         acc = get_logged_account(request)
         ai_config = None
         character = 'inu'
@@ -75,5 +89,11 @@ def ai_chat_api(request):
         request.session[session_key] = history_raw
 
         return JsonResponse({'reply': ai_reply})
+    except json.JSONDecodeError as e:
+        print(f"[ERROR AI CHAT] JSON decode error: {e}")
+        return JsonResponse({'error': f'invalid json: {str(e)}'}, status=400)
     except Exception as e:
+        print(f"[ERROR AI CHAT] Exception: {e}")
+        import traceback
+        traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)
