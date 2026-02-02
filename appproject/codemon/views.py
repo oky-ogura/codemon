@@ -1722,6 +1722,7 @@ def unequip_accessory(request):
     
     messages.success(request, 'アクセサリーを外しました。')
     return redirect('codemon:accessory_shop')
+
 # ========================================
 # チャット機能 - 新しいUI画面
 # ========================================
@@ -1802,6 +1803,5 @@ def grading_teacher(request):
 def chat_demo_index(request):
     """チャット機能デモインデックス"""
     return render(request, 'chat/index.html')
-
 
 
