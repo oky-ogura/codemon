@@ -190,12 +190,11 @@
     {% if messages %}
     <div class="messages" style="margin-bottom: 15px; width: 100%; max-width: 600px;">
       {% for message in messages %}
-        <div class="message {{ message.tags }}" style="padding: 10px 20px; border-radius: 8px; font-size: 0.9em; margin-bottom: 8px; text-align: center;
-          {% if message.tags == 'error' %}background: #fdecea; color: #611a15; border: 1px solid #f5c6cb;
-          {% elif message.tags == 'success' %}background: #e6ffed; color: #164d2b; border: 1px solid #b3e6c1;
-          {% endif %}">
+        {% if message.tags == 'error' %}
+        <div class="message {{ message.tags }}" style="padding: 10px 20px; border-radius: 8px; font-size: 0.9em; margin-bottom: 8px; text-align: center; background: #fdecea; color: #611a15; border: 1px solid #f5c6cb;">
           {{ message }}
         </div>
+        {% endif %}
       {% endfor %}
     </div>
     {% endif %}

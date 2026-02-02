@@ -4,6 +4,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.db import models
 from django.contrib import messages
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.decorators import login_required as _login_required
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse, HttpResponseForbidden, FileResponse
@@ -610,15 +611,28 @@ def checklist_detail(request, pk):
 
 
 
+@login_required
 def checklist_edit(request, pk):
     if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
         cl = get_object_or_404(Checklist, checklist_id=pk)
     else:
-        cl = get_object_or_404(Checklist, checklist_id=pk, user=request.user)
+        owner = _get_write_owner(request)
+        if owner is None:
+            return redirect('accounts:student_login')
+        cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
     return render(request, 'codemon/checklist_edit.html', {'checklist': cl})
 
+
 def checklist_save(request, pk):
-    checklist = get_object_or_404(Checklist, checklist_id=pk)
+    owner = _get_write_owner(request)
+    if owner is None:
+        return redirect('accounts:student_login')
+    
+    if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
+        checklist = get_object_or_404(Checklist, checklist_id=pk)
+    else:
+        checklist = get_object_or_404(Checklist, checklist_id=pk, user=owner)
+    
     if request.method == 'POST':
         name = request.POST.get('checklist_name')
         desc = request.POST.get('checklist_description', '')
@@ -663,7 +677,7 @@ def checklist_delete_confirm(request, pk):
 	if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
 		cl = get_object_or_404(Checklist, checklist_id=pk)
 	else:
-		cl = get_object_or_404(Checklist, checklist_id=pk, user=request.user)
+		cl = get_object_or_404(Checklist, checklist_id=pk, user=request.u)
 	return render(request, 'codemon/checklist_delete_confirm.html', {'checklist': cl})
 
 
@@ -1253,9 +1267,8 @@ if not getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
     systems_list = _login_required(systems_list)
     algorithms_list = _login_required(algorithms_list)
     chat_view = _login_required(chat_view)
-    # checklist_selection, checklist_list, checklist_create, checklist_detail は _get_write_owner で認証チェック済み
+    # checklist_selection, checklist_list, checklist_create, checklist_detail, checklist_save は _get_write_owner で認証チェック済み
     # checklist_toggle_item = _login_required(checklist_toggle_item)  # ← account_or_login_required で認証判定するため不要
-    checklist_save = _login_required(checklist_save)
     checklist_delete_confirm = _login_required(checklist_delete_confirm)
     checklist_delete = _login_required(checklist_delete)
     score_thread = _login_required(score_thread)
@@ -1708,16 +1721,11 @@ def unequip_accessory(request):
     UserAccessory.objects.filter(user=user, is_equipped=True).update(is_equipped=False)
     
     messages.success(request, 'アクセサリーを外しました。')
-<<<<<<< HEAD
     return redirect('codemon:accessory_shop')
-=======
-
->>>>>>> main
 # ========================================
 # チャット機能 - 新しいUI画面
 # ========================================
 
-@login_required
 @login_required
 def chat_student(request):
     """生徒側チャット画面"""
@@ -1794,7 +1802,6 @@ def grading_teacher(request):
 def chat_demo_index(request):
     """チャット機能デモインデックス"""
     return render(request, 'chat/index.html')
-<<<<<<< HEAD
-=======
 
->>>>>>> main
+
+

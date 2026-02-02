@@ -1737,9 +1737,9 @@ def group_create(request):
                     cursor.execute('SELECT COALESCE(MAX(group_id), 0) FROM "group"')
                     last_id = cursor.fetchone()[0]
                     new_group_id = last_id + 1
-                    
+                    # owner_id → user_id に修正
                     cursor.execute(
-                        'INSERT INTO "group" (group_id, group_name, owner_id, password, created_at, updated_at) '
+                        'INSERT INTO "group" (group_id, group_name, user_id, password, created_at, updated_at) '
                         'VALUES (%s, %s, %s, %s, now(), now())',
                         [new_group_id, group_name, user_id, hashed or '']
                     )
@@ -1786,6 +1786,9 @@ def group_create(request):
             return redirect('accounts:account_entry')
 
     # GET の場合は作成ページを表示
+    # 古いメッセージをクリアしてこのページ専用のメッセージのみを表示
+    storage = messages.get_messages(request)
+    storage.used = True
     return render(request, 'group/create_group.html', {})
 
 
@@ -2094,10 +2097,17 @@ def group_join_confirm(request):
         return redirect('accounts:karihome')
     if action == 'join':
         # 「はい」ボタン → グループ選択（検索）ページへ遷移
+        # 古いメッセージをクリアしてこのページ専用のメッセージのみを表示
+        storage = messages.get_messages(request)
+        storage.used = True
         return render(request, 'group/group_select.html', {})
 
     if action == 'search':
         # グループ検索フォームからの POST を受け取る（簡易実装）
+        # 古いメッセージをクリア
+        storage = messages.get_messages(request)
+        storage.used = True
+        
         group_name = (request.POST.get('group_name') or '').strip()
         group_password = (request.POST.get('group_password') or '').strip()
         if not group_name:
@@ -2150,6 +2160,9 @@ def group_join_confirm(request):
 
     if action == 'back':
         # 確認画面の戻る → 検索画面へ
+        # 古いメッセージをクリアしてこのページ専用のメッセージのみを表示
+        storage = messages.get_messages(request)
+        storage.used = True
         return render(request, 'group/group_select.html', {})
 
     if action == 'confirm_join':
