@@ -611,38 +611,41 @@
     }
 
     /* チュートリアル関連のスタイル（吹き出し対応） */
-    .tutorial-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.25); z-index: 10030; display:flex; align-items:flex-end; justify-content:center; pointer-events:none; }
+    .tutorial-overlay { position: fixed; inset: 0; background: transparent; z-index: 10030; display:flex; align-items:flex-end; justify-content:center; pointer-events:none; }
     .tutorial-box { width: 420px; max-width: calc(100% - 24px); margin: 24px; background: #fff; border-radius:10px; padding:16px; box-shadow:0 8px 30px rgba(0,0,0,0.28); font-family: sans-serif; color:#111; pointer-events:auto; }
     .tutorial-title { font-weight:700; margin-bottom:8px; }
     .tutorial-text { font-size:14px; color:#333; margin-bottom:12px; white-space:pre-wrap; }
     .tutorial-nav { display:flex; gap:8px; justify-content:flex-end; }
-    .tutorial-btn { padding:6px 12px; border-radius:6px; border:1px solid #ccc; background:#f7f7f7; cursor:pointer; }
-    .tutorial-btn.primary { background:#1976d2; color:#fff; border-color:transparent; }
-    .tutorial-highlight { box-shadow: 0 0 0 4px rgba(25,118,210,0.18) !important; border-radius:6px !important; position: relative; z-index:10029; }
-    .tutorial-help { position: fixed; right: 18px; bottom: 18px; width:44px; height:44px; border-radius:50%; background:#1976d2; color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:10040; box-shadow:0 6px 18px rgba(0,0,0,0.18); font-weight:700; pointer-events:auto; }
-    .tutorial-toast { position: fixed; right: 18px; bottom: 72px; background: rgba(0,0,0,0.7); color:#fff; padding:8px 12px; border-radius:8px; font-size:13px; z-index:10040; pointer-events:auto; }
+    .tutorial-btn { padding:8px 16px; border-radius:8px; border:2px solid #ddd; background:#fff; cursor:pointer; font-weight:600; font-size:14px; transition: all 0.2s; }
+    .tutorial-btn:hover { background:#f5f5f5; transform: translateY(-1px); }
+    .tutorial-btn.primary { background:#4CAF50; color:#fff; border-color:#4CAF50; box-shadow:0 4px 12px rgba(76,175,80,0.3); }
+    .tutorial-btn.primary:hover { background:#45a049; box-shadow:0 6px 16px rgba(76,175,80,0.4); }
+    .tutorial-highlight { box-shadow: 0 0 0 4px rgba(255,193,7,0.6) !important; border-radius:6px !important; position: relative; z-index:10029; animation: pulse-highlight 2s infinite; }
+    @keyframes pulse-highlight { 0%, 100% { box-shadow: 0 0 0 4px rgba(255,193,7,0.6); } 50% { box-shadow: 0 0 0 8px rgba(255,193,7,0.4); } }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 
-    /* 吹き出し（バブル） */
+    /* 吹き出し（バブル）を子供向けに */
     .tutorial-bubble {
       position: absolute;
-      max-width: 340px;
-      background: #fff;
-      color:#111;
-      padding: 10px 12px;
-      border-radius: 8px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+      max-width: 380px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color:#fff;
+      padding: 16px 18px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
       z-index: 10050;
       pointer-events: auto;
-      font-size:13px;
+      font-size:15px;
+      border: 3px solid #fff;
     }
-    .tutorial-bubble .title { font-weight:700; margin-bottom:6px; }
-    .tutorial-bubble .text { white-space: normal; line-height:1.4; }
+    .tutorial-bubble .title { font-weight:700; margin-bottom:10px; font-size:18px; color:#fff; }
+    .tutorial-bubble .text { white-space: pre-wrap; line-height:1.6; color:#fff; }
     .tutorial-bubble .arrow {
       position: absolute;
       width: 12px;
       height: 12px;
       transform: rotate(45deg);
-      background: #fff;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       box-shadow: 0 6px 18px rgba(0,0,0,0.08);
       z-index: -1;
     }
@@ -1811,28 +1814,39 @@
   (function(){
     const steps = [
       {
-        title: 'クイズ作成チュートリアルへようこそ',
-        text: 'このチュートリアルではスライド上に問題（テキスト／選択肢）を配置し、プレビューで確認します。\n右下の「?」を押すか Ctrl+Shift+T で開始してください。',
+        title: '🎯 クイズをつくろう！',
+        text: 'これから、クイズをつくる方法を教えるよ！\n画面の真ん中に問題と答えの選択肢をおいて、クイズをつくっていくよ。\n\n「つぎへ ▶」ボタンをおして、はじめよう！',
         target: null,
         action: null
       },
       {
-        title: 'フォームを開く',
-        text: '「フォーム ▾」を開き、入力コントロールを追加します。自動で開きます。',
+        title: 'ステップ1️⃣：テキストボックスをえらぼう',
+        text: '左がわにある「テキストボックス」というボタンをおすと、画面に文字をかくボックスをつくれるよ！\n\n⚠️ ボタンをおしたら、画面の真ん中をドラッグ（おしたまま動かす）して、好きな大きさの四角をつくってね！\n\n✨ テキストボックスをつくると、「つぎへ」ボタンがおせるようになるよ！',
+        target: '#drawTextBtn',
+        action: null
+      },
+      {
+        title: 'ステップ2️⃣：問題文をかこう',
+        text: 'さっきつくったテキストボックスに、問題文をかいてみよう！\n\n📝 テキストボックスの中をクリックすると、文字を入力できるよ。\n\n例：「問題：1+1は？」と入力してみてね！\n\n⚠️ テキストボックスの角（右下）をドラッグすると、大きさをかえられるよ！\n\n✨ 文字を入力すると、「つぎへ」ボタンがおせるようになるよ！',
+        target: '.text-input-container:last-of-type',
+        action: null
+      },
+      {
+        title: 'ステップ3️⃣：道具箱をひらこう',
+        text: 'つぎは、答えの選択肢をつくるよ！\n\n左がわにある「フォーム ▾」というボタンをおすと、道具があらわれるよ。\n\n⏰ じどうでボタンをおすから、まっていてね！',
         target: '#formBtn',
         action: () => { const b = document.getElementById('formBtn'); if (b) b.click(); }
       },
       {
-        title: 'テキスト（問題文）を追加',
-        text: '「あいう」を選ぶとテキスト入力が追加されます。ボタンを自動で押します。',
-        target: '#addTextBtn',
-        action: () => { const b = document.getElementById('addTextBtn'); if (b) b.click(); }
-      },
-      {
-        title: '選択肢（ラジオ）を追加',
-        text: 'ラジオボタンを追加します。個数を指定して作成します（自動で3つを作成）。',
+        title: 'ステップ4️⃣：答えの選択肢をつくろう',
+        text: 'つぎは、答えの選択肢をつくるよ。\n「◯」マークのボタンをおすと、えらべる選択肢があらわれるよ。\n\n⏰ じどうで3つの選択肢をつくるね！',
         target: '#addRadioBtn',
         action: async () => {
+          // 既にラジオボタンがある場合は作成しない
+          const slideArea = document.getElementById('slideArea');
+          const existingRadios = slideArea ? slideArea.querySelectorAll('.radio-group') : [];
+          if (existingRadios.length > 0) return;
+          
           const b = document.getElementById('addRadioBtn'); if (b) b.click();
           await new Promise(r => setTimeout(r, 220));
           const cnt = document.getElementById('optionsCount');
@@ -1842,45 +1856,60 @@
         }
       },
       {
-        title: 'ラベル編集',
-        text: '追加されたラジオのラベルはダブルクリックで編集できます。要素をドラッグして位置を調整してください。',
+        title: 'ステップ5️⃣：選択肢の文字をかえよう',
+        text: '画面にあらわれた選択肢の文字を、答えにかえていこう！\n\n📝 選択肢の文字の上でダブルクリック（2回すばやくクリック）すると、文字をかえられるよ。\n\n例：\n・「選択肢1」→「1」\n・「選択肢2」→「2」\n・「選択肢3」→「3」\n\nと入力してみよう！\n\n✨ すべての選択肢を「1」「2」「3」にかえると、「つぎへ」ボタンがおせるようになるよ！',
         target: '.radio-group:last-of-type',
         action: null
       },
       {
-        title: 'プレビューで確認',
-        text: '「実行」ボタンでプレビューを開き、動作を確認します。自動でプレビューを開きます。',
+        title: 'ステップ6️⃣：いちをととのえよう',
+        text: '問題文や選択肢をマウスでドラッグ（おしたまま動かす）すると、すきな場所においかえられるよ！\n\n問題文を上に、答えの選択肢を下において、見やすくしてみよう。',
+        target: '#slideArea',
+        action: () => {
+          // 配置ガイドを表示
+          const slideArea = document.getElementById('slideArea');
+          if (!slideArea) return;
+          
+          // 既存のガイドがあれば削除
+          const existingGuides = slideArea.querySelectorAll('.placement-guide');
+          existingGuides.forEach(g => g.remove());
+          
+          // 問題文用ガイド（上部）
+          const questionGuide = document.createElement('div');
+          questionGuide.className = 'placement-guide';
+          questionGuide.style.cssText = 'position: absolute; top: 30px; left: 50%; transform: translateX(-50%); width: 80%; height: 120px; border: 3px dashed rgba(76, 175, 80, 0.4); border-radius: 12px; background: rgba(76, 175, 80, 0.05); pointer-events: none; z-index: 1; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; color: rgba(76, 175, 80, 0.6);';
+          questionGuide.textContent = '📝 問題文をここに';
+          slideArea.appendChild(questionGuide);
+          
+          // 選択肢用ガイド（下部）
+          const choiceGuide = document.createElement('div');
+          choiceGuide.className = 'placement-guide';
+          choiceGuide.style.cssText = 'position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 80%; height: 180px; border: 3px dashed rgba(33, 150, 243, 0.4); border-radius: 12px; background: rgba(33, 150, 243, 0.05); pointer-events: none; z-index: 1; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; color: rgba(33, 150, 243, 0.6);';
+          choiceGuide.textContent = '✅ 選択肢をここに';
+          slideArea.appendChild(choiceGuide);
+        }
+      },
+      {
+        title: 'ステップ7️⃣：プレビューで見てみよう',
+        text: 'さあ、つくったクイズをじっさいに見てみよう！\n\n「実行」ボタンをおすと、つくったクイズが大きく表示されるよ。\n\n⏰ じどうで表示するね！',
         target: '#executeBtn',
         action: () => { const b = document.getElementById('executeBtn'); if (b) b.click(); }
       },
       {
-        title: 'チュートリアル終了',
-        text: '完了です。もう一度開始する場合は右下の ? をクリックしてください。',
+        title: '🎉 かんせい！',
+        text: 'おめでとう！クイズのつくりかたをマスターしたよ！\n\n💡 このあとは：\n・問題文や選択肢を好きな数だけふやせるよ\n・「保存」ボタンでクイズを保存できるよ\n・色やデザインもかえられるよ\n\n「✓ かんりょう」ボタンをおすと、システム選択画面にもどります。',
         target: null,
         action: null
       }
     ];
 
     // スタイルは既に追加済み。以下はオーバーレイとバブルの実装。
-    const helpBtn = document.createElement('button');
-    helpBtn.className = 'tutorial-help';
-    helpBtn.title = 'クイズチュートリアルを開始（Ctrl+Shift+T）';
-    helpBtn.textContent = '?';
-    document.body.appendChild(helpBtn);
-
-    let toastTimer = null;
-    function showToast(msg, time = 3000) {
-      let t = document.querySelector('.tutorial-toast');
-      if (!t) { t = document.createElement('div'); t.className = 'tutorial-toast'; document.body.appendChild(t); }
-      t.textContent = msg;
-      clearTimeout(toastTimer); toastTimer = setTimeout(()=>{ if (t) t.remove(); }, time);
-    }
-    showToast('クイズチュートリアル：右下 ? または Ctrl+Shift+T で開始');
-
     let overlay = null;
     let bubble = null;
     let current = 0;
     let lastHighlight = null;
+    let conditionCheckers = {}; // ステップごとの条件チェック用
+    let conditionMet = {}; // 条件が満たされたかのフラグ
 
     function highlightSelector(sel) {
       removeHighlight();
@@ -1922,15 +1951,41 @@
       if (bubble) return bubble;
       bubble = document.createElement('div');
       bubble.className = 'tutorial-bubble';
-      const t = document.createElement('div'); t.className = 'title';
-      const txt = document.createElement('div'); txt.className = 'text';
-      const nav = document.createElement('div'); nav.style.textAlign = 'right'; nav.style.marginTop = '8px';
-      const prev = document.createElement('button'); prev.className='tutorial-btn'; prev.textContent='戻る';
-      const next = document.createElement('button'); next.className='tutorial-btn primary'; next.textContent='次へ';
+      
+      // 進捗表示を追加
+      const progress = document.createElement('div');
+      progress.className = 'progress-indicator';
+      progress.style.cssText = 'text-align:center; margin-bottom:8px; font-size:13px; color:#fff; opacity:0.9;';
+      
+      const t = document.createElement('div'); 
+      t.className = 'title';
+      
+      const txt = document.createElement('div'); 
+      txt.className = 'text';
+      
+      const nav = document.createElement('div'); 
+      nav.style.cssText = 'display:flex; gap:10px; justify-content:space-between; margin-top:12px;';
+      
+      const prev = document.createElement('button'); 
+      prev.className='tutorial-btn'; 
+      prev.textContent='◀ もどる';
+      prev.style.cssText = 'padding:8px 16px; border-radius:8px; border:2px solid #fff; background:rgba(255,255,255,0.2); color:#fff; cursor:pointer; font-weight:600; font-size:14px;';
+      
+      const next = document.createElement('button'); 
+      next.className='tutorial-btn primary'; 
+      next.textContent='つぎへ ▶';
+      next.style.cssText = 'padding:8px 16px; border-radius:8px; border:none; background:#fff; color:#667eea; cursor:pointer; font-weight:700; font-size:14px; box-shadow:0 2px 8px rgba(0,0,0,0.2);';
+      
       prev.addEventListener('click', ()=>{ goto(current-1); });
       next.addEventListener('click', ()=>{ goto(current+1); });
-      nav.appendChild(prev); nav.appendChild(next);
-      bubble.appendChild(t); bubble.appendChild(txt); bubble.appendChild(nav);
+      
+      nav.appendChild(prev); 
+      nav.appendChild(next);
+      
+      bubble.appendChild(progress);
+      bubble.appendChild(t); 
+      bubble.appendChild(txt); 
+      bubble.appendChild(nav);
       document.body.appendChild(bubble);
       return bubble;
     }
@@ -1938,47 +1993,283 @@
     function positionBubbleNear(targetEl) {
       const b = createBubble();
       if (!targetEl) {
-        // 画面下中央
-        b.style.left = (window.innerWidth/2 - 180) + 'px';
-        b.style.top = (window.innerHeight - 120) + 'px';
+        // ウェルカム画面：画面中央に配置
+        b.style.left = '50%';
+        b.style.top = '50%';
+        b.style.transform = 'translate(-50%, -50%)';
         return;
       }
+      // ステップ1〜8：ターゲット要素の下に配置
+      b.style.transform = ''; // transformをリセット
       const r = targetEl.getBoundingClientRect();
-      const bw = Math.min(340, window.innerWidth - 32);
-      // 上に置けるか
-      const canAbove = (r.top - 12) > 140;
-      if (canAbove) {
-        b.style.top = (window.scrollY + r.top - 12 - b.offsetHeight) + 'px';
-        b.style.left = Math.max(8, Math.min(window.innerWidth - bw - 8, window.scrollX + r.left + (r.width - bw)/2)) + 'px';
-      } else {
-        b.style.top = Math.max(8, window.scrollY + r.bottom + 12) + 'px';
-        b.style.left = Math.max(8, Math.min(window.innerWidth - bw - 8, window.scrollX + r.left + (r.width - bw)/2)) + 'px';
-      }
+      const bw = Math.min(380, window.innerWidth - 32);
+      
+      // 基本的に下に配置（操作を妨げない）
+      b.style.top = Math.max(16, window.scrollY + r.bottom + 16) + 'px';
+      b.style.left = Math.max(16, Math.min(window.innerWidth - bw - 16, window.scrollX + r.left + (r.width - bw)/2)) + 'px';
     }
 
     function showStepBubble(step, targetEl) {
       ensureOverlay();
       createBubble();
+      
+      // 進捗表示を更新（最初のウェルカムステップは進捗に含めない）
+      const progressIndicator = bubble.querySelector('.progress-indicator');
+      if (progressIndicator) {
+        if (current === 0) {
+          // ウェルカム画面では進捗を非表示
+          progressIndicator.textContent = '';
+          progressIndicator.style.display = 'none';
+        } else {
+          // 実際の操作ステップでは進捗を表示（ステップ0を除外）
+          progressIndicator.textContent = `ステップ ${current} / ${steps.length - 1}`;
+          progressIndicator.style.display = 'block';
+        }
+      }
+      
       bubble.querySelector('.title').textContent = step.title || '';
       bubble.querySelector('.text').textContent = step.text || '';
+      
+      // 最後のステップの場合、「次へ」を「完了」に変更
+      const nextBtn = bubble.querySelector('.tutorial-btn.primary');
+      if (nextBtn) {
+        if (current === steps.length - 1) {
+          nextBtn.textContent = '✓ かんりょう';
+        } else {
+          nextBtn.textContent = 'つぎへ ▶';
+        }
+        
+        // ステップごとの条件チェック
+        if (current === 1) {
+          // ステップ2: テキストボックスが作成されるまで「次へ」を無効化
+          if (!conditionMet[1]) {
+            nextBtn.disabled = true;
+            nextBtn.style.opacity = '0.4';
+            nextBtn.style.cursor = 'not-allowed';
+            nextBtn.title = 'テキストボックスを作成してね！';
+          }
+        } else if (current === 2) {
+          // ステップ3: テキストが入力されるまで「次へ」を無効化
+          if (!conditionMet[2]) {
+            nextBtn.disabled = true;
+            nextBtn.style.opacity = '0.4';
+            nextBtn.style.cursor = 'not-allowed';
+            nextBtn.title = '問題文を入力してね！';
+          }
+        } else if (current === 5) {
+          // ステップ6: 選択肢が「1」「2」「3」に変更されるまで「次へ」を無効化
+          if (!conditionMet[5]) {
+            nextBtn.disabled = true;
+            nextBtn.style.opacity = '0.4';
+            nextBtn.style.cursor = 'not-allowed';
+            nextBtn.title = '選択肢を「1」「2」「3」にかえてね！';
+          }
+        } else {
+          // その他のステップは通常通り
+          nextBtn.disabled = false;
+          nextBtn.style.opacity = '1';
+          nextBtn.style.cursor = 'pointer';
+          nextBtn.title = '';
+        }
+      }
+      
+      // 最初のステップの場合、「戻る」ボタンを無効化
+      const prevBtn = bubble.querySelector('.tutorial-btn:not(.primary)');
+      if (prevBtn) {
+        if (current === 0) {
+          prevBtn.style.opacity = '0.3';
+          prevBtn.style.cursor = 'not-allowed';
+          prevBtn.disabled = true;
+        } else {
+          prevBtn.style.opacity = '1';
+          prevBtn.style.cursor = 'pointer';
+          prevBtn.disabled = false;
+        }
+      }
+      
       bubble.style.display = 'block';
       // allow interactions with page elements: overlay has pointer-events:none; bubble pointer-events:auto
-      if (targetEl) {
-        positionBubbleNear(targetEl);
-      } else {
-        // fixed bottom-right-ish position
-        bubble.style.left = (window.innerWidth - 380) + 'px';
-        bubble.style.top = (window.innerHeight - 140) + 'px';
-      }
+      
+      // ターゲットの有無に関わらず、positionBubbleNearを使用
+      positionBubbleNear(targetEl);
+      
+      // ステップごとの監視を開始
+      startStepMonitoring(current);
     }
 
     function hideBubble() {
       if (bubble) bubble.style.display = 'none';
     }
 
+    // ステップごとの条件監視機能
+    function startStepMonitoring(stepIndex) {
+      // 既存の監視を停止
+      if (conditionCheckers[stepIndex]) {
+        clearInterval(conditionCheckers[stepIndex]);
+      }
+      
+      const slideArea = document.getElementById('slideArea');
+      if (!slideArea) return;
+      
+      if (stepIndex === 1) {
+        // ステップ2: テキストボックスが作成されたかを監視
+        // 既にテキストボックスがある場合は即座に条件を満たす
+        const textBoxes = slideArea.querySelectorAll('.text-input-container');
+        if (textBoxes.length > 0) {
+          conditionMet[1] = true;
+          const nextBtn = bubble.querySelector('.tutorial-btn.primary');
+          if (nextBtn && current === 1) {
+            nextBtn.disabled = false;
+            nextBtn.style.opacity = '1';
+            nextBtn.style.cursor = 'pointer';
+            nextBtn.title = '';
+          }
+          return; // 監視不要
+        }
+        
+        // テキストボックスがない場合のみ監視開始
+        conditionCheckers[1] = setInterval(() => {
+          const textBoxes = slideArea.querySelectorAll('.text-input-container');
+          if (textBoxes.length > 0 && !conditionMet[1]) {
+            conditionMet[1] = true;
+            const nextBtn = bubble.querySelector('.tutorial-btn.primary');
+            if (nextBtn && current === 1) {
+              nextBtn.disabled = false;
+              nextBtn.style.opacity = '1';
+              nextBtn.style.cursor = 'pointer';
+              nextBtn.title = '';
+              // アニメーションで通知
+              nextBtn.style.animation = 'pulse 0.5s ease-in-out 3';
+            }
+            clearInterval(conditionCheckers[1]);
+          }
+        }, 200);
+      } else if (stepIndex === 2) {
+        // ステップ3: テキストが入力されたかを監視
+        // 既にテキストが入力されている場合は即座に条件を満たす
+        const textBoxes = slideArea.querySelectorAll('.text-input-container .text-input');
+        let hasText = false;
+        textBoxes.forEach(box => {
+          if (box.value && box.value.trim().length > 0) {
+            hasText = true;
+          }
+        });
+        if (hasText) {
+          conditionMet[2] = true;
+          const nextBtn = bubble.querySelector('.tutorial-btn.primary');
+          if (nextBtn && current === 2) {
+            nextBtn.disabled = false;
+            nextBtn.style.opacity = '1';
+            nextBtn.style.cursor = 'pointer';
+            nextBtn.title = '';
+          }
+          return; // 監視不要
+        }
+        
+        // テキストがない場合のみ監視開始
+        conditionCheckers[2] = setInterval(() => {
+          const textBoxes = slideArea.querySelectorAll('.text-input-container .text-input');
+          let hasText = false;
+          textBoxes.forEach(box => {
+            if (box.value && box.value.trim().length > 0) {
+              hasText = true;
+            }
+          });
+          if (hasText && !conditionMet[2]) {
+            conditionMet[2] = true;
+            const nextBtn = bubble.querySelector('.tutorial-btn.primary');
+            if (nextBtn && current === 2) {
+              nextBtn.disabled = false;
+              nextBtn.style.opacity = '1';
+              nextBtn.style.cursor = 'pointer';
+              nextBtn.title = '';
+              // アニメーションで通知
+              nextBtn.style.animation = 'pulse 0.5s ease-in-out 3';
+            }
+            clearInterval(conditionCheckers[2]);
+          }
+        }, 200);
+      } else if (stepIndex === 5) {
+        // ステップ6: 選択肢の文字が「1」「2」「3」に変更されたかを監視
+        // 既に条件を満たしている場合は即座に有効化
+        const radioGroups = slideArea.querySelectorAll('.radio-group');
+        if (radioGroups.length > 0) {
+          const lastRadioGroup = radioGroups[radioGroups.length - 1];
+          const labels = lastRadioGroup.querySelectorAll('.radio-label');
+          if (labels.length >= 3) {
+            const text1 = labels[0].textContent.trim();
+            const text2 = labels[1].textContent.trim();
+            const text3 = labels[2].textContent.trim();
+            if (text1 === '1' && text2 === '2' && text3 === '3') {
+              conditionMet[5] = true;
+              const nextBtn = bubble.querySelector('.tutorial-btn.primary');
+              if (nextBtn && current === 5) {
+                nextBtn.disabled = false;
+                nextBtn.style.opacity = '1';
+                nextBtn.style.cursor = 'pointer';
+                nextBtn.title = '';
+              }
+              return; // 監視不要
+            }
+          }
+        }
+        
+        // 条件を満たしていない場合のみ監視開始
+        conditionCheckers[5] = setInterval(() => {
+          const radioGroups = slideArea.querySelectorAll('.radio-group');
+          if (radioGroups.length === 0) return;
+          
+          // 最後に追加されたラジオグループをチェック
+          const lastRadioGroup = radioGroups[radioGroups.length - 1];
+          const labels = lastRadioGroup.querySelectorAll('.radio-label');
+          
+          if (labels.length >= 3) {
+            const text1 = labels[0].textContent.trim();
+            const text2 = labels[1].textContent.trim();
+            const text3 = labels[2].textContent.trim();
+            
+            // 「1」「2」「3」に変更されているかチェック
+            if (text1 === '1' && text2 === '2' && text3 === '3' && !conditionMet[5]) {
+              conditionMet[5] = true;
+              const nextBtn = bubble.querySelector('.tutorial-btn.primary');
+              if (nextBtn && current === 5) {
+                nextBtn.disabled = false;
+                nextBtn.style.opacity = '1';
+                nextBtn.style.cursor = 'pointer';
+                nextBtn.title = '';
+                // アニメーションで通知
+                nextBtn.style.animation = 'pulse 0.5s ease-in-out 3';
+              }
+              clearInterval(conditionCheckers[5]);
+            }
+          }
+        }, 200);
+      }
+    }
+
     function goto(idx) {
       if (idx < 0) idx = 0;
       if (idx >= steps.length) { endTutorial(); return; }
+      
+      // 配置ガイドを削除（ステップ6以外）
+      if (idx !== 5) {
+        const slideArea = document.getElementById('slideArea');
+        if (slideArea) {
+          const guides = slideArea.querySelectorAll('.placement-guide');
+          guides.forEach(g => g.remove());
+        }
+      }
+      
+      // ステップ7（インデックス7）から戻る場合、プレビューを閉じる
+      if (current === 7 && idx < 7) {
+        const previewOverlay = document.getElementById('previewOverlay');
+        if (previewOverlay) {
+          previewOverlay.remove();
+          // body のオーバーフローも元に戻す
+          document.body.style.overflow = '';
+        }
+      }
+      
       current = idx;
       ensureOverlay();
       const step = steps[current];
@@ -2011,21 +2302,35 @@
     }
 
     function endTutorial() {
+      // すべての監視を停止
+      for (let key in conditionCheckers) {
+        if (conditionCheckers[key]) {
+          clearInterval(conditionCheckers[key]);
+        }
+      }
+      conditionCheckers = {};
+      conditionMet = {};
+      
+      // 配置ガイドを削除
+      const slideArea = document.getElementById('slideArea');
+      if (slideArea) {
+        const guides = slideArea.querySelectorAll('.placement-guide');
+        guides.forEach(g => g.remove());
+      }
+      
       if (overlay) { overlay.remove(); overlay = null; }
       if (bubble) { bubble.remove(); bubble = null; }
       removeHighlight();
+      // チュートリアル終了後、システム選択画面に戻る
+      setTimeout(() => {
+        window.location.href = '/accounts/system/choice/';
+      }, 800);
     }
 
-    helpBtn.addEventListener('click', ()=>{ if (overlay) { endTutorial(); } else { goto(0); } });
-
     document.addEventListener('keydown', function(e){
-      if (e.key.toLowerCase() === 't' && e.ctrlKey && e.shiftKey) { e.preventDefault(); goto(0); }
       if (overlay && bubble) {
-        // Esc closes
+        // Esc closes and return to system choice
         if (e.key === 'Escape') { endTutorial(); }
-        // Left/Right navigation
-        if (e.key === 'ArrowRight') goto(current+1);
-        if (e.key === 'ArrowLeft') goto(current-1);
       }
     });
 
@@ -2036,16 +2341,29 @@
       if (step && step.target) {
         let targetEl = null;
         try { targetEl = document.querySelector(step.target); } catch(e){ targetEl = null; }
-        positionBubbleNear(targetEl);
+        if (targetEl) {
+          positionBubbleNear(targetEl);
+        }
       } else {
-        bubble.style.left = (window.innerWidth - 380) + 'px';
-        bubble.style.top = (window.innerHeight - 140) + 'px';
+        bubble.style.left = (window.innerWidth - 420)/2 + 'px';
+        bubble.style.top = (window.innerHeight - 180) + 'px';
       }
     });
 
-    window.addEventListener('beforeunload', ()=>{ endTutorial(); });
+    window.addEventListener('beforeunload', ()=>{ 
+      if (overlay) { overlay.remove(); overlay = null; }
+      if (bubble) { bubble.remove(); bubble = null; }
+      removeHighlight();
+    });
 
     window.__quizTutorial = { start: () => goto(0), end: endTutorial, goto };
+
+    // ページロード時に自動でチュートリアルを開始
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        goto(0);
+      }, 500);
+    });
 
   })();
   </script>
