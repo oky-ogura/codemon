@@ -44,6 +44,10 @@ from codemon.models import System, Algorithm, SystemElement
 import json
 from types import SimpleNamespace
 from .models import Account, Group, GroupMember
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+
+
 try:
     from codemon.views import _get_write_owner, teacher_login_required
 except Exception:
@@ -327,9 +331,6 @@ def student_login(request):
     return render(request, 'accounts/s_login.html')
 
 
-def karihome(request):
-    """簡易ビュー: accounts/karihome.html を表示する。テンプレートは既にあるため GET で表示するだけ。"""
-    return render(request, 'accounts/karihome.html')
 
 def logout_confirm(request):
     """ログアウト確認ページを表示"""
@@ -375,12 +376,15 @@ def karihome(request):
     
     # AI設定を取得してAI名前とキャラクターをテンプレートに渡す
     from .models import AiConfig
-    from codemon.models import UserAccessory
+    from codemon.models import UserAccessory, UserCoin, Checklist
+    from datetime import date
     
     ai_name = 'うたー'  # デフォルト値
     character = 'inu'  # デフォルト値（イヌ）
     appearance = 'イヌ.png'  # デフォルト値（実際のファイル名）
     equipped_accessory = None
+    user_coin = None
+    upcoming_checklists = []
     
     try:
         acc = get_logged_account(request)
@@ -410,6 +414,23 @@ def karihome(request):
                     print(f"  - CSS class: {equipped_accessory.accessory.css_class}")
             except Exception as e:
                 print(f"アクセサリー取得エラー: {e}")
+            
+            # ユーザーコインを取得
+            try:
+                user_coin, _ = UserCoin.objects.get_or_create(user=acc)
+            except Exception as e:
+                print(f"コイン取得エラー: {e}")
+            
+            # 期限が近いチェックリストを取得（今日以降の期限で、7日以内のもの）
+            try:
+                today = date.today()
+                upcoming_checklists = Checklist.objects.filter(
+                    user=acc,
+                    due_date__isnull=False,
+                    due_date__gte=today
+                ).order_by('due_date')[:3]  # 最大3件
+            except Exception as e:
+                print(f"チェックリスト取得エラー: {e}")
     except Exception as e:
         print(f"AI設定の取得エラー: {e}")
     
@@ -419,7 +440,9 @@ def karihome(request):
         'ai_name': ai_name,
         'character': character,
         'appearance': appearance,
-        'equipped_accessory': equipped_accessory
+        'equipped_accessory': equipped_accessory,
+        'user_coin': user_coin,
+        'upcoming_checklists': upcoming_checklists,
     })
 
 

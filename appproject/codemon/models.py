@@ -71,6 +71,7 @@ class Checklist(models.Model):
     user = models.ForeignKey('accounts.Account', on_delete=models.CASCADE, verbose_name='ユーザーID')
     checklist_name = models.CharField(max_length=100, verbose_name='チェックリスト名')
     checklist_description = models.TextField(blank=True, null=True, verbose_name='チェックリスト概要')
+    due_date = models.DateField(blank=True, null=True, verbose_name='期限')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新日時')
     is_selected = models.BooleanField(default=False, verbose_name='選択フラグ')
@@ -82,6 +83,14 @@ class Checklist(models.Model):
 
     def __str__(self):
         return f"{self.checklist_name} (ID: {self.checklist_id})"
+    
+    def days_until_due(self):
+        """期限までの残り日数を返す"""
+        if not self.due_date:
+            return None
+        from datetime import date
+        delta = self.due_date - date.today()
+        return delta.days
 
 
 class ChecklistItem(models.Model):
@@ -310,6 +319,10 @@ class Achievement(models.Model):
         ('login', 'ログイン'),
         ('consecutive_login', '連続ログイン'),
         ('ai_chat', 'AI会話'),
+        ('ai_chat_consecutive', 'AI連続会話'),
+        ('checklist_create', 'チェックリスト作成'),
+        ('checklist_complete', 'チェックリスト完了'),
+        ('accessory', 'アクセサリー'),
     ]
     
     achievement_id = models.BigAutoField(primary_key=True)
@@ -366,6 +379,11 @@ class UserStats(models.Model):
     consecutive_login_days = models.IntegerField(default=0, verbose_name='連続ログイン日数')
     last_login_date = models.DateField(null=True, blank=True, verbose_name='最終ログイン日')
     total_ai_chats = models.IntegerField(default=0, verbose_name='AI会話回数')
+    consecutive_ai_chat_days = models.IntegerField(default=0, verbose_name='連続AI会話日数')
+    last_ai_chat_date = models.DateField(null=True, blank=True, verbose_name='最終AI会話日')
+    total_checklists_created = models.IntegerField(default=0, verbose_name='作成チェックリスト数')
+    total_checklist_items_completed = models.IntegerField(default=0, verbose_name='完了チェック項目数')
+    total_accessories_purchased = models.IntegerField(default=0, verbose_name='購入アクセサリー数')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新日時')
 
@@ -385,6 +403,9 @@ class Accessory(models.Model):
         ('flower', '花'),
         ('glasses', '眼鏡'),
         ('hat', '帽子'),
+        ('star', '星'),
+        ('crown', '王冠'),
+        ('ribbon', 'リボン'),
         ('other', 'その他'),
     ]
     

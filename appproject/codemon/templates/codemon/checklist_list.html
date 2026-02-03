@@ -2,201 +2,505 @@
 {% load static %}
 
 {% block title %}チェックリスト一覧 - Codemon{% endblock %}
+{% block body_class %} class="no-scroll"{% endblock %}
+
+{% block background_frame %}
+  <img src="{% static 'codemon/images/frames/bg_frame_green.png' %}" 
+       alt="" class="bg-frame frame-green" onerror="this.style.display='none';">
+{% endblock %}
 
 {% block extra_css %}
 <style>
 /* --- 全体レイアウト --- */
 .content-wrapper { padding-top: 100px !important; }
-
-/* --- リスト部分（カード形式） --- */
-.list-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 25px;
-    max-width: 1000px;
-    margin: 0 auto 100px;
-    padding: 20px;
-    transition: opacity 0.4s ease;
+.checklist-list-container {
+    max-width: 1000px; width: 92vw; margin: 0 auto; padding: 25px;
+    background-color: rgba(255, 255, 255, 0.98); border-radius: 30px; border: 8px solid #ffffff;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1); position: relative; z-index: 20;
+    display: flex; flex-direction: column; height: calc(100vh - 160px); min-height: 500px;
 }
+
+/* --- アクションバー & ボタン --- */
+.action-bar { flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 10px; }
+.left-actions { display: flex; gap: 12px; }
+
+.btn-pop {
+    display: inline-flex; align-items: center; gap: 8px; padding: 10px 22px; border-radius: 50px;
+    text-decoration: none; font-weight: 900; font-size: 14px; 
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: none; cursor: pointer; user-select: none;
+}
+.btn-pop:hover { transform: translateY(-4px) scale(1.05); }
+.btn-pop:active { transform: translateY(0) scale(0.95); }
+
+.btn-create { background: #3fbcd9; color: white; box-shadow: 0 5px 0 #2a8da4; }
+.btn-back-small { background: #ff7675; color: white; box-shadow: 0 5px 0 #e55a5a; }
+
+/* 並び替えボタン */
+.sort-controls { display: flex; background: #edf2f7; padding: 5px; border-radius: 50px; }
+.btn-sort {
+    padding: 6px 15px; border-radius: 50px; font-size: 12px; font-weight: 800;
+    color: #718096; background: transparent; border: none; cursor: pointer; transition: 0.2s;
+}
+.btn-sort.active { background: white; color: #3fbcd9; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+
+/* --- リストデザイン --- */
+.checklist-header-row {
+    flex-shrink: 0; background: #3fbcd9; display: flex; padding: 12px 20px;
+    border-radius: 15px 15px 8px 8px; color: #fff; font-weight: 900; margin-bottom: 8px;
+}
+.checklist-scroll-area { flex-grow: 1; overflow-y: auto; padding-right: 8px; }
 
 .checklist-card {
-    background: white;
-    border-radius: 30px;
-    border: 6px solid #ffffff;
-    padding: 25px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    position: relative;
+    display: flex; align-items: center; padding: 15px 20px; margin-bottom: 12px;
+    background: #f8fafc; border-radius: 20px; transition: all 0.2s; cursor: pointer;
+    position: relative; /* バッジの配置用 */
 }
+.checklist-card:hover { transform: translateX(8px); background: white; box-shadow: 5px 5px 15px rgba(0,0,0,0.05); }
 
-.checklist-card:hover {
-    transform: translateY(-8px);
-    border-color: #3fbcd9;
-    box-shadow: 0 20px 40px rgba(63, 188, 217, 0.15);
+.cell-name { flex: 2; font-weight: 800; color: #2d3748; }
+.cell-date { flex: 1; text-align: center; }
+.cell-action { width: 140px; display: flex; justify-content: flex-end; }
+.date-badge { display: inline-block; background: #e2e8f0; color: #4a5568; padding: 4px 12px; border-radius: 10px; font-size: 12px; font-weight: 800; }
+.btn-view { background: #FFD200; color: #333; padding: 8px 16px; border-radius: 50px; font-weight: 900; box-shadow: 0 4px 0 #d9b300; }
+
+/* --- 詳細表示用 (z-index管理を徹底) --- */
+#detail-backdrop {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); 
+    z-index: 500; display: none; opacity: 0; transition: opacity 0.4s;
 }
-
-.checklist-card h3 {
-    margin: 0 0 12px 0;
-    color: #3fbcd9;
-    font-size: 20px;
-    font-weight: 900;
-}
-
-.card-meta {
-    font-size: 13px;
-    color: #a0aec0;
-    font-weight: 700;
-}
-
-/* アニメーション用：移動中のカード */
+/* タイトルカード (最前面) */
 .checklist-card.fixed {
-    position: fixed;
-    z-index: 1000;
-    pointer-events: none;
-    box-shadow: 0 15px 40px rgba(0,0,0,0.2);
-}
-
-/* --- 詳細オーバーレイ（中央パネル） --- */
-#detail-overlay {
-    position: fixed;
-    top: 50%;
-    left: 55%;
-    transform: translate(-50%, -50%) scale(0.8);
-    width: 90%;
-    max-width: 550px;
-    max-height: 80vh;
-    background: white;
-    border-radius: 40px;
-    border: 10px solid #ffffff;
-    box-shadow: 0 40px 80px rgba(0,0,0,0.25);
-    z-index: 900;
-    display: none;
-    flex-direction: column;
-    padding: 30px;
-    opacity: 0;
-    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-}
-
-#detail-overlay.active {
-    display: flex;
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-}
-
-.detail-scroll-area {
-    overflow-y: auto;
-    flex-grow: 1;
-    margin: 20px 0;
-    padding-right: 10px;
-}
-
-/* --- アイテムカード（詳細内） --- */
-.item-card {
-    display: flex;
-    align-items: center;
-    background: #ffffff;
-    border: 3px solid #f1f5f9;
-    border-radius: 20px;
-    padding: 15px 20px;
-    margin-bottom: 12px;
-    transition: all 0.2s;
-    cursor: pointer;
-}
-
-.item-card:hover { border-color: #3fbcd9; background: #f0f9ff; }
-.item-card.is-done { background: #f8fafc; border-color: transparent; }
-
-/* カスタムチェックボックス */
-.custom-checkbox {
-    width: 32px; height: 32px;
-    border: 4px solid #3fbcd9;
-    border-radius: 10px;
+    position: fixed; z-index: 1000; pointer-events: none;
+    background: white; border: 5px solid #3fbcd9; border-radius: 60px;
     display: flex; align-items: center; justify-content: center;
-    transition: all 0.2s;
-    background: white;
-    margin-right: 15px;
-    flex-shrink: 0;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+    overflow: hidden; /* はみ出し防止 */
+}
+.checklist-card.fixed .cell-name { font-size: 18px; color: #3fbcd9; font-weight: 900; text-align: center; }
+.checklist-card.fixed .cell-date, .checklist-card.fixed .cell-action { display: none; }
+
+.card-placeholder { height: 72px; margin-bottom: 12px; visibility: hidden; }
+
+/* 説明文カード & アクション */
+#fixed-desc-card {
+    position: fixed; left: 40px; top: 210px; width: 280px;
+    background: white; border-radius: 25px; padding: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1); z-index: 900; display: none;
+}
+#detail-actions {
+    position: fixed; left: 40px; bottom: 60px; display: flex; flex-direction: column; gap: 12px; z-index: 900; display: none;
 }
 
+/* 右側アイテムリスト */
+#detail-items-container {
+    position: fixed; right: 5%; top: 100px; width: 55%; height: 80vh;
+    overflow-y: auto; z-index: 900; display: none; padding: 20px;
+}
+.item-card {
+    display: flex; align-items: center; background: white; border: 4px solid #f1f5f9;
+    border-radius: 20px; padding: 18px 25px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+/* チェックボックス */
+.custom-checkbox {
+    width: 32px; height: 32px; border: 4px solid #3fbcd9; border-radius: 10px;
+    margin-right: 15px; background: white; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+}
 input[type="checkbox"] { display: none; }
-
-input[type="checkbox"]:checked + .custom-checkbox {
-    background: #3fbcd9;
-}
-
-input[type="checkbox"]:checked + .custom-checkbox::after {
-    content: "✓"; color: white; font-size: 20px; font-weight: 900;
-}
-
+input[type="checkbox"]:checked + .custom-checkbox { background: #3fbcd9; }
+input[type="checkbox"]:checked + .custom-checkbox::after { content: "✓"; color: white; font-size: 20px; font-weight: 900; }
 .item-text { font-size: 18px; font-weight: 800; color: #2d3748; }
-input[type="checkbox"]:checked ~ .item-text {
-    text-decoration: line-through; color: #a0aec0;
+input[type="checkbox"]:checked ~ .item-text { text-decoration: line-through; color: #a0aec0; }
+
+/* コネクター（線が伸びるアニメーション） */
+#connector-svg { position: fixed; inset: 0; pointer-events: none; z-index: 800; width: 100vw; height: 100vh; }
+.connector-path { 
+    fill: none; stroke: #3fbcd9; stroke-width: 4; stroke-dasharray: 8, 8; 
+    /* 初期状態は線を隠す（後でJSで上書き） */
+    stroke-dashoffset: 0;
+}
+/* 描き終わった後の流れるアニメーション */
+.connector-path.flow-active { animation: flow 1s linear infinite; }
+@keyframes flow { to { stroke-dashoffset: -16; } }
+
+.completed-badge {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    background: linear-gradient(135deg, #FFD700, #FFA500); color: white;
+    padding: 5px 15px; border-radius: 50px; font-size: 12px; font-weight: 900;
+    box-shadow: 0 3px 10px rgba(255, 165, 0, 0.3);
+    animation: badgePulse 2s infinite;
+    pointer-events: none; /* クリックを透過 */
+    z-index: 10;
+}
+@keyframes badgePulse {
+    0%, 100% { transform: translateY(-50%) scale(1); }
+    50% { transform: translateY(-50%) scale(1.05); }
 }
 
-/* --- 接続線用SVG --- */
-#connector-svg { position: fixed; inset: 0; pointer-events: none; z-index: 850; }
-#connector-path {
-    fill: none; stroke: #3fbcd9; stroke-width: 5;
-    stroke-dasharray: 12, 8; animation: lineFlow 1s linear infinite;
-    stroke-linecap: round; opacity: 0; transition: opacity 0.3s;
+/* 達成済みチェックリストのスタイル */
+.checklist-card.completed {
+    background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+    border: 2px solid #3fbcd9;
 }
-@keyframes lineFlow { to { stroke-dashoffset: -20; } }
+.checklist-card.completed .cell-name {
+    color: #0891b2;
+    margin-left: 90px; /* バッジ分のスペース */
+}
 
-/* --- ボタン --- */
-.btn-pop {
-    padding: 12px 25px; border-radius: 50px; text-decoration: none;
-    font-weight: 900; border: none; cursor: pointer;
-    display: inline-flex; align-items: center; gap: 8px;
-    transition: transform 0.2s;
+@media (max-width: 768px) {
+    #detail-items-container { width: 90%; left: 5%; top: 320px; height: 45vh; }
+    #fixed-desc-card { width: 90%; left: 5%; top: 190px; }
 }
-.btn-pop:hover { transform: scale(1.05); }
-.btn-back { background: #cbd5e0; color: #4a5568; }
-.btn-edit { background: #FFD200; color: #333; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-header" style="text-align: center; margin-bottom: 50px;">
-    <h1 style="color: #3fbcd9; font-weight: 900; font-size: 32px;">📝 チェックリストをえらぼう</h1>
-</div>
+<div id="detail-backdrop" onclick="closeDetailMotion()"></div>
 
-<svg id="connector-svg"><path id="connector-path"></path></svg>
+<div class="checklist-list-container" id="main-container">
+    <h1 style="text-align:center; color:#3fbcd9; font-weight:900; margin-bottom:20px; font-size: 26px;">🔍 チェックリストをえらぼう</h1>
 
-<div class="list-container" id="list-grid">
-    {% for checklist in checklists %}
-    <div class="checklist-card" 
-         onclick="openDetailMotion(this, '{{ checklist.checklist_name|escapejs }}', '{{ checklist.checklist_description|default:''|escapejs }}', {{ checklist.checklist_id }})">
-        <h3>{{ checklist.checklist_name }}</h3>
-        <div class="card-meta">📅 {{ checklist.created_at|date:"Y/m/d" }}</div>
-    </div>
-    {% empty %}
-    <p style="text-align:center; color:#999;">まだないよ。つくってみよう！</p>
-    {% endfor %}
-</div>
-
-<div id="detail-overlay">
-    <h2 id="dt-title" style="color: #3fbcd9; margin: 0; font-size: 26px;"></h2>
-    <p id="dt-desc" style="color: #718096; margin-top: 10px; font-weight: 600;"></p>
-    
-    <div class="detail-scroll-area" id="dt-items">
+    <div class="action-bar">
+        <div class="left-actions">
+            <a href="{% url 'codemon:checklist_selection' %}" class="btn-pop btn-back-small">← もどる</a>
+            <a href="{% url 'codemon:checklist_create' %}" class="btn-pop btn-create">＋ あたらしいリストを作る</a>
         </div>
+        <div class="sort-controls">
+            <button class="btn-sort active" id="sort-new" onclick="handleSort('new')">新しい順</button>
+            <button class="btn-sort" id="sort-old" onclick="handleSort('old')">古い順</button>
+            <button class="btn-sort" id="sort-deadline" onclick="handleSort('deadline')">期限が近い順</button>
+        </div>
+        <div class="sort-controls" style="margin-left: 10px;">
+            <button class="btn-sort" id="filter-completed" onclick="toggleCompleted()">✓ 達成済みを除く</button>
+        </div>
+    </div>
 
-    <div style="display: flex; gap: 10px; justify-content: center; padding-top: 10px;">
-        <button class="btn-pop btn-back" onclick="closeDetailMotion()">❌ とじる</button>
-        <a id="dt-edit-btn" href="#" class="btn-pop btn-edit">✏️ へんしゅう</a>
+    <div class="checklist-header-row">
+        <div class="cell-name">なまえ</div>
+        <div class="cell-date">作った日</div>
+        <div class="cell-date">さいごの更新</div>
+        <div class="cell-action"></div>
+    </div>
+
+    <div class="checklist-scroll-area" id="list-grid">
+        {% for checklist in checklists %}
+        <div class="checklist-card list-item" 
+             data-id="{{ checklist.checklist_id }}"
+             data-timestamp="{{ checklist.created_at|date:'U' }}"
+             data-updated-timestamp="{{ checklist.updated_at|date:'U' }}"
+             data-due-date="{% if checklist.due_date %}{{ checklist.due_date|date:'U' }}{% else %}9999999999{% endif %}"
+             data-completed="false"
+             onclick="openDetailMotion(this, '{{ checklist.checklist_name|escapejs }}', '{{ checklist.checklist_description|default:''|escapejs }}')">
+            <div class="cell-name">{{ checklist.checklist_name }}</div>
+            <div class="cell-date"><span class="date-badge create-date"></span></div>
+            <div class="cell-date"><span class="date-badge update-date"></span></div>
+            <div class="cell-action"><span class="btn-view">みる</span></div>
+            <div class="completed-badge" style="display: none;">✓ 達成済み</div>
+        </div>
+        {% endfor %}
     </div>
 </div>
+
+<div id="fixed-desc-card"></div>
+<div id="detail-items-container"><div id="dt-items-list"></div></div>
+
+<div id="detail-actions">
+    <button class="btn-pop" style="background:#fff; color:#4a5568; box-shadow: 0 4px 0 #ddd;" onclick="closeDetailMotion()">❌ とじる</button>
+    <a id="dt-edit-btn" href="#" class="btn-pop btn-create">✏️ へんしゅう</a>
+    <a id="dt-delete-btn" href="#" class="btn-pop btn-back-small">🗑️ けす</a>
+</div>
+
+<svg id="connector-svg"></svg>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 let activeCard = null;
-const overlay = document.getElementById('detail-overlay');
-const path = document.getElementById('connector-path');
-const grid = document.getElementById('list-grid');
+let placeholder = null;
+const backdrop = document.getElementById('detail-backdrop');
+const descCard = document.getElementById('fixed-desc-card');
+const itemsContainer = document.getElementById('detail-items-container');
+const actions = document.getElementById('detail-actions');
+const svg = document.getElementById('connector-svg');
 
-// CSRFトークン取得用
+// 日付更新
+function updateDates() {
+    const getFriendlyDate = (ts) => {
+        const diff = Math.floor(Date.now() / 1000) - ts;
+        if (diff < 86400) return "きょう";
+        if (diff < 172800) return "きのう";
+        const d = new Date(ts * 1000);
+        return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+    };
+    document.querySelectorAll('.list-item').forEach(item => {
+        item.querySelector('.create-date').innerText = getFriendlyDate(item.dataset.timestamp);
+        item.querySelector('.update-date').innerText = getFriendlyDate(item.dataset.updatedTimestamp);
+    });
+}
+
+// ソート
+let hideCompleted = false;
+
+function handleSort(order) {
+    const list = document.getElementById('list-grid');
+    const items = Array.from(list.getElementsByClassName('list-item'));
+    document.querySelectorAll('.btn-sort:not(#filter-completed)').forEach(btn => btn.classList.remove('active'));
+    
+    if (order === 'new') {
+        document.getElementById('sort-new').classList.add('active');
+        items.sort((a, b) => b.dataset.timestamp - a.dataset.timestamp);
+    } else if (order === 'old') {
+        document.getElementById('sort-old').classList.add('active');
+        items.sort((a, b) => a.dataset.timestamp - b.dataset.timestamp);
+    } else if (order === 'deadline') {
+        document.getElementById('sort-deadline').classList.add('active');
+        items.sort((a, b) => {
+            const dueA = parseInt(a.dataset.dueDate);
+            const dueB = parseInt(b.dataset.dueDate);
+            // 期限がない（9999999999）ものは後ろに
+            return dueA - dueB;
+        });
+    }
+    
+    items.forEach(item => list.appendChild(item));
+    applyCompletedFilter();
+}
+
+function toggleCompleted() {
+    hideCompleted = !hideCompleted;
+    const btn = document.getElementById('filter-completed');
+    if (hideCompleted) {
+        btn.classList.add('active');
+    } else {
+        btn.classList.remove('active');
+    }
+    applyCompletedFilter();
+}
+
+function applyCompletedFilter() {
+    document.querySelectorAll('.list-item').forEach(item => {
+        const isCompleted = item.dataset.completed === 'true';
+        if (hideCompleted && isCompleted) {
+            item.style.display = 'none';
+        } else {
+            item.style.display = 'flex';
+        }
+    });
+}
+
+// アニメーション開始
+async function openDetailMotion(card, name, desc) {
+    if (activeCard) return;
+    
+    // 1. 移動前の絶対位置を記録
+    const rect = card.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+    
+    activeCard = card;
+    const id = card.dataset.id;
+
+    // 2. 元の場所に穴が開かないようプレースホルダーを挿入
+    placeholder = document.createElement('div');
+    placeholder.className = 'card-placeholder';
+    card.parentNode.insertBefore(placeholder, card);
+
+    // 3. 重要：カードを body 直下に移動して「z-index の壁」を突破する
+    card.style.width = rect.width + 'px';
+    card.style.height = rect.height + 'px';
+    card.style.top = (rect.top + scrollTop) + 'px';
+    card.style.left = (rect.left + scrollLeft) + 'px';
+    card.style.margin = "0"; // 余計なマージンを消去
+    card.classList.add('fixed');
+    document.body.appendChild(card); // ここで親要素から独立！
+
+    // 4. アニメーション演出
+    backdrop.style.display = 'block';
+    setTimeout(() => {
+        backdrop.style.opacity = '1';
+        card.style.transition = "all 0.6s cubic-bezier(0.19, 1, 0.22, 1)";
+        
+        // 目的地（画面左上の方）
+        card.style.top = "100px";
+        card.style.left = "40px";
+        card.style.width = "280px";
+        card.style.height = "70px";
+
+        if (desc) {
+            descCard.innerHTML = `<h4 style="margin:0 0 10px 0; color:#3fbcd9; font-weight:900;">📝 メモ</h4><p style="margin:0; font-size:14px; color:#4a5568;">${desc}</p>`;
+            descCard.style.display = 'block';
+        }
+        actions.style.display = 'flex';
+        document.getElementById('dt-edit-btn').href = `/codemon/checklists/${id}/edit/`;
+        document.getElementById('dt-delete-btn').href = `/codemon/checklists/${id}/delete/`;
+        
+        loadItems(id);
+    }, 10);
+}
+// アイテム読み込み
+async function loadItems(checklistId) {
+    const list = document.getElementById('dt-items-list');
+    list.innerHTML = "<p style='text-align:center; color:white; padding-top:40px;'>読み込み中...</p>";
+    itemsContainer.style.display = 'block';
+    
+    try {
+        const response = await fetch(`/codemon/api/checklists/${checklistId}/items/`);
+        const data = await response.json();
+        list.innerHTML = "";
+        
+        // 完了状態をチェック
+        const allCompleted = data.items.length > 0 && data.items.every(item => item.is_done);
+        const card = document.querySelector(`[data-id="${checklistId}"]`);
+        if (card) {
+            card.dataset.completed = allCompleted;
+            updateCompletedUI(card, allCompleted);
+        }
+        
+        data.items.forEach((item) => {
+            const label = document.createElement('label');
+            label.className = `item-card ${item.is_done ? 'is-done' : ''}`;
+            label.innerHTML = `
+                <input type="checkbox" ${item.is_done ? 'checked' : ''} onchange="handleToggle(this, ${checklistId}, ${item.checklist_item_id || item.id})">
+                <div class="custom-checkbox"></div>
+                <span class="item-text">${item.item_text}</span>
+            `;
+            list.appendChild(label);
+        });
+
+        // カードが目的地に到着するのを待ってから線を描画（0.6s transition + 余裕分）
+        setTimeout(() => {
+            drawCurves(true);
+        }, 650);
+
+        itemsContainer.addEventListener('scroll', () => drawCurves(false));
+    } catch (e) { list.innerHTML = "エラーが発生しました"; }
+}
+// 線を描画するメイン関数
+function drawCurves(isInitial = false) {
+    svg.innerHTML = "";
+    if (!activeCard) return;
+
+    // 現在の正確な位置を再取得
+    const startRect = activeCard.getBoundingClientRect();
+    const startX = startRect.right; // カードの右端ギリギリから
+    const startY = startRect.top + (startRect.height / 2); // カードの垂直方向の中心
+
+    document.querySelectorAll('.item-card').forEach((item, index) => {
+        const rect = item.getBoundingClientRect();
+        // 画面外のアイテムには線を引かない
+        if (rect.top < 0 || rect.bottom > window.innerHeight) return;
+
+        const endX = rect.left;
+        const endY = rect.top + (rect.height / 2);
+        const cpX = startX + (endX - startX) * 0.5; // 中間地点（制御点）
+
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        const d = `M ${startX} ${startY} C ${cpX} ${startY}, ${cpX} ${endY}, ${endX} ${endY}`;
+        path.setAttribute("d", d);
+        path.setAttribute("class", "connector-path");
+        svg.appendChild(path);
+
+        if (isInitial) {
+            const length = path.getTotalLength();
+            path.style.strokeDasharray = length;
+            path.style.strokeDashoffset = length;
+            
+            setTimeout(() => {
+                path.style.transition = `stroke-dashoffset 0.6s ease-out`;
+                path.style.strokeDashoffset = "0";
+                setTimeout(() => {
+                    path.classList.add('flow-active');
+                    path.style.strokeDasharray = "8, 8";
+                }, 600);
+            }, index * 80); // 順々にスルスルと出す
+        } else {
+            path.classList.add('flow-active');
+        }
+    });
+}
+// 閉じる
+function closeDetailMotion() {
+    if (!activeCard) return;
+    
+    backdrop.style.opacity = '0';
+    descCard.style.display = 'none';
+    itemsContainer.style.display = 'none';
+    actions.style.display = 'none';
+    svg.innerHTML = "";
+
+    // 1. プレースホルダーの位置（元の場所）を取得
+    const pRect = placeholder.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+    // 2. 元の場所に戻るアニメーション
+    activeCard.style.top = (pRect.top + scrollTop) + 'px';
+    activeCard.style.left = pRect.left + 'px';
+    activeCard.style.width = placeholder.offsetWidth + 'px';
+    activeCard.style.height = placeholder.offsetHeight + 'px';
+
+    setTimeout(() => {
+        // 3. 完全に元通りにする
+        activeCard.classList.remove('fixed');
+        activeCard.style.transition = "none";
+        activeCard.style.width = "";
+        activeCard.style.height = "";
+        activeCard.style.top = "";
+        activeCard.style.left = "";
+        
+        // 4. カードを元のリスト内に戻す
+        placeholder.parentNode.insertBefore(activeCard, placeholder);
+        placeholder.remove();
+        
+        backdrop.style.display = 'none';
+        activeCard = null;
+    }, 600);
+}
+
+// チェックボックスの状態変更を処理
+async function handleToggle(checkbox, checklistId, itemId) {
+    try {
+        const response = await fetch(`/codemon/checklists/${checklistId}/items/${itemId}/toggle/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ is_done: checkbox.checked })
+        });
+        
+        if (response.ok) {
+            // 完了状態を再計算
+            const allCheckboxes = document.querySelectorAll(`#dt-items-list input[type="checkbox"]`);
+            const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
+            const isCompleted = allChecked && allCheckboxes.length > 0;
+            
+            const card = document.querySelector(`[data-id="${checklistId}"]`);
+            if (card) {
+                card.dataset.completed = isCompleted;
+                updateCompletedUI(card, isCompleted);
+                applyCompletedFilter(); // フィルタを再適用
+            }
+        }
+    } catch (error) {
+        console.error('チェックボックス更新エラー:', error);
+    }
+}
+
+// 達成済みUIを更新
+function updateCompletedUI(card, isCompleted) {
+    const badge = card.querySelector('.completed-badge');
+    if (isCompleted) {
+        card.classList.add('completed');
+        if (badge) badge.style.display = 'block';
+    } else {
+        card.classList.remove('completed');
+        if (badge) badge.style.display = 'none';
+    }
+}
+
+// CSRFトークン取得
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -212,123 +516,35 @@ function getCookie(name) {
     return cookieValue;
 }
 
-// 💡 詳細を開く
-async function openDetailMotion(card, name, desc, id) {
-    if (activeCard) return;
-    activeCard = card;
-
-    document.getElementById('dt-title').innerText = name;
-    document.getElementById('dt-desc').innerText = desc;
-    document.getElementById('dt-edit-btn').href = `/codemon/checklists/${id}/edit/`;
-    
-    // データを取得して表示
-    loadActualItems(id);
-
-    const rect = card.getBoundingClientRect();
-    card.style.width = rect.width + 'px';
-    card.style.height = rect.height + 'px';
-    card.style.top = rect.top + 'px';
-    card.style.left = rect.left + 'px';
-    card.dataset.origTop = rect.top;
-    card.dataset.origLeft = rect.left;
-    card.classList.add('fixed');
-
-    setTimeout(() => {
-        card.style.transition = "all 0.6s cubic-bezier(0.19, 1, 0.22, 1)";
-        card.style.top = "100px";
-        card.style.left = "40px";
-        card.style.width = "200px";
-        card.style.transform = "rotate(-5deg) scale(0.9)";
-        grid.style.opacity = "0.2";
-        overlay.classList.add('active');
-        setTimeout(drawCurve, 500);
-    }, 10);
-}
-
-// 💡 サーバーからアイテムを取得
-async function loadActualItems(checklistId) {
-    const container = document.getElementById('dt-items');
-    container.innerHTML = "<p style='text-align:center; padding:20px;'>さがしてるよ...</p>";
-
-    try {
-        // ※このAPI用URLが未実装の場合は、views.pyで作る必要があります
-        const response = await fetch(`/codemon/api/checklists/${checklistId}/items/`);
-        const data = await response.json();
-        container.innerHTML = "";
-
-        if (data.items.length === 0) {
-            container.innerHTML = "<p style='text-align:center; color:#999;'>項目がありません</p>";
-            return;
+// ページ読み込み時に全チェックリストの達成状態を確認
+async function checkAllCompletionStates() {
+    const cards = document.querySelectorAll('.list-item');
+    for (const card of cards) {
+        const checklistId = card.dataset.id;
+        try {
+            const response = await fetch(`/codemon/api/checklists/${checklistId}/items/`);
+            const data = await response.json();
+            const allCompleted = data.items.length > 0 && data.items.every(item => item.is_done);
+            card.dataset.completed = allCompleted;
+            updateCompletedUI(card, allCompleted);
+        } catch (e) {
+            console.error('チェックリスト状態確認エラー:', e);
         }
-
-        data.items.forEach(item => {
-            const label = document.createElement('label');
-            label.className = `item-card ${item.is_done ? 'is-done' : ''}`;
-            // idのキー名はDjangoのモデルに合わせて調整してください
-            const itemId = item.checklist_item_id || item.id;
-            
-            label.innerHTML = `
-                <div class="checkbox-wrapper">
-                    <input type="checkbox" ${item.is_done ? 'checked' : ''} 
-                           onchange="handleToggle(this, ${checklistId}, ${itemId})">
-                    <div class="custom-checkbox"></div>
-                </div>
-                <span class="item-text">${item.item_text}</span>
-            `;
-            container.appendChild(label);
-        });
-    } catch (e) {
-        container.innerHTML = "<p style='color:red;'>データの読み込みに失敗しました</p>";
     }
 }
 
-// 💡 チェックの保存（詳細画面の関数を流用）
-function handleToggle(checkbox, checklistId, itemId) {
-    const card = checkbox.closest('.item-card');
-    card.classList.toggle('is-done', checkbox.checked);
-
-    fetch(`/codemon/checklists/${checklistId}/items/${itemId}/toggle/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': getCookie('csrftoken'),
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 'is_done': checkbox.checked })
-    }).catch(error => {
-        alert('保存に失敗しました。');
-        checkbox.checked = !checkbox.checked;
-        card.classList.toggle('is-done');
+document.addEventListener('DOMContentLoaded', () => {
+    updateDates();
+    checkAllCompletionStates(); // 達成状態を確認
+    
+    // 削除ボタンのクリックイベント
+    document.getElementById('dt-delete-btn').addEventListener('click', function(e) {
+        e.preventDefault();
+        if (activeCard) {
+            const checklistId = activeCard.dataset.id;
+            window.location.href = `/codemon/checklists/${checklistId}/delete/confirm/`;
+        }
     });
-}
-
-function drawCurve() {
-    if (!activeCard) return;
-    const cardRect = activeCard.getBoundingClientRect();
-    const detailRect = overlay.getBoundingClientRect();
-    const startX = cardRect.right;
-    const startY = cardRect.top + cardRect.height / 2;
-    const endX = detailRect.left;
-    const endY = detailRect.top + detailRect.height / 2;
-    const cpX = (startX + endX) / 2;
-    path.setAttribute('d', `M ${startX} ${startY} Q ${cpX} ${startY}, ${endX} ${endY}`);
-    path.style.opacity = "1";
-}
-
-function closeDetailMotion() {
-    overlay.classList.remove('active');
-    path.style.opacity = "0";
-    grid.style.opacity = "1";
-    activeCard.style.top = activeCard.dataset.origTop + 'px';
-    activeCard.style.left = activeCard.dataset.origLeft + 'px';
-    activeCard.style.width = "";
-    activeCard.style.transform = "rotate(0deg) scale(1)";
-    setTimeout(() => {
-        activeCard.classList.remove('fixed');
-        activeCard.style.transition = "none";
-        activeCard = null;
-    }, 600);
-}
-
-window.addEventListener('resize', () => { if(activeCard) drawCurve(); });
+});
 </script>
 {% endblock %}

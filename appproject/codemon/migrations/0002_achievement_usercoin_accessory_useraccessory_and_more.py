@@ -46,7 +46,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('accessory_id', models.BigAutoField(primary_key=True, serialize=False)),
                 ('name', models.CharField(max_length=100, verbose_name='アクセサリー名')),
-                ('category', models.CharField(choices=[('flower', '花'), ('glasses', '眼鏡'), ('hat', '帽子'), ('other', 'その他')], max_length=50, verbose_name='カテゴリ')),
+                ('category', models.CharField(choices=[('flower', '花'), ('glasses', '眼鏡'), ('hat', '帽子'), ('star', '星'),('crown', '王冠'),('ribbon', 'リボン'),('other', 'その他')], max_length=50, verbose_name='カテゴリ')),
                 ('css_class', models.CharField(help_text='例: flower red', max_length=100, verbose_name='CSSクラス名')),
                 ('description', models.TextField(blank=True, null=True, verbose_name='説明')),
                 ('unlock_coins', models.IntegerField(default=0, verbose_name='必要コイン数')),
