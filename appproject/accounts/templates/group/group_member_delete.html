@@ -1,4 +1,6 @@
 {% extends 'base.html' %}
+{% block global_navigation %}{% endblock %}
+{% block global_character_widget %}{% endblock %}
 {% load static %}
 
 {% block title %}メンバー削除確認 - Codemon{% endblock %}
@@ -12,7 +14,7 @@
 
 {% block extra_css %}
 <style>
-  .container{width:720px;margin:160px auto 80px;background:#fff;border:1px solid #ddd;padding:40px;box-sizing:border-box;box-shadow:0 6px 20px rgba(0,0,0,0.05);}
+  .container{width:720px;margin:60px auto 80px;background:#fff;border:1px solid #ddd;padding:40px;box-sizing:border-box;box-shadow:0 6px 20px rgba(0,0,0,0.05);}
   .header{text-align:center;margin-bottom:30px;}
   .header h1{font-size:22px;color:#333;margin:0 0 10px;}
   .confirm-box{background:#f9f9f9;border:2px solid #ddd;border-radius:12px;padding:30px;margin:20px 0;}

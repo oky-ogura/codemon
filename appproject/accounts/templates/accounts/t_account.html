@@ -1,11 +1,11 @@
-
 {% extends 'base.html' %}
+{% block global_character_widget %}{% endblock %}
 {% load static %}
 
 {% block title %}アカウント（教員） - Codemon{% endblock %}
 
 {% block background_frame %}
-<img src="{% static 'codemon/images/frames/教員用アカウント画面 (2).png' %}" 
+<img src="{% static 'codemon/images/frames/frame_brack.png' %}" 
      alt="" 
      class="bg-frame"
      onerror="this.style.display='none';">
@@ -100,7 +100,7 @@
         }
     </style>
 {% endblock %}
-</head>
+
 {% block content %}
 
     <div class="card">
