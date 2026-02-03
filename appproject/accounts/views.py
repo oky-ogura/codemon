@@ -436,6 +436,11 @@ def karihome(request):
     
     print(f"DEBUG karihome context: equipped_accessory = {equipped_accessory}")
     
+    # 教員判定を追加（セッションベース認証のため、Accountモデルのaccount_typeで判定）
+    is_teacher = False
+    if acc and acc.account_type == 'teacher':
+        is_teacher = True
+    
     return render(request, 'accounts/karihome.html', {
         'ai_name': ai_name,
         'character': character,
@@ -443,6 +448,7 @@ def karihome(request):
         'equipped_accessory': equipped_accessory,
         'user_coin': user_coin,
         'upcoming_checklists': upcoming_checklists,
+        'is_teacher': is_teacher,
     })
 
 
