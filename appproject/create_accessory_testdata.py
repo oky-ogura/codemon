@@ -26,6 +26,8 @@ def create_test_data():
             'css_class': 'flower.inu',
             'description': '元気いっぱい！友情がぱっとさく',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/flower_inu.png',
         },
         {
             'name': 'ピュアフラワー・ラビット',
@@ -33,6 +35,8 @@ def create_test_data():
             'css_class': 'flower.usagi',
             'description': 'こわくても、一歩ふみだすゆうき',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/flower_usagi.png',
         },
         {
             'name': 'ウィンクフラワー・フォックス',
@@ -40,6 +44,8 @@ def create_test_data():
             'css_class': 'flower.kitsune',
             'description': 'からかい上手なスマイル付き',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/flower_kitune.png',
         },
         {
             'name': 'クールブルーム・キャット',
@@ -47,6 +53,8 @@ def create_test_data():
             'css_class': 'flower.neko',
             'description': '気分でさく、それがネコ',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/flower_neko.png',
         },
         {
             'name': 'おひるねフラワー・パンダ',
@@ -54,6 +62,8 @@ def create_test_data():
             'css_class': 'flower.panda',
             'description': 'のんびり心に花ひらく',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/flower_panda.png',
         },
         {
             'name': 'ナレッジフラワー・フクロウ',
@@ -61,6 +71,8 @@ def create_test_data():
             'css_class': 'flower.fukurou',
             'description': '知恵がすっと身につく',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/flower_fukurou.png',
         },
         {
             'name': 'ヒーローフラワー・リス',
@@ -68,6 +80,8 @@ def create_test_data():
             'css_class': 'flower.risu',
             'description': 'せいぎの心がまんかい！',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/flower_risu.png',
         },
         {
             'name': 'ノーブルフラワー・アルパカ',
@@ -75,6 +89,8 @@ def create_test_data():
             'css_class': 'flower.alpaca',
             'description': '気品とやさしさのいちりん',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/flower_arupaka.png',
         },
         # 眼鏡
         {
@@ -83,6 +99,8 @@ def create_test_data():
             'css_class': 'glasses.inu',
             'description': '気合いとこんじょう、しかいりょうこう！',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/glasses_inu.png',
         },
         {
             'name': 'まじめメガネ・ラビット',
@@ -90,6 +108,8 @@ def create_test_data():
             'css_class': 'glasses.usagi',
             'description': 'コツコツ努力のみかた',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/glasses_usagi.png',
         },
         {
             'name': 'ニヤリグラス・フォックス',
@@ -97,6 +117,8 @@ def create_test_data():
             'css_class': 'glasses.kitsune',
             'description': '全部お見通し？',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/glasses_kitune.png',
         },
         {
             'name': 'マイペースグラス・キャット',
@@ -104,6 +126,8 @@ def create_test_data():
             'css_class': 'glasses.neko',
             'description': '見たいものだけ見る',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/glasses_neko.png',
         },
         {
             'name': 'ゆるゆるグラス・パンダ',
@@ -111,6 +135,8 @@ def create_test_data():
             'css_class': 'glasses.panda',
             'description': 'ぼーっとしてても大丈夫',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/glasses_panda.png',
         },
         {
             'name': 'ティーチャーグラス・フクロウ',
@@ -118,6 +144,8 @@ def create_test_data():
             'css_class': 'glasses.fukurou',
             'description': '学びのプロフェッショナル',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/glasses_fukurou.png',
         },
         {
             'name': 'ツンデレグラス・リス',
@@ -125,6 +153,8 @@ def create_test_data():
             'css_class': 'glasses.risu',
             'description': '別に助けたいわけじゃ…',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/glasses_risu.png',
         },
         {
             'name': 'エレガントグラス・アルパカ',
@@ -132,6 +162,8 @@ def create_test_data():
             'css_class': 'glasses.alpaca',
             'description': 'できる大人のたしなみ',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/glasses_arupaka.png',
         },
         # リボン
         {
@@ -140,6 +172,8 @@ def create_test_data():
             'css_class': 'ribbon.inu',
             'description': 'ともだちパワーけっそく！',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/ribbon_inu.png',
         },
         {
             'name': 'ドキドキリボン・ラビット',
@@ -147,6 +181,8 @@ def create_test_data():
             'css_class': 'ribbon.usagi',
             'description': 'ドキド勇気をきゅっと結んで',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/ribbon_usagi.png',
         },
         {
             'name': 'いたずらリボン・フォックス',
@@ -154,6 +190,8 @@ def create_test_data():
             'css_class': 'ribbon.kitsune',
             'description': '油断すると結ばれる？',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/ribbon_kitune.png',
         },
         {
             'name': 'きまぐれリボン・キャット',
@@ -161,6 +199,8 @@ def create_test_data():
             'css_class': 'ribbon.neko',
             'description': '今日はつける気分',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/ribbon_neko.png',
         },
         {
             'name': 'ふわふわリボン・パンダ',
@@ -168,6 +208,8 @@ def create_test_data():
             'css_class': 'ribbon.panda',
             'description': 'ねむくなる可愛さ',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/ribbon_panda.png',
         },
         {
             'name': 'ロジックリボン・フクロウ',
@@ -175,6 +217,8 @@ def create_test_data():
             'css_class': 'ribbon.fukurou',
             'description': '考えが整理される',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/ribbon_fukurou.png',
         },
         {
             'name': 'せいぎリボン・リス',
@@ -182,6 +226,8 @@ def create_test_data():
             'css_class': 'ribbon.risu',
             'description': '守ると決めたら全力で！',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/ribbon_risu.png',
         },
         {
             'name': 'エレガントグラス・アルパカ',
@@ -189,13 +235,8 @@ def create_test_data():
             'css_class': 'ribbon.alpaca',
             'description': 'できる大人のたしなみ',
             'unlock_coins': 100,
-        },
-        {
-            'name': 'レディリボン・アルパカ',
-            'category': 'ribbon',
-            'css_class': 'ribbon.alpaca',
-            'description': '上品さは基本装備',
-            'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/ribbon_arupaka.png',
         },
         # 星
         {
@@ -204,6 +245,8 @@ def create_test_data():
             'css_class': 'star.inu',
             'description': '輝く友情のしるし',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/star_inu.png',
         },
         {
             'name': 'スモールスター・ラビット',
@@ -211,6 +254,8 @@ def create_test_data():
             'css_class': 'star.usagi',
             'description': '小さなひかりも大切に',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/star_usagi.png',
         },
         {
             'name': 'トリックスター・フォックス',
@@ -218,6 +263,8 @@ def create_test_data():
             'css_class': 'star.kitsune',
             'description': 'きらりとひにくが光る',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/star_kitune.png',
         },
         {
             'name': 'ナイトスター・キャット',
@@ -225,6 +272,8 @@ def create_test_data():
             'css_class': 'star.neko',
             'description': '静かにかがやく',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/star_neko.png',
         },
         {
             'name': 'おやすみスター・パンダ',
@@ -232,6 +281,8 @@ def create_test_data():
             'css_class': 'star.panda',
             'description': '夢の中でもきらきら',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/star_panda.png',
         },
         {
             'name': 'ウィズダムスター・フクロウ',
@@ -239,6 +290,8 @@ def create_test_data():
             'css_class': 'star.fukurou',
             'description': 'ちしきの星がみちびく',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/star_fukurou.png',
         },
         {
             'name': 'ジャスティススター・リス',
@@ -246,6 +299,8 @@ def create_test_data():
             'css_class': 'star.risu',
             'description': '正義は負けない',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/star_risu.png',
         },
         {
             'name': 'ロイヤルスター・アルパカ',
@@ -253,6 +308,8 @@ def create_test_data():
             'css_class': 'star.alpaca',
             'description': '違いが光る',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/star_arupaka.png',
         },
         # 帽子
         {
@@ -261,6 +318,8 @@ def create_test_data():
             'css_class': 'hat.inu',
             'description': '前向き全開！',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/hat_inu.png',
         },
         {
             'name': 'セーフティハット・ラビット',
@@ -268,6 +327,8 @@ def create_test_data():
             'css_class': 'hat.usagi',
             'description': '安心感ばっちり',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/hat_usagi.png',
         },
         {
             'name': 'トリックハット・フォックス',
@@ -275,6 +336,8 @@ def create_test_data():
             'css_class': 'hat.kitsune',
             'description': '何が出るかはヒミツ',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/hat_kitune.png',
         },
         {
             'name': 'フリーダムハット・キャット',
@@ -282,13 +345,8 @@ def create_test_data():
             'css_class': 'hat.neko',
             'description': '縛られないスタイル',
             'unlock_coins': 100,
-        },
-        {
-            'name': 'ロイヤルスター・アルパカ',
-            'category': 'hat',
-            'css_class': 'hat.alpaca',
-            'description': '違いが光る',
-            'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/hat_neko.png',
         },
         {
             'name': 'のんびりハット・パンダ',
@@ -296,6 +354,8 @@ def create_test_data():
             'css_class': 'hat.panda',
             'description': 'かぶった瞬間お昼寝モード',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/hat_panda.png',
         },
         {
             'name': 'プロフェッサーハット・フクロウ',
@@ -303,6 +363,8 @@ def create_test_data():
             'css_class': 'hat.fukurou',
             'description': '先生の本気',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/hat_fukurou.png',
         },
         {
             'name': 'ガーディアンハット・リス',
@@ -310,6 +372,8 @@ def create_test_data():
             'css_class': 'hat.risu',
             'description': '守るかくごはばんぜん',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/hat_risu.png',
         },
         {
             'name': 'マダムハット・アルパカ',
@@ -317,6 +381,8 @@ def create_test_data():
             'css_class': 'hat.alpaca',
             'description': 'たよれるあねごのふうかく',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/hat_arupaka.png',
         },
         # 王冠
         {
@@ -325,6 +391,8 @@ def create_test_data():
             'css_class': 'crown.inu',
             'description': '友情の王者',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/crown_inu.png',
         },
         {
             'name': 'スモールクラウン・ラビット',
@@ -332,6 +400,8 @@ def create_test_data():
             'css_class': 'crown.usagi',
             'description': 'がんばったあかし',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/crown_usagi.png',
         },
         {
             'name': 'シャドウクラウン・フォックス',
@@ -339,6 +409,8 @@ def create_test_data():
             'css_class': 'crown.kitsune',
             'description': 'うらからしはい？',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/crown_kitune.png',
         },
         {
             'name': 'クールクラウン・キャット',
@@ -355,6 +427,8 @@ def create_test_data():
             'css_class': 'crown.panda',
             'description': 'ねながら王様',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/crown_panda.png',
         },
         {
             'name': 'マスタークラウン・フクロウ',
@@ -362,6 +436,8 @@ def create_test_data():
             'css_class': 'crown.fukurou',
             'description': '知のちょうてん',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/crown_fukurou.png',
         },
         {
             'name': 'ヒーロークラウン・リス',
@@ -369,6 +445,8 @@ def create_test_data():
             'css_class': 'crown.risu',
             'description': 'せいぎのリーダー',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/crown_risu.png',
         },
         {
             'name': 'クイーンクラウン・アルパカ',
@@ -376,6 +454,8 @@ def create_test_data():
             'css_class': 'crown.alpaca',
             'description': '気品と実力のしょうちょう',
             'unlock_coins': 100,
+            'use_image': True,
+            'image_path': 'codemon/images/accessories/crown_arupaka.png',
         },
 
 

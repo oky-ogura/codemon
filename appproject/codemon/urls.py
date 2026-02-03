@@ -14,6 +14,11 @@ urlpatterns = [
     # 項目の完了／未完了切り替え（最優先でマッチさせるため一番上に移動）
     path('checklists/<int:pk>/items/<int:item_id>/toggle/', views.checklist_toggle_item, name='checklist_toggle_item'),
 
+    # ⭐ 削除関連を詳細表示より上に移動（具体的なパスを先に）
+    path('checklists/<int:pk>/delete/confirm/', views.checklist_delete_confirm, name='checklist_delete_confirm'),
+    path('checklists/<int:pk>/delete/', views.checklist_delete, name='checklist_delete'),
+    path('checklists/<int:pk>/delete/complete/', views.checklist_delete_complete, name='checklist_delete_complete'),
+
     # 開発用レガシーURL（旧ルート）
     path('checklist_create/', views.checklist_create, name='checklist_create'),
 
@@ -26,15 +31,13 @@ urlpatterns = [
     # 新規作成
     path('checklists/new/', views.checklist_create, name='checklist_create'),
 
-    # 詳細表示
+    # 詳細表示（削除関連の後に配置）
     path('checklists/<int:pk>/', views.checklist_detail, name='checklist_detail'),
 
-    # 編集・保存・削除関連
+    # 編集・保存関連
     path('checklists/<int:pk>/edit/', views.checklist_edit, name='checklist_edit'),
     path('checklists/<int:pk>/save/', views.checklist_save, name='checklist_save'),
-    path('checklists/<int:pk>/delete/confirm/', views.checklist_delete_confirm, name='checklist_delete_confirm'),
-    path('checklists/<int:pk>/delete/complete/', views.checklist_delete_complete, name='checklist_delete_complete'),
-    path('checklists/<int:pk>/delete/', views.checklist_delete, name='checklist_delete'),
+
 
     # 項目の完了／未完了切り替え
     path('checklists/<int:pk>/items/<int:item_id>/toggle2/', views.checklist_toggle_item, name='checklist_toggle_item'),
@@ -119,6 +122,7 @@ urlpatterns = [
     # 実績システム
     path('achievements/', views.achievements_view, name='achievements'),
     path('achievements/claim/<int:achievement_id>/', views.claim_achievement_reward, name='claim_achievement_reward'),
+    path('achievements/claim_all/', views.claim_all_achievements, name='claim_all_achievements'),
     path('achievements/clear_notifications/', views.clear_achievement_notifications, name='clear_achievement_notifications'),
 ]
 

@@ -87,6 +87,14 @@ def ai_chat_api(request):
         if len(history_raw) > 20:  # 10往復 = 20メッセージ
             history_raw = history_raw[-20:]
         request.session[session_key] = history_raw
+        
+        # AI会話の実績トラッキング（ユーザーがログインしている場合のみ）
+        if acc:
+            try:
+                from codemon.achievement_utils import update_ai_chat_count
+                update_ai_chat_count(acc)
+            except Exception as e:
+                print(f"[WARNING] Achievement tracking failed: {e}")
 
         return JsonResponse({'reply': ai_reply})
     except json.JSONDecodeError as e:

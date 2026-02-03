@@ -13,7 +13,8 @@ def check_and_grant_achievements(user, category, current_value=None):
     
     Args:
         user: ユーザーオブジェクト
-        category: 実績カテゴリー ('system', 'algorithm', 'login', 'consecutive_login', 'ai_chat')
+        category: 実績カテゴリー ('system', 'algorithm', 'login', 'consecutive_login', 'ai_chat', 
+                  'ai_chat_consecutive', 'checklist_create', 'checklist_complete', 'accessory')
         current_value: 現在の値（オプション、指定しない場合はUserStatsから取得）
     
     Returns:
@@ -36,6 +37,14 @@ def check_and_grant_achievements(user, category, current_value=None):
             current_value = stats.consecutive_login_days
         elif category == 'ai_chat':
             current_value = stats.total_ai_chats
+        elif category == 'ai_chat_consecutive':
+            current_value = stats.consecutive_ai_chat_days
+        elif category == 'checklist_create':
+            current_value = stats.total_checklists_created
+        elif category == 'checklist_complete':
+            current_value = stats.total_checklist_items_completed
+        elif category == 'accessory':
+            current_value = stats.total_accessories_purchased
         else:
             return newly_achieved
     
@@ -172,13 +181,73 @@ def update_login_stats(user):
 
 
 def update_ai_chat_count(user):
-    """AI会話数を更新して実績チェック"""
+    """AI会話数と連続会話日数を更新して実績チェック"""
     stats, _ = UserStats.objects.get_or_create(user=user)
-    from codemon.models import AIConversation
-    stats.total_ai_chats = AIConversation.objects.filter(user=user).count()
+    today = date.today()
+    newly_achieved = []
+    
+    # AI会話数を増やす（毎回のメッセージでカウント）
+    stats.total_ai_chats += 1
+    
+    # 連続AI会話日数を更新
+    if stats.last_ai_chat_date != today:
+        # 最終AI会話日をチェック
+        if stats.last_ai_chat_date:
+            days_diff = (today - stats.last_ai_chat_date).days
+            if days_diff == 1:
+                # 連続会話継続
+                stats.consecutive_ai_chat_days += 1
+            else:
+                # 連続会話途切れ
+                stats.consecutive_ai_chat_days = 1
+        else:
+            # 初回会話
+            stats.consecutive_ai_chat_days = 1
+        
+        stats.last_ai_chat_date = today
+    
     stats.save()
     
-    newly_achieved = check_and_grant_achievements(user, 'ai_chat', stats.total_ai_chats)
+    # 実績チェック
+    newly_achieved.extend(check_and_grant_achievements(user, 'ai_chat', stats.total_ai_chats))
+    newly_achieved.extend(check_and_grant_achievements(user, 'ai_chat_consecutive', stats.consecutive_ai_chat_days))
+    
+    return newly_achieved
+
+
+def update_checklist_create_count(user):
+    """チェックリスト作成数を更新して実績チェック"""
+    stats, _ = UserStats.objects.get_or_create(user=user)
+    from codemon.models import Checklist
+    stats.total_checklists_created = Checklist.objects.filter(user=user).count()
+    stats.save()
+    
+    newly_achieved = check_and_grant_achievements(user, 'checklist_create', stats.total_checklists_created)
+    return newly_achieved
+
+
+def update_checklist_complete_count(user):
+    """チェックリスト完了項目数を更新して実績チェック"""
+    stats, _ = UserStats.objects.get_or_create(user=user)
+    from codemon.models import ChecklistItem
+    stats.total_checklist_items_completed = ChecklistItem.objects.filter(
+        checklist__user=user, 
+        is_done=True
+    ).count()
+    stats.save()
+    
+    newly_achieved = check_and_grant_achievements(user, 'checklist_complete', stats.total_checklist_items_completed)
+    return newly_achieved
+
+
+def update_accessory_purchase_count(user):
+    """アクセサリー購入数を更新して実績チェック"""
+    stats, _ = UserStats.objects.get_or_create(user=user)
+    from codemon.models import UserAccessory
+    stats.total_accessories_purchased = UserAccessory.objects.filter(user=user).count()
+    stats.save()
+    
+    newly_achieved = check_and_grant_achievements(user, 'accessory', stats.total_accessories_purchased)
     return newly_achieved
 
 
@@ -199,6 +268,10 @@ def get_user_achievements_progress(user):
         'login': None,
         'consecutive_login': None,
         'ai_chat': None,
+        'ai_chat_consecutive': None,
+        'checklist_create': None,
+        'checklist_complete': None,
+        'accessory': None,
     }
     
     category_values = {
@@ -207,6 +280,10 @@ def get_user_achievements_progress(user):
         'login': stats.total_login_days,
         'consecutive_login': stats.consecutive_login_days,
         'ai_chat': stats.total_ai_chats,
+        'ai_chat_consecutive': stats.consecutive_ai_chat_days,
+        'checklist_create': stats.total_checklists_created,
+        'checklist_complete': stats.total_checklist_items_completed,
+        'accessory': stats.total_accessories_purchased,
     }
     
     for category in progress.keys():
