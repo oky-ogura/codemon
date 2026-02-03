@@ -4,6 +4,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.db import models
 from django.contrib import messages
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.decorators import login_required as _login_required
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse, HttpResponseForbidden, FileResponse
@@ -676,6 +677,7 @@ def checklist_detail(request, pk):
     return redirect('codemon:checklist_list')
 
 
+@login_required
 def checklist_edit(request, pk):
     """チェックリスト編集（新規作成画面に遷移してフォームに既存データを入力）"""
     if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
@@ -697,8 +699,17 @@ def checklist_edit(request, pk):
     ]
     
     return redirect('codemon:checklist_create')
+
 def checklist_save(request, pk):
-    checklist = get_object_or_404(Checklist, checklist_id=pk)
+    owner = _get_write_owner(request)
+    if owner is None:
+        return redirect('accounts:student_login')
+    
+    if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
+        checklist = get_object_or_404(Checklist, checklist_id=pk)
+    else:
+        checklist = get_object_or_404(Checklist, checklist_id=pk, user=owner)
+    
     if request.method == 'POST':
         name = request.POST.get('checklist_name')
         desc = request.POST.get('checklist_description', '')
@@ -1350,7 +1361,7 @@ if not getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
     systems_list = _login_required(systems_list)
     algorithms_list = _login_required(algorithms_list)
     chat_view = _login_required(chat_view)
-    # checklist_selection, checklist_list, checklist_create, checklist_detail は _get_write_owner で認証チェック済み
+    # checklist_selection, checklist_list, checklist_create, checklist_detail, checklist_save は _get_write_owner で認証チェック済み
     # checklist_toggle_item = _login_required(checklist_toggle_item)  # ← account_or_login_required で認証判定するため不要
     checklist_save = _login_required(checklist_save)
     # checklist_delete_confirm = _login_required(checklist_delete_confirm)
@@ -1816,7 +1827,6 @@ def unequip_accessory(request):
 # ========================================
 
 @login_required
-@login_required
 def chat_student(request):
     """生徒側チャット画面"""
     return render(request, 'chat/chat_student.html')
@@ -1892,4 +1902,5 @@ def grading_teacher(request):
 def chat_demo_index(request):
     """チャット機能デモインデックス"""
     return render(request, 'chat/index.html')
+
 
