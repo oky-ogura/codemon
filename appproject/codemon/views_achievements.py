@@ -32,6 +32,10 @@ def achievements_view(request):
     # ユーザー統計を取得
     stats, _ = UserStats.objects.get_or_create(user=user)
     
+    # ユーザーコインを取得
+    from .models import UserCoin
+    user_coin, _ = UserCoin.objects.get_or_create(user=user)
+    
     # 未受取の報酬がある実績を取得
     unclaimed_achievements = UserAchievement.objects.filter(
         user=user,
@@ -56,6 +60,7 @@ def achievements_view(request):
     context = {
         'progress': progress,
         'stats': stats,
+        'user_coin': user_coin,
         'unclaimed_achievements': unclaimed_achievements,
         'unclaimed_count': unclaimed_achievements.count(),
         'new_achievements': new_achievements,
@@ -115,3 +120,32 @@ def clear_achievement_notifications(request):
         request.session.modified = True
     from django.http import JsonResponse
     return JsonResponse({'status': 'ok'})
+
+
+@session_login_required
+@require_POST
+def claim_all_achievements(request):
+    """全ての未受取実績の報酬を一括受け取り"""
+    user_id = request.session.get('account_user_id')
+    user = get_object_or_404(Account, user_id=user_id)
+    
+    # 未受取の実績を全て取得
+    unclaimed_achievements = UserAchievement.objects.filter(
+        user=user,
+        is_achieved=True,
+        is_rewarded=False
+    ).select_related('achievement')
+    
+    if not unclaimed_achievements.exists():
+        messages.info(request, '受け取れる報酬はありません。')
+        return redirect('codemon:achievements')
+    
+    # 全ての実績の報酬を付与
+    achievements_list = [ua.achievement for ua in unclaimed_achievements]
+    total_coins = grant_achievement_rewards(user, achievements_list)
+    
+    if total_coins > 0:
+        achievement_count = len(achievements_list)
+        messages.success(request, f'🎉 {achievement_count}件の実績報酬 {total_coins}コイン を受け取りました！')
+    
+    return redirect('codemon:achievements')

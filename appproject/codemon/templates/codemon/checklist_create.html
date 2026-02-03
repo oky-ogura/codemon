@@ -212,6 +212,14 @@ textarea.input-main {
         </div>
 
         <div class="form-section">
+            <label class="section-label" for="due_date">🗓️ いつまでにやる？（期限）</label>
+            <input type="date" name="due_date" id="due_date" class="input-main">
+            <p style="font-size: 12px; color: #718096; margin-top: 5px; padding-left: 10px;">
+                ※期限を決めると、ホーム画面に「あと〇日！」と表示されるよ
+            </p>
+        </div>
+
+        <div class="form-section">
             <label class="section-label">やる内容（チェック項目）</label>
             <div id="items-container" class="item-list-container">
                 <div class="checklist-item-row">
@@ -239,13 +247,64 @@ textarea.input-main {
 
 {% block extra_js %}
 <script>
+// 編集データの反映（最初に実行）
+document.addEventListener('DOMContentLoaded', function() {
+    const editingName = "{{ editing_name|escapejs }}";
+    const editingDesc = "{{ editing_description|escapejs }}";
+    const editingDueDate = "{{ editing_due_date|escapejs }}";
+    const editingItemsJson = '{{ editing_items_json|escapejs }}';
+    
+    console.log('Editing name:', editingName);
+    console.log('Editing desc:', editingDesc);
+    console.log('Editing due date:', editingDueDate);
+    console.log('Editing items JSON:', editingItemsJson);
+    
+    // JSONをパース
+    let editingItems = [];
+    if (editingItemsJson) {
+        try {
+            editingItems = JSON.parse(editingItemsJson);
+            console.log('Parsed items:', editingItems);
+        } catch (e) {
+            console.error('Failed to parse editing items:', e);
+        }
+    }
+    
+    if (editingName) {
+        document.getElementById('checklist_name').value = editingName;
+    }
+    
+    if (editingDesc) {
+        document.getElementById('description').value = editingDesc;
+    }
+    
+    if (editingDueDate) {
+        document.getElementById('due_date').value = editingDueDate;
+    }
+    
+    if (editingItems && editingItems.length > 0) {
+        const container = document.getElementById('items-container');
+        container.innerHTML = '';
+        
+        editingItems.forEach((item, index) => {
+            const newRow = document.createElement('div');
+            newRow.className = 'checklist-item-row';
+            newRow.innerHTML = `
+                <div class="item-number">${index + 1}</div>
+                <input type="text" name="items[]" class="input-main" value="${item.item_text.replace(/"/g, '&quot;')}" required>
+                <button type="button" class="btn-remove" onclick="removeItem(this)">×</button>
+            `;
+            container.appendChild(newRow);
+        });
+    }
+});
+
 function addItem() {
     const container = document.getElementById('items-container');
     const rowCount = container.getElementsByClassName('checklist-item-row').length;
     
-    // 最大20項目までに制限（必要に応じて調整）
     if (rowCount >= 20) {
-        alert("項目は20個までだよ！");
+        alert("項目は20個までだよ!");
         return;
     }
 
@@ -257,8 +316,6 @@ function addItem() {
         <button type="button" class="btn-remove" onclick="removeItem(this)">×</button>
     `;
     container.appendChild(newRow);
-    
-    // 追加された入力欄にフォーカス
     newRow.querySelector('input').focus();
 }
 
@@ -266,13 +323,11 @@ function removeItem(button) {
     const container = document.getElementById('items-container');
     const rows = container.getElementsByClassName('checklist-item-row');
     
-    // 最後の1つは消せないようにする
     if (rows.length > 1) {
         button.parentElement.remove();
-        // 番号を振り直す
         reorderNumbers();
     } else {
-        alert("項目は1つ以上作ってね！");
+        alert("項目は1つ以上作ってね!");
     }
 }
 
@@ -283,9 +338,7 @@ function reorderNumbers() {
     });
 }
 
-// フォーム送信前の処理（必要があれば）
 document.getElementById('checklist-form').onsubmit = function() {
-    // ボタンの多重クリック防止
     const submitBtn = this.querySelector('.btn-create-submit');
     submitBtn.innerText = "さくせい中...";
     submitBtn.style.opacity = "0.7";
