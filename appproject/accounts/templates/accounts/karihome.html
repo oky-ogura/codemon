@@ -11,8 +11,10 @@
     <style>
         :root {
             --color-system: #3fbcd9;    /* システム（シアン） */
-            --color-algo: #a29bfe;      /* アルゴリズム（パープル） */
-            --color-checklist: #ffcc00; /* チェックリスト（イエロー） */
+            --color-algo: #B197FC;      /* アルゴリズム（紫） */
+            --color-checklist: #A8E6CF; /* チェックリスト（緑） */
+            --color-chat: #FFD166;      /* チャット（黄色） */
+            --color-mypage: #E0E0E0;    /* マイページ（グレー） */
             --color-shop: #ff69b4;
             --color-trophy: #ff9f43;
             --color-account: #4cd97b;
@@ -188,8 +190,8 @@
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 
         /* 下部ボタン */
-        .bottom-area { grid-column: 1 / 3; grid-row: 3 / 4; display: flex; gap: 20px; align-items: center; }
-        .panel-small { flex: 1; border-radius: 50px; height: 75px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 900; box-shadow: 0 6px 0 rgba(0,0,0,0.1); transition: all 0.2s; }
+        .bottom-area { grid-column: 1 / 3; grid-row: 3 / 4; display: flex; gap: 15px; align-items: center; }
+        .panel-small { flex: 1; border-radius: 50px; height: 75px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 900; box-shadow: 0 6px 0 rgba(0,0,0,0.1); transition: all 0.2s; }
         .panel-small:hover { transform: translateY(-3px); }
     </style>
 </head>
@@ -202,9 +204,6 @@
 
     <div class="home-grid">
         <div class="account-section">
-            <a href="{% url 'accounts:s_account' %}" class="account-btn">
-                <i class="fas fa-user-circle"></i> {{ user.username|default:"ゲスト" }}
-            </a>
             {% if user_coin %}
             <div class="coin-btn">
                 <i class="fas fa-coins" style="color: #ffcc00;"></i> {{ user_coin.balance|default:0 }}
@@ -260,6 +259,18 @@
             <a href="{% url 'codemon:achievements' %}" class="menu-panel panel-small panel-trophy" style="background: var(--color-trophy);">
                 <i class="fas fa-trophy calm-bounce"></i>&nbsp;トロフィー
             </a>
+            <a href="http://127.0.0.1:8000/codemon/chat/student/" class="menu-panel panel-small" style="background: var(--color-chat);">
+                <i class="fas fa-comments calm-bounce"></i>&nbsp;チャット
+            </a>
+            {% if is_teacher %}
+                <a href="{% url 'accounts:account_dashboard' %}" class="menu-panel panel-small" style="background: var(--color-mypage); color: #666;">
+                    <i class="fas fa-user calm-bounce"></i>&nbsp;マイページ
+                </a>
+            {% else %}
+                <a href="{% url 'accounts:s_account' %}" class="menu-panel panel-small" style="background: var(--color-mypage); color: #666;">
+                    <i class="fas fa-user calm-bounce"></i>&nbsp;マイページ
+                </a>
+            {% endif %}
         </div>
 
         <div class="character-area">
@@ -272,7 +283,7 @@
                 <img src="{% static 'codemon/images/characters/' %}{{ appearance|slice:':-4' }} 笑顔.png" class="character-img hover" id="characterHover">
             </div>
 
-            <button class="chat-trigger-btn" onclick="alert('相談機能をひらくよ！')">
+            <button class="chat-trigger-btn" id="chatTriggerBtn">
                 <i class="fas fa-comment-dots"></i> はなしかける
             </button>
         </div>
@@ -287,48 +298,56 @@
                 mumbles: ['え、えっと…何しようかな…', 'ぼ、ぼく、ここにいるよ…', 'う、うんと…少し眠いかも…', 'あ、あの…誰かいるかな…', 'ぼ、ぼくでよければ…話そうよ…', 'え、えっと…今日もがんばるね…', 'ぼ、ぼく…ちょっと緊張する…', 'あ、あの…よかったら声かけてね…'],
                 greeting: 'おかえり！✨<br>なにする？',
                 hoverMessage: 'いっしょに<br>あそぼう！',
+                chatGreeting: 'こ、こんにちは…！ ぼ、ぼくは{{ user.ai_name|default:"うたー"|escapejs }}です。<br>え、えっと…なんでも聞いてね…！',
                 colors: { primary: '#F5E3F4', secondary: '#E8C4E8', dark: '#D4A5D4' }
             },
             'キツネ.png': {
                 mumbles: ['ふぁ…退屈だなぁ', 'なんか面白いことないかね', 'ま、暇つぶしにはなるか', 'おまえ、そこにいるんだろ？', 'へぇ…見てるのさ', 'あくびが出ちゃうな', '誰か構ってくれないかねぇ', 'ま、気が向いたら話しかけなよ'],
                 greeting: 'よぉ。<br>何する？',
                 hoverMessage: 'ま、<br>付き合ってやるか',
+                chatGreeting: 'よぉ、オレは{{ user.ai_name|default:"うたー"|escapejs }}さ。<br>何か用かい？',
                 colors: { primary: '#FCD37D', secondary: '#F5B942', dark: '#E5A020' }
             },
             'イヌ.png': {
                 mumbles: ['今日もいい天気だな！', '誰か遊びに来ないかな', 'お腹すいてきたぞ', 'よし、やる気出てきた！', 'なんかワクワクするな', 'ちょっと眠くなってきた…', '散歩したいな', '話しかけてくれよ！'],
                 greeting: 'おかえり！✨<br>なにする？',
                 hoverMessage: 'いっしょに<br>あそぼう！',
+                chatGreeting: 'やぁ！ボクは{{ user.ai_name|default:"うたー"|escapejs }}だよ！<br>なんでも聞いてね！✨',
                 colors: { primary: '#FFD700', secondary: '#FFA500', dark: '#FF8C00' }
             },
             'パンダ.png': {
                 mumbles: ['ふぁぁ…のんびりするねぇ', 'お昼寝したいなぁ', 'ゆっくりでいいよぉ', '笹が食べたいなぁ', 'まったりしてるねぇ', 'あったかいねぇ…', '急がなくていいよぉ', 'ぼく、ここにいるよぉ'],
                 greeting: 'やぁ…<br>ゆっくりでいいよぉ',
                 hoverMessage: 'いっしょに<br>まったりしようぉ',
+                chatGreeting: 'やぁ…ぼくは{{ user.ai_name|default:"うたー"|escapejs }}だよぉ。<br>ゆっくりでいいから、なんでも聞いてねぇ。',
                 colors: { primary: '#FEF5DB', secondary: '#F5E6B8', dark: '#E5D090' }
             },
             'リス.png': {
                 mumbles: ['もう、何してるのよ', 'ちゃんとやってる？', 'しょうがないわね…', 'アタシに任せなさいよ', 'ふん、別に暇じゃないし', '何か手伝ってあげようか？', 'ちょっと、聞いてるの？', 'まったく、世話が焼けるわね'],
                 greeting: 'ふん、おかえり。<br>なによ？',
                 hoverMessage: 'しょうがないわね…<br>遊んであげる',
+                chatGreeting: 'アタシは{{ user.ai_name|default:"うたー"|escapejs }}よ。<br>何か用？ まぁ、聞いてあげるわ。',
                 colors: { primary: '#FEB6AC', secondary: '#F59A8E', dark: '#E57A6E' }
             },
             'フクロウ.png': {
                 mumbles: ['ふむ…考え事をしていました', '静かで落ち着きますね', '知識は宝ですよ', '何かお困りですか？', 'ゆっくり考えましょう', 'なるほど…興味深いですね', '学ぶことは楽しいですよ', 'いつでもお手伝いしますよ'],
                 greeting: 'おかえりなさい。<br>いかがいたしましょう',
                 hoverMessage: 'お話ししましょうか',
+                chatGreeting: 'こんにちは。私は{{ user.ai_name|default:"うたー"|escapejs }}と申します。<br>何なりとお尋ねください。',
                 colors: { primary: '#92B7D6', secondary: '#6A9BC5', dark: '#4A7BA5' }
             },
             'ネコ.png': {
                 mumbles: ['……ふぁ', '……眠い', '……なに？', '……ま、いいけど', '……暇だな', '……そこにいるの？', '……気が向いたら話す', '……別に待ってないし'],
                 greeting: '……おかえり<br>……なに？',
                 hoverMessage: '……ま、いいけど',
+                chatGreeting: '……{{ user.ai_name|default:"うたー"|escapejs }}。<br>……聞きたいことあるの？',
                 colors: { primary: '#9CBDB6', secondary: '#7AA59D', dark: '#5A8A80' }
             },
             'アルパカ.png': {
                 mumbles: ['ごきげんよう', 'お紅茶が飲みたいですわ', 'よくってよ', 'わたくしに任せなさい', 'ふふ、素敵ですわね', '何かお手伝いしましょうか？', 'ついていらっしゃい', 'さあ、何でもおっしゃって'],
                 greeting: 'ごきげんよう<br>なんでしょう？',
                 hoverMessage: 'お話ししましょう',
+                chatGreeting: 'ごきげんよう。わたくしは{{ user.ai_name|default:"うたー"|escapejs }}ですわ。<br>どうぞお気軽にお話しください。',
                 colors: { primary: '#FFF5CD', secondary: '#F5E8A5', dark: '#E5D580' }
             }
         };
@@ -337,15 +356,34 @@
         const defaultImg = document.getElementById('characterDefault');
         const hoverImg = document.getElementById('characterHover');
         const speech = document.getElementById('charSpeech');
+        const chatTriggerBtn = document.getElementById('chatTriggerBtn');
         
         // キャラクター設定を取得
         const appearance = '{{ appearance|default:"イヌ.png"|escapejs }}';
         const charData = characterDialogues[appearance] || characterDialogues['イヌ.png'];
         
+        // キャラクターコードを取得（例: 'ネコ.png' -> 'neko'）
+        const characterCodeMap = {
+            'ウサギ.png': 'usagi',
+            'キツネ.png': 'kitsune',
+            'イヌ.png': 'inu',
+            'パンダ.png': 'panda',
+            'リス.png': 'risu',
+            'フクロウ.png': 'fukurou',
+            'ネコ.png': 'neko',
+            'アルパカ.png': 'arupaka'
+        };
+        const characterCode = characterCodeMap[appearance] || 'inu';
+        
+        // character-containerにdata-character属性を追加（ai_chat_base.htmlで使用）
+        charContainer.setAttribute('data-character', characterCode);
+        console.log('設定されたキャラクター:', appearance, 'コード:', characterCode);
+        
         // テーマカラーを適用
         document.documentElement.style.setProperty('--theme-primary', charData.colors.primary);
         document.documentElement.style.setProperty('--theme-secondary', charData.colors.secondary);
         document.documentElement.style.setProperty('--theme-dark', charData.colors.dark);
+        document.documentElement.style.setProperty('--theme-light', charData.colors.primary + '20'); // 透明度20%
         
         // 初期メッセージを設定
         let mumbleIndex = 0;
@@ -376,6 +414,38 @@
             speech.innerHTML = charData.mumbles[mumbleIndex % charData.mumbles.length];
             mumbleIndex++;
         });
+        
+        // 「はなしかける」ボタンでAIチャットウィジェットを開く
+        if (chatTriggerBtn) {
+            chatTriggerBtn.addEventListener('click', function(event) {
+                event.stopPropagation(); // イベント伝播を止める（documentのクリックイベントを防止）
+                console.log('はなしかけるボタンがクリックされました');
+                // ai_chat_base.htmlのopenAIChat()関数を呼び出す
+                if (typeof window.openAIChat === 'function') {
+                    console.log('window.openAIChat関数を呼び出します');
+                    window.openAIChat();
+                } else {
+                    console.error('window.openAIChat関数が見つかりません');
+                    // フォールバック: ウィジェットを直接表示
+                    const widget = document.getElementById('character-widget');
+                    const bubble = document.getElementById('chat-bubble');
+                    if (widget && bubble) {
+                        widget.style.display = 'block';
+                        bubble.className = 'expanded';
+                        const expandedView = document.getElementById('expanded-view');
+                        const minimizedView = document.getElementById('minimized-view');
+                        if (expandedView && minimizedView) {
+                            minimizedView.style.display = 'none';
+                            expandedView.style.display = 'flex';
+                            expandedView.style.flexDirection = 'column';
+                        }
+                    }
+                }
+            });
+        }
     </script>
+
+    <!-- AI会話機能（右下ウィジェット） -->
+    {% include 'includes/ai_chat_base.html' %}
 </body>
 </html>

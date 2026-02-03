@@ -153,6 +153,10 @@
     const btnMain = document.getElementById('btn-main');
     // btnMainには何もイベントを付けない（表示のみ）
 </script>
+
+{% block ai_chat_widget %}
+  {% include 'includes/ai_chat_base.html' %}
+{% endblock %}
 </body>
 {% endblock %}
 </html>
