@@ -56,8 +56,243 @@ try {
 })();
 
 // ---------------------- ワークスペース ----------------------
+// カスタムテーマ（ポップでかわいいデザイン）
+const customTheme = Blockly.Theme.defineTheme('codemon_theme', {
+  'base': Blockly.Themes.Classic,
+  'blockStyles': {
+    'logic_blocks': {
+      'colourPrimary': '#3fbcd9',
+      'colourSecondary': '#5ec8dd',
+      'colourTertiary': '#2da3c0'
+    },
+    'loop_blocks': {
+      'colourPrimary': '#FFD200',
+      'colourSecondary': '#ffe04d',
+      'colourTertiary': '#ccaa00'
+    },
+    'math_blocks': {
+      'colourPrimary': '#9966ff',
+      'colourSecondary': '#b085ff',
+      'colourTertiary': '#7a52cc'
+    },
+    'text_blocks': {
+      'colourPrimary': '#ff7675',
+      'colourSecondary': '#ff9999',
+      'colourTertiary': '#e65c5b'
+    },
+    'list_blocks': {
+      'colourPrimary': '#A8E6CF',
+      'colourSecondary': '#c0eedd',
+      'colourTertiary': '#8bd9b5'
+    },
+    'variable_blocks': {
+      'colourPrimary': '#ff9f43',
+      'colourSecondary': '#ffb366',
+      'colourTertiary': '#e68a2e'
+    },
+    'procedure_blocks': {
+      'colourPrimary': '#B197FC',
+      'colourSecondary': '#c7b0fd',
+      'colourTertiary': '#9b7fe0'
+    }
+  },
+  'categoryStyles': {
+    'logic_category': {
+      'colour': '#3fbcd9'
+    },
+    'loop_category': {
+      'colour': '#FFD200'
+    },
+    'math_category': {
+      'colour': '#9966ff'
+    },
+    'text_category': {
+      'colour': '#ff7675'
+    },
+    'list_category': {
+      'colour': '#A8E6CF'
+    },
+    'variable_category': {
+      'colour': '#ff9f43'
+    },
+    'procedure_category': {
+      'colour': '#B197FC'
+    }
+  },
+  'componentStyles': {
+    'workspaceBackgroundColour': '#f0f4f8',
+    'toolboxBackgroundColour': 'rgba(255, 255, 255, 0.95)',
+    'toolboxForegroundColour': '#333',
+    'flyoutBackgroundColour': 'rgba(255, 255, 255, 0.98)',
+    'flyoutForegroundColour': '#333',
+    'flyoutOpacity': 0.98,
+    'scrollbarColour': '#3fbcd9',
+    'scrollbarOpacity': 0.6,
+    'insertionMarkerColour': '#FFD200',
+    'insertionMarkerOpacity': 0.6,
+    'markerColour': '#ff7675',
+    'cursorColour': '#3fbcd9'
+  },
+  'fontStyle': {
+    'family': '"Yu Gothic UI", Meiryo, "Noto Sans JP", Arial, sans-serif',
+    'weight': '600',
+    'size': 14
+  },
+  'startHats': true
+});
+
+// Blocklyのメッセージを小学生低学年向けの日本語に変更
+Blockly.Msg['DUPLICATE_BLOCK'] = 'コピーする';
+Blockly.Msg['DUPLICATE_COMMENT'] = 'コメントをコピー';
+Blockly.Msg['ADD_COMMENT'] = 'メモをつける';
+Blockly.Msg['REMOVE_COMMENT'] = 'メモをけす';
+Blockly.Msg['EXTERNAL_INPUTS'] = 'よこにならべる';
+Blockly.Msg['INLINE_INPUTS'] = 'たてにならべる';
+Blockly.Msg['DELETE_BLOCK'] = 'けす';
+Blockly.Msg['DELETE_X_BLOCKS'] = '%1このブロックをけす';
+Blockly.Msg['COLLAPSE_BLOCK'] = 'ちいさくする';
+Blockly.Msg['COLLAPSE_ALL'] = 'ぜんぶちいさくする';
+Blockly.Msg['EXPAND_BLOCK'] = 'おおきくする';
+Blockly.Msg['EXPAND_ALL'] = 'ぜんぶおおきくする';
+Blockly.Msg['DISABLE_BLOCK'] = 'つかわない';
+Blockly.Msg['ENABLE_BLOCK'] = 'つかう';
+Blockly.Msg['HELP'] = 'ヘルプ';
+Blockly.Msg['UNDO'] = 'もどす';
+Blockly.Msg['REDO'] = 'やりなおす';
+Blockly.Msg['CLEAN_UP'] = 'きれいにならべる';
+
+// コンテキストメニューのスタイルをカスタマイズ
+const style = document.createElement('style');
+style.textContent = `
+  /* Blocklyコンテキストメニューのスタイル */
+  .blocklyContextMenu {
+    background: rgba(255, 255, 255, 0.98) !important;
+    border: 3px solid #3fbcd9 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 24px rgba(63, 188, 217, 0.3), 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    padding: 8px 0 !important;
+    min-width: 180px !important;
+  }
+  
+  .blocklyMenuItem {
+    padding: 12px 20px !important;
+    font-family: "Yu Gothic UI", Meiryo, "Noto Sans JP", Arial, sans-serif !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: #333 !important;
+    cursor: pointer !important;
+    border-radius: 0 !important;
+    transition: all 0.2s ease !important;
+    position: relative !important;
+  }
+  
+  .blocklyMenuItem:hover {
+    background: linear-gradient(90deg, #3fbcd9 0%, #5ec8dd 100%) !important;
+    color: #fff !important;
+    transform: translateX(4px) !important;
+  }
+  
+  .blocklyMenuItem:active {
+    background: linear-gradient(90deg, #2da3c0 0%, #3fbcd9 100%) !important;
+    transform: translateX(2px) scale(0.98) !important;
+  }
+  
+  .blocklyMenuItemDisabled {
+    color: #ccc !important;
+    cursor: not-allowed !important;
+  }
+  
+  .blocklyMenuItemDisabled:hover {
+    background: transparent !important;
+    color: #ccc !important;
+    transform: none !important;
+  }
+  
+  .blocklyMenuItemCheckbox,
+  .blocklyMenuItemIcon {
+    margin-right: 10px !important;
+    color: #FFD200 !important;
+    font-weight: bold !important;
+  }
+  
+  /* 削除系のメニュー項目 */
+  .blocklyMenuItem[aria-label*="けす"],
+  .blocklyMenuItem[aria-label*="DELETE"] {
+    color: #ff7675 !important;
+  }
+  
+  .blocklyMenuItem[aria-label*="けす"]:hover,
+  .blocklyMenuItem[aria-label*="DELETE"]:hover {
+    background: linear-gradient(90deg, #ff7675 0%, #ff9999 100%) !important;
+    color: #fff !important;
+  }
+  
+  /* ツールチップ */
+  .blocklyTooltipDiv {
+    background: rgba(63, 188, 217, 0.95) !important;
+    color: #fff !important;
+    border-radius: 10px !important;
+    padding: 8px 14px !important;
+    font-family: "Yu Gothic UI", Meiryo, "Noto Sans JP", Arial, sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+  }
+  
+  /* ドラッグ中のブロックの影 */
+  .blocklyDragging {
+    box-shadow: 0 8px 24px rgba(63, 188, 217, 0.4) !important;
+  }
+  
+  /* ゴミ箱 */
+  .blocklyTrash {
+    opacity: 0.8 !important;
+  }
+  
+  .blocklyTrash:hover {
+    opacity: 1 !important;
+    transform: scale(1.1) !important;
+  }
+  
+  /* ズームコントロール */
+  .blocklyZoom {
+    opacity: 0.8 !important;
+  }
+  
+  .blocklyZoom image {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1)) !important;
+  }
+`;
+document.head.appendChild(style);
+
 const workspace = Blockly.inject('blocklyDiv', {
-  toolbox: document.getElementById('toolbox')
+  toolbox: document.getElementById('toolbox'),
+  theme: customTheme,
+  renderer: 'zelos', // より丸みのあるレンダラー
+  grid: {
+    spacing: 25,
+    length: 3,
+    colour: '#e0e8f0',
+    snap: true
+  },
+  zoom: {
+    controls: true,
+    wheel: true,
+    startScale: 1.0,
+    maxScale: 2,
+    minScale: 0.5,
+    scaleSpeed: 1.1
+  },
+  trashcan: true,
+  sounds: true,
+  move: {
+    scrollbars: {
+      horizontal: true,
+      vertical: true
+    },
+    drag: true,
+    wheel: true
+  }
 });
 
 // 編集モードの場合、既存のBlocklyデータを読み込む

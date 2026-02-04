@@ -286,6 +286,14 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // system_create.htmlページでwindow.isDirtyが未初期化の場合は初期化
+  // (ブラウザキャッシュやテンプレート読み込み順序の問題に対する防御的処理)
+  if (typeof window.isDirty === 'undefined') {
+    window.isDirty = false;
+    window.isNavigating = false;
+    console.log('🎯 window.isDirty initialized in header.html (fallback):', window.isDirty);
+  }
+  
   const menuBtn = document.getElementById('menuBtn');
   const navContent = document.getElementById('navContent');
   const backdrop = document.getElementById('menuBackdrop');
@@ -314,6 +322,68 @@ document.addEventListener('DOMContentLoaded', function() {
     if (menuBtn.classList.contains('menu-active')) {
       toggleMenu();
     }
+  });
+
+  // --- メニュー項目のナビゲーション確認処理 ---
+  // system_create.htmlページでの未保存変更チェック
+  const menuLinks = document.querySelectorAll('.menu-item');
+  menuLinks.forEach(link => {
+    link.addEventListener('click', async function(e) {
+      console.log('🔍 Menu link clicked:', this.getAttribute('href'));
+      console.log('🔍 window.isDirty:', window.isDirty);
+      console.log('🔍 typeof window.isDirty:', typeof window.isDirty);
+      
+      // window.isDirty と window.handleNavigation が存在する場合（system_create.htmlページ）
+      if (typeof window.isDirty !== 'undefined' && window.isDirty === true) {
+        console.log('⚠️ Intercepting navigation - showing custom dialog');
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        
+        const targetUrl = this.getAttribute('href');
+        
+        // handleNavigation関数が存在する場合は使用
+        if (typeof window.handleNavigation === 'function') {
+          console.log('✅ Using window.handleNavigation');
+          await window.handleNavigation(targetUrl);
+        } else if (typeof window.customConfirm === 'function') {
+          console.log('✅ Using window.customConfirm directly');
+          // customConfirm関数のみ存在する場合
+          window.isNavigating = true;
+          const confirmed = await window.customConfirm('入力内容が破棄されます。移動してもよろしいですか？', {
+            title: '確認',
+            confirmText: '移動する',
+            cancelText: 'キャンセル',
+            danger: true
+          });
+          
+          if (confirmed) {
+            window.isDirty = false;
+            
+            // sessionStorageをクリア
+            sessionStorage.removeItem('systemDesignContent');
+            sessionStorage.removeItem('returnFromCreate');
+            sessionStorage.removeItem('navigatingToCreate');
+            sessionStorage.removeItem('systemId');
+            sessionStorage.removeItem('systemName');
+            sessionStorage.removeItem('systemDescription');
+            
+            // beforeunloadイベントハンドラーを削除（window.beforeUnloadHandlerが存在する場合）
+            if (typeof window.beforeUnloadHandler !== 'undefined') {
+              window.removeEventListener('beforeunload', window.beforeUnloadHandler);
+            }
+            
+            window.location.href = targetUrl;
+          } else {
+            window.isNavigating = false;
+          }
+        } else {
+          console.error('❌ No confirmation function available');
+        }
+      } else {
+        console.log('✅ No interception needed - proceeding with normal navigation');
+      }
+    }, true); // キャプチャフェーズで実行
   });
 
   // --- アクティブなページ（現在地）の判定ロジック改善 ---

@@ -14,6 +14,12 @@
     history.push(snapshot);
     historyIndex = history.length - 1;
     updateUndoRedoButtons();
+    
+    // 要素が追加/変更されたので isDirty を true にする
+    if (typeof window.isDirty !== 'undefined') {
+      window.isDirty = true;
+      console.log('🔄 saveHistory called - isDirty set to true');
+    }
   };
 
   window.restoreHistory = function() {
@@ -23,9 +29,19 @@
     const inputContainers = slide.querySelectorAll('.input-container');
     inputContainers.forEach(container => makeDraggable(container));
     const draggableBtns = slide.querySelectorAll('.draggable-btn');
-    draggableBtns.forEach(btn => makeDraggable(btn));
+    draggableBtns.forEach(btn => {
+      makeDraggable(btn);
+      // アルゴリズムが設定されているボタンにインジケーターを表示
+      if (btn.hasAttribute('data-algorithm-id') && !btn.querySelector('.algorithm-indicator')) {
+        if (typeof addAlgorithmIndicator === 'function') {
+          addAlgorithmIndicator(btn);
+        }
+      }
+    });
     const textInputContainers = slide.querySelectorAll('.text-input-container');
     textInputContainers.forEach(container => makeDraggable(container));
+    const textBoxContainers = slide.querySelectorAll('.text-box-container');
+    textBoxContainers.forEach(container => makeDraggable(container));
     const checkboxGroups = slide.querySelectorAll('.checkbox-group');
     checkboxGroups.forEach(g => makeDraggable(g));
     const radioGroups = slide.querySelectorAll('.radio-group');
