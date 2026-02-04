@@ -280,6 +280,7 @@
     main {
       flex-direction: column; /* 縦並びに */
       align-items: center;
+<<<<<<< HEAD
     }
     .side-panel {
       flex: none;
@@ -289,6 +290,200 @@
     }
     .status-card {
       transform: none; /* 傾き解除 */
+=======
+      justify-content: center;
+      padding: 25px 30px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      background: linear-gradient(135deg, #3fbcd9 0%, #2a9db8 100%);
+      border-radius: 50px;
+      color: white;
+      font-weight: 900;
+      font-size: 20px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+      min-height: 75px;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 8px 20px rgba(63, 188, 217, 0.3);
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+      gap: 10px;
+    }
+    .action-btn:hover {
+      transform: translateY(-5px) scale(1.02);
+      box-shadow: 0 12px 30px rgba(63, 188, 217, 0.4);
+      border-color: rgba(255, 255, 255, 0.6);
+    }
+    .action-btn:active {
+      transform: scale(0.95) !important;
+      transition: transform 0.1s !important;
+      box-shadow: 0 4px 10px rgba(63, 188, 217, 0.3) !important;
+    }
+    .action-btn.disabled {
+      opacity: 0.7;
+      cursor: default;
+      pointer-events: none;
+    }
+    
+    /* ボタンにアイコンを追加する場合 */
+    .action-btn i {
+      font-size: 24px;
+    }
+    
+    /* ボタンのカラーバリエーション */
+    .action-btn.btn-list {
+      background: linear-gradient(135deg, #3fbcd9 0%, #2a9db8 100%);
+      box-shadow: 0 8px 20px rgba(63, 188, 217, 0.3);
+    }
+    .action-btn.btn-list:hover {
+      box-shadow: 0 12px 30px rgba(63, 188, 217, 0.4);
+    }
+    
+    .action-btn.btn-new {
+      background: linear-gradient(135deg, #4cd97b 0%, #3ab866 100%);
+      box-shadow: 0 8px 20px rgba(76, 217, 123, 0.3);
+    }
+    .action-btn.btn-new:hover {
+      box-shadow: 0 12px 30px rgba(76, 217, 123, 0.4);
+    }
+    
+    .action-btn.btn-tutorial {
+      background: linear-gradient(135deg, #FFD166 0%, #F5B942 100%);
+      box-shadow: 0 8px 20px rgba(255, 209, 102, 0.3);
+    }
+    .action-btn.btn-tutorial:hover {
+      box-shadow: 0 12px 30px rgba(255, 209, 102, 0.4);
+    }
+    
+    .action-btn.btn-roulette {
+      background: linear-gradient(135deg, #ff69b4 0%, #e052a0 100%);
+      box-shadow: 0 8px 20px rgba(255, 105, 180, 0.3);
+    }
+    .action-btn.btn-roulette:hover {
+      box-shadow: 0 12px 30px rgba(255, 105, 180, 0.4);
+    }
+
+    /* 右側の説明エリア（削除） */
+
+    /* AIキャラクター表示（右下固定） */
+    .character-container {
+      position: fixed !important;
+      right: 5%;
+      bottom: 0;
+      z-index: 100 !important;
+      display: flex;
+      align-items: flex-end;
+      pointer-events: none;
+    }
+    
+    .character-image {
+      max-width: 280px !important;
+      max-height: 350px !important;
+      pointer-events: auto;
+      transition: transform 0.3s ease;
+      transform-origin: bottom center;
+      display: block;
+      border: none !important;
+      outline: none !important;
+      box-shadow: none !important;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+    }
+    
+    .character-container img {
+      border: none !important;
+      outline: none !important;
+    }
+    
+    /* ホバー時に軽く動く */
+    .character-image:hover {
+      transform: scale(1.05) rotate(2deg) !important;
+      cursor: pointer;
+    }
+
+    /* ==================== チャットモーダル ==================== */
+    .chat-modal {
+      display: none;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 9998 !important;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .chat-modal.active {
+      display: flex;
+    }
+    
+    .chat-window {
+      background: white;
+      border-radius: 30px;
+      width: 90%;
+      max-width: 800px;
+      height: 80%;
+      max-height: 600px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: modalSlideIn 0.3s ease-out;
+      position: relative !important;
+      z-index: 9999 !important;
+    }
+    
+    @keyframes modalSlideIn {
+      from {
+        transform: scale(0.8) translateY(-50px);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+      }
+    }
+    
+    .chat-header {
+      background: linear-gradient(135deg, #FFD700, #FFA500);
+      padding: 20px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 3px solid #FF8C00;
+    }
+    
+    .chat-header h2 {
+      margin: 0;
+      color: white;
+      font-size: 24px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    .chat-close-btn {
+      background: white;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+      color: #FF8C00;
+      font-weight: bold;
+    }
+    
+    .chat-close-btn:hover {
+      transform: rotate(90deg) scale(1.1);
+      background: #FFE4B5;
+    }
+    
+    .chat-messages {
+>>>>>>> main
       flex: 1;
     }
     .hint-card {
@@ -330,6 +525,7 @@
 {% block content %}
 <main>
 
+<<<<<<< HEAD
   <aside class="side-panel">
     <div class="status-card">
       <div class="user-info">
@@ -344,6 +540,32 @@
           <span>つくった数: {{ total_systems }}</span>
         </li>
       </ul>
+=======
+<body>
+  
+
+  <main>
+    <div class="action-panel" role="region" aria-label="システム操作">
+      <!-- 1行目  -->
+      <button class="action-btn btn-list" id="btn-list">
+        <i class="fas fa-list"></i> 作成したシステム一覧を開く
+      </button>
+      
+      <!-- 2行目  -->
+      <button class="action-btn btn-new" id="btn-new">
+        <i class="fas fa-plus-circle"></i> 新しいシステムを作成
+      </button>
+      
+      <!-- 3行目  -->
+      <button class="action-btn btn-tutorial" id="btn-tutorial">
+        <i class="fas fa-graduation-cap"></i> チュートリアル
+      </button>
+      
+      <!-- 4行目 -->
+      <button class="action-btn btn-roulette" id="btn-roulette-topics">
+        <i class="fas fa-dice"></i> ルーレットお題表示
+      </button>
+>>>>>>> main
     </div>
 
     <div class="hint-card">
@@ -427,4 +649,13 @@
 
 {% block ai_chat_widget %}
   {% include 'includes/ai_chat_base.html' %}
+<<<<<<< HEAD
 {% endblock %}
+=======
+
+{% endblock %}
+</body>
+
+</html>
+
+>>>>>>> main

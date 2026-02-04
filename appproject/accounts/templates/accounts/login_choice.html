@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% block global_navigation %}{% endblock %}
 {% block global_character_widget %}{% endblock %}
 {% load static %}
 
@@ -11,13 +12,26 @@
 {% endblock %}
 
 {% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;900&display=swap" rel="stylesheet">
 <style>
-    /* ナビゲーションを非表示（ログイン画面では不要） */
+    :root {
+        --main-blue: #3fbcd9;
+        --main-yellow: #FFD200;
+        --main-green: #10b981;
+        --main-bg: #f0f4f8;
+        --panel-white: rgba(255, 255, 255, 0.95);
+        --text-color: #4a5568;
+    }
+
+    body, html {
+        font-family: 'M PLUS Rounded 1c', sans-serif;
+    }
+
+    /* ナビゲーションを非表示 */
     .top-tabs {
         display: none !important;
     }
     
-    /* コンテナ */
     .choice-container {
         position: relative;
         width: 100%;
@@ -30,89 +44,158 @@
         box-sizing: border-box;
     }
 
-    /* カード */
-    .card {
-        max-width: 520px;
-        background: #fff;
-        padding: 40px;
-        border-radius: 20px;
-        box-shadow: 0 6px 18px rgba(0,0,0,0.1);
-        text-align: center;
+    /* タイトル：ログイン画面と同じ下線デザイン */
+    .page-title {
+        font-size: 2.2rem;
+        font-weight: 900;
+        color: var(--main-blue);
+        margin: 0 0 40px 0;
+        display: inline-block;
+        position: relative;
         z-index: 10;
     }
+    .page-title::after {
+        content: '';
+        position: absolute;
+        bottom: 2px;
+        left: 0;
+        width: 100%;
+        height: 8px;
+        background: var(--main-yellow);
+        border-radius: 10px;
+        opacity: 0.6;
+        z-index: -1;
+    }
 
-    h1 {
-        margin: 0 0 18px;
-        font-size: 22px;
-        color: #333;
+    /* カード */
+    .login-card {
+        background: var(--panel-white);
+        border-radius: 30px;
+        padding: 40px 30px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        border: 6px solid #fff;
+        position: relative;
+        width: 100%;
+        max-width: 520px;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .card-label-tag {
+        position: absolute;
+        top: -18px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--main-blue);
+        color: #fff;
+        padding: 6px 30px;
+        border-radius: 50px;
+        font-weight: 800;
+        font-size: 1rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
 
     .desc {
         color: #666;
         margin-bottom: 30px;
-        font-size: 15px;
+        font-size: 16px;
+        text-align: center;
+        font-weight: 700;
+        line-height: 1.6;
     }
 
     .buttons {
         display: flex;
-        gap: 30px;
+        gap: 20px;
         justify-content: center;
-        flex-wrap: wrap;
+        flex-direction: column;
+        width: 100%;
     }
 
     .btn {
-        font-size: 1rem;
-        color: #000;
-        padding: 12px 40px;
-        border-radius: 8px;
-        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 18px 40px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50px;
+        color: white;
+        font-weight: 900;
+        font-size: 18px;
         cursor: pointer;
-        font-weight: bold;
+        text-align: center;
+        transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+        min-height: 65px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        gap: 10px;
         text-decoration: none;
-        transition: background 0.2s;
     }
 
     .btn-teacher {
-        border-top: 3px solid #3b82f6;
-        border-left: 3px solid #3b82f6;
-        border-right: 3px solid #E0E0E0;
-        border-bottom: 3px solid #E0E0E0;
-        box-shadow: 4px 4px 0 #3b82f6;
+        background: linear-gradient(135deg, #3fbcd9 0%, #2a9db8 100%);
+        border-color: rgba(255, 255, 255, 0.3);
     }
 
     .btn-teacher:hover {
-        background: #eff6ff;
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 12px 30px rgba(63, 188, 217, 0.4);
+        border-color: rgba(255, 255, 255, 0.6);
     }
 
     .btn-student {
-        border-top: 3px solid #10b981;
-        border-left: 3px solid #10b981;
-        border-right: 3px solid #E0E0E0;
-        border-bottom: 3px solid #E0E0E0;
-        box-shadow: 4px 4px 0 #10b981;
+        background: linear-gradient(135deg, #4cd97b 0%, #3ab866 100%);
+        border-color: rgba(255, 255, 255, 0.3);
     }
 
     .btn-student:hover {
-        background: #ecfdf5;
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 12px 30px rgba(76, 217, 123, 0.4);
+        border-color: rgba(255, 255, 255, 0.6);
+    }
+
+    .btn:active {
+        transform: scale(0.95) !important;
+        transition: transform 0.1s !important;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3) !important;
     }
 
     .small {
         margin-top: 24px;
-        color: #888;
+        color: #94a3b8;
         font-size: 13px;
+        text-align: center;
+        font-weight: 700;
+    }
+
+    @media (max-width: 500px) {
+        .login-card { width: 90%; padding: 35px 20px; }
+        .page-title { font-size: 1.8rem; }
+        .btn { font-size: 16px; padding: 15px 30px; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="choice-container">
-    <div class="card">
-        <h1>ログイン種別を選択してください</h1>
+    <h1 class="page-title">ログインしよう！</h1>
+    
+    <div class="login-card">
+        <div class="card-label-tag">ログイン種別を選択</div>
+        
         <div class="desc">利用目的に応じて、教員アカウントまたは生徒アカウントでログインしてください。</div>
+        
         <div class="buttons">
-            <a class="btn btn-teacher" href="{% url 'accounts:teacher_login' %}">教員でログイン</a>
-            <a class="btn btn-student" href="{% url 'accounts:student_login' %}">生徒でログイン</a>
+            <a class="btn btn-teacher" href="{% url 'accounts:teacher_login' %}">
+                <i class="fas fa-chalkboard-teacher"></i> 教員でログイン
+            </a>
+            <a class="btn btn-student" href="{% url 'accounts:student_login' %}">
+                <i class="fas fa-user-graduate"></i> 生徒でログイン
+            </a>
         </div>
+        
         <div class="small">※ 適切なアカウントをお持ちでない場合はサインアップから登録してください。</div>
     </div>
 </div>

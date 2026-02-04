@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% block global_navigation %}{% endblock %}
 {% load static %}
 
 {% block title %}グループを検索して参加{% endblock %}
@@ -11,174 +12,283 @@
 
 {% block extra_css %}
 <style>
-  /* ナビゲーションを非表示 */
-  .top-tabs {
-    display: none !important;
+@import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@800;900&display=swap');
+
+:root {
+  --main-blue: #3fbcd9;
+  --main-yellow: #FFD200;
+  --main-green: #4cd97b;
+  --main-bg: #f0f4f8;
+  --panel-white: rgba(255, 255, 255, 0.95);
+  --error-red: #ff7675;
+}
+
+.top-tabs { display: none !important; }
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--main-bg);
+  background-image: linear-gradient(rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.6)), url("{% static 'codemon/images/backgrounds/bg_common.png' %}");
+  background-size: cover;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== レイアウト ===== */
+.search-container {
+  width: 100%;
+  max-width: 1100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.page-title {
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: var(--main-blue);
+  margin: 0;
+  position: relative;
+  display: inline-block;
+}
+
+.page-title::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 100%;
+  height: 8px;
+  background: var(--main-yellow);
+  border-radius: 10px;
+  opacity: 0.6;
+}
+
+/* ===== カードスタイル ===== */
+.box {
+  background: white;
+  border-radius: 25px;
+  padding: 40px 50px;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.08);
+  border: 8px solid rgba(63, 188, 217, 0.2);
+  text-align: center;
+  max-width: 900px;
+  width: 100%;
+  z-index: 10;
+}
+
+.icon-area {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.search-icon {
+  width: 100px;
+  height: 100px;
+}
+
+.box h1 {
+  font-size: 1.8rem;
+  margin: 0 0 15px;
+  color: #333;
+  font-weight: 900;
+}
+
+p.question {
+  font-size: 1rem;
+  color: #555;
+  margin: 0 0 30px;
+  font-weight: 800;
+  line-height: 1.6;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+label {
+  font-weight: 900;
+  color: #333;
+  font-size: 1rem;
+}
+
+input[type=text], 
+input[type=password] {
+  width: 100%;
+  max-width: 600px;
+  padding: 15px 20px;
+  border: 3px solid #d0dfe8;
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  box-shadow: 0 4px 0 #c0d5e0;
+  transition: all 0.2s;
+}
+
+input[type=text]::placeholder,
+input[type=password]::placeholder {
+  color: #999;
+  font-weight: 700;
+}
+
+input[type=text]:focus, 
+input[type=password]:focus {
+  outline: none;
+  border-color: var(--main-blue);
+  box-shadow: 0 0 0 3px rgba(63, 188, 217, 0.2);
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 30px;
+}
+
+.btn {
+  flex: 1;
+  max-width: 250px;
+  padding: 16px 0;
+  border-radius: 100px;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  font-weight: 900;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  transition: 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+  line-height: 1;
+}
+
+.btn-back {
+  background: var(--error-red);
+  color: #fff;
+  box-shadow: 0 8px 0 #d65554;
+}
+
+.btn-search {
+  background: var(--main-blue);
+  color: #fff;
+  box-shadow: 0 8px 0 #2a9db8;
+}
+
+.btn:hover {
+  transform: translateY(-3px);
+}
+
+.btn:active {
+  transform: translateY(6px);
+  box-shadow: none !important;
+}
+
+.messages {
+  margin-bottom: 20px;
+}
+
+.message {
+  padding: 12px 20px;
+  border-radius: 25px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  margin-bottom: 10px;
+  background: linear-gradient(135deg, #fdecea, #fcd8d5);
+  color: #611a15;
+  border: 3px solid #f5c6cb;
+}
+
+/* 四隅の装飾 */
+.decor {
+  position: absolute;
+  font-size: 4rem;
+  color: var(--main-blue);
+  opacity: 0.15;
+  z-index: 0;
+  user-select: none;
+}
+.decor-tl { top: 5%; left: 5%; transform: rotate(-15deg); }
+.decor-tr { top: 5%; right: 5%; transform: rotate(15deg); }
+
+@media (max-width: 600px) {
+  body {
+    overflow-y: auto;
+    height: auto;
   }
 
-  /* グループ検索コンテナ */
   .search-container {
-    position: relative;
-    width: 100%;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    box-sizing: border-box;
+    padding: 40px 20px;
   }
 
   .box {
-    width: 760px;
-    max-width: 90%;
-    background: #fff;
-    border: 1px solid #ddd;
-    padding: 32px;
-    border-radius: 8px;
-    text-align: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    z-index: 10;
+    padding: 30px 20px;
   }
 
-  .box h1 {
-    font-size: 20px;
-    margin-bottom: 12px;
-    color: #333;
-  }
-
-  p.question {
-    font-size: 16px;
-    color: #555;
-    margin: 18px 0;
-  }
-
-  .form-row {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    align-items: center;
-    margin-top: 18px;
-  }
-
-  .row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    margin-top: 8px;
-    width: 100%;
-  }
-
-  label {
-    width: 120px;
-    text-align: right;
-    display: inline-block;
-    margin-right: 12px;
-    font-weight: 600;
-    color: #333;
+  .page-title {
+    font-size: 1.8rem;
   }
 
   input[type=text], 
   input[type=password] {
-    width: 240px;
-    padding: 8px;
-    border: 1px solid #bbb;
-    border-radius: 6px;
-    font-size: 14px;
-  }
-
-  input[type=text]:focus, 
-  input[type=password]:focus {
-    outline: none;
-    border-color: #667eea;
+    max-width: 100%;
   }
 
   .controls {
-    display: flex;
-    justify-content: center;
-    gap: 40px;
-    margin-top: 36px;
+    flex-direction: column;
+    gap: 15px;
   }
 
   .btn {
-    padding: 14px 36px;
-    border-radius: 12px;
-    border: none;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: 600;
-    transition: transform 0.2s, box-shadow 0.2s;
+    max-width: 100%;
   }
-
-  .btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-  }
-
-  .btn-back {
-    background: #f6c6c6;
-    color: #333;
-    display: inline-block;
-    text-decoration: none;
-    line-height: 36px;
-  }
-
-  .btn-back:hover {
-    background: #f0b0b0;
-  }
-
-  .btn-search {
-    background: #cfe6ff;
-    color: #333;
-  }
-
-  .btn-search:hover {
-    background: #b0d4ff;
-  }
-
-  @media (max-width: 600px) {
-    .row {
-      flex-direction: column;
-      gap: 8px;
-    }
-    
-    label {
-      width: auto;
-      text-align: center;
-      margin-right: 0;
-    }
-
-    input[type=text], 
-    input[type=password] {
-      width: 100%;
-      max-width: 300px;
-    }
-
-    .controls {
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .btn {
-      width: 100%;
-      max-width: 250px;
-    }
-  }
+}
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="search-container">
+  
+  <div class="decor decor-tl">🔍</div>
+  <div class="decor decor-tr">★</div>
+
+  <header class="page-header">
+    <h1 class="page-title">グループを 見つけよう</h1>
+  </header>
+
   <div class="box">
-    <h1>グループを検索して参加</h1>
-    <p class="question">グループ名とパスワードを入力して検索してください</p>
+    <p class="question">グループ名とパスワードを入力して<br>検索してください</p>
 
     {% if messages %}
-    <div class="messages" style="margin-top: 18px;">
+    <div class="messages">
       {% for message in messages %}
         {% if message.tags == 'error' %}
-        <div class="message {{ message.tags }}" style="padding: 10px 20px; border-radius: 6px; font-size: 0.95em; margin-bottom: 10px; background: #fdecea; color: #611a15; border: 1px solid #f5c6cb;">
+        <div class="message {{ message.tags }}">
           {{ message }}
         </div>
         {% endif %}
@@ -186,7 +296,7 @@
     </div>
     {% endif %}
 
-    <form method="post" action="{% url 'accounts:group_join_confirm' %}" style="margin-top:18px">
+    <form method="post" action="{% url 'accounts:group_join_confirm' %}">
       {% csrf_token %}
       <input type="hidden" name="action" value="search">
       <div class="form-row">
