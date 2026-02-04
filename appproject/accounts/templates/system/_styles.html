@@ -549,6 +549,43 @@
       box-sizing: border-box;
     }
 
+    /* テキストボックスコンテナ（ドラッグでサイズ決定） */
+    .text-box-container {
+      position: absolute;
+      cursor: grab;
+      box-sizing: border-box;
+      border: 2px solid #3fbcd9;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #ffffff 0%, #f0f4f8 100%);
+      padding: 8px;
+      box-shadow: 0 4px 15px rgba(63, 188, 217, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    .text-box-container:hover {
+      border-color: #2da3c0;
+      box-shadow: 0 6px 20px rgba(63, 188, 217, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .text-box-container.grabbing {
+      cursor: grabbing;
+    }
+
+    .text-box {
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      font-size: 16px;
+      color: #333;
+      outline: none;
+      padding: 0;
+    }
+
+    .text-box::placeholder {
+      color: #999;
+    }
+
     /* datetime-local input のカスタムスタイル */
     input[type="datetime-local"] {
       border: 2px solid #3fbcd9;
@@ -1398,6 +1435,120 @@
     /* alert用：キャンセルボタンを非表示 */
     .custom-confirm-buttons:has(.cancel:empty) .cancel {
       display: none;
+    }
+
+    /* ボタンアルゴリズムメニュー */
+    .button-algorithm-menu {
+      position: fixed !important;
+      background: white !important;
+      border: none !important;
+      border-radius: 12px !important;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
+      padding: 8px !important;
+      z-index: 10000 !important;
+      min-width: 220px !important;
+      font-size: 14px !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+
+    .button-algorithm-menu * {
+      max-height: none !important;
+      overflow: visible !important;
+    }
+
+    .button-algorithm-menu .menu-header {
+      padding: 10px 12px !important;
+      font-weight: 600 !important;
+      font-size: 13px !important;
+      color: #333 !important;
+      border-bottom: 1px solid #eee !important;
+      margin-bottom: 4px !important;
+      display: block !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+
+    .button-algorithm-menu .algo-menu-item {
+      width: 100% !important;
+      padding: 10px 12px !important;
+      background: transparent !important;
+      border: none !important;
+      border-radius: 6px !important;
+      cursor: pointer !important;
+      transition: all 0.2s !important;
+      font-size: 13px !important;
+      text-align: left !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      color: #333 !important;
+      height: auto !important;
+      min-height: 36px !important;
+      line-height: normal !important;
+      overflow: visible !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+
+    .button-algorithm-menu .algo-menu-item i {
+      width: 16px !important;
+      text-align: center !important;
+      color: #3fbcd9 !important;
+    }
+
+    .button-algorithm-menu .algo-menu-item:hover {
+      background: #f0f4f8 !important;
+      transform: translateX(3px) !important;
+    }
+
+    .button-algorithm-menu .algo-menu-item.danger {
+      color: #ff7675 !important;
+    }
+
+    .button-algorithm-menu .algo-menu-item.danger i {
+      color: #ff7675 !important;
+    }
+
+    .button-algorithm-menu .algo-menu-item.danger:hover {
+      background: #ffebee !important;
+    }
+
+    .button-algorithm-menu .menu-divider {
+      height: 1px !important;
+      background: #eee !important;
+      margin: 4px 0 !important;
+    }
+
+    /* アルゴリズム設定済みインジケーター */
+    .draggable-btn {
+      position: relative;
+    }
+
+    .algorithm-indicator {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      width: 24px;
+      height: 24px;
+      background: #4CAF50;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 12px;
+      box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
+      pointer-events: none;
+    }
+
+    .algorithm-indicator i {
+      animation: rotate 2s linear infinite;
+    }
+
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
 
     /* ショートカットバー */

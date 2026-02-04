@@ -13,6 +13,11 @@ document.getElementById('saveBtn').addEventListener('click', function() {
   const tempDescription = sessionStorage.getItem('temp_algorithm_description');
   const tempId = sessionStorage.getItem('temp_algorithm_id');
   
+  // ボタンから呼ばれた場合のパラメータ
+  const systemId = '{{ system_id|default:"" }}';
+  const buttonId = '{{ button_id|default:"" }}';
+  const action = '{{ action|default:"" }}';
+  
   // 編集モード対応: Django テンプレート変数からアルゴリズムIDを取得
   const existingAlgorithmData = {
     algorithmId: tempId || '{{ algorithm_id|default:"" }}',
@@ -25,6 +30,14 @@ document.getElementById('saveBtn').addEventListener('click', function() {
   sessionStorage.removeItem('temp_algorithm_description');
   sessionStorage.removeItem('temp_algorithm_id');
   
+  // システムIDとボタンIDを保存（保存後に使用）
+  if (systemId) {
+    sessionStorage.setItem('return_system_id', systemId);
+  }
+  if (buttonId) {
+    sessionStorage.setItem('return_button_id', buttonId);
+  }
+  
   // 編集モードの場合はIDをURLパラメータとして渡す
   if (existingAlgorithmData.algorithmId) {
     window.location.href = `/accounts/block/create/?id=${existingAlgorithmData.algorithmId}`;
@@ -36,47 +49,67 @@ document.getElementById('saveBtn').addEventListener('click', function() {
 
 // 未保存の変更を追跡
 let isDirty = false;
-let initialContent = '';
+let initialWorkspaceXml = '';
 
-// 初期状態を保存
-(function saveInitialState(){
-  const slideArea = document.getElementById('slideArea');
-  if (slideArea) {
-    initialContent = slideArea.innerHTML;
-  }
-})();
-
-// 変更を検知する関数
-function markDirty() {
-  const slideArea = document.getElementById('slideArea');
-  if (slideArea && slideArea.innerHTML !== initialContent) {
-    isDirty = true;
+// 初期状態を保存（Blocklyワークスペース読み込み後に実行）
+function saveInitialWorkspaceState() {
+  if (typeof workspace !== 'undefined' && workspace) {
+    try {
+      const xml = Blockly.Xml.workspaceToDom(workspace);
+      initialWorkspaceXml = Blockly.Xml.domToText(xml);
+      console.log('📸 初期ワークスペース状態を保存しました');
+    } catch (error) {
+      console.error('初期状態の保存エラー:', error);
+    }
   }
 }
 
-// スライドエリアの変更を監視
-(function watchChanges(){
-  const slideArea = document.getElementById('slideArea');
-  if (!slideArea) return;
-  
-  // MutationObserverで変更を監視
-  const observer = new MutationObserver(function() {
-    markDirty();
-  });
-  
-  observer.observe(slideArea, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    characterData: true
-  });
-})();
+// Blocklyワークスペースの変更を検知
+function setupBlocklyChangeDetection() {
+  if (typeof workspace !== 'undefined' && workspace) {
+    workspace.addChangeListener(function(event) {
+      // UI系イベント（選択、移動など）は無視
+      if (event.type === Blockly.Events.UI) {
+        return;
+      }
+      
+      // 初期化中のイベントは無視
+      if (event.type === Blockly.Events.FINISHED_LOADING) {
+        saveInitialWorkspaceState();
+        return;
+      }
+      
+      // ワークスペースの内容が変更された
+      try {
+        const currentXml = Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace));
+        if (currentXml !== initialWorkspaceXml) {
+          isDirty = true;
+          console.log('✏️ ワークスペースが変更されました - isDirty = true');
+        }
+      } catch (error) {
+        console.error('変更検知エラー:', error);
+      }
+    });
+    console.log('👀 Blockly変更検知を設定しました');
+  }
+}
+
+// ワークスペース初期化後に変更検知を設定
+if (typeof workspace !== 'undefined' && workspace) {
+  setupBlocklyChangeDetection();
+} else {
+  // workspaceが後で初期化される場合に備えて、少し待つ
+  setTimeout(function() {
+    setupBlocklyChangeDetection();
+  }, 1000);
+}
 
 // ブラウザ閉じる/リロード時の警告
 window.addEventListener('beforeunload', function(e) {
   if (!isDirty) return;
   e.preventDefault();
-  e.returnValue = '';
+  e.returnValue = '保存されていない変更があります。ページを離れてもよろしいですか？';
+  return e.returnValue;
 });
 
 // ナビゲーションタブクリック時の警告

@@ -6,13 +6,141 @@
 {% block title %}ログアウト - Codemon{% endblock %}
 
 {% block background_frame %}
-<img src="{% static 'codemon/images/frames/生徒用アカウント画面 (2).png' %}" 
+<img src="{% static 'codemon/images/frames/bg_frame_blue.png' %}" 
      alt="" 
      class="bg-frame"
      onerror="this.style.display='none';">
 {% endblock %}
 
 {% block extra_css %}
+<<<<<<< HEAD
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+  :root {
+    --bg-main: #f0f4f8;
+    --panel-bg: rgba(255, 255, 255, 0.95);
+    --accent-main: #3fbcd9;    /* シアン */
+    --btn-pop: #FFD200;       /* イエロー */
+    --error-pop: #ff7675;     /* ピンク（ログアウト色） */
+    --error-shadow: #e15f5e;
+    --text-dark: #2d3748;
+    --text-gray: #718096;
+  }
+
+  /* ヘッダー非表示 & スクロール禁止 */
+  .top-tabs { display: none !important; }
+  
+  body {
+    background-color: var(--bg-main);
+    font-family: "M PLUS Rounded 1c", sans-serif;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* メインエリア */
+  .content-wrapper {
+    padding: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    width: 100%;
+  }
+
+  main {
+    width: 100%;
+    max-width: 900px;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+
+  /* ログアウトパネル */
+  .logout-panel {
+    background: var(--panel-bg);
+    border: 6px solid var(--accent-main);
+    border-radius: 30px;
+    width: 100%;
+    /* 程よい高さを持たせる */
+    min-height: 450px;
+    box-shadow: 0 15px 0 rgba(63, 188, 217, 0.2), 0 10px 30px rgba(0,0,0,0.1);
+    display: flex;
+    overflow: hidden;
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  @keyframes popIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  /* --- 左カラム（ビジュアル） --- */
+  .left-column {
+    flex: 1;
+    background: #e0f7fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-right: 3px dashed #b2ebf2;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .icon-wrapper {
+    width: 140px;
+    height: 140px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 6px solid var(--accent-main);
+    box-shadow: 0 8px 0 rgba(63, 188, 217, 0.2);
+    z-index: 1;
+  }
+
+  .logout-icon {
+    font-size: 70px;
+    color: var(--accent-main);
+    margin-left: 10px; /* アイコンのバランス調整 */
+  }
+
+  /* 背景の装飾（雲） */
+  .cloud {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    opacity: 0.6;
+  }
+  .c1 { width: 100px; height: 100px; top: -20px; left: -20px; }
+  .c2 { width: 150px; height: 150px; bottom: -50px; right: -30px; }
+
+  /* --- 右カラム（メッセージ＆アクション） --- */
+  .right-column {
+    flex: 1.2; /* 右側を少し広く */
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+
+  .logout-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text-dark);
+    margin: 0 0 15px 0;
+  }
+
+  .logout-message {
+    font-size: 16px;
+    color: var(--text-gray);
+    font-weight: 700;
+    line-height: 1.8;
+    margin-bottom: 40px;
+=======
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
@@ -87,15 +215,73 @@
     line-height: 1.8;
     text-align: center;
     font-weight: 700;
+>>>>>>> main
   }
 
-  .logout-buttons {
+  /* アクションボタン */
+  .action-area {
+    width: 100%;
     display: flex;
-    gap: 20px;
-    justify-content: center;
-    align-items: center;
+    flex-direction: column;
+    gap: 15px;
+    max-width: 300px;
   }
 
+<<<<<<< HEAD
+  .action-btn {
+    border: none;
+    padding: 15px 20px;
+    border-radius: 50px;
+    font-weight: 800;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.1s;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    text-decoration: none;
+  }
+
+  /* ログアウトボタン（ピンク） */
+  .btn-logout {
+    background: var(--error-pop);
+    color: white;
+    box-shadow: 0 5px 0 var(--error-shadow);
+  }
+  .btn-logout:hover {
+    transform: translateY(2px);
+    box-shadow: 0 3px 0 var(--error-shadow);
+    background: #ff8e8d;
+  }
+  .btn-logout:active { transform: translateY(5px); box-shadow: none; }
+
+  /* キャンセルボタン（白） */
+  .btn-cancel {
+    background: #fff;
+    color: var(--text-dark);
+    border: 2px solid #e2e8f0;
+    box-shadow: 0 5px 0 #cbd5e0;
+  }
+  .btn-cancel:hover {
+    transform: translateY(2px);
+    box-shadow: 0 3px 0 #cbd5e0;
+    background: #f7fafc;
+  }
+  .btn-cancel:active { transform: translateY(5px); box-shadow: none; }
+
+  /* スマホ対応 */
+  @media (max-width: 768px) {
+    .logout-panel { flex-direction: column; height: auto; min-height: auto; }
+    .left-column { padding: 30px 0; border-right: none; border-bottom: 3px dashed #b2ebf2; }
+    .icon-wrapper { width: 100px; height: 100px; }
+    .logout-icon { font-size: 50px; }
+    .right-column { padding: 30px 20px; }
+  }
+
+=======
   .btn-logout {
     display: flex;
     align-items: center;
@@ -160,10 +346,48 @@
       max-width: 280px;
     }
   }
+>>>>>>> main
 </style>
 {% endblock %}
 
 {% block content %}
+<<<<<<< HEAD
+<main>
+  <div class="logout-panel" role="region" aria-label="ログアウト確認">
+    
+    <div class="left-column">
+      <div class="cloud c1"></div>
+      <div class="cloud c2"></div>
+      <div class="icon-wrapper">
+        <i class="fas fa-door-open logout-icon"></i>
+      </div>
+    </div>
+
+    <div class="right-column">
+      <h1 class="logout-title">ログアウトしますか？</h1>
+      
+      <p class="logout-message">
+        きょうの ぼうけんは これでおしまい？<br>
+        また いつでも あそびにきてね！
+      </p>
+      
+      <div class="action-area">
+        <form method="post" action="{% url 'accounts:logout' %}" style="width: 100%;">
+          {% csrf_token %}
+          <button type="submit" class="action-btn btn-logout">
+            <i class="fas fa-sign-out-alt"></i> はい、おわります
+          </button>
+        </form>
+
+        <button type="button" class="action-btn btn-cancel" onclick="history.back();">
+          <i class="fas fa-reply"></i> いいえ、つづけます
+        </button>
+      </div>
+    </div>
+
+  </div>
+</main>
+=======
 <div class="full-background" style="background-image: url('{% static "codemon/images/backgrounds/bg_common.png" %}');"></div>
 
 <div class="logout-container">
@@ -192,4 +416,5 @@
 <script>
   // ボタンのホバー効果のみ
 </script>
+>>>>>>> main
 {% endblock %}
