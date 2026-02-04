@@ -973,7 +973,11 @@ window.executeAlgorithmFromButton = async function executeAlgorithmFromButton(bl
       console.log('✅ Blockly loaded successfully');
     } catch (error) {
       console.error('❌ Blockly loading failed:', error);
-      const retry = confirm('Blocklyの読み込みに失敗しました。\n\nページをリロードして再度お試しください。\n\nリロードしますか？');
+      const retry = await customConfirm('Blocklyの読み込みに失敗しました。\n\nページをリロードして再度お試しください。\n\nリロードしますか？', {
+        title: '読み込みエラー',
+        confirmText: 'リロードする',
+        cancelText: 'キャンセル'
+      });
       if (retry) {
         location.reload();
       }

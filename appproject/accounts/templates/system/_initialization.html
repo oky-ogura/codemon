@@ -1,5 +1,604 @@
 <script>
 // ========================================
+// カスタムconfirmダイアログ
+// ========================================
+function customConfirm(message, options = {}) {
+  return new Promise((resolve) => {
+    // オーバーレイとダイアログを作成
+    const overlay = document.createElement('div');
+    overlay.className = 'custom-confirm-overlay';
+    
+    const dialog = document.createElement('div');
+    dialog.className = 'custom-confirm-dialog';
+    
+    const header = document.createElement('div');
+    header.className = 'custom-confirm-header';
+    header.textContent = options.title || '確認';
+    
+    const body = document.createElement('div');
+    body.className = 'custom-confirm-body';
+    body.textContent = message;
+    
+    const buttonsDiv = document.createElement('div');
+    buttonsDiv.className = 'custom-confirm-buttons';
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'custom-confirm-btn cancel';
+    cancelBtn.textContent = options.cancelText || 'キャンセル';
+    cancelBtn.onclick = () => {
+      overlay.remove();
+      resolve(false);
+    };
+    
+    const confirmBtn = document.createElement('button');
+    confirmBtn.className = `custom-confirm-btn ${options.danger ? 'danger' : 'confirm'}`;
+    confirmBtn.textContent = options.confirmText || 'OK';
+    confirmBtn.onclick = () => {
+      overlay.remove();
+      resolve(true);
+    };
+    
+    buttonsDiv.appendChild(cancelBtn);
+    buttonsDiv.appendChild(confirmBtn);
+    
+    dialog.appendChild(header);
+    dialog.appendChild(body);
+    dialog.appendChild(buttonsDiv);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    
+    // オーバーレイクリックで閉じる
+    overlay.onclick = (e) => {
+      if (e.target === overlay) {
+        overlay.remove();
+        resolve(false);
+      }
+    };
+  });
+}
+
+// ========================================
+// カスタムpromptダイアログ
+// ========================================
+function customPrompt(message, defaultValue = '', options = {}) {
+  return new Promise((resolve) => {
+    // オーバーレイとダイアログを作成
+    const overlay = document.createElement('div');
+    overlay.className = 'custom-confirm-overlay';
+    
+    const dialog = document.createElement('div');
+    dialog.className = 'custom-confirm-dialog';
+    
+    const header = document.createElement('div');
+    header.className = 'custom-confirm-header';
+    header.textContent = options.title || '入力';
+    
+    const body = document.createElement('div');
+    body.className = 'custom-confirm-body';
+    body.style.textAlign = 'left';
+    body.textContent = message;
+    
+    // 入力フィールド
+    const inputWrapper = document.createElement('div');
+    inputWrapper.style.marginTop = '15px';
+    
+    const input = document.createElement('input');
+    input.type = options.type || 'text';
+    input.value = defaultValue;
+    input.style.width = '100%';
+    input.style.padding = '10px 12px';
+    input.style.border = '2px solid #e0e0e0';
+    input.style.borderRadius = '10px';
+    input.style.fontSize = '14px';
+    input.style.boxSizing = 'border-box';
+    input.style.transition = 'border-color 0.2s';
+    input.onfocus = () => {
+      input.style.borderColor = '#3fbcd9';
+      input.style.outline = 'none';
+    };
+    input.onblur = () => {
+      input.style.borderColor = '#e0e0e0';
+    };
+    
+    inputWrapper.appendChild(input);
+    body.appendChild(inputWrapper);
+    
+    const buttonsDiv = document.createElement('div');
+    buttonsDiv.className = 'custom-confirm-buttons';
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'custom-confirm-btn cancel';
+    cancelBtn.textContent = 'キャンセル';
+    cancelBtn.onclick = () => {
+      overlay.remove();
+      resolve(null);
+    };
+    
+    const confirmBtn = document.createElement('button');
+    confirmBtn.className = 'custom-confirm-btn confirm';
+    confirmBtn.textContent = 'OK';
+    confirmBtn.onclick = () => {
+      overlay.remove();
+      resolve(input.value);
+    };
+    
+    buttonsDiv.appendChild(cancelBtn);
+    buttonsDiv.appendChild(confirmBtn);
+    
+    dialog.appendChild(header);
+    dialog.appendChild(body);
+    dialog.appendChild(buttonsDiv);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    
+    // Enterキーで確定
+    input.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        overlay.remove();
+        resolve(input.value);
+      }
+    });
+    
+    // フォーカスを入力フィールドに
+    setTimeout(() => {
+      input.focus();
+      input.select();
+    }, 100);
+    
+    // オーバーレイクリックで閉じる
+    overlay.onclick = (e) => {
+      if (e.target === overlay) {
+        overlay.remove();
+        resolve(null);
+      }
+    };
+  });
+}
+
+// グローバルconfirmをオーバーライド（非同期版を同期的に使うためのラッパー）
+const originalConfirm = window.confirm;
+window.confirm = function(message) {
+  // 同期的に使われる場合は、カスタムダイアログを表示して結果を返す
+  // 注意: Promiseを返すため、async/awaitで呼び出す必要がある
+  console.warn('confirm() was called synchronously. Please use customConfirm() with async/await instead.');
+  // 緊急的なフォールバックとして元のconfirmを使用
+  return originalConfirm(message);
+};
+
+// グローバルpromptをオーバーライド
+const originalPrompt = window.prompt;
+window.prompt = function(message, defaultValue) {
+  console.warn('prompt() was called synchronously. Please use customPrompt() with async/await instead.');
+  return originalPrompt(message, defaultValue);
+};
+
+// カスタムalert（confirmの単一ボタン版）
+function customAlert(message, options = {}) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'custom-confirm-overlay';
+    
+    const dialog = document.createElement('div');
+    dialog.className = 'custom-confirm-dialog';
+    
+    const header = document.createElement('div');
+    header.className = 'custom-confirm-header';
+    header.textContent = options.title || '通知';
+    
+    const body = document.createElement('div');
+    body.className = 'custom-confirm-body';
+    body.textContent = message;
+    
+    const buttonsDiv = document.createElement('div');
+    buttonsDiv.className = 'custom-confirm-buttons';
+    
+    const confirmBtn = document.createElement('button');
+    confirmBtn.className = 'custom-confirm-btn confirm';
+    confirmBtn.textContent = 'OK';
+    confirmBtn.style.maxWidth = '200px';
+    confirmBtn.onclick = () => {
+      overlay.remove();
+      resolve(true);
+    };
+    
+    buttonsDiv.appendChild(confirmBtn);
+    
+    dialog.appendChild(header);
+    dialog.appendChild(body);
+    dialog.appendChild(buttonsDiv);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    
+    overlay.onclick = (e) => {
+      if (e.target === overlay) {
+        overlay.remove();
+        resolve(true);
+      }
+    };
+  });
+}
+
+// カスタム複数入力ダイアログ
+function customMultiInput(count, options = {}) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'custom-confirm-overlay';
+    
+    const dialog = document.createElement('div');
+    dialog.className = 'custom-confirm-dialog';
+    dialog.style.maxWidth = '500px';
+    
+    const header = document.createElement('div');
+    header.className = 'custom-confirm-header';
+    header.textContent = options.title || '入力';
+    
+    const body = document.createElement('div');
+    body.className = 'custom-confirm-body';
+    body.style.textAlign = 'left';
+    body.style.maxHeight = '400px';
+    body.style.overflowY = 'auto';
+    
+    if (options.message) {
+      const messageDiv = document.createElement('div');
+      messageDiv.textContent = options.message;
+      messageDiv.style.marginBottom = '15px';
+      body.appendChild(messageDiv);
+    }
+    
+    const inputs = [];
+    for (let i = 0; i < count; i++) {
+      const inputWrapper = document.createElement('div');
+      inputWrapper.style.marginBottom = '12px';
+      
+      const label = document.createElement('label');
+      label.textContent = options.labelPrefix ? `${options.labelPrefix} ${i + 1}` : `項目 ${i + 1}`;
+      label.style.display = 'block';
+      label.style.marginBottom = '6px';
+      label.style.fontWeight = '600';
+      label.style.color = '#333';
+      label.style.fontSize = '13px';
+      
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = options.defaultPrefix ? `${options.defaultPrefix}${i + 1}` : `項目${i + 1}`;
+      input.style.width = '100%';
+      input.style.padding = '8px 12px';
+      input.style.border = '2px solid #e0e0e0';
+      input.style.borderRadius = '10px';
+      input.style.fontSize = '14px';
+      input.style.boxSizing = 'border-box';
+      input.style.transition = 'border-color 0.2s';
+      input.onfocus = () => {
+        input.style.borderColor = '#3fbcd9';
+        input.style.outline = 'none';
+      };
+      input.onblur = () => {
+        input.style.borderColor = '#e0e0e0';
+      };
+      
+      inputs.push(input);
+      inputWrapper.appendChild(label);
+      inputWrapper.appendChild(input);
+      body.appendChild(inputWrapper);
+    }
+    
+    const buttonsDiv = document.createElement('div');
+    buttonsDiv.className = 'custom-confirm-buttons';
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'custom-confirm-btn cancel';
+    cancelBtn.textContent = 'キャンセル';
+    cancelBtn.onclick = () => {
+      overlay.remove();
+      resolve(null);
+    };
+    
+    const confirmBtn = document.createElement('button');
+    confirmBtn.className = 'custom-confirm-btn confirm';
+    confirmBtn.textContent = 'OK';
+    confirmBtn.onclick = () => {
+      const values = inputs.map(input => input.value);
+      overlay.remove();
+      resolve(values);
+    };
+    
+    buttonsDiv.appendChild(cancelBtn);
+    buttonsDiv.appendChild(confirmBtn);
+    
+    dialog.appendChild(header);
+    dialog.appendChild(body);
+    dialog.appendChild(buttonsDiv);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    
+    // 最初の入力フィールドにフォーカス
+    setTimeout(() => {
+      if (inputs[0]) {
+        inputs[0].focus();
+        inputs[0].select();
+      }
+    }, 100);
+  });
+}
+
+// ボタン作成用の一括設定ダイアログ
+function customButtonSettings(algorithms, otherSystems) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'custom-confirm-overlay';
+    
+    const dialog = document.createElement('div');
+    dialog.className = 'custom-confirm-dialog';
+    dialog.style.maxWidth = '600px';
+    dialog.style.maxHeight = '90vh';
+    dialog.style.overflowY = 'auto';
+    
+    const header = document.createElement('div');
+    header.className = 'custom-confirm-header';
+    header.textContent = 'ボタンの設定';
+    
+    const body = document.createElement('div');
+    body.className = 'custom-confirm-body';
+    body.style.textAlign = 'left';
+    
+    // ボタン名
+    const nameWrapper = createInputField('ボタン名', 'text', 'ボタン');
+    const nameInput = nameWrapper.querySelector('input');
+    body.appendChild(nameWrapper);
+    
+    // 幅
+    const widthWrapper = createInputField('幅 (px)', 'number', '100');
+    const widthInput = widthWrapper.querySelector('input');
+    widthInput.min = '50';
+    body.appendChild(widthWrapper);
+    
+    // 高さ
+    const heightWrapper = createInputField('高さ (px)', 'number', '40');
+    const heightInput = heightWrapper.querySelector('input');
+    heightInput.min = '30';
+    body.appendChild(heightWrapper);
+    
+    // 色選択セクション
+    const colorSection = document.createElement('div');
+    colorSection.style.marginBottom = '15px';
+    
+    const colorLabel = document.createElement('label');
+    colorLabel.textContent = 'ボタンの色';
+    colorLabel.style.display = 'block';
+    colorLabel.style.marginBottom = '8px';
+    colorLabel.style.fontWeight = '600';
+    colorLabel.style.color = '#333';
+    colorSection.appendChild(colorLabel);
+    
+    const colorInputGroup = document.createElement('div');
+    colorInputGroup.style.display = 'flex';
+    colorInputGroup.style.gap = '10px';
+    colorInputGroup.style.alignItems = 'center';
+    
+    // カラーピッカー
+    const colorPicker = document.createElement('input');
+    colorPicker.type = 'color';
+    colorPicker.value = '#3fbcd9';
+    colorPicker.style.width = '60px';
+    colorPicker.style.height = '40px';
+    colorPicker.style.border = '2px solid #e0e0e0';
+    colorPicker.style.borderRadius = '10px';
+    colorPicker.style.cursor = 'pointer';
+    
+    // HEX入力
+    const hexInput = document.createElement('input');
+    hexInput.type = 'text';
+    hexInput.value = '#3fbcd9';
+    hexInput.placeholder = '#FF5733';
+    hexInput.style.flex = '1';
+    hexInput.style.padding = '8px 12px';
+    hexInput.style.border = '2px solid #e0e0e0';
+    hexInput.style.borderRadius = '10px';
+    hexInput.style.fontSize = '14px';
+    hexInput.style.fontFamily = 'monospace';
+    
+    // カラーピッカーとHEX入力を同期
+    colorPicker.addEventListener('input', () => {
+      hexInput.value = colorPicker.value;
+    });
+    
+    hexInput.addEventListener('input', () => {
+      if (/^#[0-9A-Fa-f]{6}$/.test(hexInput.value)) {
+        colorPicker.value = hexInput.value;
+      }
+    });
+    
+    colorInputGroup.appendChild(colorPicker);
+    colorInputGroup.appendChild(hexInput);
+    colorSection.appendChild(colorInputGroup);
+    body.appendChild(colorSection);
+    
+    // 動作選択
+    const actionWrapper = document.createElement('div');
+    actionWrapper.style.marginBottom = '15px';
+    
+    const actionLabel = document.createElement('label');
+    actionLabel.textContent = 'ボタンの動作';
+    actionLabel.style.display = 'block';
+    actionLabel.style.marginBottom = '8px';
+    actionLabel.style.fontWeight = '600';
+    actionLabel.style.color = '#333';
+    actionWrapper.appendChild(actionLabel);
+    
+    const actionSelect = document.createElement('select');
+    actionSelect.style.width = '100%';
+    actionSelect.style.padding = '8px 12px';
+    actionSelect.style.border = '2px solid #e0e0e0';
+    actionSelect.style.borderRadius = '10px';
+    actionSelect.style.fontSize = '14px';
+    actionSelect.innerHTML = `
+      <option value="none">動作なし</option>
+      <option value="algorithm">アルゴリズム実行</option>
+      <option value="system">システム遷移</option>
+    `;
+    actionWrapper.appendChild(actionSelect);
+    body.appendChild(actionWrapper);
+    
+    // アルゴリズム選択
+    const algorithmWrapper = document.createElement('div');
+    algorithmWrapper.style.marginBottom = '15px';
+    algorithmWrapper.style.display = 'none';
+    
+    const algorithmLabel = document.createElement('label');
+    algorithmLabel.textContent = 'アルゴリズム';
+    algorithmLabel.style.display = 'block';
+    algorithmLabel.style.marginBottom = '8px';
+    algorithmLabel.style.fontWeight = '600';
+    algorithmLabel.style.color = '#333';
+    algorithmWrapper.appendChild(algorithmLabel);
+    
+    const algorithmSelect = document.createElement('select');
+    algorithmSelect.style.width = '100%';
+    algorithmSelect.style.padding = '8px 12px';
+    algorithmSelect.style.border = '2px solid #e0e0e0';
+    algorithmSelect.style.borderRadius = '10px';
+    algorithmSelect.style.fontSize = '14px';
+    
+    if (algorithms && algorithms.length > 0) {
+      algorithms.forEach((algo, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.textContent = algo.algorithm_name;
+        algorithmSelect.appendChild(opt);
+      });
+    } else {
+      const opt = document.createElement('option');
+      opt.textContent = 'アルゴリズムがありません';
+      algorithmSelect.appendChild(opt);
+    }
+    algorithmWrapper.appendChild(algorithmSelect);
+    body.appendChild(algorithmWrapper);
+    
+    // システム選択
+    const systemWrapper = document.createElement('div');
+    systemWrapper.style.marginBottom = '15px';
+    systemWrapper.style.display = 'none';
+    
+    const systemLabel = document.createElement('label');
+    systemLabel.textContent = 'システム';
+    systemLabel.style.display = 'block';
+    systemLabel.style.marginBottom = '8px';
+    systemLabel.style.fontWeight = '600';
+    systemLabel.style.color = '#333';
+    systemWrapper.appendChild(systemLabel);
+    
+    const systemSelect = document.createElement('select');
+    systemSelect.style.width = '100%';
+    systemSelect.style.padding = '8px 12px';
+    systemSelect.style.border = '2px solid #e0e0e0';
+    systemSelect.style.borderRadius = '10px';
+    systemSelect.style.fontSize = '14px';
+    
+    if (otherSystems && otherSystems.length > 0) {
+      otherSystems.forEach((sys, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.textContent = sys.system_name;
+        systemSelect.appendChild(opt);
+      });
+    } else {
+      const opt = document.createElement('option');
+      opt.textContent = 'システムがありません';
+      systemSelect.appendChild(opt);
+    }
+    systemWrapper.appendChild(systemSelect);
+    body.appendChild(systemWrapper);
+    
+    // 動作選択の変更イベント
+    actionSelect.addEventListener('change', () => {
+      algorithmWrapper.style.display = actionSelect.value === 'algorithm' ? 'block' : 'none';
+      systemWrapper.style.display = actionSelect.value === 'system' ? 'block' : 'none';
+    });
+    
+    const buttonsDiv = document.createElement('div');
+    buttonsDiv.className = 'custom-confirm-buttons';
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'custom-confirm-btn cancel';
+    cancelBtn.textContent = 'キャンセル';
+    cancelBtn.onclick = () => {
+      overlay.remove();
+      resolve(null);
+    };
+    
+    const confirmBtn = document.createElement('button');
+    confirmBtn.className = 'custom-confirm-btn confirm';
+    confirmBtn.textContent = '作成';
+    confirmBtn.onclick = () => {
+      const result = {
+        name: nameInput.value || 'ボタン',
+        width: parseInt(widthInput.value) || 100,
+        height: parseInt(heightInput.value) || 40,
+        color: hexInput.value,
+        actionType: actionSelect.value,
+        algorithmIndex: algorithmSelect.value !== '' ? parseInt(algorithmSelect.value) : null,
+        systemIndex: systemSelect.value !== '' ? parseInt(systemSelect.value) : null
+      };
+      overlay.remove();
+      resolve(result);
+    };
+    
+    buttonsDiv.appendChild(cancelBtn);
+    buttonsDiv.appendChild(confirmBtn);
+    
+    dialog.appendChild(header);
+    dialog.appendChild(body);
+    dialog.appendChild(buttonsDiv);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    
+    setTimeout(() => nameInput.focus(), 100);
+  });
+}
+
+function createInputField(labelText, type, defaultValue) {
+  const wrapper = document.createElement('div');
+  wrapper.style.marginBottom = '15px';
+  
+  const label = document.createElement('label');
+  label.textContent = labelText;
+  label.style.display = 'block';
+  label.style.marginBottom = '8px';
+  label.style.fontWeight = '600';
+  label.style.color = '#333';
+  label.style.fontSize = '13px';
+  
+  const input = document.createElement('input');
+  input.type = type;
+  input.value = defaultValue;
+  input.style.width = '100%';
+  input.style.padding = '8px 12px';
+  input.style.border = '2px solid #e0e0e0';
+  input.style.borderRadius = '10px';
+  input.style.fontSize = '14px';
+  input.style.boxSizing = 'border-box';
+  input.style.transition = 'border-color 0.2s';
+  input.onfocus = () => {
+    input.style.borderColor = '#3fbcd9';
+    input.style.outline = 'none';
+  };
+  input.onblur = () => {
+    input.style.borderColor = '#e0e0e0';
+  };
+  
+  wrapper.appendChild(label);
+  wrapper.appendChild(input);
+  return wrapper;
+}
+
+// グローバルalertをオーバーライド
+const originalAlert = window.alert;
+window.alert = function(message) {
+  console.warn('alert() was called synchronously. Please use customAlert() with async/await instead.');
+  return originalAlert(message);
+};
+
+// ========================================
 // window.onload - ページ読み込み時の初期化
 // ========================================
 window.onload = function() {

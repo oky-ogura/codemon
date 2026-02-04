@@ -204,21 +204,85 @@ function createDatetimeInput() {
   saveHistory();
 }
 
+// ルーレットのスピンボタンにイベントリスナーを設定する関数
+window.attachRouletteListeners = function attachRouletteListeners(container) {
+  if (!container) return;
+  
+  const spinBtn = container.querySelector('.roulette-btn.spin');
+  const wheel = container.querySelector('.roulette-wheel');
+  const result = container.querySelector('.roulette-result');
+  
+  if (!spinBtn || !wheel || !result) return;
+  
+  // 既存のイベントリスナーをクリア
+  const newSpinBtn = spinBtn.cloneNode(true);
+  spinBtn.parentNode.replaceChild(newSpinBtn, spinBtn);
+  
+  // 新しいイベントリスナーを追加
+  newSpinBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    const spinning = container.getAttribute('data-roulette-spinning') === 'true';
+    if (spinning) return;
+    
+    const itemsStr = container.getAttribute('data-roulette-items');
+    if (!itemsStr) return;
+    
+    const items = JSON.parse(itemsStr);
+    
+    container.setAttribute('data-roulette-spinning', 'true');
+    newSpinBtn.disabled = true;
+    newSpinBtn.style.cursor = 'not-allowed';
+    newSpinBtn.style.opacity = '0.6';
+    
+    const currentRotation = parseFloat(wheel.dataset.currentRotation) || 0;
+    const spins = 5 + Math.random() * 3;
+    const extraDegrees = Math.random() * 360;
+    const newRotation = currentRotation + spins * 360 + extraDegrees;
+    
+    wheel.style.transform = `rotate(${newRotation}deg)`;
+    wheel.dataset.currentRotation = newRotation;
+    
+    setTimeout(() => {
+      const finalAngle = ((newRotation % 360) + 360) % 360;
+      const segmentAngle = 360 / items.length;
+      const angleOnWheel = (270 - finalAngle + 360) % 360;
+      const selectedIndex = Math.floor((angleOnWheel + 90) / segmentAngle) % items.length;
+      
+      result.textContent = `結果: ${items[selectedIndex]}`;
+      container.setAttribute('data-roulette-spinning', 'false');
+      newSpinBtn.disabled = false;
+      newSpinBtn.style.cursor = 'pointer';
+      newSpinBtn.style.opacity = '1';
+    }, 3000);
+  });
+};
+
 // ルーレット作成
-function createRoulette() {
-  const itemCount = parseInt(prompt("ルーレットの項目数を入力してください (2-20)", "6")) || 6;
+async function createRoulette() {
+  const itemCountStr = await customPrompt("ルーレットの項目数を入力してください (2-20)", "6", {
+    title: 'ルーレット作成',
+    type: 'number'
+  });
+  
+  if (itemCountStr === null) return;
+  const itemCount = parseInt(itemCountStr) || 6;
   
   if (itemCount < 2 || itemCount > 20) {
-    alert("項目数は2～20の範囲で入力してください");
+    await customAlert("項目数は2～20の範囲で入力してください", {
+      title: 'エラー'
+    });
     return;
   }
   
-  const items = [];
-  for (let i = 0; i < itemCount; i++) {
-    const itemText = prompt(`項目 ${i + 1} のテキストを入力してください`, `項目${i + 1}`);
-    if (itemText === null) return;
-    items.push(itemText || `項目${i + 1}`);
-  }
+  // 複数入力ダイアログで一度にすべての項目を入力
+  const items = await customMultiInput(itemCount, {
+    title: 'ルーレット項目の入力',
+    message: `${itemCount}個の項目テキストを入力してください`,
+    labelPrefix: '項目',
+    defaultPrefix: '項目'
+  });
+  
+  if (items === null) return;
   
   const container = document.createElement("div");
   container.classList.add("roulette-container");
@@ -308,53 +372,51 @@ function createRoulette() {
   const result = document.createElement("div");
   result.classList.add("roulette-result");
   result.style.marginTop = "10px";
-  result.style.padding = "8px";
-  result.style.background = "#f0f0f0";
-  result.style.borderRadius = "4px";
+  result.style.padding = "12px 16px";
+  result.style.background = "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
+  result.style.borderRadius = "20px";
   result.style.textAlign = "center";
   result.style.fontWeight = "bold";
+  result.style.fontSize = "18px";
+  result.style.color = "#fff";
+  result.style.boxShadow = "0 4px 15px rgba(102, 126, 234, 0.4)";
+  result.style.transition = "all 0.3s ease";
   result.textContent = "結果: -";
   
   const spinBtn = document.createElement("button");
   spinBtn.classList.add("roulette-btn", "spin");
-  spinBtn.textContent = "スピン";
+  spinBtn.textContent = "🎲 スピン";
   spinBtn.style.marginTop = "10px";
-  spinBtn.style.padding = "8px 20px";
-  spinBtn.style.fontSize = "16px";
+  spinBtn.style.padding = "12px 30px";
+  spinBtn.style.fontSize = "18px";
+  spinBtn.style.fontWeight = "bold";
   spinBtn.style.cursor = "pointer";
   spinBtn.style.position = "relative";
   spinBtn.style.zIndex = "100";
-  spinBtn.onclick = function(e) {
-    e.stopPropagation();
-    const spinning = container.getAttribute('data-roulette-spinning') === 'true';
-    if (spinning) return;
-    
-    container.setAttribute('data-roulette-spinning', 'true');
-    spinBtn.disabled = true;
-    spinBtn.style.cursor = 'not-allowed';
-    spinBtn.style.opacity = '0.6';
-    
-    const currentRotation = parseFloat(wheel.dataset.currentRotation) || 0;
-    const spins = 5 + Math.random() * 3;
-    const extraDegrees = Math.random() * 360;
-    const newRotation = currentRotation + spins * 360 + extraDegrees;
-    
-    wheel.style.transform = `rotate(${newRotation}deg)`;
-    wheel.dataset.currentRotation = newRotation;
-    
-    setTimeout(() => {
-      const finalAngle = ((newRotation % 360) + 360) % 360;
-      const segmentAngle = 360 / items.length;
-      const angleOnWheel = (270 - finalAngle + 360) % 360;
-      const selectedIndex = Math.floor((angleOnWheel + 90) / segmentAngle) % items.length;
-      
-      result.textContent = `結果: ${items[selectedIndex]}`;
-      container.setAttribute('data-roulette-spinning', 'false');
-      spinBtn.disabled = false;
-      spinBtn.style.cursor = 'pointer';
-      spinBtn.style.opacity = '1';
-    }, 3000);
-  };
+  spinBtn.style.background = "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)";
+  spinBtn.style.color = "#fff";
+  spinBtn.style.border = "none";
+  spinBtn.style.borderRadius = "25px";
+  spinBtn.style.boxShadow = "0 4px 15px rgba(245, 87, 108, 0.4)";
+  spinBtn.style.transition = "all 0.3s ease";
+  
+  spinBtn.addEventListener('mouseenter', function() {
+    spinBtn.style.transform = "translateY(-2px) scale(1.05)";
+    spinBtn.style.boxShadow = "0 6px 20px rgba(245, 87, 108, 0.5)";
+  });
+  
+  spinBtn.addEventListener('mouseleave', function() {
+    spinBtn.style.transform = "translateY(0) scale(1)";
+    spinBtn.style.boxShadow = "0 4px 15px rgba(245, 87, 108, 0.4)";
+  });
+  
+  spinBtn.addEventListener('mousedown', function() {
+    spinBtn.style.transform = "translateY(2px) scale(0.98)";
+  });
+  
+  spinBtn.addEventListener('mouseup', function() {
+    spinBtn.style.transform = "translateY(-2px) scale(1.05)";
+  });
   
   const wheelWrapper = document.createElement("div");
   wheelWrapper.style.position = "relative";
@@ -375,13 +437,19 @@ function createRoulette() {
   const slide = document.getElementById("slideArea");
   slide.appendChild(container);
   makeDraggable(container);
+  
+  // イベントリスナーを設定
+  attachRouletteListeners(container);
+  saveHistory();
 }
 
 // タイマー作成
-function createTimer() {
+async function createTimer() {
   let mode = null;
   while (mode === null) {
-    const modeInput = prompt("タイマーのモードを選択してください\n\n1: カウントアップ\n2: カウントダウン", "1");
+    const modeInput = await customPrompt("タイマーのモードを選択してください\n\n1: カウントアップ\n2: カウントダウン", "1", {
+      title: 'タイマー設定'
+    });
     
     if (modeInput === null) return;
     
@@ -390,7 +458,9 @@ function createTimer() {
     } else if (modeInput === '2') {
       mode = 'down';
     } else {
-      alert("1または2を入力してください");
+      await customAlert("1または2を入力してください", {
+        title: 'エラー'
+      });
     }
   }
   
@@ -398,16 +468,18 @@ function createTimer() {
   let displayText = "00:00:00";
   
   if (mode === 'down') {
-    const hours = parseInt(prompt("時間を入力してください (0-23)", "0")) || 0;
-    const minutes = parseInt(prompt("分を入力してください (0-59)", "1")) || 0;
-    const seconds = parseInt(prompt("秒を入力してください (0-59)", "0")) || 0;
+    const hours = parseInt(await customPrompt("時間を入力してください (0-23)", "0", {title: '時間設定'})) || 0;
+    const minutes = parseInt(await customPrompt("分を入力してください (0-59)", "1", {title: '分設定'})) || 0;
+    const seconds = parseInt(await customPrompt("秒を入力してください (0-59)", "0", {title: '秒設定'})) || 0;
     
     targetSeconds = Math.max(0, Math.min(hours, 23)) * 3600 + 
                    Math.max(0, Math.min(minutes, 59)) * 60 + 
                    Math.max(0, Math.min(seconds, 59));
     
     if (targetSeconds === 0) {
-      alert("時間が0秒です。最低1秒以上に設定してください。");
+      await customAlert("時間が0秒です。最低1秒以上に設定してください。", {
+        title: 'エラー'
+      });
       return;
     }
     
@@ -515,14 +587,16 @@ function createTimer() {
 }
 
 // タイマー設定変更
-window.openTimerSettings = function openTimerSettings(container, display) {
+window.openTimerSettings = async function openTimerSettings(container, display) {
   const currentMode = container.getAttribute('data-timer-mode');
   const currentTarget = parseInt(container.getAttribute('data-timer-target') || '0');
   
   let newMode = null;
   while (newMode === null) {
     const currentModeText = currentMode === 'up' ? 'カウントアップ' : 'カウントダウン';
-    const modeInput = prompt("タイマーのモードを選択してください\n\n現在: " + currentModeText + "\n\n1: カウントアップ\n2: カウントダウン", currentMode === 'up' ? '1' : '2');
+    const modeInput = await customPrompt("タイマーのモードを選択してください\n\n現在: " + currentModeText + "\n\n1: カウントアップ\n2: カウントダウン", currentMode === 'up' ? '1' : '2', {
+      title: 'タイマー設定'
+    });
     
     if (modeInput === null) return;
     
@@ -531,7 +605,9 @@ window.openTimerSettings = function openTimerSettings(container, display) {
     } else if (modeInput === '2') {
       newMode = 'down';
     } else {
-      alert("1または2を入力してください");
+      await customAlert("1または2を入力してください", {
+        title: 'エラー'
+      });
     }
   }
   
@@ -542,9 +618,9 @@ window.openTimerSettings = function openTimerSettings(container, display) {
     const currentM = Math.floor((currentTarget % 3600) / 60);
     const currentS = currentTarget % 60;
     
-    const hours = parseInt(prompt("時間を入力してください (0-23)", currentH.toString())) || 0;
-    const minutes = parseInt(prompt("分を入力してください (0-59)", currentM.toString())) || 0;
-    const seconds = parseInt(prompt("秒を入力してください (0-59)", currentS.toString())) || 0;
+    const hours = parseInt(await customPrompt("時間を入力してください (0-23)", currentH.toString(), {title: '時間設定'})) || 0;
+    const minutes = parseInt(await customPrompt("分を入力してください (0-59)", currentM.toString(), {title: '分設定'})) || 0;
+    const seconds = parseInt(await customPrompt("秒を入力してください (0-59)", currentS.toString(), {title: '秒設定'})) || 0;
     
     newTarget = Math.max(0, Math.min(hours, 23)) * 3600 + 
                Math.max(0, Math.min(minutes, 59)) * 60 + 
@@ -663,75 +739,407 @@ if (addRouletteBtn) {
 
 const addTimerBtn = document.getElementById("addTimerBtn");
 if (addTimerBtn) {
-  addTimerBtn.addEventListener("click", function() {
-    createTimer();
+  addTimerBtn.addEventListener("click", async function() {
+    await createTimer();
   });
 }
 
 const addButtonBtn = document.getElementById("addButtonBtn");
 if (addButtonBtn) {
-  addButtonBtn.addEventListener("click", function() {
-    let name = prompt("ボタンの名前を入力してください", "ボタン");
-    if (!name) return;
-
-    let width = parseInt(prompt("ボタンの幅(px)", "100"));
-    let height = parseInt(prompt("ボタンの高さ(px)", "40"));
-    if (isNaN(width) || isNaN(height)) {
-      alert("数値を正しく入力してください");
-      return;
-    }
-
-    let colorNameList = colorOptions.map(opt => opt.name).join(" / ");
-    let colorName = prompt(
-      "ボタンの色を選んで入力してください：\n" + colorNameList,
-      colorOptions[0].name
-    );
-    if (!colorName) colorName = colorOptions[0].name;
-    let colorObj = colorOptions.find(opt => opt.name === colorName);
-    if (!colorObj) {
-      alert("色の名前は「" + colorNameList + "」から選んでください。");
-      return;
-    }
-
+  addButtonBtn.addEventListener("click", async function() {
     const algorithms = {{ algorithms_json|safe }};
     const otherSystems = {{ other_systems_json|safe }};
     
-    let actionType = prompt("ボタンの動作を選択してください:\n1. アルゴリズム実行\n2. システム遷移\n3. 動作なし", "1");
+    const settings = await customButtonSettings(algorithms, otherSystems);
+    if (!settings) return;
     
     let targetSystemId = null;
     let targetAlgorithmId = null;
     let algorithmXml = null;
     
-    if (actionType === "1" && algorithms && algorithms.length > 0) {
-      let algorithmList = algorithms.map((algo, idx) => `${idx + 1}. ${algo.algorithm_name}`).join('\n');
-      let selectMsg = "実行するアルゴリズムを選択してください\n\n" + algorithmList;
-      let selectedNum = prompt(selectMsg, "1");
-      
-      if (selectedNum !== null && selectedNum !== "") {
-        let idx = parseInt(selectedNum) - 1;
-        if (idx >= 0 && idx < algorithms.length) {
-          targetAlgorithmId = algorithms[idx].algorithm_id;
-          algorithmXml = algorithms[idx].blockly_xml;
-        }
-      } else {
-        return;
+    // テキスト色を計算（明るい背景なら暗い文字、暗い背景なら明るい文字）
+    const bgColor = settings.color;
+    const r = parseInt(bgColor.slice(1, 3), 16);
+    const g = parseInt(bgColor.slice(3, 5), 16);
+    const b = parseInt(bgColor.slice(5, 7), 16);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    const textColor = brightness > 128 ? '#000000' : '#ffffff';
+    
+    if (settings.actionType === 'algorithm' && algorithms && settings.algorithmIndex !== null) {
+      const algo = algorithms[settings.algorithmIndex];
+      if (algo) {
+        targetAlgorithmId = algo.algorithm_id;
+        algorithmXml = algo.blockly_xml;
       }
-    } else if (actionType === "2" && otherSystems && otherSystems.length > 0) {
-      let systemList = otherSystems.map((sys, idx) => `${idx + 1}. ${sys.system_name}`).join('\n');
-      let selectMsg = "遷移先のシステムを選択してください（実行画面のみ表示されます）\n\n" + systemList;
-      let selectedNum = prompt(selectMsg, "1");
-      
-      if (selectedNum !== null && selectedNum !== "") {
-        let idx = parseInt(selectedNum) - 1;
-        if (idx >= 0 && idx < otherSystems.length) {
-          targetSystemId = otherSystems[idx].system_id;
-        }
-      } else {
-        return;
+    } else if (settings.actionType === 'system' && otherSystems && settings.systemIndex !== null) {
+      const sys = otherSystems[settings.systemIndex];
+      if (sys) {
+        targetSystemId = sys.system_id;
       }
     }
 
-    createButton(name, width, height, colorObj.value, colorObj.textColor, targetSystemId, targetAlgorithmId, algorithmXml);
+    createButton(settings.name, settings.width, settings.height, bgColor, textColor, targetSystemId, targetAlgorithmId, algorithmXml);
+  });
+}
+
+// ========================================
+// 図形作成機能
+// ========================================
+
+// 図形作成関数
+window.createShape = function createShape(shapeType) {
+  const slide = document.getElementById('slideArea');
+  if (!slide) return;
+
+  const shape = document.createElement('div');
+  shape.className = `shape-element shape-${shapeType}`;
+  shape.setAttribute('data-shape-type', shapeType);
+  shape.setAttribute('data-shape-color', '#333333');
+  shape.setAttribute('data-shape-fill', 'transparent');
+  
+  let defaultWidth = 100;
+  let defaultHeight = 100;
+
+  switch (shapeType) {
+    case 'rectangle':
+      shape.style.width = defaultWidth + 'px';
+      shape.style.height = defaultHeight + 'px';
+      break;
+    case 'circle':
+      shape.style.width = defaultWidth + 'px';
+      shape.style.height = defaultWidth + 'px';
+      break;
+    case 'triangle':
+      // 三角形は特殊なスタイルを使用
+      defaultWidth = 100;
+      defaultHeight = 87;
+      break;
+    case 'line':
+      defaultWidth = 150;
+      defaultHeight = 2;
+      shape.style.width = defaultWidth + 'px';
+      shape.style.height = defaultHeight + 'px';
+      break;
+    case 'arrow':
+      defaultWidth = 150;
+      defaultHeight = 12;
+      shape.style.width = defaultWidth + 'px';
+      shape.style.height = defaultHeight + 'px';
+      break;
+  }
+
+  const pos = getRandomPosition(defaultWidth, defaultHeight);
+  shape.style.left = pos.x + 'px';
+  shape.style.top = pos.y + 'px';
+
+  // ダブルクリックで設定パネルを開く
+  shape.addEventListener('dblclick', function(e) {
+    e.stopPropagation();
+    openShapeSettings(shape);
+  });
+
+  // 右クリックでも設定パネルを開く
+  shape.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    openShapeSettings(shape);
+  });
+
+  addDragHandleIfMissing(shape);
+  makeDraggable(shape);
+  slide.appendChild(shape);
+  
+  // リサイズ機能を追加
+  if (typeof attachResizeHandlers === 'function') {
+    attachResizeHandlers(shape, shapeType);
+  }
+  
+  saveHistory();
+};
+
+// 図形設定パネルを開く
+window.openShapeSettings = function openShapeSettings(shapeElement) {
+  // 既存のパネルがあれば削除
+  const existingPanel = document.querySelector('.shape-settings-panel');
+  if (existingPanel) existingPanel.remove();
+
+  const panel = document.createElement('div');
+  panel.className = 'shape-settings-panel show';
+
+  const shapeType = shapeElement.getAttribute('data-shape-type');
+  const currentColor = shapeElement.getAttribute('data-shape-color') || '#333333';
+  const currentFill = shapeElement.getAttribute('data-shape-fill') || 'transparent';
+  
+  let currentWidth, currentHeight;
+  if (shapeType === 'triangle') {
+    const borderBottom = shapeElement.style.borderBottomWidth || shapeElement.style.borderBottom;
+    currentHeight = parseInt(borderBottom) || 87;
+    currentWidth = Math.floor(currentHeight * 100 / 87);
+  } else {
+    currentWidth = parseInt(shapeElement.style.width) || 100;
+    currentHeight = parseInt(shapeElement.style.height) || 100;
+  }
+
+  panel.innerHTML = `
+    <div class="setting-row">
+      <label>線の色</label>
+      <div class="color-picker-wrapper">
+        <input type="color" id="shapeColorPicker" value="${currentColor}" />
+        <span id="shapeColorValue">${currentColor}</span>
+      </div>
+    </div>
+    ${shapeType !== 'line' && shapeType !== 'arrow' ? `
+      <div class="setting-row">
+        <label>塗りつぶし色</label>
+        <div class="color-picker-wrapper">
+          <input type="color" id="shapeFillPicker" value="${currentFill !== 'transparent' ? currentFill : '#ffffff'}" />
+          <span id="shapeFillValue">${currentFill !== 'transparent' ? currentFill : '透明'}</span>
+          <label style="display: inline; margin-left: 8px;">
+            <input type="checkbox" id="shapeFillTransparent" ${currentFill === 'transparent' ? 'checked' : ''} /> 透明
+          </label>
+        </div>
+      </div>
+    ` : ''}
+    ${shapeType === 'circle' ? `
+      <div class="setting-row">
+        <label>サイズ (px)</label>
+        <input type="number" id="shapeSize" value="${currentWidth}" min="20" max="500" />
+      </div>
+    ` : shapeType !== 'triangle' ? `
+      <div class="setting-row">
+        <label>幅 (px)</label>
+        <input type="number" id="shapeWidth" value="${currentWidth}" min="20" max="800" />
+      </div>
+      <div class="setting-row">
+        <label>高さ (px)</label>
+        <input type="number" id="shapeHeight" value="${currentHeight}" min="2" max="500" />
+      </div>
+    ` : `
+      <div class="setting-row">
+        <label>サイズ (px)</label>
+        <input type="number" id="shapeSize" value="${currentWidth}" min="20" max="500" />
+      </div>
+    `}
+    <div class="panel-actions">
+      <button id="shapeCancelBtn">キャンセル</button>
+      <button id="shapeApplyBtn" class="primary">適用</button>
+    </div>
+  `;
+
+  document.body.appendChild(panel);
+
+  // パネルを図形の近くに配置
+  const rect = shapeElement.getBoundingClientRect();
+  panel.style.left = (rect.right + 10) + 'px';
+  panel.style.top = rect.top + 'px';
+
+  // 色選択の更新
+  const colorPicker = document.getElementById('shapeColorPicker');
+  const colorValue = document.getElementById('shapeColorValue');
+  if (colorPicker && colorValue) {
+    colorPicker.addEventListener('input', function() {
+      colorValue.textContent = this.value;
+    });
+  }
+
+  const fillPicker = document.getElementById('shapeFillPicker');
+  const fillValue = document.getElementById('shapeFillValue');
+  const fillTransparent = document.getElementById('shapeFillTransparent');
+  if (fillPicker && fillValue) {
+    fillPicker.addEventListener('input', function() {
+      if (fillTransparent && !fillTransparent.checked) {
+        fillValue.textContent = this.value;
+      }
+    });
+  }
+  if (fillTransparent) {
+    fillTransparent.addEventListener('change', function() {
+      if (this.checked) {
+        fillValue.textContent = '透明';
+        if (fillPicker) fillPicker.disabled = true;
+      } else {
+        if (fillPicker) {
+          fillPicker.disabled = false;
+          fillValue.textContent = fillPicker.value;
+        }
+      }
+    });
+    if (fillTransparent.checked && fillPicker) {
+      fillPicker.disabled = true;
+    }
+  }
+
+  // キャンセルボタン
+  document.getElementById('shapeCancelBtn').addEventListener('click', function() {
+    panel.remove();
+  });
+
+  // 適用ボタン
+  document.getElementById('shapeApplyBtn').addEventListener('click', function() {
+    const newColor = colorPicker ? colorPicker.value : currentColor;
+    let newFill = currentFill;
+    
+    if (fillTransparent && fillTransparent.checked) {
+      newFill = 'transparent';
+    } else if (fillPicker) {
+      newFill = fillPicker.value;
+    }
+
+    shapeElement.setAttribute('data-shape-color', newColor);
+    shapeElement.setAttribute('data-shape-fill', newFill);
+
+    // スタイルを適用
+    if (shapeType === 'triangle') {
+      shapeElement.style.borderBottomColor = newColor;
+      shapeElement.style.borderLeftColor = 'transparent';
+      shapeElement.style.borderRightColor = 'transparent';
+      
+      const sizeInput = document.getElementById('shapeSize');
+      if (sizeInput) {
+        const newSize = parseInt(sizeInput.value) || 100;
+        const newHeight = Math.floor(newSize * 0.866);
+        shapeElement.style.borderLeftWidth = (newSize / 2) + 'px';
+        shapeElement.style.borderRightWidth = (newSize / 2) + 'px';
+        shapeElement.style.borderBottomWidth = newHeight + 'px';
+      }
+    } else if (shapeType === 'line') {
+      shapeElement.style.background = newColor;
+      const widthInput = document.getElementById('shapeWidth');
+      const heightInput = document.getElementById('shapeHeight');
+      if (widthInput) shapeElement.style.width = widthInput.value + 'px';
+      if (heightInput) shapeElement.style.height = heightInput.value + 'px';
+    } else if (shapeType === 'arrow') {
+      const beforeStyle = `content: ''; flex: 1; height: 2px; background: ${newColor};`;
+      const afterStyle = `content: ''; width: 0; height: 0; border-left: 10px solid ${newColor}; border-top: 6px solid transparent; border-bottom: 6px solid transparent;`;
+      
+      shapeElement.setAttribute('data-before-style', beforeStyle);
+      shapeElement.setAttribute('data-after-style', afterStyle);
+      
+      // スタイルシートに動的に追加
+      updateArrowStyles(shapeElement, newColor);
+      
+      const widthInput = document.getElementById('shapeWidth');
+      const heightInput = document.getElementById('shapeHeight');
+      if (widthInput) shapeElement.style.width = widthInput.value + 'px';
+      if (heightInput) shapeElement.style.height = heightInput.value + 'px';
+    } else if (shapeType === 'circle') {
+      shapeElement.style.borderColor = newColor;
+      shapeElement.style.background = newFill;
+      
+      const sizeInput = document.getElementById('shapeSize');
+      if (sizeInput) {
+        const newSize = sizeInput.value + 'px';
+        shapeElement.style.width = newSize;
+        shapeElement.style.height = newSize;
+      }
+    } else {
+      shapeElement.style.borderColor = newColor;
+      shapeElement.style.background = newFill;
+      
+      const widthInput = document.getElementById('shapeWidth');
+      const heightInput = document.getElementById('shapeHeight');
+      if (widthInput) shapeElement.style.width = widthInput.value + 'px';
+      if (heightInput) shapeElement.style.height = heightInput.value + 'px';
+    }
+
+    saveHistory();
+    panel.remove();
+  });
+
+  // パネル外クリックで閉じる
+  setTimeout(() => {
+    document.addEventListener('click', function closePanel(e) {
+      if (!panel.contains(e.target) && !shapeElement.contains(e.target)) {
+        panel.remove();
+        document.removeEventListener('click', closePanel);
+      }
+    });
+  }, 10);
+};
+
+// 矢印のスタイルを動的に更新
+window.updateArrowStyles = function updateArrowStyles(arrowElement, color) {
+  const styleId = 'arrow-' + Date.now();
+  arrowElement.setAttribute('data-style-id', styleId);
+  
+  let styleEl = document.getElementById(styleId);
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = styleId;
+    document.head.appendChild(styleEl);
+  }
+  
+  styleEl.textContent = `
+    [data-style-id="${styleId}"]::before {
+      content: '';
+      flex: 1;
+      height: 2px;
+      background: ${color};
+    }
+    [data-style-id="${styleId}"]::after {
+      content: '';
+      width: 0;
+      height: 0;
+      border-left: 10px solid ${color};
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+    }
+  `;
+};
+
+// 図形ボタンのイベントリスナー
+const shapeBtn = document.getElementById('shapeBtn');
+const shapeDropdown = document.getElementById('shapeDropdown');
+const shapeDropdownWrap = document.getElementById('shapeDropdownWrap');
+
+if (shapeBtn && shapeDropdown) {
+  shapeBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    const isOpen = shapeDropdown.classList.contains('show');
+    if (isOpen) {
+      shapeDropdown.classList.remove('show');
+      shapeDropdown.setAttribute('aria-hidden', 'true');
+      shapeBtn.setAttribute('aria-expanded', 'false');
+    } else {
+      shapeDropdown.classList.add('show');
+      shapeDropdown.setAttribute('aria-hidden', 'false');
+      shapeBtn.setAttribute('aria-expanded', 'true');
+    }
+  });
+
+  // 図形選択ボタン
+  document.getElementById('addRectangleBtn')?.addEventListener('click', function() {
+    createShape('rectangle');
+    shapeDropdown.classList.remove('show');
+  });
+
+  document.getElementById('addCircleBtn')?.addEventListener('click', function() {
+    createShape('circle');
+    shapeDropdown.classList.remove('show');
+  });
+
+  document.getElementById('addTriangleBtn')?.addEventListener('click', function() {
+    createShape('triangle');
+    shapeDropdown.classList.remove('show');
+  });
+
+  document.getElementById('addLineBtn')?.addEventListener('click', function() {
+    createShape('line');
+    shapeDropdown.classList.remove('show');
+  });
+
+  document.getElementById('addArrowBtn')?.addEventListener('click', function() {
+    createShape('arrow');
+    shapeDropdown.classList.remove('show');
+  });
+
+  // ドロップダウン外クリックで閉じる
+  document.addEventListener('click', function(e) {
+    if (shapeDropdownWrap && !shapeDropdownWrap.contains(e.target)) {
+      shapeDropdown.classList.remove('show');
+      shapeDropdown.setAttribute('aria-hidden', 'true');
+      shapeBtn.setAttribute('aria-expanded', 'false');
+    }
   });
 }
 </script>
@@ -853,4 +1261,610 @@ if (addButtonBtn) {
     });
 
   })();
+</script>
+<!-- テキストボックス色変更機能 -->
+<script>
+  (function(){
+    // すべてのテキスト要素に右クリックメニューを追加
+    document.addEventListener('contextmenu', function(e) {
+      // テキストボックス
+      const textInput = e.target.closest('.text-input-container');
+      if (textInput) {
+        e.preventDefault();
+        showColorMenu(e, textInput, 'textbox');
+        return;
+      }
+      
+      // 入力フォーム（input-container）
+      const inputContainer = e.target.closest('.input-container');
+      if (inputContainer) {
+        e.preventDefault();
+        showColorMenu(e, inputContainer, 'input');
+        return;
+      }
+      
+      // チェックボックスグループ
+      const checkboxGroup = e.target.closest('.checkbox-group');
+      if (checkboxGroup) {
+        e.preventDefault();
+        showColorMenu(e, checkboxGroup, 'checkbox');
+        return;
+      }
+      
+      // ラジオボタングループ
+      const radioGroup = e.target.closest('.radio-group');
+      if (radioGroup) {
+        e.preventDefault();
+        showColorMenu(e, radioGroup, 'radio');
+        return;
+      }
+    });
+    
+    function showColorMenu(e, element, type) {
+      // 既存のメニューがあれば削除
+      const existingMenu = document.querySelector('.text-color-menu');
+      if (existingMenu) existingMenu.remove();
+      
+      const menu = document.createElement('div');
+      menu.className = 'text-color-menu';
+      menu.style.position = 'fixed';
+      menu.style.left = e.clientX + 'px';
+      menu.style.top = e.clientY + 'px';
+      menu.style.background = '#fff';
+      menu.style.border = '1px solid #ddd';
+      menu.style.borderRadius = '6px';
+      menu.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+      menu.style.padding = '12px';
+      menu.style.zIndex = '10000';
+      menu.style.minWidth = '220px';
+      
+      // 現在の色を取得
+      let currentBgColor = '#ffffff';
+      let currentTextColor = '#000000';
+      let currentBorderColor = '#dddddd';
+      
+      if (type === 'textbox') {
+        currentBgColor = element.style.backgroundColor || '#ffffff';
+        const textarea = element.querySelector('.text-input');
+        if (textarea) {
+          currentTextColor = rgbToHex(window.getComputedStyle(textarea).color);
+        }
+        currentBorderColor = element.style.borderColor || '#dddddd';
+      } else if (type === 'input') {
+        currentBgColor = element.style.backgroundColor || '#ffffff';
+        const label = element.querySelector('.input-label');
+        const input = element.querySelector('.input-box');
+        if (label) {
+          currentTextColor = rgbToHex(window.getComputedStyle(label).color);
+        }
+        currentBorderColor = element.style.borderColor || '#dddddd';
+      } else if (type === 'checkbox' || type === 'radio') {
+        currentBgColor = element.style.backgroundColor || 'transparent';
+        const labels = element.querySelectorAll(type === 'checkbox' ? '.checkbox-label' : '.radio-label');
+        if (labels.length > 0) {
+          currentTextColor = rgbToHex(window.getComputedStyle(labels[0]).color);
+        }
+        currentBorderColor = element.style.borderColor || 'transparent';
+      }
+      
+      menu.innerHTML = `
+        <div style="padding: 4px 0 8px 0; font-weight: 600; border-bottom: 1px solid #eee; margin-bottom: 12px;">色の設定</div>
+        <div style="padding: 4px 0;">
+          <label style="display: block; margin-bottom: 6px; font-size: 13px;">背景色</label>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="color" id="elementBgColor" value="${currentBgColor}" style="width: 60px; height: 32px; cursor: pointer; border: 1px solid #ddd; border-radius: 4px;" />
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 13px;">
+              <input type="checkbox" id="bgTransparent" ${currentBgColor === 'transparent' ? 'checked' : ''} /> 透明
+            </label>
+          </div>
+        </div>
+        <div style="padding: 4px 0; margin-top: 12px;">
+          <label style="display: block; margin-bottom: 6px; font-size: 13px;">文字色</label>
+          <input type="color" id="elementTextColor" value="${currentTextColor}" style="width: 100%; height: 32px; cursor: pointer; border: 1px solid #ddd; border-radius: 4px;" />
+        </div>
+        <div style="padding: 4px 0; margin-top: 12px;">
+          <label style="display: block; margin-bottom: 6px; font-size: 13px;">枠線色</label>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="color" id="elementBorderColor" value="${currentBorderColor}" style="width: 60px; height: 32px; cursor: pointer; border: 1px solid #ddd; border-radius: 4px;" />
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 13px;">
+              <input type="checkbox" id="borderTransparent" ${currentBorderColor === 'transparent' ? 'checked' : ''} /> 透明
+            </label>
+          </div>
+        </div>
+        <div style="margin-top: 16px; display: flex; gap: 8px; justify-content: flex-end;">
+          <button id="colorMenuCancel" style="padding: 6px 14px; border: 1px solid #ddd; border-radius: 4px; background: #fff; cursor: pointer; font-size: 13px;">キャンセル</button>
+          <button id="colorMenuApply" style="padding: 6px 14px; border: none; border-radius: 4px; background: #1976d2; color: white; cursor: pointer; font-size: 13px;">適用</button>
+        </div>
+      `;
+      
+      document.body.appendChild(menu);
+      
+      // 透明チェックボックスの処理
+      const bgColorInput = document.getElementById('elementBgColor');
+      const bgTransparent = document.getElementById('bgTransparent');
+      const borderColorInput = document.getElementById('elementBorderColor');
+      const borderTransparent = document.getElementById('borderTransparent');
+      
+      if (bgTransparent) {
+        bgTransparent.addEventListener('change', function() {
+          bgColorInput.disabled = this.checked;
+        });
+        bgColorInput.disabled = bgTransparent.checked;
+      }
+      
+      if (borderTransparent) {
+        borderTransparent.addEventListener('change', function() {
+          borderColorInput.disabled = this.checked;
+        });
+        borderColorInput.disabled = borderTransparent.checked;
+      }
+      
+      // キャンセルボタン
+      document.getElementById('colorMenuCancel').addEventListener('click', function() {
+        menu.remove();
+      });
+      
+      // 適用ボタン
+      document.getElementById('colorMenuApply').addEventListener('click', function() {
+        const bgColor = bgTransparent.checked ? 'transparent' : bgColorInput.value;
+        const textColor = document.getElementById('elementTextColor').value;
+        const borderColor = borderTransparent.checked ? 'transparent' : borderColorInput.value;
+        
+        applyColors(element, type, bgColor, textColor, borderColor);
+        
+        if (typeof saveHistory === 'function') saveHistory();
+        menu.remove();
+      });
+      
+      // メニュー外クリックで閉じる
+      setTimeout(() => {
+        document.addEventListener('click', function closeMenu(e) {
+          if (!menu.contains(e.target)) {
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+          }
+        });
+      }, 10);
+    }
+    
+    function applyColors(element, type, bgColor, textColor, borderColor) {
+      element.style.backgroundColor = bgColor;
+      element.style.borderColor = borderColor;
+      
+      if (type === 'textbox') {
+        const textarea = element.querySelector('.text-input');
+        if (textarea) {
+          textarea.style.color = textColor;
+          textarea.style.backgroundColor = bgColor;
+        }
+      } else if (type === 'input') {
+        const label = element.querySelector('.input-label');
+        const input = element.querySelector('.input-box');
+        if (label) {
+          label.style.color = textColor;
+        }
+        if (input) {
+          input.style.color = textColor;
+          input.style.backgroundColor = bgColor;
+          input.style.borderColor = borderColor;
+        }
+      } else if (type === 'checkbox') {
+        const labels = element.querySelectorAll('.checkbox-label');
+        const groupLabel = element.querySelector('.checkbox-group-label');
+        labels.forEach(label => {
+          label.style.color = textColor;
+        });
+        if (groupLabel) {
+          groupLabel.style.color = textColor;
+        }
+      } else if (type === 'radio') {
+        const labels = element.querySelectorAll('.radio-label');
+        const groupLabel = element.querySelector('.radio-group-label');
+        labels.forEach(label => {
+          label.style.color = textColor;
+        });
+        if (groupLabel) {
+          groupLabel.style.color = textColor;
+        }
+      }
+    }
+    
+    function rgbToHex(rgb) {
+      if (!rgb || rgb === 'transparent') return '#000000';
+      const match = rgb.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+      if (match) {
+        const r = parseInt(match[1]).toString(16).padStart(2, '0');
+        const g = parseInt(match[2]).toString(16).padStart(2, '0');
+        const b = parseInt(match[3]).toString(16).padStart(2, '0');
+        return '#' + r + g + b;
+      }
+      // すでにhex形式の場合
+      if (rgb.startsWith('#')) return rgb;
+      return '#000000';
+    }
+  })();
+</script>
+<!-- 画像挿入機能 -->
+<script>
+  (function(){
+    const addImageBtn = document.getElementById('addImageBtn');
+    if (!addImageBtn) return;
+
+    addImageBtn.addEventListener('click', function() {
+      // ファイル選択用のinputを作成
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/*';
+      fileInput.style.display = 'none';
+      
+      fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        // ファイルサイズチェック（5MB以下）
+        if (file.size > 5 * 1024 * 1024) {
+          alert('画像サイズは5MB以下にしてください');
+          return;
+        }
+        
+        // 画像を読み込む
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          createImageElement(event.target.result);
+        };
+        reader.readAsDataURL(file);
+      });
+      
+      fileInput.click();
+    });
+
+    function createImageElement(imageSrc) {
+      const slide = document.getElementById('slideArea');
+      if (!slide) return;
+
+      const container = document.createElement('div');
+      container.className = 'image-element';
+      container.setAttribute('data-image-src', imageSrc);
+      
+      const img = document.createElement('img');
+      img.src = imageSrc;
+      img.style.pointerEvents = 'none'; // ドラッグ時に画像がドラッグされないようにする
+      
+      // 画像の読み込みが完了したらサイズを設定
+      img.onload = function() {
+        const maxWidth = 300;
+        const maxHeight = 300;
+        let width = img.naturalWidth;
+        let height = img.naturalHeight;
+        
+        // アスペクト比を保ちながら最大サイズに収める
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = width * ratio;
+          height = height * ratio;
+        }
+        
+        container.style.width = width + 'px';
+        container.style.height = height + 'px';
+        
+        const pos = getRandomPosition(width, height);
+        container.style.left = pos.x + 'px';
+        container.style.top = pos.y + 'px';
+      };
+      
+      container.appendChild(img);
+      
+      // ダブルクリックで設定パネルを開く
+      container.addEventListener('dblclick', function(e) {
+        e.stopPropagation();
+        openImageSettings(container);
+      });
+      
+      // 右クリックでも設定パネルを開く
+      container.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        openImageSettings(container);
+      });
+      
+      addDragHandleIfMissing(container);
+      makeDraggable(container);
+      slide.appendChild(container);
+      
+      // リサイズ機能を追加
+      if (typeof attachResizeHandlers === 'function') {
+        attachResizeHandlers(container, 'image');
+      }
+      
+      saveHistory();
+    }
+
+    // 画像設定パネルを開く
+    window.openImageSettings = function openImageSettings(imageElement) {
+      // 既存のパネルがあれば削除
+      const existingPanel = document.querySelector('.image-settings-panel');
+      if (existingPanel) existingPanel.remove();
+
+      const panel = document.createElement('div');
+      panel.className = 'image-settings-panel show';
+
+      const currentWidth = parseInt(imageElement.style.width) || 100;
+      const currentHeight = parseInt(imageElement.style.height) || 100;
+
+      panel.innerHTML = `
+        <div style="padding-bottom: 8px; border-bottom: 1px solid #eee; margin-bottom: 12px; font-weight: 600;">画像設定</div>
+        <div class="setting-row">
+          <label>幅 (px)</label>
+          <input type="number" id="imageWidth" value="${currentWidth}" min="20" max="800" />
+        </div>
+        <div class="setting-row">
+          <label>高さ (px)</label>
+          <input type="number" id="imageHeight" value="${currentHeight}" min="20" max="800" />
+        </div>
+        <div class="setting-row">
+          <label style="display: inline; font-weight: normal;">
+            <input type="checkbox" id="imageKeepRatio" checked /> アスペクト比を保持
+          </label>
+        </div>
+        <div class="panel-actions">
+          <button id="imageCancelBtn">キャンセル</button>
+          <button id="imageDeleteBtn" style="background: #ef4444; color: white; border-color: #ef4444;">削除</button>
+          <button id="imageApplyBtn" class="primary">適用</button>
+        </div>
+      `;
+
+      document.body.appendChild(panel);
+
+      // パネルを画像の近くに配置
+      const rect = imageElement.getBoundingClientRect();
+      panel.style.left = (rect.right + 10) + 'px';
+      panel.style.top = rect.top + 'px';
+
+      const widthInput = document.getElementById('imageWidth');
+      const heightInput = document.getElementById('imageHeight');
+      const keepRatioCheckbox = document.getElementById('imageKeepRatio');
+      
+      const img = imageElement.querySelector('img');
+      const aspectRatio = currentWidth / currentHeight;
+
+      // 幅変更時
+      widthInput.addEventListener('input', function() {
+        if (keepRatioCheckbox.checked) {
+          const newHeight = Math.round(parseInt(this.value) / aspectRatio);
+          heightInput.value = newHeight;
+        }
+      });
+
+      // 高さ変更時
+      heightInput.addEventListener('input', function() {
+        if (keepRatioCheckbox.checked) {
+          const newWidth = Math.round(parseInt(this.value) * aspectRatio);
+          widthInput.value = newWidth;
+        }
+      });
+
+      // キャンセルボタン
+      document.getElementById('imageCancelBtn').addEventListener('click', function() {
+        panel.remove();
+      });
+
+      // 削除ボタン
+      document.getElementById('imageDeleteBtn').addEventListener('click', async function() {
+        const confirmed = await customConfirm('この画像を削除しますか？', {
+          title: '画像の削除',
+          confirmText: '削除する',
+          cancelText: 'キャンセル',
+          danger: true
+        });
+        
+        if (confirmed) {
+          imageElement.remove();
+          if (typeof saveHistory === 'function') saveHistory();
+          panel.remove();
+        }
+      });
+
+      // 適用ボタン
+      document.getElementById('imageApplyBtn').addEventListener('click', function() {
+        const newWidth = parseInt(widthInput.value);
+        const newHeight = parseInt(heightInput.value);
+
+        imageElement.style.width = newWidth + 'px';
+        imageElement.style.height = newHeight + 'px';
+
+        if (typeof saveHistory === 'function') saveHistory();
+        panel.remove();
+      });
+
+      // パネル外クリックで閉じる
+      setTimeout(() => {
+        document.addEventListener('click', function closePanel(e) {
+          if (!panel.contains(e.target) && !imageElement.contains(e.target)) {
+            panel.remove();
+            document.removeEventListener('click', closePanel);
+          }
+        });
+      }, 10);
+    };
+  })();
+</script>
+<!-- リサイズ機能 -->
+<script>
+  // 図形と画像のリサイズハンドラーを追加
+  window.attachResizeHandlers = function attachResizeHandlers(element, elementType) {
+    const resizeZone = 8; // リサイズ可能な端からの距離（ピクセル）
+    
+    let isResizing = false;
+    let resizeDirection = null;
+    let startX = 0;
+    let startY = 0;
+    let startWidth = 0;
+    let startHeight = 0;
+    let startLeft = 0;
+    let startTop = 0;
+    
+    // マウスムーブでカーソルを変更
+    element.addEventListener('mousemove', function(e) {
+      if (isResizing) return;
+      
+      const rect = element.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      const onLeft = x <= resizeZone;
+      const onRight = x >= rect.width - resizeZone;
+      const onTop = y <= resizeZone;
+      const onBottom = y >= rect.height - resizeZone;
+      
+      if ((onTop && onLeft) || (onBottom && onRight)) {
+        element.style.cursor = 'nwse-resize';
+      } else if ((onTop && onRight) || (onBottom && onLeft)) {
+        element.style.cursor = 'nesw-resize';
+      } else if (onLeft || onRight) {
+        element.style.cursor = 'ew-resize';
+      } else if (onTop || onBottom) {
+        element.style.cursor = 'ns-resize';
+      } else {
+        element.style.cursor = 'move';
+      }
+    });
+    
+    element.addEventListener('mouseleave', function() {
+      if (!isResizing) {
+        element.style.cursor = 'move';
+      }
+    });
+    
+    // マウスダウンでリサイズ開始
+    element.addEventListener('mousedown', function(e) {
+      const rect = element.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      const onLeft = x <= resizeZone;
+      const onRight = x >= rect.width - resizeZone;
+      const onTop = y <= resizeZone;
+      const onBottom = y >= rect.height - resizeZone;
+      
+      if (onLeft || onRight || onTop || onBottom) {
+        e.stopPropagation();
+        isResizing = true;
+        
+        // リサイズ方向を決定
+        if (onTop && onLeft) resizeDirection = 'nw';
+        else if (onTop && onRight) resizeDirection = 'ne';
+        else if (onBottom && onLeft) resizeDirection = 'sw';
+        else if (onBottom && onRight) resizeDirection = 'se';
+        else if (onLeft) resizeDirection = 'w';
+        else if (onRight) resizeDirection = 'e';
+        else if (onTop) resizeDirection = 'n';
+        else if (onBottom) resizeDirection = 's';
+        
+        startX = e.clientX;
+        startY = e.clientY;
+        startWidth = parseFloat(element.style.width) || rect.width;
+        startHeight = parseFloat(element.style.height) || rect.height;
+        startLeft = parseFloat(element.style.left) || 0;
+        startTop = parseFloat(element.style.top) || 0;
+        
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+        
+        document.body.style.userSelect = 'none';
+      }
+    });
+    
+    function onMouseMove(e) {
+      if (!isResizing) return;
+      
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      
+      let newWidth = startWidth;
+      let newHeight = startHeight;
+      let newLeft = startLeft;
+      let newTop = startTop;
+      
+      // 三角形の場合の特別処理
+      if (elementType === 'triangle') {
+        if (resizeDirection.includes('e')) {
+          newWidth = Math.max(20, startWidth + dx);
+        } else if (resizeDirection.includes('w')) {
+          newWidth = Math.max(20, startWidth - dx);
+          newLeft = startLeft + dx;
+        }
+        
+        if (resizeDirection.includes('s')) {
+          newHeight = Math.max(20, startHeight + dy);
+        } else if (resizeDirection.includes('n')) {
+          newHeight = Math.max(20, startHeight - dy);
+          newTop = startTop + dy;
+        }
+        
+        // 三角形のボーダーを更新
+        const halfWidth = newWidth / 2;
+        element.style.borderLeftWidth = halfWidth + 'px';
+        element.style.borderRightWidth = halfWidth + 'px';
+        element.style.borderBottomWidth = newHeight + 'px';
+        element.style.left = newLeft + 'px';
+        element.style.top = newTop + 'px';
+        return;
+      }
+      
+      // 円の場合は縦横比を保つ
+      if (elementType === 'circle') {
+        if (resizeDirection.includes('e')) {
+          newWidth = Math.max(20, startWidth + dx);
+          newHeight = newWidth;
+        } else if (resizeDirection.includes('w')) {
+          newWidth = Math.max(20, startWidth - dx);
+          newHeight = newWidth;
+          newLeft = startLeft + dx;
+          newTop = startTop + dx;
+        } else if (resizeDirection.includes('s')) {
+          newHeight = Math.max(20, startHeight + dy);
+          newWidth = newHeight;
+        } else if (resizeDirection.includes('n')) {
+          newHeight = Math.max(20, startHeight - dy);
+          newWidth = newHeight;
+          newTop = startTop + dy;
+          newLeft = startLeft + dy;
+        }
+      } else {
+        // その他の図形と画像
+        if (resizeDirection.includes('e')) {
+          newWidth = Math.max(20, startWidth + dx);
+        } else if (resizeDirection.includes('w')) {
+          newWidth = Math.max(20, startWidth - dx);
+          newLeft = startLeft + dx;
+        }
+        
+        if (resizeDirection.includes('s')) {
+          newHeight = Math.max(20, startHeight + dy);
+        } else if (resizeDirection.includes('n')) {
+          newHeight = Math.max(20, startHeight - dy);
+          newTop = startTop + dy;
+        }
+      }
+      
+      element.style.width = newWidth + 'px';
+      element.style.height = newHeight + 'px';
+      element.style.left = newLeft + 'px';
+      element.style.top = newTop + 'px';
+    }
+    
+    function onMouseUp() {
+      if (isResizing) {
+        isResizing = false;
+        resizeDirection = null;
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        document.body.style.userSelect = '';
+        
+        if (typeof saveHistory === 'function') {
+          saveHistory();
+        }
+      }
+    }
+  };
 </script>
