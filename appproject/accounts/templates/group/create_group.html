@@ -12,112 +12,152 @@
 {% endblock %}
 
 {% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
 <style>
+  body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100vh;
+    font-family: 'M PLUS Rounded 1c', sans-serif;
+    overflow-x: hidden;
+  }
+
   .card { 
-    max-width:1200px; 
-    margin:100px auto 40px; 
-    background:transparent; 
-    border:none; 
-    padding:24px; 
-    box-shadow:none; 
-    box-sizing:border-box; 
-    overflow:visible;
+    max-width: 900px; 
+    margin: 100px auto 40px; 
+    background: white;
+    border-radius: 30px;
+    padding: 40px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
   }
   
   .form-section {
-    margin-bottom:24px;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
   
-  .title-image {
-    max-width:500px;
-    width:100%;
-    height:auto;
-    margin-bottom:40px;
-    display:block;
+  .page-title {
+    font-size: 32px;
+    font-weight: 900;
+    color: #333;
+    margin-bottom: 30px;
+    text-align: center;
+    position: relative;
+    padding-bottom: 15px;
+  }
+
+  .page-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 5px;
+    background: linear-gradient(135deg, #4cd97b, #36b869);
+    border-radius: 3px;
   }
   
   .form-group {
-    display:flex;
-    flex-direction:column;
-    gap:15px;
-    align-items:center;
-    margin-bottom:12px;
-    justify-content:center;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+    margin-bottom: 12px;
+    justify-content: center;
+    width: 100%;
   }
   
   .input-wrapper {
-    display:flex;
-    align-items:center;
-    margin:8px 0;
-    gap:30px;
-    width:100%;
-    max-width:800px;
-    justify-content:center;
+    display: flex;
+    align-items: center;
+    margin: 8px 0;
+    gap: 20px;
+    width: 100%;
+    max-width: 700px;
+    justify-content: center;
   }
   
   .input-label {
-    background:#ffffff;
-    padding:12px 30px;
-    border-radius:50px;
-    font-size:20px;
-    font-weight:600;
-    color:#333;
-    flex-shrink:0;
-    box-shadow:0 3px 8px rgba(0,0,0,0.12);
-    min-width:200px;
-    text-align:center;
+    background: linear-gradient(135deg, #f0f4f8, #e6eef5);
+    padding: 15px 30px;
+    border-radius: 25px;
+    font-size: 18px;
+    font-weight: 900;
+    color: #555;
+    flex-shrink: 0;
+    box-shadow: 0 4px 0 #c0d5e0;
+    border: 3px solid #d0dfe8;
+    min-width: 180px;
+    text-align: center;
   }
   
   .form-group input {
-    background:#5BD4F0;
-    border:none;
-    border-radius:50px;
-    padding:12px 24px;
-    height:50px;
-    font-size:18px;
-    outline:none;
-    width:400px;
-    color:#fff;
+    background: white;
+    border: 3px solid #d0dfe8;
+    border-radius: 25px;
+    padding: 15px 25px;
+    height: 50px;
+    font-size: 16px;
+    font-weight: 700;
+    outline: none;
+    width: 400px;
+    color: #333;
+    box-shadow: 0 4px 0 #c0d5e0;
+    transition: all 0.2s;
+    font-family: 'M PLUS Rounded 1c', sans-serif;
   }
   
   .form-group input::placeholder {
-    color:rgba(255,255,255,0.8);
+    color: #999;
+    font-weight: 700;
   }
   
   .form-group input:focus {
-    background:#4AC5E0;
-    box-shadow:0 0 0 3px rgba(91,212,240,0.3);
+    border-color: #4cd97b;
+    box-shadow: 0 0 0 3px rgba(76, 217, 123, 0.2);
   }
   
   .form-group input[type="text"] {
-    width:400px;
+    width: 400px;
   }
   
   .form-group input[type="password"] {
-    width:400px;
+    width: 400px;
   }
   
   .btn {
-    font-size:18px;
-    color:#000000;
-    padding:10px 35px;
-    border-radius:50px;
-    border:3px solid #00BFFF;
-    background:#ffffff;
-    box-shadow:0 4px 10px rgba(0,191,255,0.3);
-    cursor:pointer;
-    margin:25px 0;
-    font-weight:bold;
-    transition:transform 0.2s ease, box-shadow 0.2s ease;
+    background: linear-gradient(135deg, #4cd97b, #36b869);
+    color: white;
+    border: none;
+    padding: 15px 40px;
+    border-radius: 50px;
+    font-size: 18px;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 5px 0 #2a9d5a;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    margin: 25px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'M PLUS Rounded 1c', sans-serif;
   }
   
   .btn:hover {
-    background:#f0f8ff;
-    transform:translateY(-2px);
-    box-shadow:0 6px 15px rgba(0,191,255,0.4);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 0 #2a9d5a;
+  }
+  
+  .btn:active {
+    transform: scale(0.95);
+    box-shadow: none;
   }
   
   .btn-primary {
@@ -125,59 +165,63 @@
   }
   
   .members-section {
-    margin-top:24px;
+    margin-top: 24px;
   }
   
   .members-section h3 {
-    font-size:16px;
-    font-weight:600;
-    color:#333;
-    margin-bottom:12px;
+    font-size: 18px;
+    font-weight: 900;
+    color: #333;
+    margin-bottom: 12px;
   }
   
   .members-list {
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-    min-height:50px;
-    padding:12px;
-    border:1px solid #ddd;
-    border-radius:6px;
-    background:#f9f9f9;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 50px;
+    padding: 15px;
+    border: 3px solid #d0dfe8;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #f8f9fb, #eef1f5);
+    box-shadow: 0 3px 0 #d0d5dc;
   }
   
   .member-chip {
-    display:inline-flex;
-    align-items:center;
-    padding:6px 12px;
-    background:#e8f0ff;
-    border:1px solid #9cc0ff;
-    border-radius:16px;
-    font-size:13px;
-    color:#333;
-    cursor:pointer;
-    transition:background 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 15px;
+    background: rgba(76, 217, 123, 0.2);
+    border: 2px solid #4cd97b;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #2a9d5a;
+    cursor: pointer;
+    transition: all 0.2s;
   }
   
   .member-chip:hover {
-    background:#d0e4ff;
+    background: rgba(76, 217, 123, 0.3);
+    transform: translateY(-2px);
   }
   
-  @media(max-width:720px){
+  @media(max-width: 720px){
     .card {
-      margin-top:120px;
+      margin-top: 120px;
+      padding: 30px 20px;
     }
     .input-wrapper {
-      flex-direction:column;
-      align-items:stretch;
-      gap:8px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
     }
     .input-label {
-      min-width:auto;
-      text-align:center;
+      min-width: auto;
+      text-align: center;
     }
     .form-group input {
-      width:100% !important;
+      width: 100% !important;
     }
   }
 </style>
@@ -186,7 +230,7 @@
 {% block content %}
 <div class="card">
   <div class="form-section">
-    <img src="{% static 'codemon/images/nav/group_create.png' %}" alt="グループ作成" style="max-width:350px;width:100%;height:auto;margin-bottom:20px;display:block;">
+    <h1 class="page-title">グループ作成</h1>
     
     {% if messages %}
     <div class="messages" style="margin-bottom: 15px; width: 100%; max-width: 600px;">

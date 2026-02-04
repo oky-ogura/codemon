@@ -14,228 +14,116 @@
 
 {% block extra_css %}
 <style>
-.checklist-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 30px;
-  min-height: calc(100vh - 140px);
-  gap: 18px;
-  position: relative;
-}
-
-.button-container {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  align-items: center;
-  width: 100%;
-  max-width: min(92vw, 980px);
-}
-
-.button-container.center {
-  position: fixed !important;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 1000;
-  width: min(92vw, 980px);
-  padding: 0 12px;
-  margin: 0 auto;
-}
-
-@media (max-width: 480px) {
-  .button-container.center {
-    position: static;
-    transform: none;
-    margin-top: 24px;
+  /* content-wrapperの調整 */
+  .content-wrapper {
+    padding: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: 100px !important;
+  }
+  
+  main {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: calc(100vh - 100px);
     width: 100%;
+    max-width: 700px;
+    padding-top: 100px;
+    margin: 0 auto;
   }
-}
-
-/* ===== 一覧ボタン（btn-list）個別調整用 ===== */
-.btn-list {
-  --list-width: 100%;                /* ボタンの幅 */
-  --list-max-width: 220px;           /* ボタンの最大幅 */
-  --list-height: auto;               /* ボタンの高さ */
-  --list-padding: 0;                 /* ボタンのパディング */
-  --list-margin-top: 0;              /* 上マージン */
-  --list-margin-bottom: 0;           /* 下マージン */
-  --list-img-width: 130%;            /* 画像の幅 */
-  --list-img-max-width: 420px;       /* 画像の最大幅 */
-  --list-img-height: auto;           /* 画像の高さ */
-  --list-img-object-fit: contain;    /* object-fit */
-  --list-img-offset-x: -126px;        /* 画像の左右オフセット */
-  --list-img-offset-y: 33px;         /* 画像の上下オフセット */
-  --list-img-scale: 1;               /* 画像のスケール */
-
-  position: relative;
-  display: block;
-  width: var(--list-width);
-  max-width: var(--list-max-width);
-  height: var(--list-height);
-  padding: var(--list-padding);
-  margin-top: var(--list-margin-top);
-  margin-bottom: var(--list-margin-bottom);
-  background: none;
-  border: none;
-  text-decoration: none;
-  cursor: pointer;
-  transition: transform 0.22s ease;
-}
-
-.btn-list img {
-  width: var(--list-img-width);
-  max-width: var(--list-img-max-width);
-  height: var(--list-img-height);
-  object-fit: var(--list-img-object-fit);
-  display: block;
-  border-radius: 999px;
-  box-shadow: none !important;
-  position: absolute;
-  left: -126px;
-  top: -10px;
-  transform: scale(var(--list-img-scale));
-}
-
-.btn-list:hover img {
-  /* hover効果なし */
-}
-
-/* ===== 作成ボタン（btn-create）個別調整用 ===== */
-.btn-create {
-  --create-width: 100%;              /* ボタンの幅 */
-  --create-max-width: 220px;         /* ボタンの最大幅 */
-  --create-height: auto;             /* ボタンの高さ */
-  --create-padding: 0;               /* ボタンのパディング */
-  --create-margin-top: 0;            /* 上マージン */
-  --create-margin-bottom: 0;         /* 下マージン */
-  --create-img-width: 130%;          /* 画像の幅 */
-  --create-img-max-width: 420px;     /* 画像の最大幅 */
-  --create-img-height: auto;         /* 画像の高さ */
-  --create-img-object-fit: contain;  /* object-fit */
-  --create-img-offset-x: -126px;      /* 画像の左右オフセット */
-  --create-img-offset-y: 41px;       /* 画像の上下オフセット */
-  --create-img-scale: 1;             /* 画像のスケール */
-
-  position: relative;
-  display: block;
-  width: var(--create-width);
-  max-width: var(--create-max-width);
-  height: var(--create-height);
-  padding: var(--create-padding);
-  margin-top: var(--create-margin-top);
-  margin-bottom: var(--create-margin-bottom);
-  background: none;
-  border: none;
-  text-decoration: none;
-  cursor: pointer;
-  transition: transform 0.22s ease;
-}
-
-.btn-create:hover img {
-  /* hover効果なし */
-}
-
-.btn-create img {
-  width: var(--create-img-width);
-  max-width: var(--create-img-max-width);
-  height: var(--create-img-height);
-  object-fit: var(--create-img-object-fit);
-  display: block;
-  border-radius: 999px;
-  box-shadow: none !important;
-  position: absolute;
-  left: -126px;
-  top: 41px;
-  transform: scale(var(--create-img-scale));
-}
-
-.btn-label {
-  position: absolute;
-  top: 155%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color:  rgba(21, 21, 21, 1);
-  font-weight: 700;
-  font-size: 18px;
-  pointer-events: none;
-  white-space: nowrap;
-  text-shadow: 0 1px 0 rgba(255,255,255,0.6);
-}
-
-/* ボタン別のラベル調整（位置・サイズ・色などを個別に可変にする） */
-.btn-list .btn-label {
-  top: var(--list-label-top, 10px);
-  left: var(--list-label-left, 12px);
-  font-size: var(--list-label-font-size, 18px);
-  font-weight: var(--list-label-font-weight, 700);
-  color: var(--list-label-color, rgba(21, 21, 21, 1););
-}
-
-.btn-create .btn-label {
-  top: var(--create-label-top, 60px);
-  left: var(--create-label-left, 12px);
-  font-size: var(--create-label-font-size, 18px);
-  font-weight: var(--create-label-font-weight, 700);
-  color: var(--create-label-color, rgba(21, 21, 21, 1););
-}
-
-/* フォーカスとクリック時のブラウザデフォルト枠を無効化 */
-.btn-list:focus,
-.btn-list:active,
-.btn-list:focus-visible,
-.btn-create:focus,
-.btn-create:active,
-.btn-create:focus-visible {
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-/* タップハイライトの無効化 */
-.btn-list, .btn-list img, .btn-create, .btn-create img {
-  -webkit-tap-highlight-color: transparent;
-}
-
-@media (max-width: 768px) {
-  .btn-list {
-    --list-img-max-width: 320px;
-    --list-max-width: 320px;
+  
+  .action-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 600px;
   }
-  .btn-create {
-    --create-img-max-width: 320px;
-    --create-max-width: 320px;
+  
+  .action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 25px 30px;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    background: linear-gradient(135deg, #A8E6CF 0%, #8ED4B0 100%);
+    border-radius: 50px;
+    color: white;
+    font-weight: 900;
+    font-size: 20px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+    min-height: 75px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 8px 20px rgba(168, 230, 207, 0.3);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    gap: 10px;
+    text-decoration: none;
   }
-  .btn-label {
-    font-size: 16px;
+  
+  .action-btn:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 12px 30px rgba(168, 230, 207, 0.4);
+    border-color: rgba(255, 255, 255, 0.6);
   }
-}
-
-@media (min-width: 900px) {
-  .button-container.center .btn-create {
-    --create-margin-top: 14px;
+  
+  .action-btn:active, .action-btn:focus {
+    transform: scale(0.95) !important;
+    transition: transform 0.1s !important;
+    box-shadow: 0 4px 10px rgba(168, 230, 207, 0.3) !important;
+    outline: none;
   }
-}
+  
+  .action-btn.disabled {
+    opacity: 0.7;
+    cursor: default;
+    pointer-events: none;
+  }
+  
+  /* ボタンにアイコンを追加する場合 */
+  .action-btn i {
+    font-size: 24px;
+  }
+  
+  /* ボタンのカラーバリエーション */
+  .action-btn.btn-list {
+    background: linear-gradient(135deg, #A8E6CF 0%, #8ED4B0 100%);
+    box-shadow: 0 8px 20px rgba(168, 230, 207, 0.3);
+  }
+  .action-btn.btn-list:hover {
+    box-shadow: 0 12px 30px rgba(168, 230, 207, 0.4);
+  }
+  
+  .action-btn.btn-new {
+    background: linear-gradient(135deg, #4cd97b 0%, #3ab866 100%);
+    box-shadow: 0 8px 20px rgba(76, 217, 123, 0.3);
+  }
+  .action-btn.btn-new:hover {
+    box-shadow: 0 12px 30px rgba(76, 217, 123, 0.4);
+  }
+  
+  @media (max-width:880px){
+    .action-panel {
+      flex-direction: column;
+    }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-
-<div class="checklist-container">
-
-  <div class="button-container center">
-    <a href="{% url 'codemon:checklist_list' %}" class="btn-list" role="button" aria-label="作成したチェックリスト一覧">
-      <img src="{% static 'codemon/images/buttons/selection_green.png' %}" alt="" onerror="this.style.display='none';">
-      <span class="btn-label">作成したチェックリスト一覧</span>
-    </a>
-
-    <a href="{% url 'codemon:checklist_create' %}" class="btn-create" role="button" aria-label="新しいチェックリストを作る">
-      <img src="{% static 'codemon/images/buttons/selection_green.png' %}" alt="" onerror="this.style.display='none'">
-      <span class="btn-label">新しいチェックリストを作る</span>
-    </a>
-  </div>
-
+<div class="action-panel" role="region" aria-label="チェックリスト操作">
+  <a href="{% url 'codemon:checklist_list' %}" class="action-btn btn-list">
+    <i class="fas fa-list"></i> 作成したチェックリスト一覧を開く
+  </a>
+  <a href="{% url 'codemon:checklist_create' %}" class="action-btn btn-new">
+    <i class="fas fa-plus-circle"></i> 新しいチェックリストを作る
+  </a>
 </div>
 {% endblock %}
