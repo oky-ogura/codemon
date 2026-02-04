@@ -921,7 +921,24 @@ function restoreButton(elem) {
 
   const targetSystemId = elem.element_config?.target_system_id;
   const algorithmId = elem.element_config?.algorithm_id;
-  const algorithmXml = elem.element_config?.algorithm_xml;
+  let algorithmXml = elem.element_config?.algorithm_xml;
+  const buttonId = elem.element_config?.button_id;
+  
+  // algorithm_idがあるがalgorithm_xmlがない場合、algorithms_jsonから取得
+  if (algorithmId && !algorithmXml) {
+    try {
+      const algorithms = {{ algorithms_json|safe }};
+      const algorithm = algorithms.find(a => a.algorithm_id == algorithmId);
+      if (algorithm && algorithm.blockly_xml) {
+        algorithmXml = algorithm.blockly_xml;
+        console.log('✅ アルゴリズムXMLを取得しました:', algorithmId, 'XML長:', algorithmXml.length);
+      } else {
+        console.warn('⚠️ アルゴリズムXMLが見つかりません:', algorithmId);
+      }
+    } catch (error) {
+      console.error('❌ アルゴリズムXML取得エラー:', error);
+    }
+  }
   
   if (targetSystemId) {
     btn.setAttribute('data-target-system', targetSystemId);
@@ -931,6 +948,9 @@ function restoreButton(elem) {
   }
   if (algorithmXml) {
     btn.setAttribute('data-algorithm-xml', algorithmXml);
+  }
+  if (buttonId) {
+    btn.setAttribute('data-button-id', buttonId);
   }
 
   btn.addEventListener('click', function(e) {
@@ -954,6 +974,11 @@ function restoreButton(elem) {
   addDragHandleIfMissing(btn);
   makeDraggable(btn);
   document.getElementById("slideArea").appendChild(btn);
+  
+  // アルゴリズムが設定されている場合、インジケーターを表示
+  if (algorithmId && typeof addAlgorithmIndicator === 'function') {
+    addAlgorithmIndicator(btn);
+  }
 }
 
 function restoreTextBox(elem) {
@@ -1247,4 +1272,31 @@ function restoreTimer(elem) {
   makeDraggable(container);
   document.getElementById('slideArea').appendChild(container);
 }
+
+// ========================================
+// ページ読み込み時: 仮保存後のアルゴリズム作成画面への遷移
+// ========================================
+document.addEventListener('DOMContentLoaded', function() {
+  // セッションストレージに pending_algorithm_action があるかチェック
+  const pendingAction = sessionStorage.getItem('pending_algorithm_action');
+  const pendingButtonId = sessionStorage.getItem('pending_algorithm_button_id');
+  
+  if (pendingAction === 'create' && pendingButtonId) {
+    console.log('💾 仮保存後のアルゴリズム作成画面への自動遷移を実行');
+    
+    // セッションストレージをクリア
+    sessionStorage.removeItem('pending_algorithm_action');
+    sessionStorage.removeItem('pending_algorithm_button_id');
+    
+    // URLからsystem_idを取得
+    const systemId = window.getSystemIdFromUrl();
+    if (systemId) {
+      const url = `/accounts/block/?system_id=${systemId}&button_id=${pendingButtonId}&action=create`;
+      console.log('🔗 自動遷移先:', url);
+      window.location.href = url;
+    } else {
+      console.error('❌ System ID が見つかりません');
+    }
+  }
+});
 </script>

@@ -173,6 +173,146 @@ function createInput(defaultLabel, placeholder, onlyNumber=false) {
   saveHistory();
 }
 
+// テキストボックス作成（ドラッグでサイズ決定）
+function createTextBox() {
+  const slideArea = document.getElementById("slideArea");
+  if (!slideArea) return;
+  
+  // カーソルをプラスマークに変更
+  slideArea.style.cursor = "crosshair";
+  
+  let startX, startY;
+  let isDrawing = false;
+  let previewBox = null;
+  
+  function onMouseDown(e) {
+    // slideAreaまたはtrashエリア以外はスキップ
+    if (e.target !== slideArea && e.target.id !== 'trash') return;
+    
+    isDrawing = true;
+    const rect = slideArea.getBoundingClientRect();
+    startX = e.clientX - rect.left + slideArea.scrollLeft;
+    startY = e.clientY - rect.top + slideArea.scrollTop;
+    
+    // 既存のプレビューボックスがあれば削除
+    if (previewBox) {
+      previewBox.remove();
+    }
+    
+    // プレビューボックスを作成
+    previewBox = document.createElement("div");
+    previewBox.className = "textbox-preview";
+    previewBox.style.position = "absolute";
+    previewBox.style.left = startX + "px";
+    previewBox.style.top = startY + "px";
+    previewBox.style.width = "0px";
+    previewBox.style.height = "0px";
+    previewBox.style.border = "2px dashed #3fbcd9";
+    previewBox.style.background = "rgba(63, 188, 217, 0.1)";
+    previewBox.style.pointerEvents = "none";
+    previewBox.style.zIndex = "9999";
+    slideArea.appendChild(previewBox);
+    
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  
+  function onMouseMove(e) {
+    if (!isDrawing || !previewBox) return;
+    
+    const rect = slideArea.getBoundingClientRect();
+    const currentX = e.clientX - rect.left + slideArea.scrollLeft;
+    const currentY = e.clientY - rect.top + slideArea.scrollTop;
+    
+    const width = Math.abs(currentX - startX);
+    const height = Math.abs(currentY - startY);
+    const left = Math.min(startX, currentX);
+    const top = Math.min(startY, currentY);
+    
+    previewBox.style.left = left + "px";
+    previewBox.style.top = top + "px";
+    previewBox.style.width = width + "px";
+    previewBox.style.height = height + "px";
+  }
+  
+  function onMouseUp(e) {
+    if (!isDrawing) {
+      cleanup();
+      return;
+    }
+    
+    isDrawing = false;
+    
+    if (previewBox) {
+      const width = parseInt(previewBox.style.width) || 0;
+      const height = parseInt(previewBox.style.height) || 0;
+      const left = parseInt(previewBox.style.left) || 0;
+      const top = parseInt(previewBox.style.top) || 0;
+      
+      // 最小サイズチェック（小さすぎる場合は作成しない）
+      if (width >= 50 && height >= 30) {
+        // テキストボックスを作成
+        const container = document.createElement("div");
+        container.className = "text-box-container";
+        container.style.position = "absolute";
+        container.style.left = left + "px";
+        container.style.top = top + "px";
+        container.style.width = width + "px";
+        container.style.height = height + "px";
+        
+        const textarea = document.createElement("textarea");
+        textarea.className = "text-box";
+        textarea.placeholder = "テキストを入力...";
+        textarea.style.width = "100%";
+        textarea.style.height = "100%";
+        textarea.style.resize = "none";
+        textarea.style.boxSizing = "border-box";
+        
+        container.appendChild(textarea);
+        addDragHandleIfMissing(container);
+        makeDraggable(container);
+        slideArea.appendChild(container);
+        saveHistory();
+        
+        // フォーカスを当てる
+        setTimeout(() => textarea.focus(), 100);
+      }
+    }
+    
+    cleanup();
+  }
+  
+  function cleanup() {
+    slideArea.removeEventListener("mousedown", onMouseDown);
+    slideArea.removeEventListener("mousemove", onMouseMove);
+    slideArea.removeEventListener("mouseup", onMouseUp);
+    slideArea.style.cursor = "default";
+    
+    // すべてのプレビューボックスを削除（念のため）
+    const previews = slideArea.querySelectorAll('.textbox-preview');
+    previews.forEach(p => p.remove());
+    
+    if (previewBox && previewBox.parentNode) {
+      previewBox.remove();
+    }
+    previewBox = null;
+  }
+  
+  slideArea.addEventListener("mousedown", onMouseDown);
+  slideArea.addEventListener("mousemove", onMouseMove);
+  slideArea.addEventListener("mouseup", onMouseUp);
+  
+  // ESCキーでキャンセル
+  function onKeyDown(e) {
+    if (e.key === 'Escape') {
+      isDrawing = false;
+      cleanup();
+      document.removeEventListener('keydown', onKeyDown);
+    }
+  }
+  document.addEventListener('keydown', onKeyDown);
+}
+
 // 日時入力作成
 function createDatetimeInput() {
   let container = document.createElement("div");
@@ -670,6 +810,10 @@ function createButton(labelText, width, height, color, textColor, targetSystemId
   btn.style.height = height + "px";
   btn.style.background = color;
   btn.style.color = textColor || "#fff";
+  
+  // button_idを生成して保存
+  const buttonId = 'btn_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15);
+  btn.setAttribute('data-button-id', buttonId);
 
   if (targetSystemId) {
     btn.setAttribute('data-target-system', targetSystemId);
@@ -712,6 +856,12 @@ if (addTextBtn) {
   addTextBtn.addEventListener("click", function(e) {
     e.stopPropagation();
     createInput("文字：", "文字を入力（改行可）");
+    // ドロップダウンを閉じる
+    const formDropdown = document.getElementById('formDropdown');
+    if (formDropdown) {
+      formDropdown.classList.remove('show');
+      formDropdown.setAttribute('aria-hidden', 'true');
+    }
   });
 }
 
@@ -720,13 +870,40 @@ if (addNumberBtn) {
   addNumberBtn.addEventListener("click", function(e) {
     e.stopPropagation();
     createInput("数字：", "数字を入力", true);
+    // ドロップダウンを閉じる
+    const formDropdown = document.getElementById('formDropdown');
+    if (formDropdown) {
+      formDropdown.classList.remove('show');
+      formDropdown.setAttribute('aria-hidden', 'true');
+    }
   });
 }
 
 const addDatetimeBtn = document.getElementById("addDatetimeBtn");
 if (addDatetimeBtn) {
-  addDatetimeBtn.addEventListener("click", function() {
+  addDatetimeBtn.addEventListener("click", function(e) {
+    e.stopPropagation();
     createDatetimeInput();
+    // ドロップダウンを閉じる
+    const formDropdown = document.getElementById('formDropdown');
+    if (formDropdown) {
+      formDropdown.classList.remove('show');
+      formDropdown.setAttribute('aria-hidden', 'true');
+    }
+  });
+}
+
+const addTextBoxBtn = document.getElementById("addTextBoxBtn");
+if (addTextBoxBtn) {
+  addTextBoxBtn.addEventListener("click", function(e) {
+    e.stopPropagation();
+    createTextBox();
+    // ドロップダウンを閉じる
+    const formDropdown = document.getElementById('formDropdown');
+    if (formDropdown) {
+      formDropdown.classList.remove('show');
+      formDropdown.setAttribute('aria-hidden', 'true');
+    }
   });
 }
 
@@ -1267,6 +1444,15 @@ if (shapeBtn && shapeDropdown) {
   (function(){
     // すべてのテキスト要素に右クリックメニューを追加
     document.addEventListener('contextmenu', function(e) {
+      // ボタン要素 (.draggable-btn)
+      const button = e.target.closest('.draggable-btn');
+      if (button) {
+        console.log('🖱️ Button right-clicked:', button);
+        e.preventDefault();
+        showButtonAlgorithmMenu(e, button);
+        return;
+      }
+      
       // テキストボックス
       const textInput = e.target.closest('.text-input-container');
       if (textInput) {
@@ -1867,4 +2053,403 @@ if (shapeBtn && shapeDropdown) {
       }
     }
   };
+</script>
+
+<!-- ボタンのアルゴリズムメニュー機能 -->
+<script>
+  // ボタンのアルゴリズムメニュー表示関数
+  window.showButtonAlgorithmMenu = function(e, button) {
+    console.log('🎯 showButtonAlgorithmMenu called', {
+      pageX: e.pageX,
+      pageY: e.pageY,
+      button: button,
+      hasAlgorithm: button.hasAttribute('data-algorithm-id')
+    });
+    
+    // 既存のメニューがあれば削除
+    const existingMenu = document.querySelector('.button-algorithm-menu');
+    if (existingMenu) {
+      console.log('🗑️ Removing existing menu');
+      existingMenu.remove();
+    }
+    
+    const menu = document.createElement('div');
+    menu.className = 'button-algorithm-menu';
+    
+    // 仮の位置設定（サイズ計算のため）
+    menu.style.left = '0px';
+    menu.style.top = '0px';
+    menu.style.visibility = 'hidden';
+    
+    const hasAlgorithm = button.hasAttribute('data-algorithm-id');
+    const algorithmIcon = hasAlgorithm ? '<i class="fas fa-check-circle" style="color: #4CAF50; margin-right: 6px;"></i>' : '<i class="fas fa-circle" style="color: #ccc; margin-right: 6px;"></i>';
+    
+    console.log('📋 Creating menu HTML');
+    
+    menu.innerHTML = `
+      <div class="menu-header">
+        ${algorithmIcon}
+        <span>アルゴリズム設定</span>
+      </div>
+      <button class="algo-menu-item" data-action="create-new">
+        <i class="fas fa-plus"></i>
+        <span>アルゴリズムを新規作成</span>
+      </button>
+      <button class="algo-menu-item" data-action="select-existing">
+        <i class="fas fa-list"></i>
+        <span>既存アルゴリズムを選択</span>
+      </button>
+      ${hasAlgorithm ? `
+        <div class="menu-divider"></div>
+        <button class="algo-menu-item" data-action="edit">
+          <i class="fas fa-edit"></i>
+          <span>アルゴリズムを編集</span>
+        </button>
+        <button class="algo-menu-item danger" data-action="delete">
+          <i class="fas fa-trash-alt"></i>
+          <span>アルゴリズムを削除</span>
+        </button>
+      ` : ''}
+    `;
+    
+    // 一旦DOMに追加してサイズを取得
+    document.body.appendChild(menu);
+    
+    // メニュー項目は CSS で自動的にスタイリングされる
+    
+    // メニューのサイズを取得
+    const menuWidth = menu.offsetWidth;
+    const menuHeight = menu.offsetHeight;
+    
+    // ビューポートのサイズを取得
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    // メニューの位置を計算（画面内に収める）
+    let menuLeft = e.pageX;
+    let menuTop = e.pageY;
+    
+    // 右端からはみ出る場合は左に表示
+    if (menuLeft + menuWidth > viewportWidth) {
+      menuLeft = viewportWidth - menuWidth - 10;
+    }
+    
+    // 下端からはみ出る場合は上に表示
+    if (menuTop + menuHeight > viewportHeight) {
+      menuTop = viewportHeight - menuHeight - 10;
+    }
+    
+    // 左端・上端より外に出ないようにする
+    menuLeft = Math.max(10, menuLeft);
+    menuTop = Math.max(10, menuTop);
+    
+    // 実際の位置を設定
+    menu.style.position = 'fixed';
+    menu.style.left = menuLeft + 'px';
+    menu.style.top = menuTop + 'px';
+    menu.style.visibility = 'visible';
+    
+    console.log('✅ Algorithm menu displayed at', {left: menuLeft, top: menuTop});
+    
+    // メニュー全体でクリックイベントを検出（イベント委譲）
+    menu.addEventListener('click', async function(e) {
+      console.log('🖱️ Menu clicked, target:', e.target);
+      
+      // クリックされた要素が .algo-menu-item または その子要素か確認
+      const menuItem = e.target.closest('.algo-menu-item');
+      
+      if (!menuItem) {
+        console.log('⚠️ Not a menu item, ignoring');
+        return;
+      }
+      
+      const action = menuItem.getAttribute('data-action');
+      console.log('✅ Menu item detected:', action);
+      
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      
+      // メニューを先に削除
+      menu.remove();
+      
+      // アクションを実行
+      if (action === 'create-new') {
+        console.log('➡️ Calling handleCreateNewAlgorithm');
+        await window.handleCreateNewAlgorithm(button);
+      } else if (action === 'select-existing') {
+        console.log('➡️ Calling handleSelectExistingAlgorithm');
+        await window.handleSelectExistingAlgorithm(button);
+      } else if (action === 'edit') {
+        console.log('➡️ Calling handleEditAlgorithm');
+        await window.handleEditAlgorithm(button);
+      } else if (action === 'delete') {
+        console.log('➡️ Calling handleDeleteAlgorithm');
+        window.handleDeleteAlgorithm(button);
+      }
+    }, true);
+    
+    // メニュー外クリックで閉じる
+    setTimeout(() => {
+      document.addEventListener('click', function closeMenu(e) {
+        if (!menu.contains(e.target)) {
+          menu.remove();
+          document.removeEventListener('click', closeMenu);
+        }
+      });
+    }, 100);
+  };
+  
+  // URLパラメータからsystem_idを取得するヘルパー関数
+  window.getSystemIdFromUrl = function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const systemId = urlParams.get('id');  // /accounts/system/?id=xxx 形式
+    console.log('🔍 getSystemIdFromUrl:', systemId, 'URL:', window.location.href);
+    return systemId;
+  };
+  
+  // アルゴリズム新規作成
+  window.handleCreateNewAlgorithm = async function(button) {
+    console.log('🚀 handleCreateNewAlgorithm called');
+    let systemId = getSystemIdFromUrl();
+    console.log('📌 System ID:', systemId);
+    
+    if (!systemId) {
+      // システムが未保存の場合、自動的に仮保存（Ajaxで直接保存）
+      console.log('💾 システムが未保存のため、自動保存を実行');
+      
+      // collectCurrentElements関数で現在の要素を収集
+      if (typeof collectCurrentElements !== 'function') {
+        alert('保存機能が読み込まれていません。ページをリロードしてください。');
+        return;
+      }
+      
+      const elementsData = collectCurrentElements();
+      console.log('📦 収集したデータ:', elementsData);
+      
+      // システム名と詳細を生成
+      const systemName = existingSystemData.systemName || '仮保存_' + new Date().toLocaleString('ja-JP');
+      const systemDetail = existingSystemData.systemDescription || 'アルゴリズム作成のため自動保存';
+      
+      // button_idを生成
+      const buttonId = generateButtonId(button);
+      
+      // Ajaxで保存
+      try {
+        const formData = new FormData();
+        formData.append('system_name', systemName);
+        formData.append('system_detail', systemDetail);
+        formData.append('elements_data', JSON.stringify(elementsData));
+        formData.append('created_at', new Date().toISOString().split('T')[0]);
+        
+        // CSRFトークンを取得
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                         document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+        
+        console.log('📡 Ajaxでシステムを保存します...');
+        const response = await fetch('/accounts/system/create/', {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: formData
+        });
+        
+        if (!response.ok) {
+          throw new Error('保存に失敗しました (HTTP ' + response.status + ')');
+        }
+        
+        // レスポンスを確認
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const data = await response.json();
+          if (data.success && data.system_id) {
+            systemId = data.system_id;
+            console.log('✅ システムを保存しました。ID:', systemId);
+          } else {
+            throw new Error(data.error || '保存に失敗しました');
+          }
+        } else {
+          // HTMLレスポンス（リダイレクト）の場合、URLを解析してsystem_idを取得
+          const finalUrl = response.url;
+          console.log('🔗 Final URL:', finalUrl);
+          
+          // リダイレクト先のURLからsystem_idを取得するか、再度一覧を読み込む
+          // とりあえず保存は成功したとみなして、アルゴリズム作成画面に遷移
+          // system_idが必要なので、最新のシステムを取得する必要がある
+          alert('システムを保存しました。もう一度ボタンを右クリックしてアルゴリズムを作成してください。');
+          location.reload();
+          return;
+        }
+      } catch (error) {
+        console.error('❌ 保存エラー:', error);
+        alert('システムの自動保存に失敗しました: ' + error.message);
+        return;
+      }
+    }
+    
+    // 保存済みのシステム（または保存成功後）
+    const buttonId = generateButtonId(button);
+    console.log('🆔 Button ID:', buttonId);
+    const url = `/accounts/block/?system_id=${systemId}&button_id=${buttonId}&action=create`;
+    console.log('🔗 Navigating to:', url);
+    window.location.href = url;
+  };
+  
+  // 既存アルゴリズム選択
+  window.handleSelectExistingAlgorithm = async function(button) {
+    const algorithms = {{ algorithms_json|safe }} || [];
+    if (algorithms.length === 0) {
+      alert('選択できるアルゴリズムがありません。新規作成してください。');
+      return;
+    }
+    
+    // アルゴリズム選択モーダルを表示
+    const selectedAlgorithm = await showAlgorithmSelectionModal(algorithms);
+    if (selectedAlgorithm) {
+      // ボタンにアルゴリズムを適用
+      button.setAttribute('data-algorithm-id', selectedAlgorithm.algorithm_id);
+      button.setAttribute('data-algorithm-xml', selectedAlgorithm.blockly_xml || '');
+      
+      // アイコン追加（設定済み表示）
+      addAlgorithmIndicator(button);
+      
+      saveHistory();
+      
+      alert(`アルゴリズム「${selectedAlgorithm.algorithm_name}」を設定しました。`);
+    }
+  };
+  
+  // アルゴリズム編集
+  window.handleEditAlgorithm = async function(button) {
+    const algorithmId = button.getAttribute('data-algorithm-id');
+    if (!algorithmId) return;
+    
+    const systemId = getSystemIdFromUrl();
+    const buttonId = generateButtonId(button);
+    
+    window.location.href = `/accounts/block/?id=${algorithmId}&system_id=${systemId}&button_id=${buttonId}&action=edit`;
+  };
+  
+  // アルゴリズム削除
+  window.handleDeleteAlgorithm = function(button) {
+    if (confirm('このボタンからアルゴリズムの関連付けを削除しますか？')) {
+      button.removeAttribute('data-algorithm-id');
+      button.removeAttribute('data-algorithm-xml');
+      
+      // アイコン削除
+      removeAlgorithmIndicator(button);
+      
+      saveHistory();
+      
+      alert('アルゴリズムの関連付けを削除しました。');
+    }
+  };
+  
+  // ボタンIDを生成（一意の識別子）
+  window.generateButtonId = function(button) {
+    if (!button.hasAttribute('data-button-id')) {
+      const buttonId = 'btn_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      button.setAttribute('data-button-id', buttonId);
+    }
+    return button.getAttribute('data-button-id');
+  };
+  
+  // アルゴリズム設定済みインジケーター追加
+  window.addAlgorithmIndicator = function(button) {
+    if (button.querySelector('.algorithm-indicator')) return;
+    
+    const indicator = document.createElement('span');
+    indicator.className = 'algorithm-indicator';
+    indicator.innerHTML = '<i class="fas fa-cog"></i>';
+    indicator.title = 'アルゴリズム設定済み';
+    button.appendChild(indicator);
+  };
+  
+  // アルゴリズムインジケーター削除
+  window.removeAlgorithmIndicator = function(button) {
+    const indicator = button.querySelector('.algorithm-indicator');
+    if (indicator) indicator.remove();
+  };
+  
+  // アルゴリズム選択モーダル
+  window.showAlgorithmSelectionModal = function(algorithms) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.className = 'custom-confirm-overlay';
+      overlay.style.display = 'flex';
+      
+      const modal = document.createElement('div');
+      modal.className = 'custom-confirm-box';
+      modal.style.maxWidth = '600px';
+      modal.style.maxHeight = '80vh';
+      modal.style.overflow = 'hidden';
+      modal.style.display = 'flex';
+      modal.style.flexDirection = 'column';
+      
+      const title = document.createElement('div');
+      title.className = 'custom-confirm-title';
+      title.textContent = 'アルゴリズムを選択';
+      
+      const listContainer = document.createElement('div');
+      listContainer.style.flex = '1';
+      listContainer.style.overflowY = 'auto';
+      listContainer.style.padding = '10px 0';
+      
+      algorithms.forEach(algo => {
+        const item = document.createElement('div');
+        item.className = 'algorithm-list-item';
+        item.innerHTML = `
+          <div style="font-weight: bold; margin-bottom: 4px;">${algo.algorithm_name}</div>
+          <div style="font-size: 12px; color: #666;">
+            作成日: ${algo.created_at || '不明'}
+          </div>
+        `;
+        item.style.padding = '12px';
+        item.style.margin = '8px 0';
+        item.style.border = '1px solid #ddd';
+        item.style.borderRadius = '8px';
+        item.style.cursor = 'pointer';
+        item.style.transition = 'all 0.2s';
+        
+        item.addEventListener('mouseenter', function() {
+          this.style.background = '#f0f4f8';
+          this.style.borderColor = '#3fbcd9';
+        });
+        
+        item.addEventListener('mouseleave', function() {
+          this.style.background = '#fff';
+          this.style.borderColor = '#ddd';
+        });
+        
+        item.addEventListener('click', function() {
+          overlay.remove();
+          resolve(algo);
+        });
+        
+        listContainer.appendChild(item);
+      });
+      
+      const buttonsDiv = document.createElement('div');
+      buttonsDiv.className = 'custom-confirm-buttons';
+      buttonsDiv.style.marginTop = '20px';
+      
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'custom-confirm-btn cancel';
+      cancelBtn.textContent = 'キャンセル';
+      cancelBtn.onclick = () => {
+        overlay.remove();
+        resolve(null);
+      };
+      
+      buttonsDiv.appendChild(cancelBtn);
+      
+      modal.appendChild(title);
+      modal.appendChild(listContainer);
+      modal.appendChild(buttonsDiv);
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+    });
+  }
 </script>

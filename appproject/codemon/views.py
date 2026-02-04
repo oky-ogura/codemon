@@ -544,9 +544,34 @@ def checklist_selection(request):
         pass
 
     # Account オブジェクトをテンプレートコンテキストに追加
+    # チェックリスト数と実績称号の取得
+    total_checklists = 0
+    achievement_title = 'チェックリスト入門'  # デフォルト称号
+    
+    if owner:
+        try:
+            from codemon.models import UserStats, Achievement, UserAchievement
+            stats, _ = UserStats.objects.get_or_create(user=owner)
+            total_checklists = stats.total_checklists_created
+            
+            # チェックリスト作成実績から現在の称号を取得（達成済みの最高ティア）
+            checklist_achievements = UserAchievement.objects.filter(
+                user=owner,
+                achievement__category='checklist_create',
+                is_achieved=True
+            ).select_related('achievement').order_by('-achievement__target_count')
+            
+            if checklist_achievements.exists():
+                achievement_title = checklist_achievements.first().achievement.name
+            
+        except Exception:
+            pass
+    
     context = {
         'checklists': checklists,
         'account': owner,  # Account オブジェクトをテンプレートで使用可能に
+        'total_checklists': total_checklists,
+        'achievement_title': achievement_title,
     }
 
     return render(request, 'codemon/checklist_selection.html', context)

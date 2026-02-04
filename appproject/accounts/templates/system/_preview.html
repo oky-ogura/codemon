@@ -870,6 +870,7 @@ window.collectCurrentElements = function collectCurrentElements() {
     const targetSystemId = btn.getAttribute('data-target-system');
     const algorithmId = btn.getAttribute('data-algorithm-id');
     const algorithmXml = btn.getAttribute('data-algorithm-xml');
+    const buttonId = btn.getAttribute('data-button-id');
     let buttonText = btn.textContent.trim();
     buttonText = buttonText.replace(/≡/g, '').trim();
     
@@ -886,6 +887,7 @@ window.collectCurrentElements = function collectCurrentElements() {
         color: btn.style.color
       },
       element_config: {
+        button_id: buttonId,
         target_system_id: targetSystemId,
         algorithm_id: algorithmId,
         algorithm_xml: algorithmXml

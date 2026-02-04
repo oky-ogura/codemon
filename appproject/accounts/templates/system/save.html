@@ -8,198 +8,258 @@
      onerror="this.style.display='none';">
 {% endblock %}
 
-{% block title %}システム保存 - Codemon{% endblock %}
+{% block title %}システム保存完了 - Codemon{% endblock %}
 
 {% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
 <style>
-  /* ナビゲーション表示状態の制御 */
-  .top-tabs {
-    display: block;
+  :root {
+    --bg-main: #f0f4f8;
+    --panel-bg: rgba(255, 255, 255, 0.95);
+    --accent-main: #3fbcd9;    /* シアン */
+    --btn-pop: #FFD200;       /* イエロー */
+    --btn-shadow: #e6bd00;
+    --btn-cyan-shadow: #2c8a9e;
+    --error-pop: #ff7675;     /* ピンク */
+    --text-dark: #2d3748;
+    --text-gray: #718096;
   }
 
-  main {
-    margin: 100px auto 20px auto;
-    max-width: 1180px;
-    padding: 12px;
-    box-sizing: border-box;
-  }
-
-  .card{
-    background: transparent;
-    padding: 18px;
-    border-radius: 8px;
-    box-shadow: none;
-  }
-
-  /* 保存完了メッセージエリアの背景画像 */
-  .save-complete-message {
-    text-align: center;
+  html, body {
+    background-color: var(--bg-main);
+    font-family: "M PLUS Rounded 1c", sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    margin: 0;
     padding: 0;
-    background-image: url("{% static 'codemon/images/backgrounds/system_save.png' %}");
-    background-size: contain;
-    background-position: center;
-    background-repeat: no-repeat;
-    border-radius: 8px;
-    min-height: 400px;
+    position: fixed;
+    width: 100%;
+  }
+
+  .content-wrapper {
+    height: 100vh;
+    overflow: hidden !important;
+    padding: 0 !important;
+  }
+
+  /* メインレイアウト */
+  main {
+    width: 100%;
+    height: calc(100vh - 80px);
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 80px 20px 0 20px;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* 完了パネル */
+  .save-panel {
+    background: var(--panel-bg);
+    border: 6px solid var(--accent-main);
+    border-radius: 30px;
+    padding: 40px 50px;
+    width: 100%;
+    /* コンテンツ量に応じて伸縮しつつ、存在感を出す */
+    min-height: 400px; 
+    box-shadow: 0 15px 0 rgba(63, 188, 217, 0.2), 0 10px 30px rgba(0,0,0,0.1);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    position: relative;
+    animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   }
 
-  /* レイアウト：中央に縦並び（矢印を上に配置） */
-  .save-layout{
-    display:flex;
-    justify-content:center;
-    align-items:flex-start;
-    gap:24px;
+  @keyframes bounceIn {
+    0% { transform: scale(0.3); opacity: 0; }
+    50% { transform: scale(1.05); opacity: 1; }
+    70% { transform: scale(0.9); }
+    100% { transform: scale(1); }
   }
 
-  .action-column{
-    display:flex;
-    flex-direction:column;
-    gap:18px;
-    align-items:center;
-    width:320px;
+  /* メッセージエリア（中央） */
+  .message-area {
+    text-align: center;
+    margin-bottom: 50px;
   }
 
-  .back-icon {
-    width:56px;
-    height:56px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    cursor:pointer;
-    border-radius:8px;
-    background:transparent;
-    border:2px solid transparent;
-    margin-bottom:6px;
-    background: linear-gradient(180deg, rgba(0,0,0,0.02), transparent);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-    transition: transform .12s ease, box-shadow .12s ease;
-  }
-  .back-icon:hover{
-    transform: translateY(-2px);
-    box-shadow: 0 6px 18px rgba(0,0,0,0.10);
-  }
-  .back-icon[aria-disabled="true"] { opacity:0.6; cursor:default; }
-
-  .arrow-char{
-    font-size:34px;
-    line-height:1;
-    font-weight:900;
-    color:#111;
-    -webkit-text-stroke: 1.6px rgba(0,0,0,0.15);
-    text-shadow: 0 1px 0 rgba(255,255,255,0.6), 0 2px 6px rgba(0,0,0,0.08);
-    user-select:none;
-    display:inline-block;
-    transform: translateY(1px);
+  .save-icon-wrapper {
+    width: 110px;
+    height: 110px;
+    background: #e0f7fa; /* 薄いシアン */
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px auto;
+    border: 4px solid var(--accent-main);
+    box-shadow: 0 8px 0 rgba(63, 188, 217, 0.2);
+    position: relative;
   }
 
-  .big-btn{
-    width:100%;
-    padding:18px 22px;
-    font-size:18px;
-    border-radius:14px;
-    border:0;
-    cursor:pointer;
-    box-shadow:0 6px 20px rgba(0,0,0,0.06);
-  }
-  .btn-save{
-    background:linear-gradient(180deg,#cfe7ff,#b6d9ff);
-    color:#0a3b6e;
-    font-weight:600;
-    border:1px solid rgba(10,59,110,0.08);
-  }
-  .btn-back{
-    background:linear-gradient(180deg,#ffdede,#ffbdbd);
-    color:#7a1313;
-    font-weight:600;
-    border:1px solid rgba(122,19,19,0.08);
+  .save-icon {
+    font-size: 50px;
+    color: var(--accent-main);
   }
 
-  .big-btn[aria-disabled="true"]{
-    opacity:0.85;
-    cursor:not-allowed;
-    box-shadow:none;
-    transform:none;
+  /* キラキラ装飾 */
+  .sparkle {
+    position: absolute;
+    color: var(--btn-pop);
+    font-size: 20px;
+    animation: sparkleAnim 1.5s infinite;
+  }
+  .s1 { top: -10px; right: 10px; animation-delay: 0s; }
+  .s2 { bottom: 10px; left: -10px; animation-delay: 0.5s; }
+  .s3 { top: 50%; right: -20px; font-size: 15px; animation-delay: 1s; }
+
+  @keyframes sparkleAnim {
+    0% { transform: scale(0) rotate(0deg); opacity: 0; }
+    50% { transform: scale(1.2) rotate(45deg); opacity: 1; }
+    100% { transform: scale(0) rotate(90deg); opacity: 0; }
   }
 
-  .note{ color:#555; margin-top:12px; text-align:center; }
-
-  @media (max-width:520px){
-    .save-layout{ flex-direction:column; align-items:flex-start; }
-    .action-column{ width:100%; }
-    .save-layout { padding: 8px; }
+  .title-text {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text-dark);
+    margin: 0 0 10px 0;
   }
+
+  .description-text {
+    font-size: 16px;
+    color: var(--text-gray);
+    font-weight: 700;
+    line-height: 1.6;
+  }
+
+  /* アクションエリア（左右配置） */
+  .action-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    width: 100%;
+  }
+
+  .action-card {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .action-btn {
+    border: none;
+    padding: 15px 20px;
+    border-radius: 50px;
+    font-weight: 800;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.1s;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 60px;
+  }
+
+  /* 黄色ボタン（メイン：一覧へ） */
+  .btn-yellow {
+    background: var(--btn-pop);
+    color: #5d4037;
+    box-shadow: 0 5px 0 var(--btn-shadow);
+  }
+  .btn-yellow:hover {
+    transform: translateY(2px);
+    box-shadow: 0 3px 0 var(--btn-shadow);
+    background: #ffe033;
+  }
+  .btn-yellow:active { transform: translateY(5px); box-shadow: none; }
+
+  /* 青ボタン（サブ：ホームへ） */
+  .btn-cyan {
+    background: var(--accent-main);
+    color: white;
+    box-shadow: 0 5px 0 var(--btn-cyan-shadow);
+  }
+  .btn-cyan:hover {
+    transform: translateY(2px);
+    box-shadow: 0 3px 0 var(--btn-cyan-shadow);
+    filter: brightness(1.1);
+  }
+  .btn-cyan:active { transform: translateY(5px); box-shadow: none; }
+
+  /* スマホ対応 */
+  @media (max-width: 600px) {
+    .save-panel { padding: 30px 20px; min-height: auto; }
+    .action-grid { grid-template-columns: 1fr; gap: 15px; }
+    .title-text { font-size: 24px; }
+  }
+
 </style>
 {% endblock %}
 
 {% block content %}
-<main role="main">
-    <div class="card">
-      <div class="save-complete-message">
-        <p style="font-size: 20px; font-weight: 600; color: #28a745; margin-bottom: 30px;">
-          ✓ システムの保存が完了しました
-        </p>
-        <div class="save-layout" aria-label="保存操作">
-          <div class="action-column" role="group" aria-label="ナビゲーション">
-            <button id="toListBtn" class="big-btn btn-back" aria-label="システム一覧画面に戻る">システム一覧画面に戻る</button>
-          </div>
-        </div>
+<main>
+  
+  <div class="save-panel" role="region" aria-label="保存完了">
+    
+    <div class="message-area">
+      <div class="save-icon-wrapper">
+        <i class="fas fa-save save-icon"></i>
+        <i class="fas fa-star sparkle s1"></i>
+        <i class="fas fa-star sparkle s2"></i>
+        <i class="fas fa-star sparkle s3"></i>
       </div>
+      <h1 class="title-text">ほぞん かんりょう！</h1>
+      <p class="description-text">
+        システムを しっかり ほぞんしたよ。<br>
+        リストから いつでも みれるよ！
+      </p>
     </div>
-  </main>
+
+    <div class="action-grid">
+      
+      <div class="action-card">
+        <button class="action-btn btn-yellow" id="btn-list">
+          <i class="fas fa-list-ul"></i> つくったものリストへ
+        </button>
+      </div>
+
+      <div class="action-card">
+        <button class="action-btn btn-cyan" id="btn-main">
+          <i class="fas fa-home"></i> メインがめんへ
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+</main>
 
 <script>
-(function(){
-  try{
-    const tabs = document.querySelectorAll('.nav-tab');
-    tabs.forEach(tab=>{
-      tab.addEventListener('click', (e)=>{
-        try{
-          tabs.forEach(t=>{
-            t.classList.remove('active');
-            t.setAttribute('aria-pressed','false');
-          });
-          tab.classList.add('active');
-          tab.setAttribute('aria-pressed','true');
-          if(typeof tab.blur === 'function') tab.blur();
+  document.addEventListener('DOMContentLoaded', function() {
 
-          if(tab.id === 'tab-system'){
-            // システムタブ押下で system_choice へ遷移
-            window.location.href = '/accounts/system/choice/';
-            return;
-          }
-          if(tab.id === 'tab-algorithm'){
-            // 変更: アルゴリズムタブ押下で block_choice へ遷移
-            window.location.href = '/accounts/block/choice/';
-            return;
-          }
-          // 他タブは見た目のみ
-        }catch(err){
-          console.error('tab click handler error', err);
-        }
-      });
+    // ボタン遷移設定
+    
+    // システム一覧に戻る
+    document.getElementById('btn-list').addEventListener('click', function(){
+      window.location.href = '/accounts/system/list/';
     });
-  }
-})();
-</script>
 
-<script>
-/* 保存完了画面用スクリプト
-   - システム一覧へ戻るボタンのみ（確認なしで直接遷移）
-*/
-(function(){
-  // 「システム一覧画面に戻る」ボタン：直接遷移
-  const toListBtn = document.getElementById('toListBtn');
-  if(toListBtn){
-    toListBtn.addEventListener('click', function(e){
-      e.preventDefault();
-      location.href = '/accounts/system/list/';
+    // メイン画面に戻る
+    document.getElementById('btn-main').addEventListener('click', function(){
+      window.location.href = '/accounts/karihome/';
     });
-  }
-})();
+
+  });
 </script>
 
 {% endblock %}

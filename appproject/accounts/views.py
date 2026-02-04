@@ -648,9 +648,18 @@ def block_index(request):
     アルゴリズム作成・編集画面
     - URLパラメータ id があれば編集モード: 既存アルゴリズム情報を取得してテンプレートに渡す
     - id がなければ新規作成モード
+    - system_id, button_id, action パラメータでボタンからの作成・編集をサポート
     """
     algorithm_id = request.GET.get('id')
-    context = {}
+    system_id = request.GET.get('system_id')  # ボタンから呼ばれた場合のシステムID
+    button_id = request.GET.get('button_id')  # ボタンから呼ばれた場合のボタンID
+    action = request.GET.get('action')  # 'create' or 'edit'
+    
+    context = {
+        'system_id': system_id,
+        'button_id': button_id,
+        'action': action,
+    }
 
     # ログインユーザーのシステム一覧を取得
     account = get_logged_account(request)
@@ -972,6 +981,10 @@ def system_choice(request):
     appearance = 'イヌ.png'
     ai_name = 'うたー'
     
+    # システム数と実績称号の取得
+    total_systems = 0
+    achievement_title = 'システムビギナー'  # デフォルト称号
+    
     if account:
         try:
             from .models import AiConfig
@@ -979,6 +992,25 @@ def system_choice(request):
             if ai_config:
                 appearance = ai_config.appearance or 'イヌ.png'
                 ai_name = ai_config.ai_name or 'うたー'
+        except Exception:
+            pass
+        
+        # UserStatsからシステム数を取得
+        try:
+            from codemon.models import UserStats, Achievement, UserAchievement
+            stats, _ = UserStats.objects.get_or_create(user=account)
+            total_systems = stats.total_systems
+            
+            # システム実績から現在の称号を取得（達成済みの最高ティア）
+            system_achievements = UserAchievement.objects.filter(
+                user=account,
+                achievement__category='system',
+                is_achieved=True
+            ).select_related('achievement').order_by('-achievement__target_count')
+            
+            if system_achievements.exists():
+                achievement_title = system_achievements.first().achievement.name
+            
         except Exception:
             pass
     
@@ -989,6 +1021,8 @@ def system_choice(request):
         'appearance': appearance,
         'ai_name': ai_name,
         'character': character,
+        'total_systems': total_systems,
+        'achievement_title': achievement_title,
     }
     
     return render(request, 'system/system_choice.html', context)
@@ -1002,16 +1036,25 @@ def system_create(request):
         created_at_str = request.POST.get('created_at', '')
         system_id = request.POST.get('system_id', '').strip()  # 編集モードの場合にシステムIDが送信される
         elements_json = request.POST.get('elements_data', '')  # 要素データ（JSON形式）
+        
+        # Ajaxリクエストかどうかを判定
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
         # バリデーション
         if not system_name or not system_detail:
-            messages.error(request, 'システム名とシステムの詳細は必須項目です。')
+            error_msg = 'システム名とシステムの詳細は必須項目です。'
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': error_msg}, status=400)
+            messages.error(request, error_msg)
             return render(request, 'system/system_create.html')
 
         # ログインユーザーを取得
         account = get_logged_account(request)
         if not account:
-            messages.error(request, 'ログインが必要です。')
+            error_msg = 'ログインが必要です。'
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': error_msg}, status=401)
+            messages.error(request, error_msg)
             return redirect('accounts:student_login')
 
         try:
@@ -1023,7 +1066,9 @@ def system_create(request):
                 system.save()
                 # 既存の要素を削除
                 SystemElement.objects.filter(system=system).delete()
-                messages.success(request, f'システム「{system_name}」を更新しました。')
+                success_msg = f'システム「{system_name}」を更新しました。'
+                if not is_ajax:
+                    messages.success(request, success_msg)
             else:
                 # 新規作成モード: 新しいSystemオブジェクトを作成
                 system = System.objects.create(
@@ -1031,7 +1076,9 @@ def system_create(request):
                     system_name=system_name,
                     system_description=system_detail
                 )
-                messages.success(request, f'システム「{system_name}」を保存しました。')
+                success_msg = f'システム「{system_name}」を保存しました。'
+                if not is_ajax:
+                    messages.success(request, success_msg)
                 
                 # 実績チェック: システム作成
                 from codemon.achievement_utils import update_system_count
@@ -1067,30 +1114,69 @@ def system_create(request):
                             sort_order=idx
                         )
                 except json.JSONDecodeError as e:
-                    messages.warning(request, f'要素データの解析に失敗しました: {str(e)}')
+                    warning_msg = f'要素データの解析に失敗しました: {str(e)}'
+                    if not is_ajax:
+                        messages.warning(request, warning_msg)
                 except Exception as e:
-                    messages.warning(request, f'要素の保存に失敗しました: {str(e)}')
+                    warning_msg = f'要素の保存に失敗しました: {str(e)}'
+                    if not is_ajax:
+                        messages.warning(request, warning_msg)
 
-            # 保存完了画面へリダイレクト
+            # Ajaxリクエストの場合はJSONレスポンスを返す
+            if is_ajax:
+                return JsonResponse({
+                    'success': True,
+                    'system_id': system.system_id,
+                    'system_name': system.system_name,
+                    'message': success_msg
+                })
+            
+            # 通常のリクエストの場合は保存完了画面へリダイレクト
             return redirect('accounts:system_save')
         except System.DoesNotExist:
-            messages.error(request, '指定されたシステムが見つかりません。')
+            error_msg = '指定されたシステムが見つかりません。'
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': error_msg}, status=404)
+            messages.error(request, error_msg)
             return render(request, 'system/system_create.html')
         except Exception as e:
-            messages.error(request, f'システムの保存に失敗しました: {str(e)}')
+            error_msg = f'システムの保存に失敗しました: {str(e)}'
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': error_msg}, status=500)
+            messages.error(request, error_msg)
             return render(request, 'system/system_create.html')
 
-    # GETリクエストの場合: 他のシステム一覧を取得してテンプレートに渡す
+    # GETリクエストの場合: 他のシステム一覧とアルゴリズム一覧を取得してテンプレートに渡す
     account = get_logged_account(request)
     other_systems = []
+    algorithms_json = '[]'
+    
     if account:
         try:
             # ログインユーザーの全システムを取得（編集中のシステムは除外する必要があるが、ここでは全て取得）
             other_systems = System.objects.filter(user=account).order_by('-created_at')
         except Exception:
             pass
+        
+        # アルゴリズム一覧を取得
+        try:
+            algorithms_qs = Algorithm.objects.filter(user=account).order_by('-created_at')
+            algorithms_list = []
+            for algo in algorithms_qs:
+                algorithms_list.append({
+                    'algorithm_id': algo.algorithm_id,
+                    'algorithm_name': algo.algorithm_name,
+                    'blockly_xml': algo.blockly_xml or '',
+                    'created_at': algo.created_at.strftime('%Y年%m月%d日 %H:%M') if algo.created_at else ''
+                })
+            algorithms_json = json.dumps(algorithms_list, ensure_ascii=False)
+        except Exception:
+            pass
 
-    return render(request, 'system/system_create.html', {'other_systems': other_systems})
+    return render(request, 'system/system_create.html', {
+        'other_systems': other_systems,
+        'algorithms_json': algorithms_json
+    })
 
 # システム一覧画面
 def system_list(request):
@@ -1269,7 +1355,56 @@ def block_choice(request):
     """
     /accounts/block/choice/ で block/choice.html を表示する簡易ビュー
     """
-    return render(request, 'block/block_choice.html')
+    # ログインユーザーのAI設定を取得
+    account = get_logged_account(request)
+    appearance = 'イヌ.png'
+    ai_name = 'うたー'
+    
+    # アルゴリズム数と実績称号の取得
+    total_algorithms = 0
+    achievement_title = 'アルゴリズムビギナー'  # デフォルト称号
+    
+    if account:
+        try:
+            from .models import AiConfig
+            ai_config = AiConfig.objects.filter(user_id=account.user_id).first()
+            if ai_config:
+                appearance = ai_config.appearance or 'イヌ.png'
+                ai_name = ai_config.ai_name or 'うたー'
+        except Exception:
+            pass
+        
+        # UserStatsからアルゴリズム数を取得
+        try:
+            from codemon.models import UserStats, Achievement, UserAchievement
+            stats, _ = UserStats.objects.get_or_create(user=account)
+            total_algorithms = stats.total_algorithms
+            
+            # アルゴリズム実績から現在の称号を取得（達成済みの最高ティア）
+            algorithm_achievements = UserAchievement.objects.filter(
+                user=account,
+                achievement__category='algorithm',
+                is_achieved=True
+            ).select_related('achievement').order_by('-achievement__target_count')
+            
+            if algorithm_achievements.exists():
+                achievement_title = algorithm_achievements.first().achievement.name
+            
+        except Exception:
+            pass
+    
+    # 外見からキャラクターIDを取得
+    character = APPEARANCE_TO_CHARACTER.get(appearance, 'inu')
+    
+    context = {
+        'appearance': appearance,
+        'ai_name': ai_name,
+        'character': character,
+        'total_algorithms': total_algorithms,
+        'achievement_title': achievement_title,
+    }
+    
+    return render(request, 'block/block_choice.html', context)
 
 # 新規アルゴリズム作成画面
 def block_create(request):
@@ -1283,6 +1418,8 @@ def block_create(request):
         algorithm_description = request.POST.get('algorithm_description', '').strip()
         algorithm_id = request.POST.get('algorithm_id', '').strip()
         blockly_xml = request.POST.get('blockly_xml', '').strip()
+        system_id = request.POST.get('system_id', '').strip()
+        button_id = request.POST.get('button_id', '').strip()
 
         # バリデーション
         if not algorithm_name:
@@ -1307,13 +1444,63 @@ def block_create(request):
                 messages.success(request, f'アルゴリズム「{algorithm_name}」を更新しました。')
             else:
                 # 新規作成
-                Algorithm.objects.create(
+                algorithm = Algorithm.objects.create(
                     user=account,
                     algorithm_name=algorithm_name,
                     algorithm_description=algorithm_description,
                     blockly_xml=blockly_xml if blockly_xml else None
                 )
                 messages.success(request, f'アルゴリズム「{algorithm_name}」を保存しました。')
+            
+            # ボタンとアルゴリズムを関連付ける
+            if system_id and button_id:
+                try:
+                    system = System.objects.get(system_id=system_id, user=account)
+                    print(f'🔍 システム検索成功: system_id={system_id}')
+                    
+                    # button_idに対応するSystemElementを検索して更新
+                    button_elements = SystemElement.objects.filter(
+                        system=system,
+                        element_type='button'
+                    )
+                    print(f'🔍 ボタン要素数: {button_elements.count()}')
+                    
+                    # まず、element_configにbutton_idが含まれる要素を探す
+                    found = False
+                    for btn_elem in button_elements:
+                        config = btn_elem.element_config or {}
+                        elem_button_id = config.get('button_id')
+                        print(f'🔍 ボタン要素をチェック: element_id={btn_elem.element_id}, button_id={elem_button_id}')
+                        
+                        if elem_button_id == button_id:
+                            config['algorithm_id'] = algorithm.algorithm_id
+                            config['algorithm_name'] = algorithm.algorithm_name
+                            btn_elem.element_config = config
+                            btn_elem.save()
+                            print(f'✅ ボタンにアルゴリズムを関連付けました: button={button_id}, algorithm={algorithm.algorithm_id}')
+                            found = True
+                            break
+                    
+                    # button_idで見つからない場合、最新のボタンに設定（フォールバック）
+                    if not found and button_elements.exists():
+                        latest_button = button_elements.order_by('-element_id').first()
+                        config = latest_button.element_config or {}
+                        config['algorithm_id'] = algorithm.algorithm_id
+                        config['algorithm_name'] = algorithm.algorithm_name
+                        config['button_id'] = button_id  # button_idも保存
+                        latest_button.element_config = config
+                        latest_button.save()
+                        print(f'✅ 最新ボタンにアルゴリズムを関連付けました（フォールバック）: element_id={latest_button.element_id}, button_id={button_id}, algorithm={algorithm.algorithm_id}')
+                    
+                    if not found and not button_elements.exists():
+                        print(f'⚠️ ボタン要素が見つかりません')
+                        
+                except System.DoesNotExist:
+                    print(f'⚠️ システムが見つかりません: system_id={system_id}')
+                except Exception as e:
+                    print(f'⚠️ ボタン関連付けエラー: {str(e)}')
+                    import traceback
+                    traceback.print_exc()
                 
                 # 実績チェック: アルゴリズム作成
                 from codemon.achievement_utils import update_algorithm_count
