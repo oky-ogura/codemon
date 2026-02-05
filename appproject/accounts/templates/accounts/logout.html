@@ -13,7 +13,6 @@
 {% endblock %}
 
 {% block extra_css %}
-<<<<<<< HEAD
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -140,82 +139,6 @@
     font-weight: 700;
     line-height: 1.8;
     margin-bottom: 40px;
-=======
-<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-<style>
-  :root {
-    --theme-primary: #FFD700;
-    --theme-secondary: #FFA500;
-    --theme-dark: #FF8C00;
-  }
-
-  body, html {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    min-height: 100vh;
-    font-family: 'M PLUS Rounded 1c', sans-serif;
-    overflow-x: hidden;
-    background-color: transparent;
-  }
-
-  .full-background {
-    position: fixed;
-    inset: 0;
-    background-size: cover;
-    background-position: center;
-    z-index: -1;
-    opacity: 0.6;
-  }
-
-  .logout-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: calc(100vh - 140px);
-    padding: 20px 25px;
-    box-sizing: border-box;
-    position: relative;
-    z-index: 10;
-  }
-
-  /* メインカード */
-  .main-card {
-    background: white;
-    border-radius: 30px;
-    padding: 60px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 30px;
-    max-width: 600px;
-    width: 100%;
-  }
-
-  .logout-icon {
-    font-size: 80px;
-    margin-bottom: 10px;
-  }
-
-  .logout-title {
-    font-size: 32px;
-    font-weight: 900;
-    color: #333;
-    margin-bottom: 10px;
-  }
-
-  .logout-message {
-    font-size: 18px;
-    color: #666;
-    margin-bottom: 20px;
-    line-height: 1.8;
-    text-align: center;
-    font-weight: 700;
->>>>>>> main
   }
 
   /* アクションボタン */
@@ -227,7 +150,6 @@
     max-width: 300px;
   }
 
-<<<<<<< HEAD
   .action-btn {
     border: none;
     padding: 15px 20px;
@@ -281,77 +203,12 @@
     .right-column { padding: 30px 20px; }
   }
 
-=======
-  .btn-logout {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 18px 40px;
-    border: 4px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50px;
-    color: white;
-    font-weight: 900;
-    font-size: 18px;
-    cursor: pointer;
-    text-align: center;
-    transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
-    min-height: 65px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-    gap: 10px;
-    text-decoration: none;
-  }
 
-  .btn-logout.confirm {
-    background: linear-gradient(135deg, #ff7675 0%, #ff4d4d 100%);
-    border-color: rgba(255, 255, 255, 0.3);
-  }
-
-  .btn-logout.confirm:hover {
-    transform: translateY(-5px) scale(1.02);
-    box-shadow: 0 12px 30px rgba(255, 77, 77, 0.4);
-    border-color: rgba(255, 255, 255, 0.6);
-  }
-
-  .btn-logout.cancel {
-    background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
-    border-color: rgba(255, 255, 255, 0.3);
-  }
-
-  .btn-logout.cancel:hover {
-    transform: translateY(-5px) scale(1.02);
-    box-shadow: 0 12px 30px rgba(127, 140, 141, 0.4);
-    border-color: rgba(255, 255, 255, 0.6);
-  }
-
-  .btn-logout:active {
-    transform: scale(0.95) !important;
-    transition: transform 0.1s !important;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3) !important;
-  }
-
-  @media(max-width: 720px) {
-    .main-card {
-      padding: 30px 20px;
-    }
-
-    .logout-buttons {
-      flex-direction: column;
-      gap: 15px;
-      width: 100%;
-    }
-
-    .btn-logout {
-      width: 100%;
-      max-width: 280px;
-    }
-  }
->>>>>>> main
 </style>
 {% endblock %}
 
 {% block content %}
-<<<<<<< HEAD
+
 <main>
   <div class="logout-panel" role="region" aria-label="ログアウト確認">
     
@@ -387,34 +244,5 @@
 
   </div>
 </main>
-=======
-<div class="full-background" style="background-image: url('{% static "codemon/images/backgrounds/bg_common.png" %}');"></div>
 
-<div class="logout-container">
-  <!-- メインカード -->
-  <div class="main-card">
-    <div class="logout-icon">👋</div>
-    <h1 class="logout-title">ログアウトしますか？</h1>
-    <p class="logout-message">
-      ログアウトすると、現在のセッションが終了します。<br>
-      再度ログインする必要があります。
-    </p>
-    
-    <div class="logout-buttons">
-      <form method="post" action="{% url 'accounts:logout' %}" style="margin: 0;">
-        {% csrf_token %}
-        <button type="submit" class="btn-logout confirm">
-          <i class="fas fa-sign-out-alt"></i> はい、ログアウトする
-        </button>
-      </form>
-      <button type="button" class="btn-logout cancel" onclick="history.back();">
-        <i class="fas fa-arrow-left"></i> いいえ、戻る
-      </button>
-    </div>
-  </div>
-
-<script>
-  // ボタンのホバー効果のみ
-</script>
->>>>>>> main
 {% endblock %}
