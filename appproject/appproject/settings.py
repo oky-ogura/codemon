@@ -198,6 +198,11 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # File upload settings
 MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5MB
+
+# リクエストボディの最大サイズを設定（Base64画像データを含むため大きめに設定）
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+
 ALLOWED_UPLOAD_EXTENSIONS = [
     # Images
     '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp',

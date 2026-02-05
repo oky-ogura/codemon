@@ -613,19 +613,32 @@ window.onload = function() {
     const returnFromCreate = sessionStorage.getItem('returnFromCreate');
     const savedContent = sessionStorage.getItem('systemDesignContent');
     
+    console.log('🔍 復元チェック:');
+    console.log('  - returnFromCreate:', returnFromCreate);
+    console.log('  - savedContent:', savedContent ? `${savedContent.length}文字` : 'なし');
+    console.log('  - slide要素:', slide);
+    
     if (returnFromCreate === 'true' && savedContent && slide) {
+      console.log('✅ 復元条件を満たしています。復元を開始します。');
       try {
         // JSON形式のデータとして解析を試みる
         const elementsData = JSON.parse(savedContent);
         console.log('システム設計内容を復元します（JSON形式）:', elementsData);
+        console.log('📊 復元する要素数:', elementsData.length);
         restoreSystemElements(elementsData);
       } catch (e) {
+        console.error('❌ JSON解析エラー:', e);
         // JSON解析に失敗した場合は、従来のHTML形式として処理
         console.log('システム設計内容を復元します（HTML形式）');
         const trash = slide.querySelector('#trash');
         const trashHTML = trash ? trash.outerHTML : '<div id="trash" title="ここにドラッグで削除">🗑️</div>';
         slide.innerHTML = savedContent + trashHTML;
       }
+    } else {
+      console.log('⚠️ 復元条件を満たしていません:');
+      if (returnFromCreate !== 'true') console.log('  - returnFromCreateが"true"ではありません');
+      if (!savedContent) console.log('  - savedContentがありません');
+      if (!slide) console.log('  - slide要素がありません');
     }
   }
   
@@ -636,7 +649,7 @@ window.onload = function() {
   sessionStorage.removeItem('navigatingToCreate');
   
   // すべてのドラッグ可能な要素にハンドルを追加
-  Array.from(document.querySelectorAll('.input-container, .draggable-btn, .text-input_container, .text-input-container, .checkbox-group, .radio-group, .timer-container, .roulette-container')).forEach(el=>{
+  Array.from(document.querySelectorAll('.input-container, .draggable-btn, .text-input_container, .text-input-container, .text-box-container, .checkbox-group, .radio-group, .timer-container, .roulette-container, .shape-element, .image-element')).forEach(el=>{
     addDragHandleIfMissing(el);
     makeDraggable(el);
   });
@@ -733,6 +746,12 @@ function restoreSystemElements(elementsData) {
           break;
         case 'timer':
           restoreTimer(elem);
+          break;
+        case 'shape':
+          restoreShape(elem);
+          break;
+        case 'image':
+          restoreImage(elem);
           break;
       }
     } catch (error) {
@@ -957,14 +976,28 @@ function restoreButton(elem) {
     e.stopPropagation();
     const isPreview = btn.closest('#previewSlideArea');
     
+    console.log('🔘 ボタンクリック (復元):', {
+      text: btn.textContent,
+      isPreview: !!isPreview,
+      algorithmId: algorithmId,
+      algorithmXml: algorithmXml ? `${algorithmXml.length}文字` : 'なし',
+      targetSystemId: targetSystemId
+    });
+    
     if (isPreview) {
       if (algorithmId && algorithmXml) {
         // アルゴリズム実行
+        console.log('✅ アルゴリズム実行:', algorithmId);
         executeAlgorithmFromButton(algorithmXml, btn.textContent);
       } else if (targetSystemId) {
         // システム遷移
+        console.log('✅ システム遷移:', targetSystemId);
         loadSystemInPreview(targetSystemId);
+      } else {
+        console.warn('⚠️ アルゴリズムもシステムも設定されていません');
       }
+    } else {
+      console.log('ℹ️ 編集モードではボタンは動作しません。実行ボタンでプレビューモードに入ってください。');
     }
   });
 
@@ -1271,6 +1304,186 @@ function restoreTimer(elem) {
   addDragHandleIfMissing(container);
   makeDraggable(container);
   document.getElementById('slideArea').appendChild(container);
+}
+
+// ========================================
+// 図形要素の復元
+// ========================================
+function restoreShape(elem) {
+  const slide = document.getElementById('slideArea');
+  if (!slide) return;
+
+  const shapeType = elem.element_config?.shape_type || 'rectangle';
+  const shapeColor = elem.element_config?.color || '#333333';
+  const shapeFill = elem.element_config?.fill_color || 'transparent';
+
+  const shape = document.createElement('div');
+  shape.className = `shape-element shape-${shapeType}`;
+  shape.setAttribute('data-shape-type', shapeType);
+  shape.setAttribute('data-shape-color', shapeColor);
+  shape.setAttribute('data-shape-fill', shapeFill);
+
+  // 位置を設定
+  shape.style.left = elem.position_x + 'px';
+  shape.style.top = elem.position_y + 'px';
+
+  // 図形タイプに応じてサイズとスタイルを設定
+  switch (shapeType) {
+    case 'rectangle':
+      shape.style.width = elem.width + 'px';
+      shape.style.height = elem.height + 'px';
+      shape.style.borderColor = shapeColor;
+      shape.style.background = shapeFill;
+      break;
+
+    case 'circle':
+      shape.style.width = elem.width + 'px';
+      shape.style.height = elem.width + 'px'; // 円は幅と高さが同じ
+      shape.style.borderColor = shapeColor;
+      shape.style.background = shapeFill;
+      break;
+
+    case 'triangle':
+      // 三角形は特殊なスタイルを使用
+      const height = elem.height || 87;
+      const width = elem.width || 100;
+      shape.style.width = '0px';
+      shape.style.height = '0px';
+      shape.style.borderLeftWidth = (width / 2) + 'px';
+      shape.style.borderRightWidth = (width / 2) + 'px';
+      shape.style.borderBottomWidth = height + 'px';
+      shape.style.borderLeftColor = 'transparent';
+      shape.style.borderRightColor = 'transparent';
+      shape.style.borderBottomColor = shapeColor;
+      shape.style.borderTopWidth = '0px';
+      break;
+
+    case 'line':
+      shape.style.width = elem.width + 'px';
+      shape.style.height = elem.height + 'px';
+      shape.style.background = shapeColor;
+      shape.style.border = 'none';
+      break;
+
+    case 'arrow':
+      shape.style.width = elem.width + 'px';
+      shape.style.height = elem.height + 'px';
+      
+      // 矢印のスタイルを動的に適用
+      if (typeof updateArrowStyles === 'function') {
+        updateArrowStyles(shape, shapeColor);
+      } else {
+        // updateArrowStylesが存在しない場合の代替
+        const styleId = 'arrow-' + Date.now();
+        shape.setAttribute('data-style-id', styleId);
+        const styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        styleEl.textContent = `
+          [data-style-id="${styleId}"]::before {
+            content: '';
+            flex: 1;
+            height: 2px;
+            background: ${shapeColor};
+          }
+          [data-style-id="${styleId}"]::after {
+            content: '';
+            width: 0;
+            height: 0;
+            border-left: 10px solid ${shapeColor};
+            border-top: 6px solid transparent;
+            border-bottom: 6px solid transparent;
+          }
+        `;
+        document.head.appendChild(styleEl);
+      }
+      break;
+  }
+
+  // ダブルクリックで設定パネルを開く
+  shape.addEventListener('dblclick', function(e) {
+    e.stopPropagation();
+    if (typeof openShapeSettings === 'function') {
+      openShapeSettings(shape);
+    }
+  });
+
+  // 右クリックでも設定パネルを開く
+  shape.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (typeof openShapeSettings === 'function') {
+      openShapeSettings(shape);
+    }
+  });
+
+  addDragHandleIfMissing(shape);
+  makeDraggable(shape);
+  slide.appendChild(shape);
+
+  // リサイズ機能を追加
+  if (typeof attachResizeHandlers === 'function') {
+    attachResizeHandlers(shape, shapeType);
+  }
+
+  console.log('✅ 図形を復元:', { type: shapeType, color: shapeColor, x: elem.position_x, y: elem.position_y });
+}
+
+// ========================================
+// 画像要素の復元
+// ========================================
+function restoreImage(elem) {
+  const slide = document.getElementById('slideArea');
+  if (!slide) return;
+
+  const imageSrc = elem.element_value;
+  if (!imageSrc) {
+    console.warn('⚠️ 画像のソースがありません');
+    return;
+  }
+
+  const container = document.createElement('div');
+  container.className = 'image-element';
+  container.setAttribute('data-image-src', imageSrc);
+
+  const img = document.createElement('img');
+  img.src = imageSrc;
+  img.style.pointerEvents = 'none'; // ドラッグ時に画像がドラッグされないようにする
+
+  container.appendChild(img);
+
+  // 位置とサイズを設定
+  container.style.left = elem.position_x + 'px';
+  container.style.top = elem.position_y + 'px';
+  container.style.width = elem.width + 'px';
+  container.style.height = elem.height + 'px';
+
+  // ダブルクリックで設定パネルを開く
+  container.addEventListener('dblclick', function(e) {
+    e.stopPropagation();
+    if (typeof openImageSettings === 'function') {
+      openImageSettings(container);
+    }
+  });
+
+  // 右クリックでも設定パネルを開く
+  container.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (typeof openImageSettings === 'function') {
+      openImageSettings(container);
+    }
+  });
+
+  addDragHandleIfMissing(container);
+  makeDraggable(container);
+  slide.appendChild(container);
+
+  // リサイズ機能を追加
+  if (typeof attachResizeHandlers === 'function') {
+    attachResizeHandlers(container, 'image');
+  }
+
+  console.log('✅ 画像を復元:', { src: imageSrc.substring(0, 50) + '...', x: elem.position_x, y: elem.position_y });
 }
 
 // ========================================

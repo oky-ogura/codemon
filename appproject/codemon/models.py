@@ -4,6 +4,41 @@ from django.conf import settings
 from django.utils import timezone
 
 
+class TutorialProgress(models.Model):
+    """チュートリアル進行状況を管理するモデル"""
+    user = models.OneToOneField('accounts.Account', on_delete=models.CASCADE, verbose_name='ユーザー', related_name='tutorial_progress')
+    has_logged_in = models.BooleanField(default=False, verbose_name='初回ログイン済み')
+    step1_completed = models.BooleanField(default=False, verbose_name='STEP1完了（メイン→システム）')
+    step2_completed = models.BooleanField(default=False, verbose_name='STEP2完了（システム→アルゴリズム）')
+    step3_completed = models.BooleanField(default=False, verbose_name='STEP3完了（チェックリスト→トロフィー→ショップ）')
+    all_tutorials_completed = models.BooleanField(default=False, verbose_name='全チュートリアル完了')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新日時')
+
+    class Meta:
+        db_table = 'tutorial_progress'
+        verbose_name = 'チュートリアル進行状況'
+        verbose_name_plural = 'チュートリアル進行状況'
+
+    def __str__(self):
+        return f"{self.user.user_name}のチュートリアル進行状況"
+
+    def mark_step_completed(self, step_number):
+        """指定されたステップを完了としてマーク"""
+        if step_number == 1:
+            self.step1_completed = True
+        elif step_number == 2:
+            self.step2_completed = True
+        elif step_number == 3:
+            self.step3_completed = True
+        
+        # 全てのステップが完了したかチェック
+        if self.step1_completed and self.step2_completed and self.step3_completed:
+            self.all_tutorials_completed = True
+        
+        self.save()
+
+
 class System(models.Model):
     # system_id は PostgreSQL のシーケンスで管理（4000001 から開始）
     system_id = models.BigAutoField(primary_key=True)

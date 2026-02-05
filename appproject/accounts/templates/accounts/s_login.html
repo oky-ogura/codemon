@@ -3,230 +3,414 @@
 {% block global_character_widget %}{% endblock %}
 {% load static %}
 
-{% block title %}ログイン（せいと） - CodeMon{% endblock %}
+{% block title %}ログイン - CodeMon{% endblock %}
 
 {% block background_frame %}
 <img src="{% static 'codemon/images/frames/bg_frame_yellow.png' %}" 
      alt="" 
-     class="bg-frame">
+     class="bg-frame"
+     onerror="this.style.display='none';">
 {% endblock %}
 
 {% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
 <style>
-    :root {
-        --main-blue: #3fbcd9;
-        --main-yellow: #FFD200;
-        --main-bg: #f0f4f8;
-        --panel-white: rgba(255, 255, 255, 0.95);
-        --text-color: #4a5568;
-    }
+  :root {
+    --bg-main: #f0f4f8;
+    --panel-bg: rgba(255, 255, 255, 0.95);
+    --accent-main: #3fbcd9;    /* シアン */
+    --btn-pop: #FFD200;       /* イエロー */
+    --btn-shadow: #e6bd00;
+    --error-pop: #ff7675;     /* ピンク */
+    --text-dark: #2d3748;
+    --text-gray: #718096;
+    --input-bg: #f8fafc;
+  }
 
-    /* ナビゲーションを非表示 */
-    .top-tabs {
-        display: none !important;
-    }
-    
-    .login-container {
-        position: relative;
-        width: 100%;
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        box-sizing: border-box;
-    }
+  /* ナビゲーション非表示 & スクロール禁止 */
+  .top-tabs { display: none !important; }
+  
+  body {
+    background-color: var(--bg-main);
+    font-family: "M PLUS Rounded 1c", sans-serif;
+    height: 100vh !important;
+    overflow: hidden !important;
+  }
 
-    /* タイトル：確認画面と同じ下線デザイン */
-    .page-title {
-        font-size: 2.2rem;
-        font-weight: 900;
-        color: var(--main-blue);
-        margin: 0 0 40px 0;
-        display: inline-block;
-        position: relative;
-        z-index: 10;
-    }
-    .page-title::after {
-        content: '';
-        position: absolute;
-        bottom: 2px;
-        left: 0;
-        width: 100%;
-        height: 8px;
-        background: var(--main-yellow);
-        border-radius: 10px;
-        opacity: 0.6;
-        z-index: -1;
-    }
+  .content-wrapper {
+    overflow: hidden !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 100vh !important;
+    padding: 0 !important;
+  }
 
-    /* ログインカード */
-    .login-card {
-        background: var(--panel-white);
-        border-radius: 30px;
-        padding: 40px 30px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-        border: 6px solid #fff;
-        position: relative;
-        width: 100%;
-        max-width: 450px;
-        z-index: 10;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
+  /* 全体レイアウト */
+  .login-wrapper {
+    display: flex;
+    width: 100%;
+    height: 100vh;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    box-sizing: border-box;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 10;
+  }
 
-    .card-label-tag {
-        position: absolute;
-        top: -18px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: var(--main-blue);
-        color: #fff;
-        padding: 6px 30px;
-        border-radius: 50px;
-        font-weight: 800;
-        font-size: 1rem;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
+  /* --- 左側：ビジュアルエリア --- */
+  .visual-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 40px;
+  }
 
-    /* フォーム項目 */
-    .login-form {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-    }
+  .visual-title {
+    font-size: 3rem;
+    font-weight: 900;
+    color: var(--accent-main);
+    margin: 0;
+    text-shadow: 3px 3px 0 #fff;
+    line-height: 1.2;
+  }
 
-    .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
+  .visual-subtitle {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-gray);
+    margin-top: 10px;
+    margin-bottom: 40px;
+  }
 
-    .form-label {
-        font-size: 0.9rem;
-        font-weight: 800;
-        color: #94a3b8;
-        padding-left: 10px;
-    }
+  .visual-icon-wrapper {
+    width: 180px;
+    height: 180px;
+    background: #fff;
+    border-radius: 50%;
+    border: 8px solid var(--btn-pop);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 0 rgba(230, 189, 0, 0.2);
+    animation: float 3s ease-in-out infinite;
+    position: relative;
+  }
 
-    .form-input {
-        background: #fff;
-        border: 3px solid #e2e8f0;
-        border-radius: 15px;
-        padding: 12px 20px;
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: var(--text-color);
-        transition: all 0.2s;
-        outline: none;
-    }
+  .visual-icon {
+    font-size: 80px;
+    color: var(--text-dark);
+  }
 
-    .form-input:focus {
-        border-color: var(--main-blue);
-        box-shadow: 0 0 0 4px rgba(63, 188, 217, 0.1);
-    }
+  /* 装飾用パーツ（飛び出すアイコン） */
+  .deco-icon {
+    position: absolute;
+    font-size: 30px;
+    color: var(--accent-main);
+    animation: popScale 2s infinite alternate;
+  }
+  .d1 { top: 0; right: -20px; animation-delay: 0s; color: var(--error-pop); }
+  .d2 { bottom: 10px; left: -20px; animation-delay: 0.5s; font-size: 40px; }
+  .d3 { top: 50%; right: -40px; animation-delay: 1s; color: var(--btn-pop); font-size: 24px; }
 
-    /* エラーメッセージ */
-    .messages {
-        width: 100%;
-        margin-bottom: 20px;
-    }
-    .message.error {
-        background: #fff5f5;
-        color: #c53030;
-        border: 2px solid #feb2b2;
-        padding: 10px;
-        border-radius: 12px;
-        font-size: 0.85rem;
-        font-weight: 700;
-        text-align: center;
-    }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  @keyframes popScale {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.3) rotate(10deg); }
+  }
 
-    /* ボタン：確認画面の「けってい！」と共通 */
-    .submit-btn {
-        margin-top: 10px;
-        background: var(--main-yellow);
-        color: #634A00;
-        font-size: 1.5rem;
-        font-weight: 900;
-        padding: 12px 0;
-        border-radius: 50px;
-        border: none;
-        cursor: pointer;
-        box-shadow: 0 6px 0 #d4af00;
-        transition: all 0.1s;
-        width: 100%;
-    }
-    .submit-btn:hover { transform: translateY(2px); box-shadow: 0 4px 0 #d4af00; }
-    .submit-btn:active { transform: translateY(6px); box-shadow: none; }
+  /* --- 右側：フォームエリア --- */
+  .form-section {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
 
-    /* リンク：確認画面の「✎ なおす」に近いスタイル */
-    .links {
-        display: flex;
-        justify-content: space-between;
-        width: 100%;
-        margin-top: 25px;
-        gap: 10px;
-    }
-    .links a {
-        color: #94a3b8;
-        text-decoration: none;
-        font-size: 0.85rem;
-        font-weight: 700;
-        padding: 5px 10px;
-        transition: color 0.2s;
-    }
-    .links a:hover {
-        color: var(--main-blue);
-        text-decoration: underline;
-    }
+  .login-panel {
+    background: var(--panel-bg);
+    border: 6px solid #fff;
+    border-radius: 40px;
+    padding: 40px 50px;
+    width: 100%;
+    max-width: 450px;
+    box-shadow: 0 20px 40px rgba(63, 188, 217, 0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    position: relative;
+  }
 
-    @media (max-width: 500px) {
-        .login-card { width: 90%; padding: 35px 20px; }
-        .page-title { font-size: 1.8rem; }
+  /* パネル上のタグ */
+  .panel-tag {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent-main);
+    color: #fff;
+    font-weight: 800;
+    padding: 8px 30px;
+    border-radius: 20px;
+    font-size: 14px;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+  }
+
+  /* エラーメッセージ */
+  .messages {
+    width: 100%;
+  }
+  .message.error {
+    background: #fff5f5;
+    color: var(--error-pop);
+    border: 2px solid var(--error-pop);
+    padding: 10px;
+    border-radius: 15px;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    animation: shake 0.4s;
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+
+  /* フォーム */
+  .login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .form-label {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text-dark);
+    margin-left: 5px;
+  }
+
+  .form-input {
+    padding: 14px 20px;
+    border-radius: 50px; /* 丸みのある入力欄 */
+    border: 3px solid #cbd5e0;
+    background: var(--input-bg);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-dark);
+    outline: none;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+
+  .form-input:focus {
+    border-color: var(--accent-main);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(63, 188, 217, 0.1);
+  }
+
+  .form-input::placeholder {
+    color: #cbd5e0;
+  }
+
+  /* ログインボタン */
+  .submit-btn {
+    margin-top: 10px;
+    background: var(--btn-pop);
+    color: #5d4037; /* 茶色文字で見やすく */
+    font-size: 18px;
+    font-weight: 900;
+    padding: 15px;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 6px 0 var(--btn-shadow);
+    transition: all 0.1s;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .submit-btn:hover {
+    transform: translateY(2px);
+    box-shadow: 0 4px 0 var(--btn-shadow);
+    background: #ffe033;
+  }
+
+  .submit-btn:active {
+    transform: translateY(6px);
+    box-shadow: none;
+  }
+
+  /* 下部リンク */
+  .auth-links {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .auth-link {
+    color: var(--text-gray);
+    text-decoration: none;
+    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .auth-link:hover {
+    color: var(--accent-main);
+  }
+
+  /* スマホ対応 */
+  @media (max-width: 768px) {
+    .login-wrapper {
+      flex-direction: column;
+      height: auto;
+      min-height: 100vh;
+      overflow-y: auto; /* スマホのみスクロール許可 */
+      padding: 40px 20px;
     }
+    .visual-section { padding: 20px; flex: none; }
+    .visual-title { font-size: 2.2rem; }
+    .visual-icon-wrapper { width: 120px; height: 120px; }
+    .visual-icon { font-size: 50px; }
+    .form-section { width: 100%; flex: none; }
+    .login-panel { padding: 30px 20px; }
+  }
+
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="login-container">
-    <h1 class="page-title">おかえりなさい！</h1>
-
-    <div class="login-card">
-        <div class="card-label-tag">CodeMon ログイン</div>
-
-        {% if messages %}
-        <div class="messages">
-            {% for message in messages %}
-                {% if message.tags == 'error' %}
-                    <div class="message {{ message.tags }}">{{ message }}</div>
-                {% endif %}
-            {% endfor %}
-        </div>
-        {% endif %}
-
-        <form method="post" class="login-form">
-            {% csrf_token %}
-            <div class="form-group">
-                <label class="form-label" for="id_username">なまえ（ユーザー名）</label>
-                <input type="text" class="form-input" name="username" id="id_username" placeholder="なまえを いれてね" required>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="id_password">パスワード</label>
-                <input type="password" class="form-input" name="password" id="id_password" placeholder="●●●●●●" required>
-            </div>
-
-            <button type="submit" class="submit-btn">ログイン！</button>
-        </form>
-
-        <div class="links">
-            <a href="{% url 'accounts:student_signup' %}">✎ アカウントを つくる</a>
-            <a href="{% url 'accounts:password_reset' %}">？ パスワードを わすれた</a>
-        </div>
+<div class="login-wrapper">
+  
+  <div class="visual-section">
+    <h1 class="visual-title">おかえり！</h1>
+    <p class="visual-subtitle">
+      さあ、プログラミングの<br>ぼうけんを はじめよう！
+    </p>
+    
+    <div class="visual-icon-wrapper">
+      <i class="fas fa-rocket visual-icon"></i>
+      <i class="fas fa-star deco-icon d1"></i>
+      <i class="fas fa-code deco-icon d2"></i>
+      <i class="fas fa-bolt deco-icon d3"></i>
     </div>
+  </div>
+
+  <div class="form-section">
+    <div class="login-panel">
+      <div class="panel-tag">ログイン</div>
+
+      {% if messages %}
+        <div class="messages">
+          {% for message in messages %}
+            {% if message.tags == 'error' %}
+              <div class="message error">
+                <i class="fas fa-exclamation-circle"></i> {{ message }}
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" class="login-form" id="loginForm">
+        {% csrf_token %}
+        
+        <div class="form-group">
+          <label class="form-label" for="id_username">
+            <i class="fas fa-user-astronaut"></i> なまえ（ユーザーID）
+          </label>
+          <input type="text" class="form-input" name="username" id="id_username" placeholder="ここに入力してね" required>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="id_password">
+            <i class="fas fa-key"></i> パスワード
+          </label>
+          <input type="text" class="form-input" id="id_password_display" placeholder="●●●●●●" autocomplete="off">
+          <input type="hidden" name="password" id="id_password">
+        </div>
+
+        <button type="submit" class="submit-btn">
+          スタート！ <i class="fas fa-arrow-right"></i>
+        </button>
+      </form>
+
+      <div class="auth-links">
+        <a href="{% url 'accounts:student_signup' %}" class="auth-link">
+          <i class="fas fa-user-plus"></i> はじめての人はこちら
+        </a>
+        <a href="{% url 'accounts:password_reset' %}" class="auth-link">
+          <i class="fas fa-question-circle"></i> パスワードをわすれた
+        </a>
+      </div>
+
+    </div>
+  </div>
+
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const displayField = document.getElementById('id_password_display');
+    const hiddenField = document.getElementById('id_password');
+    let actualPassword = '';
+
+    displayField.addEventListener('input', function(e) {
+      const currentValue = e.target.value;
+      const currentLength = currentValue.length;
+      const previousLength = actualPassword.length;
+
+      if (currentLength > previousLength) {
+        // 文字が追加された
+        const addedChars = currentValue.substring(previousLength);
+        actualPassword += addedChars;
+      } else if (currentLength < previousLength) {
+        // 文字が削除された
+        actualPassword = actualPassword.substring(0, currentLength);
+      }
+
+      // 表示を更新:最後の1文字以外を●に
+      if (actualPassword.length === 0) {
+        displayField.value = '';
+      } else if (actualPassword.length === 1) {
+        displayField.value = actualPassword;
+      } else {
+        displayField.value = '●'.repeat(actualPassword.length - 1) + actualPassword[actualPassword.length - 1];
+      }
+
+      // hiddenフィールドに実際の値を設定
+      hiddenField.value = actualPassword;
+    });
+
+    // フォーム送信時に実際のパスワードが送信されることを確認
+    document.getElementById('loginForm').addEventListener('submit', function() {
+      hiddenField.value = actualPassword;
+    });
+  });
+</script>
 {% endblock %}

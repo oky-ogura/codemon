@@ -1,0 +1,260 @@
+/* ========================================
+   チュートリアルオーバーレイ - 共通スタイル
+   ======================================== */
+
+/* オーバーレイパーツ（4つの矩形でハイライト領域を避ける） */
+.tutorial-overlay-part {
+    position: fixed;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 9998;
+    display: none;
+    pointer-events: none; /* オーバーレイ自体はクリックを通過させる */
+}
+
+/* 全画面オーバーレイ（背景を暗くする） - 後方互換性のため残す */
+.tutorial-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 9998;
+    display: none;
+    pointer-events: none; /* オーバーレイ自体はクリックを通過させる */
+}
+
+.tutorial-overlay.active {
+    display: block;
+}
+
+/* ハイライト領域（指定されたボタンだけ明るく表示） */
+.tutorial-highlight {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.05);
+    border: 4px solid #FFD200;
+    border-radius: 15px;
+    box-shadow: 0 0 30px rgba(255, 210, 0, 0.8), 
+                0 0 60px rgba(255, 210, 0, 0.5),
+                inset 0 0 20px rgba(255, 210, 0, 0.3);
+    pointer-events: none; /* ハイライト自体はクリック不可、下の要素をクリック可能に */
+    z-index: 10000;
+    animation: pulse-highlight 2s infinite;
+    transition: all 0.3s ease;
+}
+
+@keyframes pulse-highlight {
+    0%, 100% {
+        box-shadow: 0 0 30px rgba(255, 210, 0, 0.8), 
+                    0 0 60px rgba(255, 210, 0, 0.5),
+                    inset 0 0 20px rgba(255, 210, 0, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 40px rgba(255, 210, 0, 1), 
+                    0 0 80px rgba(255, 210, 0, 0.7),
+                    inset 0 0 30px rgba(255, 210, 0, 0.5);
+    }
+}
+
+/* 吹き出しメッセージボックス */
+.tutorial-message {
+    position: fixed;
+    background: #fff;
+    border: 6px solid #3fbcd9;
+    border-radius: 30px;
+    padding: 20px 25px;
+    max-width: 400px;
+    max-height: 60vh;
+    overflow-y: auto;
+    z-index: 10001;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+    animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    pointer-events: auto;
+    box-sizing: border-box;
+    cursor: grab;
+    user-select: none;
+}
+
+/* ドラッグ中のスタイル */
+.tutorial-message:active {
+    cursor: grabbing;
+}
+
+@keyframes bounceIn {
+    0% {
+        transform: scale(0.3);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 1;
+    }
+    70% {
+        transform: scale(0.9);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* 吹き出しの矢印（三角形） */
+.tutorial-message::before {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-style: solid;
+}
+
+/* 上向き矢印 */
+.tutorial-message.arrow-top::before {
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 0 20px 20px 20px;
+    border-color: transparent transparent #3fbcd9 transparent;
+}
+
+/* 下向き矢印 */
+.tutorial-message.arrow-bottom::before {
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 20px 20px 0 20px;
+    border-color: #3fbcd9 transparent transparent transparent;
+}
+
+/* 左向き矢印 */
+.tutorial-message.arrow-left::before {
+    right: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    border-width: 20px 20px 20px 0;
+    border-color: transparent #3fbcd9 transparent transparent;
+}
+
+/* 右向き矢印 */
+.tutorial-message.arrow-right::before {
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    border-width: 20px 0 20px 20px;
+    border-color: transparent transparent transparent #3fbcd9;
+}
+
+/* 中央表示時は矢印なし、より大きく表示 */
+.tutorial-message.tutorial-message-center::before {
+    display: none;
+}
+
+.tutorial-message.tutorial-message-center {
+    padding: 20px 25px;
+    font-size: 0.95em;
+    max-height: 60vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+.tutorial-message.tutorial-message-center .tutorial-message-content {
+    font-size: 1em;
+    margin-bottom: 18px;
+    line-height: 1.5;
+}
+
+/* メッセージ内容 */
+.tutorial-message-content {
+    font-family: "M PLUS Rounded 1c", sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #2d3748;
+    line-height: 1.6;
+    cursor: auto;
+    user-select: text;
+}
+
+/* ステップインジケーター */
+.tutorial-step-indicator {
+    display: inline-block;
+    background: #FFD200;
+    color: #5d4037;
+    font-size: 14px;
+    font-weight: 900;
+    padding: 4px 12px;
+    border-radius: 15px;
+    margin-bottom: 10px;
+}
+
+/* ボタンエリア */
+.tutorial-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: flex-end;
+}
+
+.tutorial-btn {
+    padding: 10px 25px;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 900;
+    font-family: "M PLUS Rounded 1c", sans-serif;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.tutorial-btn-skip {
+    background: #cbd5e0;
+    color: #4a5568;
+    box-shadow: 0 4px 0 #a0aec0;
+}
+
+.tutorial-btn-skip:hover {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #a0aec0;
+}
+
+.tutorial-btn-skip:active {
+    transform: translateY(4px);
+    box-shadow: none;
+}
+
+.tutorial-btn-next {
+    background: #FFD200;
+    color: #5d4037;
+    box-shadow: 0 6px 0 #d4af00;
+}
+
+.tutorial-btn-next:hover {
+    transform: translateY(2px);
+    box-shadow: 0 4px 0 #d4af00;
+    background: #ffe033;
+}
+
+.tutorial-btn-next:active {
+    transform: translateY(6px);
+    box-shadow: none;
+}
+
+/* スマホ対応 */
+@media (max-width: 768px) {
+    .tutorial-message {
+        max-width: 90%;
+        padding: 20px;
+        left: 5% !important;
+        right: 5% !important;
+    }
+
+    .tutorial-message-content {
+        font-size: 16px;
+    }
+
+    .tutorial-buttons {
+        flex-direction: column;
+    }
+
+    .tutorial-btn {
+        width: 100%;
+    }
+}

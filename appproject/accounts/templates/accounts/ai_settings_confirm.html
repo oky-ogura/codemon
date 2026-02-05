@@ -298,23 +298,13 @@
                     <span class="info-label">しゅぞく</span>
                     <div class="info-value" id="display_appearance"></div>
                 </li>
-                <li class="info-item">
+                <li class="info-item" style="border:none">
                     <span class="info-label">せいかく</span>
                     <div class="info-value">
                         {% if ai_personality == "undefined" or not ai_personality %}
                             まだ決まってないよ
                         {% else %}
                             {{ ai_personality }}
-                        {% endif %}
-                    </div>
-                </li>
-                <li class="info-item" style="border:none">
-                    <span class="info-label">はなしことば</span>
-                    <div class="info-value">
-                        {% if ai_speech == "undefined" or not ai_speech %}
-                            まだ決まってないよ
-                        {% else %}
-                            {{ ai_speech }}
                         {% endif %}
                     </div>
                 </li>
@@ -330,7 +320,6 @@
             {% csrf_token %}
             <input type="hidden" name="ai_name" value="{{ ai_name }}">
             <input type="hidden" name="ai_personality" value="{{ ai_personality }}">
-            <input type="hidden" name="ai_speech" value="{{ ai_speech }}">
             <input type="hidden" name="appearance" value="{{ appearance }}">
             <button type="submit" class="btn-main">けってい！</button>
         </form>
