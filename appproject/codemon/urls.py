@@ -125,6 +125,7 @@ urlpatterns = [
     path('chat/teacher/grading/', views.grading_teacher, name='grading'),
     path('chat/teacher/grading/<int:message_id>/', views.grading_teacher, name='grading_with_message'),
     path('chat/teacher/grading/<int:message_id>/detail/', views.grading_detail_view, name='grading_detail'),
+    path('chat/student/grading/<int:message_id>/detail/', views.grading_detail_student, name='grading_detail_student'),
     
     # 採点済みチェック API
     path('api/toggle-grading-check/<int:message_id>/', views.toggle_grading_check, name='toggle_grading_check'),
