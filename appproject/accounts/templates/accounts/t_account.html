@@ -1,250 +1,660 @@
-
 {% extends 'base.html' %}
+{% block global_character_widget %}{% endblock %}
 {% load static %}
 
 {% block title %}アカウント（教員） - Codemon{% endblock %}
 
-{% block background_frame %}
-<img src="{% static 'codemon/images/frames/教員用アカウント画面 (2).png' %}" 
-     alt="" 
-     class="bg-frame"
-     onerror="this.style.display='none';">
-{% endblock %}
-
 {% block extra_css %}
-    <style>
-        
-        
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-        /* メインカード */
-        /* ヘッダーが固定表示のため、このページだけ上部に余白を確保する */
-        /* 余白をやや大きめにしてヘッダーとの重なりを防止 */
+<style>
+    :root {
+        --color-system: #3fbcd9;
+        --color-algo: #B197FC;
+        --color-checklist: #A8E6CF;
+        --color-chat: #FFD166;
+        --color-mypage: #E0E0E0;
+        --color-shop: #ff69b4;
+        --color-trophy: #ff9f43;
+        --color-account: #4cd97b;
+        --color-bg: #f0f4f8;
+        --theme-primary: #FFD700;
+        --theme-secondary: #FFA500;
+        --theme-dark: #FF8C00;
+    }
 
-        .card { max-width:1000px; margin:160px auto 40px; background:transparent; border:none; padding:18px; box-shadow:none; box-sizing:border-box; max-height:calc(100vh - 200px); overflow:visible; }
+    body, html {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        min-height: 100vh;
+        font-family: 'M PLUS Rounded 1c', sans-serif;
+        overflow-x: hidden;
+        background-color: transparent;
+    }
 
-        .main { display:flex; gap:24px; align-items:flex-start; }
-        .left { width:180px; flex-shrink:0; text-align:center; }
-        .avatar-circle {
-            width:140px; height:140px; border-radius:50%; border:3px solid #bbb; display:flex; align-items:center; justify-content:center; background:#fafafa; font-size:48px; margin:6px auto;
+    .full-background {
+        position: fixed;
+        inset: 0;
+        background-size: cover;
+        background-position: center;
+        z-index: -1;
+        opacity: 0.6;
+    }
+
+    .account-container {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        grid-template-rows: 1fr;
+        min-height: calc(100vh - 140px);
+        padding: 20px 25px;
+        box-sizing: border-box;
+        gap: 20px;
+        position: relative;
+        z-index: 10;
+    }
+
+    /* メインカード */
+    .main-card {
+        grid-column: 1 / 2;
+        grid-row: 1 / 2;
+        background: white;
+        border-radius: 30px;
+        padding: 40px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+    }
+
+    .account-content {
+        display: flex;
+        gap: 40px;
+        align-items: flex-start;
+        width: 100%;
+    }
+
+    /* アバター部分 */
+    .avatar-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .avatar-circle {
+        width: 140px;
+        height: 140px;
+        border-radius: 50%;
+        border: 5px solid var(--color-account);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, var(--color-account), #36b869);
+        font-size: 48px;
+        color: #fff;
+        font-weight: 900;
+        box-shadow: 0 8px 20px rgba(76, 217, 123, 0.3);
+    }
+
+    .logout-btn {
+        background: linear-gradient(135deg, #ff7675, #ff4d4d);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 50px;
+        font-weight: 900;
+        cursor: pointer;
+        box-shadow: 0 5px 0 #cc3333;
+        transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .logout-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 0 #cc3333;
+    }
+
+    .logout-btn:active {
+        transform: scale(0.95);
+        box-shadow: none;
+    }
+
+    /* 情報部分 */
+    .info-section {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .info-row {
+        display: flex;
+        gap: 30px;
+        align-items: center;
+    }
+
+    .info-table {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        flex: 1;
+    }
+
+    .info-item {
+        background: linear-gradient(135deg, #f0f4f8, #e6eef5);
+        padding: 15px 25px;
+        border-radius: 25px;
+        display: flex;
+        align-items: center;
+        border: 3px solid #d0dfe8;
+        box-shadow: 0 4px 0 #c0d5e0;
+    }
+
+    .info-label {
+        width: 100px;
+        font-weight: 900;
+        color: #555;
+        font-size: 15px;
+    }
+
+    .info-value {
+        flex: 1;
+        color: #000;
+        font-size: 15px;
+        font-weight: 700;
+        text-align: left;
+    }
+
+    /* AI情報カード */
+    .ai-card {
+        background: linear-gradient(135deg, var(--theme-primary), var(--theme-secondary));
+        padding: 25px;
+        border-radius: 25px;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+        box-shadow: 0 8px 20px rgba(255, 215, 0, 0.3);
+    }
+
+    .ai-image {
+        width: 150px;
+        height: 150px;
+        object-fit: contain;
+        filter: drop-shadow(5px 5px 10px rgba(0, 0, 0, 0.2));
+    }
+
+    .ai-name {
+        font-size: 20px;
+        font-weight: 900;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .ai-stats {
+        text-align: center;
+        font-size: 14px;
+        font-weight: 700;
+        opacity: 0.95;
+    }
+
+    /* グループセクション */
+    .groups-section {
+        width: 100%;
+    }
+
+    .groups-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 15px;
+    }
+
+    .groups-title {
+        font-size: 20px;
+        font-weight: 900;
+        color: #333;
+    }
+
+    .create-group-btn {
+        background: linear-gradient(135deg, #4cd97b, #36b869);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 50px;
+        font-weight: 900;
+        cursor: pointer;
+        box-shadow: 0 4px 0 #2a9d5a;
+        transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+    }
+
+    .create-group-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 0 #2a9d5a;
+    }
+
+    .create-group-btn:active {
+        transform: scale(0.95);
+        box-shadow: none;
+    }
+
+    .groups-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-height: 300px;
+        overflow-y: auto;
+        padding-right: 5px;
+    }
+
+    .groups-list::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .groups-list::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+
+    .groups-list::-webkit-scrollbar-thumb {
+        background: #bbb;
+        border-radius: 4px;
+    }
+
+    .groups-list::-webkit-scrollbar-thumb:hover {
+        background: #999;
+    }
+
+    .group-item {
+        background: linear-gradient(135deg, #f8f9fb, #eef1f5);
+        padding: 15px 20px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        border: 3px solid #e0e5ec;
+        box-shadow: 0 3px 0 #d0d5dc;
+        transition: all 0.2s;
+    }
+
+    .group-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 0 #d0d5dc;
+    }
+
+    .group-name {
+        flex: 1;
+        font-weight: 900;
+        color: #333;
+        font-size: 16px;
+    }
+
+    .group-count {
+        background: rgba(76, 217, 123, 0.2);
+        color: #2a9d5a;
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-weight: 700;
+        font-size: 13px;
+    }
+
+    .group-btn {
+        background: white;
+        border: 2px solid #ddd;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        color: #666;
+    }
+
+    .group-btn:hover {
+        transform: scale(1.1);
+        border-color: var(--color-account);
+        color: var(--color-account);
+    }
+
+    .group-btn.delete:hover {
+        border-color: #ff4d4d;
+        color: #ff4d4d;
+    }
+
+    .no-groups {
+        text-align: center;
+        padding: 40px;
+        color: #999;
+        font-size: 16px;
+    }
+
+    /* キャラクター領域 */
+    .character-area {
+        grid-column: 2 / 3;
+        grid-row: 1 / 2;
+        position: relative;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding-top: 20px;
+    }
+
+    .character-container {
+        position: relative;
+        width: 100%;
+        height: 70vh;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+    }
+
+    .character-img {
+        max-height: 100%;
+        width: auto;
+        max-width: 420px;
+        filter: drop-shadow(15px 15px 0 rgba(0, 0, 0, 0.05));
+        transition: transform 0.3s ease;
+        cursor: pointer;
+        position: absolute;
+        top: 0;
+    }
+
+    .character-img.hover {
+        opacity: 0;
+    }
+
+    .speech-bubble {
+        position: absolute;
+        top: 10px;
+        right: 60px;
+        background: white;
+        border: 4px solid var(--theme-primary);
+        padding: 15px 25px;
+        border-radius: 25px;
+        font-weight: 900;
+        box-shadow: 0 10px 0 rgba(0, 0, 0, 0.05);
+        z-index: 100;
+        animation: float 3s ease-in-out infinite;
+        color: #333;
+        min-width: 150px;
+        text-align: center;
+    }
+
+    .speech-bubble::after {
+        content: '';
+        position: absolute;
+        bottom: -15px;
+        left: 30px;
+        border-left: 12px solid transparent;
+        border-right: 12px solid transparent;
+        border-top: 15px solid var(--theme-primary);
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+
+    /* レスポンシブ */
+    @media(max-width: 1200px) {
+        .account-container {
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr auto;
         }
-
-        /* イニシャルごとの背景色（A-Z） */
-        .avatar-circle.initial-A { background:#1abc9c; color:#fff; }
-        .avatar-circle.initial-B { background:#2ecc71; color:#fff; }
-        .avatar-circle.initial-C { background:#3498db; color:#fff; }
-        .avatar-circle.initial-D { background:#9b59b6; color:#fff; }
-        .avatar-circle.initial-E { background:#34495e; color:#fff; }
-        .avatar-circle.initial-F { background:#16a085; color:#fff; }
-        .avatar-circle.initial-G { background:#27ae60; color:#fff; }
-        .avatar-circle.initial-H { background:#2980b9; color:#fff; }
-        .avatar-circle.initial-I { background:#8e44ad; color:#fff; }
-        .avatar-circle.initial-J { background:#2c3e50; color:#fff; }
-        .avatar-circle.initial-K { background:#f39c12; color:#fff; }
-        .avatar-circle.initial-L { background:#d35400; color:#fff; }
-        .avatar-circle.initial-M { background:#c0392b; color:#fff; }
-        .avatar-circle.initial-N { background:#7f8c8d; color:#fff; }
-        .avatar-circle.initial-O { background:#e67e22; color:#fff; }
-        .avatar-circle.initial-P { background:#e74c3c; color:#fff; }
-        .avatar-circle.initial-Q { background:#1f618d; color:#fff; }
-        .avatar-circle.initial-R { background:#117a65; color:#fff; }
-        .avatar-circle.initial-S { background:#9b59b6; color:#fff; }
-        .avatar-circle.initial-T { background:#2e86c1; color:#fff; }
-        .avatar-circle.initial-U { background:#17a589; color:#fff; }
-        .avatar-circle.initial-V { background:#b03a2e; color:#fff; }
-        .avatar-circle.initial-W { background:#45b39d; color:#fff; }
-        .avatar-circle.initial-X { background:#5dade2; color:#fff; }
-        .avatar-circle.initial-Y { background:#f5b041; color:#fff; }
-        .avatar-circle.initial-Z { background:#a569bd; color:#fff; }
-
-        .initial-text { font-size:48px; line-height:1; color:inherit; font-weight:700; }
-        .meta { margin-top:10px; font-size:14px; color:#333; }
-        .logout-area { margin-top:14px; }
-
-        .info { flex:1; }
-        .info-table { border-collapse:collapse; }
-        .info-table td { padding:8px 12px; vertical-align:middle; }
-        .info-table .label { font-weight:700; color:#333; background:#fff; border:1px solid #ddd; border-right:none; border-radius:20px 0 0 20px; }
-        .info-table .value { color:#000; background:#5DD4F5; border:1px solid #5DD4F5; border-left:none; border-radius:0 20px 20px 0; }
-
-        .top-row { display:flex; justify-content:space-between; align-items:center; gap:12px; }
-        .id-box { font-size:18px; font-weight:700; color:#333; }
-
-        /* グループリスト */
-        .groups { margin-top:-20px; display:flex; flex-direction:column; gap:10px; }
-        .groups-list { display:flex; flex-direction:column; gap:10px; max-height:200px; overflow-y:auto; padding-right:4px; margin-top:-20px; padding-bottom:10px; }
-        .groups-list::-webkit-scrollbar { width:8px; }
-        .groups-list::-webkit-scrollbar-track { background:#f1f1f1; border-radius:4px; }
-        .groups-list::-webkit-scrollbar-thumb { background:#bbb; border-radius:4px; }
-        .groups-list::-webkit-scrollbar-thumb:hover { background:#999; }
-        .group-row { display:flex; align-items:center; gap:12px; padding:8px; border-radius:6px; background:#f8f9fb; border:1px solid #e6e9ee; }
-        .group-name { flex:1; font-weight:600; color:#222; }
-        .group-meta { color:#666; font-size:13px; }
-        .btn { padding:6px 10px; border-radius:6px; border:1px solid #bbb; background:#f0f2f5; cursor:pointer; font-size:13px; }
-        .btn.detail { background:transparent; border:none; padding:4px; transition:transform 0.2s ease, opacity 0.2s ease; }
-        .btn.detail:hover { transform:scale(1.1); opacity:0.7; }
-        .btn.del { background:transparent; border:none; padding:4px; transition:transform 0.2s ease, opacity 0.2s ease; }
-        .btn.del:hover { transform:scale(1.1); opacity:0.7; }
-        .btn.create { background:transparent; border:none; padding:4px; transition:transform 0.2s ease, opacity 0.2s ease; }
-        .btn.create:hover { transform:scale(1.1); opacity:0.7; }
-        .btn.logout { background:transparent; border:none; padding:4px; cursor:pointer; transition:transform 0.2s ease, opacity 0.2s ease; outline:none; }
-        .btn.logout:hover { transform:scale(1.1); opacity:0.7; }
-        .btn.logout:focus { outline:none; }
-
-        /* レスポンシブ */
-        @media(max-width:720px){
-            .main { flex-direction:column; }
-            .left { width:100%; text-align:left; display:flex; gap:12px; align-items:center; }
-            .avatar-circle { width:96px; height:96px; font-size:32px; }
-            /* モバイルではヘッダーが狭くなるので余白を小さく調整 */
-            .card { margin-top:120px; }
+        
+        .character-area {
+            grid-column: 1 / 2;
+            grid-row: 2 / 3;
+            height: 300px;
         }
-    </style>
+        
+        .character-container {
+            height: 100%;
+        }
+        
+        .account-content {
+            flex-direction: column;
+        }
+    }
+</style>
 {% endblock %}
-</head>
-{% block content %}
 
-    <div class="card">
-        <div class="main">
-            <div class="left">
-                {% with display_name=account.user_name|default:user.get_full_name|default:"codemon" %}
+{% block content %}
+<div class="full-background" style="background-image: url('{% static "codemon/images/backgrounds/bg_common.png" %}');"></div>
+
+<div class="account-container">
+    <!-- メインカード -->
+    <div class="main-card">
+        <div class="account-content">
+            <!-- アバター部分 -->
+            <div class="avatar-section">
+                {% with display_name=account.user_name|default:user.get_full_name|default:"?" %}
                     {% with initial=display_name|slice:":1" %}
-                        <div class="avatar-circle {% if not user.profile.avatar %}initial-{{ initial|upper }}{% endif %}">
-                            {% if user.profile.avatar %}
-                                <img src="{{ user.profile.avatar.url }}" alt="avatar" style="width:100%;height:100%;border-radius:50%;">
-                            {% else %}
-                                <span class="initial-text">{{ initial|upper }}</span>
-                            {% endif %}
+                        <div class="avatar-circle">
+                            <span class="initial-text">{{ initial|upper }}</span>
                         </div>
                     {% endwith %}
                 {% endwith %}
-
-                <div class="meta">
-                    <div class="logout-area">
-                        <form id="logout-form" method="get" action="{% url 'accounts:logout_confirm' %}">
-                            <button type="submit" id="logout-btn" class="btn logout">
-                                <img src="{% static 'codemon/images/nav/教員用アカウント画面 (17).png' %}" alt="ログアウト" style="height:40px; display:block;">
-                            </button>
-                        </form>
-                    </div>
-                </div>
+                
+                <form id="logout-form" method="get" action="{% url 'accounts:logout_confirm' %}">
+                    <button type="submit" class="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i> ログアウト
+                    </button>
+                </form>
             </div>
 
-            <div class="info">
-                <div class="top-row">
-                    <div style="flex:1;overflow:hidden;">
-                        <div style="display:flex;gap:30px;align-items:center;margin-top:12px;flex-wrap:wrap;">
-                            <table class="info-table" style="flex-shrink:0;border-spacing:0 8px;min-width:240px;">
-                                <tr>
-                                    <td colspan="2" style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;">
-                                        <span style="width:70px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">ID</span>
-                                        <span style="flex:1;padding-right:20px;color:#000;font-size:15px;text-align:center;">{{ account.user_id|default:user.id }}</span>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td colspan="2" style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;">
-                                        <span style="width:70px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">名前</span>
-                                        <span style="flex:1;padding-right:20px;color:#000;font-size:15px;text-align:center;">{{ account.user_name|default:user.get_full_name|default:"codemon" }}</span>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td colspan="2" style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;">
-                                        <span style="width:70px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">年齢</span>
-                                        <span style="flex:1;padding-right:20px;color:#000;font-size:15px;text-align:center;">{{ account.age|default:user.profile.age|default:"38" }}歳</span>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td colspan="2" style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;">
-                                        <span style="width:70px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">所属</span>
-                                        <span style="flex:1;padding-right:20px;color:#000;font-size:15px;text-align:center;">{{ account.account_type|default:user.profile.kyojin|default:"教員" }}</span>
-                                    </td>
-                                </tr>
-                            </table>
-                            
-                            <!-- AI画像 -->
-                            <div style="text-align:center;flex-shrink:0;">
-                                {% if ai_config and ai_config.appearance %}
-                                    <img src="{% static 'codemon/images/characters/' %}{{ ai_config.appearance }}" 
-                                         alt="AI" 
-                                         style="width:150px;height:150px;object-fit:contain;display:block;"
-                                         onerror="this.src='{% static 'codemon/images/characters/イヌ.png' %}'">
-                                {% else %}
-                                    <div style="width:150px;height:150px;background:#f0f0f0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:48px;">⚪︎</div>
-                                {% endif %}
-                            </div>
-                            
-                            <!-- AI名前と日付情報 -->
-                            <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:1;min-width:200px;">
-                                <div style="padding:0;background:url('{% static 'codemon/images/nav/教員用アカウント画面 (10).png' %}') no-repeat center/100% 100%;height:50px;border-radius:25px;display:flex;align-items:center;">
-                                    <span style="width:70px;padding-left:20px;font-weight:700;color:#333;font-size:15px;">名前</span>
-                                    <span style="flex:1;padding-right:20px;color:#000;font-size:15px;text-align:center;">{{ ai_config.ai_name|default:"codemon" }}</span>
-                                </div>
-                                <div style="text-align:center;font-size:14px;color:#666;">
-                                    <div>初めて会った日　{% if first_met %}{{ first_met|date:"Y/m/d" }}{% else %}---{% endif %}</div>
-                                    <div style="margin-top:4px;">累計　{{ total_days|default:"0日" }}</div>
-                                </div>
-                            </div>
+            <!-- 情報部分 -->
+            <div class="info-section">
+                <div class="info-row">
+                    <div class="info-table">
+                        <div class="info-item">
+                            <span class="info-label">ID</span>
+                            <span class="info-value">{{ account.user_id|default:user.id }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">名前</span>
+                            <span class="info-value">{{ account.user_name|default:user.get_full_name|default:"教員" }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">年齢</span>
+                            <span class="info-value">{{ account.age|default:user.profile.age|default:"38" }}歳</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">所属</span>
+                            <span class="info-value">{{ account.account_type|default:user.profile.kyojin|default:"教員" }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- AI情報カード -->
+                    <div class="ai-card">
+                        {% if ai_config and ai_config.appearance %}
+                            <img src="{% static 'codemon/images/characters/' %}{{ ai_config.appearance }}" 
+                                 alt="AI" 
+                                 class="ai-image"
+                                 onerror="this.src='{% static 'codemon/images/characters/イヌ.png' %}'">
+                        {% else %}
+                            <img src="{% static 'codemon/images/characters/イヌ.png' %}" 
+                                 alt="AI" 
+                                 class="ai-image">
+                        {% endif %}
+                        
+                        <div class="ai-name">{{ ai_config.ai_name|default:"CodeMon" }}</div>
+                        
+                        <div class="ai-stats">
+                            <div>初めて会った日</div>
+                            <div>{% if first_met %}{{ first_met|date:"Y/m/d" }}{% else %}---{% endif %}</div>
+                            <div style="margin-top: 8px;">累計 {{ total_days|default:"0日" }}</div>
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <div class="groups">
-                    <div class="groups-header" style="display:flex; align-items:center; justify-content:space-between;">
-                        <div style="font-weight:700; color:#444;">グループ</div>
-                        <div class="groups-actions" style="margin-left:12px;">
-                            <a class="btn create" href="{% url 'accounts:group_create' %}" aria-label="新規作成">
-                                <img src="{% static 'codemon/images/nav/教員用アカウント画面 (11).png' %}" alt="新規作成" style="height:40px; display:block;">
+        <!-- グループセクション -->
+        <div class="groups-section">
+            <div class="groups-header">
+                <div class="groups-title">担当グループ</div>
+                <a href="{% url 'accounts:group_create' %}" class="create-group-btn">
+                    <i class="fas fa-plus"></i> 新規作成
+                </a>
+            </div>
+            
+            <div class="groups-list">
+                {% if groups %}
+                    {% for g in groups %}
+                        <div class="group-item">
+                            <div class="group-name">{{ g.name }}</div>
+                            <div class="group-count">
+                                <i class="fas fa-users"></i> {{ g.member_count }}人
+                            </div>
+                            <a href="{% url 'accounts:group_menu' g.group_id %}" class="group-btn" title="詳細">
+                                <i class="fas fa-info-circle"></i>
+                            </a>
+                            <a href="{% url 'accounts:group_delete_confirm' g.group_id %}" class="group-btn delete" title="削除">
+                                <i class="fas fa-trash-alt"></i>
                             </a>
                         </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="no-groups">
+                        <i class="fas fa-users" style="font-size: 48px; color: #ddd; margin-bottom: 10px;"></i>
+                        <div>グループはまだありません</div>
                     </div>
-                    <div class="groups-list">
-                        {% if groups %}
-                            {% for g in groups %}
-                                <div class="group-row">
-                                    <div class="group-name">{{ g.name }}</div>
-                                    <div class="group-meta">{{ g.member_count }}人</div>
-                                    <a class="btn detail" href="{% url 'accounts:group_menu' g.group_id %}" aria-label="詳細">
-                                        <img src="{% static 'codemon/images/nav/教員用アカウント画面 (14).png' %}" alt="詳細" style="height:40px; display:block;">
-                                    </a>
-                                    <!-- 削除確認ページへ遷移 -->
-                                    <a class="btn del" href="{% url 'accounts:group_delete_confirm' g.group_id %}" aria-label="削除">
-                                        <img src="{% static 'codemon/images/nav/教員用アカウント画面 (15).png' %}" alt="削除" style="height:40px; display:block;">
-                                    </a>
-                                </div>
-                            {% endfor %}
-                        {% else %}
-                            <div style="padding:10px 6px; color:#666;">グループはありません</div>
-                        {% endif %}
-                    </div>
-                </div>
-
+                {% endif %}
             </div>
-    </div>
-
         </div>
     </div>
-    <!-- ページ専用: ヘッダー高さに合わせてカードの上マージンを調整 -->
-    <script>
-    (function(){
-        function adjustCardMargin(){
-            try{
-                var header = document.querySelector('.top-tabs');
-                var card = document.querySelector('.card');
-                if(!header || !card) return;
-                var rect = header.getBoundingClientRect();
-                var bottom = rect.bottom || 0;
-                var extra = 18; // ヘッダーと本文の余裕
-                var pad = Math.ceil(bottom + extra);
-                // inline style で確実に上マージンを適用
-                card.style.marginTop = pad + 'px';
-            }catch(e){ console.error('adjustCardMargin error', e); }
-        }
 
-        document.addEventListener('DOMContentLoaded', adjustCardMargin);
-        window.addEventListener('load', adjustCardMargin);
-        window.addEventListener('resize', adjustCardMargin);
-        // 遅延レイアウト変化にも対応
-        setTimeout(adjustCardMargin, 300);
-        setTimeout(adjustCardMargin, 1000);
-    })();
-    </script>
+    <!-- キャラクター領域 -->
+    <div class="character-area">
+        <div class="speech-bubble" id="charSpeech">
+            先生の情報だよ！✨
+        </div>
+
+        <div class="character-container" id="charContainer">
+            {% if ai_config and ai_config.appearance %}
+                <img src="{% static 'codemon/images/characters/' %}{{ ai_config.appearance }}" class="character-img" id="characterDefault">
+                <img src="{% static 'codemon/images/characters/' %}{{ ai_config.appearance|slice:':-4' }} 笑顔.png" class="character-img hover" id="characterHover">
+            {% else %}
+                <img src="{% static 'codemon/images/characters/イヌ.png' %}" class="character-img" id="characterDefault">
+                <img src="{% static 'codemon/images/characters/イヌ 笑顔.png' %}" class="character-img hover" id="characterHover">
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    // キャラクター別台詞と色の設定
+    const characterDialogues = {
+        'ウサギ.png': {
+            mumbles: ['え、えっと…何しようかな…', 'ぼ、ぼく、ここにいるよ…', 'う、うんと…少し眠いかも…'],
+            greeting: '先生の情報だよ！✨',
+            hoverMessage: 'がんばってるね！',
+            colors: { primary: '#F5E3F4', secondary: '#E8C4E8', dark: '#D4A5D4' }
+        },
+        'キツネ.png': {
+            mumbles: ['ふぁ…退屈だなぁ', 'なんか面白いことないかね', 'ま、暇つぶしにはなるか'],
+            greeting: 'これが先生の情報さ',
+            hoverMessage: 'ま、悪くないな',
+            colors: { primary: '#FCD37D', secondary: '#F5B942', dark: '#E5A020' }
+        },
+        'イヌ.png': {
+            mumbles: ['今日もいい天気だな！', '誰か遊びに来ないかな', 'お腹すいてきたぞ'],
+            greeting: '先生の情報だよ！✨',
+            hoverMessage: 'いっしょにがんばろう！',
+            colors: { primary: '#FFD700', secondary: '#FFA500', dark: '#FF8C00' }
+        },
+        'パンダ.png': {
+            mumbles: ['ふぁぁ…のんびりするねぇ', 'お昼寝したいなぁ', 'ゆっくりでいいよぉ'],
+            greeting: '先生の情報だよぉ',
+            hoverMessage: 'のんびりでいいよぉ',
+            colors: { primary: '#FEF5DB', secondary: '#F5E6B8', dark: '#E5D090' }
+        },
+        'リス.png': {
+            mumbles: ['もう、何してるのよ', 'ちゃんとやってる？', 'しょうがないわね…'],
+            greeting: 'これが先生の情報よ',
+            hoverMessage: 'ちゃんと確認しなさいよ',
+            colors: { primary: '#FEB6AC', secondary: '#F59A8E', dark: '#E57A6E' }
+        },
+        'フクロウ.png': {
+            mumbles: ['ふむ…考え事をしていました', '静かで落ち着きますね', '知識は宝ですよ'],
+            greeting: '先生の情報です',
+            hoverMessage: 'ご確認ください',
+            colors: { primary: '#92B7D6', secondary: '#6A9BC5', dark: '#4A7BA5' }
+        },
+        'ネコ.png': {
+            mumbles: ['……ふぁ', '……眠い', '……なに？'],
+            greeting: '……先生の情報',
+            hoverMessage: '……見てるの？',
+            colors: { primary: '#9CBDB6', secondary: '#7AA59D', dark: '#5A8A80' }
+        },
+        'アルパカ.png': {
+            mumbles: ['ふわふわ〜', '気持ちいいなぁ', 'のんびりだね'],
+            greeting: '先生の情報だよ〜',
+            hoverMessage: 'ふわふわ〜',
+            colors: { primary: '#F0E8D8', secondary: '#E0D0B8', dark: '#D0C0A8' }
+        }
+    };
+
+    const charContainer = document.getElementById('charContainer');
+    const defaultImg = document.getElementById('characterDefault');
+    const hoverImg = document.getElementById('characterHover');
+    const speech = document.getElementById('charSpeech');
+    
+    // キャラクター設定を取得
+    const appearance = '{% if ai_config.appearance %}{{ ai_config.appearance|escapejs }}{% else %}イヌ.png{% endif %}';
+    const charData = characterDialogues[appearance] || characterDialogues['イヌ.png'];
+    
+    // テーマカラーを適用
+    document.documentElement.style.setProperty('--theme-primary', charData.colors.primary);
+    document.documentElement.style.setProperty('--theme-secondary', charData.colors.secondary);
+    document.documentElement.style.setProperty('--theme-dark', charData.colors.dark);
+    
+    // 初期メッセージを設定
+    let mumbleIndex = 0;
+    speech.innerHTML = charData.greeting;
+    
+    // 定期的に独り言を変更（5秒ごと）
+    setInterval(() => {
+        if (defaultImg.style.opacity !== '0') {
+            speech.innerHTML = charData.mumbles[mumbleIndex % charData.mumbles.length];
+            mumbleIndex++;
+        }
+    }, 5000);
+    
+    // ホバー時の処理
+    charContainer.addEventListener('mouseenter', () => {
+        defaultImg.style.opacity = '0';
+        hoverImg.style.opacity = '1';
+        speech.innerHTML = charData.hoverMessage;
+    });
+    charContainer.addEventListener('mouseleave', () => {
+        defaultImg.style.opacity = '1';
+        hoverImg.style.opacity = '0';
+        speech.innerHTML = charData.greeting;
+    });
+    
+    // キャラクタークリックで次の独り言
+    charContainer.addEventListener('click', () => {
+        speech.innerHTML = charData.mumbles[mumbleIndex % charData.mumbles.length];
+        mumbleIndex++;
+    });
+</script>
+{% endblock %}
+
+{% block ai_chat_widget %}
+    <!-- AI会話機能（右下ウィジェット） -->
+    {% include 'includes/ai_chat_base.html' %}
 {% endblock %}

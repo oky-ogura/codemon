@@ -1,0 +1,447 @@
+{% load static %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+  :root {
+    --bg-main: #f0f4f8;
+    --accent-main: #3fbcd9;    /* シアン（メイン/現在地） */
+    --btn-pop: #FFD200;       /* イエロー（ホバー時） */
+    --error-pop: #ff7675;     /* ピンク（エラー等） */
+    --text-dark: #2d3748;
+    --shadow-color: #cbd5e0;
+  }
+
+  /* --- 1. ロゴエリア --- */
+  .header-logo-area {
+    position: fixed;
+    top: 20px;
+    left: 25px;
+    z-index: 10002;
+  }
+  .header-logo-area img {
+    height: 60px;
+    filter: drop-shadow(0 5px 10px rgba(0,0,0,0.1));
+  }
+
+  /* --- 2. ハンバーガーボタン (操作の起点) --- */
+  .menu-trigger {
+    position: fixed;
+    top: 25px;
+    right: 25px;
+    width: 70px;
+    height: 70px;
+    background: white;
+    border-radius: 50%;
+    z-index: 10010; 
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    border: 4px solid var(--accent-main);
+    box-shadow: 0 6px 0 var(--shadow-color);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  
+  /* ホバー時のアクション */
+  .menu-trigger:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 8px 0 var(--shadow-color);
+  }
+  .menu-trigger:active {
+    transform: translateY(4px) scale(0.95);
+    box-shadow: 0 2px 0 var(--shadow-color);
+  }
+
+  /* ページごとのハンバーガーメニュー色 */
+  .menu-trigger.page-systems { border-color: #3fbcd9; }
+  .menu-trigger.page-systems .bar { background: #3fbcd9; }
+  
+  .menu-trigger.page-algorithms { border-color: #B197FC; }
+  .menu-trigger.page-algorithms .bar { background: #B197FC; }
+  
+  .menu-trigger.page-checklist { border-color: #A8E6CF; }
+  .menu-trigger.page-checklist .bar { background: #A8E6CF; }
+  
+  .menu-trigger.page-chat { border-color: #FFD166; }
+  .menu-trigger.page-chat .bar { background: #FFD166; }
+  
+  .menu-trigger.page-account { border-color: #E0E0E0; }
+  .menu-trigger.page-account .bar { background: #E0E0E0; }
+
+  .bar {
+    width: 30px; height: 5px;
+    background: var(--accent-main);
+    border-radius: 10px;
+    transition: 0.4s cubic-bezier(0.68, -0.6, 0.32, 1.6);
+  }
+  
+  /* 開いた時のバツ印 */
+  .menu-active .bar:nth-child(1) { transform: translateY(10px) rotate(45deg); }
+  .menu-active .bar:nth-child(2) { opacity: 0; transform: scale(0); }
+  .menu-active .bar:nth-child(3) { transform: translateY(-10px) rotate(-45deg); }
+
+  /* --- 3. メニュー背景（バックドロップ） --- */
+  /* メニューが開いているときに画面全体を覆い、クリックを検知する透明な膜 */
+  .menu-backdrop {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(255, 255, 255, 0); /* 透明 */
+    z-index: 10005;
+    display: none; /* 最初は非表示 */
+  }
+  .menu-backdrop.show {
+    display: block;
+  }
+
+  /* --- 4. 放射状メニュー項目 --- */
+  .nav-radial-content {
+    position: fixed;
+    top: 60px; /* トリガーボタンの中心位置 */
+    right: 60px;
+    z-index: 10006;
+    pointer-events: none;
+    width: 0; height: 0;
+  }
+  .nav-radial-content.show { pointer-events: auto; }
+
+  .menu-item {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    width: 110px; /* さらに幅広に */
+    height: 110px;
+    top: -55px; 
+    right: -55px;
+    /* 閉じるときのアニメーション：回転しながら中心へ戻る */
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    opacity: 0;
+    transform: scale(0) rotate(-180deg);
+    text-decoration: none;
+  }
+
+  /* 閉じるときの遅延（外側から順にパタパタ消える） */
+  .menu-item:nth-child(1) { transition-delay: 0.25s; }
+  .menu-item:nth-child(2) { transition-delay: 0.2s; }
+  .menu-item:nth-child(3) { transition-delay: 0.15s; }
+  .menu-item:nth-child(4) { transition-delay: 0.1s; }
+  .menu-item:nth-child(5) { transition-delay: 0.05s; }
+  .menu-item:nth-child(6) { transition-delay: 0s; }
+
+
+  /* 開くときの配置とアニメーション（半径310pxに拡大） */
+  .nav-radial-content.show .menu-item {
+    opacity: 1;
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  /* 座標計算: 半径310px Top-Right基準 (xはマイナス, yはプラス) */
+
+  /* 1. ホーム (0度: 左へ水平) */
+  .nav-radial-content.show .menu-item:nth-child(1) {
+    transform: translate(-310px, 0px) scale(1) rotate(0deg);
+    transition-delay: 0.05s;
+  }
+  /* 2. システム (18度) */
+  .nav-radial-content.show .menu-item:nth-child(2) {
+    transform: translate(-295px, 96px) scale(1) rotate(0deg);
+    transition-delay: 0.1s;
+  }
+  /* 3. ロジック (36度) */
+  .nav-radial-content.show .menu-item:nth-child(3) {
+    transform: translate(-251px, 182px) scale(1) rotate(0deg);
+    transition-delay: 0.15s;
+  }
+  /* 4. リスト (54度) */
+  .nav-radial-content.show .menu-item:nth-child(4) {
+    transform: translate(-182px, 251px) scale(1) rotate(0deg);
+    transition-delay: 0.2s;
+  }
+  /* 5. メッセージ (72度) */
+  .nav-radial-content.show .menu-item:nth-child(5) {
+    transform: translate(-96px, 295px) scale(1) rotate(0deg);
+    transition-delay: 0.25s;
+  }
+  /* 6. マイページ (90度: 下へ垂直) */
+  .nav-radial-content.show .menu-item:nth-child(6) {
+    transform: translate(0px, 310px) scale(1) rotate(0deg);
+    transition-delay: 0.3s;
+  }
+
+  /* --- 5. アイコン円のデザイン --- */
+  .icon-circle {
+    width: 65px; /* 大きくしました */
+    height: 65px;
+    background: white; /* 基本は白背景 */
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    color: var(--accent-main); /* 基本はシアン文字 */
+    box-shadow: 0 4px 0 var(--shadow-color);
+    margin-bottom: 8px;
+    border: 2px solid #edf2f7;
+    transition: all 0.2s ease;
+  }
+
+  .menu-text {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text-dark);
+    text-align: center;
+    /* 白フチをつけて読みやすく */
+    text-shadow: 2px 0 0 #fff, -2px 0 0 #fff, 0 2px 0 #fff, 0 -2px 0 #fff, 1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff;
+    transition: color 0.2s;
+    white-space: nowrap;
+  }
+
+  /* ホバー時のアクション (黄色) */
+  .menu-item:hover .icon-circle {
+    transform: scale(1.15) translateY(-3px);
+    background: var(--btn-pop);
+    color: white;
+    box-shadow: 0 6px 0 #d4af37;
+    border-color: var(--btn-pop);
+  }
+  .menu-item:hover .menu-text {
+    color: var(--btn-pop);
+  }
+
+  /* アクティブ（今いるページ）のデザイン (青/シアン) */
+  /* ルール：背景が青(シアン)、文字が白 */
+  .menu-item.active .icon-circle {
+    background: var(--accent-main);
+    color: white;
+    box-shadow: 0 4px 0 #2c8a9e;
+    border-color: var(--accent-main);
+    transform: scale(1.05);
+  }
+  .menu-item.active .menu-text {
+    color: var(--accent-main);
+  }
+
+  /* 背景のぼかし */
+  .content-wrapper { transition: filter 0.3s ease; }
+  .menu-open-blur { filter: blur(4px); pointer-events: none; user-select: none; }
+
+</style>
+
+<div class="header-logo-area">
+  <a href="{% url 'accounts:karihome' %}">
+    <img src="{% static 'codemon/images/characters/logo_char.png' %}" alt="Logo" onerror="this.style.display='none'">
+  </a>
+</div>
+
+<div class="menu-backdrop" id="menuBackdrop"></div>
+
+<div class="menu-trigger" id="menuBtn">
+  <span class="bar"></span>
+  <span class="bar"></span>
+  <span class="bar"></span>
+</div>
+
+<nav class="nav-radial-content" id="navContent">
+  <a href="{% url 'accounts:karihome' %}" class="menu-item" id="link-home">
+    <div class="icon-circle"><i class="fas fa-home"></i></div>
+    <span class="menu-text">ホーム</span>
+  </a>
+
+  <a href="{% url 'accounts:system_choice' %}" class="menu-item" id="link-systems">
+    <div class="icon-circle"><i class="fas fa-desktop"></i></div>
+    <span class="menu-text">システム</span>
+  </a>
+
+  <a href="{% url 'accounts:block_choice' %}" class="menu-item" id="link-algorithms">
+    <div class="icon-circle"><i class="fas fa-puzzle-piece"></i></div>
+    <span class="menu-text">ロジック</span>
+  </a>
+
+  <a href="{% url 'codemon:checklist_selection' %}" class="menu-item" id="link-checklist">
+    <div class="icon-circle"><i class="fas fa-clipboard-check"></i></div>
+    <span class="menu-text">リスト</span>
+  </a>
+
+  {% if account and account.account_type == 'teacher' %}
+    <a href="{% url 'codemon:chat_teacher' %}" class="menu-item" id="link-chat">
+      <div class="icon-circle"><i class="fas fa-comments"></i></div>
+      <span class="menu-text">メッセージ</span>
+    </a>
+  {% else %}
+    <a href="{% url 'codemon:chat_student' %}" class="menu-item" id="link-chat">
+      <div class="icon-circle"><i class="fas fa-comments"></i></div>
+      <span class="menu-text">メッセージ</span>
+    </a>
+  {% endif %}
+
+  <a href="{% url 'accounts:account_entry' %}" class="menu-item" id="link-account">
+    <div class="icon-circle"><i class="fas fa-user-circle"></i></div>
+    <span class="menu-text">マイページ</span>
+  </a>
+</nav>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // system_create.htmlページでwindow.isDirtyが未初期化の場合は初期化
+  // (ブラウザキャッシュやテンプレート読み込み順序の問題に対する防御的処理)
+  if (typeof window.isDirty === 'undefined') {
+    window.isDirty = false;
+    window.isNavigating = false;
+    console.log('🎯 window.isDirty initialized in header.html (fallback):', window.isDirty);
+  }
+  
+  const menuBtn = document.getElementById('menuBtn');
+  const navContent = document.getElementById('navContent');
+  const backdrop = document.getElementById('menuBackdrop');
+  const content = document.querySelector('.content-wrapper');
+
+  // メニュー開閉関数
+  function toggleMenu() {
+    const willOpen = !menuBtn.classList.contains('menu-active');
+    
+    // クラスの付け外し
+    menuBtn.classList.toggle('menu-active', willOpen);
+    navContent.classList.toggle('show', willOpen);
+    backdrop.classList.toggle('show', willOpen);
+    
+    if (content) content.classList.toggle('menu-open-blur', willOpen);
+  }
+
+  // ボタンクリック
+  menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); // イベントのバブリング防止
+    toggleMenu();
+  });
+
+  // バックドロップ（メニュー以外の場所）クリックで閉じる
+  backdrop.addEventListener('click', () => {
+    if (menuBtn.classList.contains('menu-active')) {
+      toggleMenu();
+    }
+  });
+
+  // --- メニュー項目のナビゲーション確認処理 ---
+  // system_create.htmlページでの未保存変更チェック
+  const menuLinks = document.querySelectorAll('.menu-item');
+  menuLinks.forEach(link => {
+    link.addEventListener('click', async function(e) {
+      console.log('🔍 Menu link clicked:', this.getAttribute('href'));
+      console.log('🔍 window.isDirty:', window.isDirty);
+      console.log('🔍 typeof window.isDirty:', typeof window.isDirty);
+      
+      // window.isDirty と window.handleNavigation が存在する場合（system_create.htmlページ）
+      if (typeof window.isDirty !== 'undefined' && window.isDirty === true) {
+        console.log('⚠️ Intercepting navigation - showing custom dialog');
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        
+        const targetUrl = this.getAttribute('href');
+        
+        // handleNavigation関数が存在する場合は使用
+        if (typeof window.handleNavigation === 'function') {
+          console.log('✅ Using window.handleNavigation');
+          await window.handleNavigation(targetUrl);
+        } else if (typeof window.customConfirm === 'function') {
+          console.log('✅ Using window.customConfirm directly');
+          // customConfirm関数のみ存在する場合
+          window.isNavigating = true;
+          const confirmed = await window.customConfirm('入力内容が破棄されます。移動してもよろしいですか？', {
+            title: '確認',
+            confirmText: '移動する',
+            cancelText: 'キャンセル',
+            danger: true
+          });
+          
+          if (confirmed) {
+            window.isDirty = false;
+            
+            // sessionStorageをクリア
+            sessionStorage.removeItem('systemDesignContent');
+            sessionStorage.removeItem('returnFromCreate');
+            sessionStorage.removeItem('navigatingToCreate');
+            sessionStorage.removeItem('systemId');
+            sessionStorage.removeItem('systemName');
+            sessionStorage.removeItem('systemDescription');
+            
+            // beforeunloadイベントハンドラーを削除（window.beforeUnloadHandlerが存在する場合）
+            if (typeof window.beforeUnloadHandler !== 'undefined') {
+              window.removeEventListener('beforeunload', window.beforeUnloadHandler);
+            }
+            
+            window.location.href = targetUrl;
+          } else {
+            window.isNavigating = false;
+          }
+        } else {
+          console.error('❌ No confirmation function available');
+        }
+      } else {
+        console.log('✅ No interception needed - proceeding with normal navigation');
+      }
+    }, true); // キャプチャフェーズで実行
+  });
+
+  // --- アクティブなページ（現在地）の判定ロジック改善 ---
+  const currentPath = window.location.pathname;
+  const linkConfigs = {
+    'link-home': ['/accounts/karihome/'],
+    'link-systems': ['/accounts/system/', '/codemon/systems/', '/codemon/groups/', '/codemon/threads/'],
+    'link-algorithms': ['/accounts/block/', '/codemon/algorithms/', '/codemon/blocks/'],
+    'link-checklist': ['/codemon/checklists/'],
+    'link-account': ['/accounts/'], // これが原因で他の/accounts/系もヒットしていた
+    'link-chat': ['/codemon/chat/']
+  };
+
+  let activeLinkId = null;
+  let maxMatchLength = 0;
+
+  // 全設定をループし、最も長く一致するパスを探す
+  for (const [id, paths] of Object.entries(linkConfigs)) {
+    for (const path of paths) {
+      if (currentPath.startsWith(path)) {
+        // 現在のマッチが、これまでのマッチより文字数が多ければ更新
+        // 例: '/accounts/system/' (17文字) は '/accounts/' (10文字) より優先される
+        if (path.length > maxMatchLength) {
+          maxMatchLength = path.length;
+          activeLinkId = id;
+        }
+      }
+    }
+  }
+
+  // 最も適したリンクにのみ active クラスを付与
+  if (activeLinkId) {
+    const link = document.getElementById(activeLinkId);
+    if (link) link.classList.add('active');
+    
+    // ハンバーガーメニューとメニュー項目の色をページに応じて変更
+    const pageColors = {
+      'link-systems': { class: 'page-systems', color: '#3fbcd9', shadow: '#2c8a9e' },
+      'link-algorithms': { class: 'page-algorithms', color: '#B197FC', shadow: '#8c6fc4' },
+      'link-checklist': { class: 'page-checklist', color: '#A8E6CF', shadow: '#7ab89f' },
+      'link-chat': { class: 'page-chat', color: '#FFD166', shadow: '#d4af37' },
+      'link-account': { class: 'page-account', color: '#E0E0E0', shadow: '#b0b0b0' }
+    };
+    
+    const pageColor = pageColors[activeLinkId];
+    if (pageColor) {
+      menuBtn.classList.add(pageColor.class);
+      // CSS変数を上書きしてメニュー項目の色も変更
+      document.documentElement.style.setProperty('--accent-main', pageColor.color);
+      // アクティブ時の影の色も変更
+      const style = document.createElement('style');
+      style.textContent = `
+        .menu-item.active .icon-circle {
+          box-shadow: 0 4px 0 ${pageColor.shadow} !important;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }
+});
+</script>

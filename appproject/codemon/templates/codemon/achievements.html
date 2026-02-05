@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}トロフィー - Codemon{% endblock %}
+
+{% block background_frame %}
+<img src="{% static 'codemon/images/frames/bg_frame_green.png' %}" alt="" class="bg-frame frame-green">
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* --- 全体レイアウト --- */
+  body { background-color: #f0fdf4; overflow-x: hidden; }
+
+  .achievements-wrapper {
+    max-width: 1000px;
+    margin: 120px auto 50px;
+    padding: 0 20px;
+    position: relative;
+    z-index: 10;
+  }
+
+  /* --- ステータスボード --- */
+  .stats-dashboard {
+    background: white; border-radius: 40px; border: 6px solid #3fbcd9;
+    padding: 20px 35px; box-shadow: 0 10px 0 rgba(63, 188, 217, 0.1);
+    margin-bottom: 30px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .stats-info h1 { margin: 0; font-size: 24px; color: #3fbcd9; font-weight: 900; }
+  .stats-coins { font-size: 22px; font-weight: 900; color: #FFA500; display: flex; align-items: center; gap: 10px; }
+
+  /* --- 統合グリッド（10枚並び） --- */
+  .trophy-collection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+  }
+
+  /* --- トロフィーメダルの基本（未達成状態） --- */
+  .trophy-medal {
+    background: #f1f5f9; /* 未達成は薄いグレー */
+    border-radius: 40px;
+    padding: 20px;
+    border: 5px solid #cbd5e0;
+    text-align: center;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 270px;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  /* 🌟 ランク別の色変化（未達成でも薄く色を表示、達成済みは鮮やかに） 🌟 */
+  
+  /* ブロンズ：落ち着いた茶色系 */
+  .trophy-medal.rank-bronze { 
+    background: #faf8f5 !important; border-color: #dcc8b0 !important; 
+    box-shadow: 0 5px 0 #c4b09a !important;
+  }
+  .trophy-medal.achieved.rank-bronze { 
+    background: #fffcf0 !important; border-color: #CD7F32 !important; 
+    box-shadow: 0 8px 0 #8B4513 !important;
+  }
+  
+  /* シルバー：清潔な青白い銀 */
+  .trophy-medal.rank-silver { 
+    background: #fafbfc !important; border-color: #cbd5e0 !important; 
+    box-shadow: 0 5px 0 #a8b5c4 !important;
+  }
+  .trophy-medal.achieved.rank-silver { 
+    background: #f8fafc !important; border-color: #94a3b8 !important; 
+    box-shadow: 0 8px 0 #475569 !important;
+  }
+  
+  /* ゴールド：輝く山吹色 */
+  .trophy-medal.rank-gold { 
+    background: #fffef8 !important; border-color: #f5e6a0 !important; 
+    box-shadow: 0 5px 0 #e5d68a !important;
+  }
+  .trophy-medal.achieved.rank-gold { 
+    background: #fffdf0 !important; border-color: #FFD700 !important; 
+    box-shadow: 0 8px 0 #CC8400, 0 0 15px rgba(255, 215, 0, 0.4) !important;
+  }
+  
+  /* プラチナ：鮮やかな紫 */
+  .trophy-medal.rank-platinum { 
+    background: #faf9ff !important; border-color: #d5d0f5 !important; 
+    box-shadow: 0 5px 0 #c0b8e8 !important;
+  }
+  .trophy-medal.achieved.rank-platinum { 
+    background: #f5f3ff !important; border-color: #A29BFE !important; 
+    box-shadow: 0 8px 0 #6C5CE7 !important;
+  }
+  
+  /* ダイヤモンド：輝くシアン */
+  .trophy-medal.rank-diamond { 
+    background: #f8fdff !important; border-color: #b3e0ed !important; 
+    box-shadow: 0 5px 0 #95cedd !important;
+  }
+  .trophy-medal.achieved.rank-diamond { 
+    background: #f0faff !important; border-color: #3fbcd9 !important; 
+    box-shadow: 0 8px 0 #2a8da4, 0 0 20px rgba(63, 188, 217, 0.5) !important;
+    animation: diamondGlow 2s infinite alternate;
+  }
+
+  /* tierがNoneの場合のデフォルト（グレー） */
+  .trophy-medal.rank-None,
+  .trophy-medal.rank-null,
+  .trophy-medal:not([class*="rank-"]) { 
+    background: #f1f5f9 !important; border-color: #cbd5e0 !important; 
+    box-shadow: 0 5px 0 #a8b5c4 !important;
+  }
+
+  @keyframes diamondGlow { from { filter: brightness(1); } to { filter: brightness(1.1); } }
+
+  .trophy-medal:hover { transform: translateY(-5px) scale(1.02); }
+  .trophy-medal.achieved:hover { transform: translateY(-8px) scale(1.03); }
+  .trophy-medal:active { transform: scale(0.95); }
+
+  /* 🌟 10枚目：直感的でポップな「もどる」パネル 🌟 */
+  .back-home-panel {
+    background: white !important;
+    border: 6px solid #4cd97b !important;
+    box-shadow: 0 10px 0 #39a65d !important;
+    cursor: pointer;
+    justify-content: center !important;
+    opacity: 1 !important;
+  }
+  .back-home-icon-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+  .back-arrow {
+    font-size: 40px;
+    color: #4cd97b;
+    margin-bottom: -10px;
+  }
+  .back-home-icon { font-size: 60px; color: #4cd97b; }
+  .back-home-text { font-size: 18px; font-weight: 900; color: #39a65d; }
+
+  /* アイコン */
+  .trophy-icon-box {
+    font-size: 50px;
+    margin: 10px 0;
+    filter: grayscale(100%);
+    opacity: 0.2;
+    transition: 0.4s;
+  }
+  .achieved .trophy-icon-box { filter: grayscale(0%); opacity: 1; transform: scale(1.1); }
+
+  /* タグ */
+  .category-tag {
+    font-size: 10px; font-weight: 900; color: #94a3b8; background: #e2e8f0;
+    padding: 3px 12px; border-radius: 50px; position: absolute; top: 15px; left: 50%;
+    transform: translateX(-50%); white-space: nowrap;
+  }
+  .achieved .category-tag { background: rgba(0,0,0,0.1); color: #333; }
+
+  .trophy-name { font-size: 15px; font-weight: 900; color: #333; line-height: 1.2; margin-bottom: 4px; }
+  .trophy-desc { font-size: 11px; color: #64748b; line-height: 1.3; margin-bottom: 8px; }
+
+  /* プログレスバー */
+  .mini-progress-container { width: 100%; margin-top: auto; }
+  .mini-progress { height: 10px; background: #e2e8f0; border-radius: 10px; overflow: hidden; margin-bottom: 5px; }
+  .mini-progress-bar { height: 100%; background: #3fbcd9; transition: width 1s; }
+  .mini-progress-bar.complete { background: #4cd97b; }
+  .progress-val { font-size: 11px; font-weight: 900; color: #94a3b8; }
+
+  /* 報酬ボタン */
+  .claim-btn-small {
+    background: #ff7675; color: white; border: none; padding: 7px 0;
+    border-radius: 50px; font-weight: 900; font-size: 13px; cursor: pointer;
+    box-shadow: 0 4px 0 #e55a5a; width: 100%; margin-top: 8px;
+  }
+
+  /* ポップアップ中央固定 */
+  .achievement-modal {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px); display: none; align-items: center;
+    justify-content: center; z-index: 10000;
+  }
+  .achievement-modal.show { display: flex; }
+  .modal-content {
+    background: white; border-radius: 50px; border: 8px solid #ffd700;
+    padding: 35px; width: 90%; max-width: 450px; text-align: center;
+    animation: modalPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+  @keyframes modalPop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="achievements-wrapper">
+  
+  <section class="stats-dashboard">
+    <div class="stats-info">
+      <h1>🏆 キミのコレクション</h1>
+    </div>
+    <div class="stats-coins">
+      <i class="fas fa-coins"></i> <span>{{ user_coin.balance|default:0 }}</span>
+      <span style="font-size: 14px;">コイン</span>
+    </div>
+  </section>
+
+  <div class="trophy-collection-grid">
+    {% for cat_key, cat_data in progress.items %}
+      {% if cat_data %}
+        {% with item=cat_data %}
+        <!-- デバッグ: tier={{ item.achievement.tier }}, is_achieved={{ item.user_achievement.is_achieved }} -->
+        <div class="trophy-medal {% if item.user_achievement.is_achieved %}achieved{% endif %} rank-{{ item.achievement.tier }}">
+          
+          <span class="category-tag">
+            {% if cat_key == 'system' %}⚙️ システム{% elif cat_key == 'algorithm' %}🧩 ロジック{% elif cat_key == 'login' %}📅 ログイン{% elif cat_key == 'ai_chat' %}💬 おしゃべり{% elif cat_key == 'checklist_create' %}📝 リスト{% elif cat_key == 'checklist_complete' %}✅ 完了{% elif cat_key == 'accessory' %}🎀 ファッション{% else %}✨ 実績{% endif %}
+          </span>
+
+          <div class="trophy-icon-box">{{ item.achievement.icon|default:"🏆" }}</div>
+          
+          <div>
+            <div class="trophy-name">{{ item.achievement.name }}</div>
+            <div class="trophy-desc">{{ item.achievement.description }}</div>
+          </div>
+
+          <div class="mini-progress-container">
+            <div class="mini-progress">
+              <div class="mini-progress-bar {% if item.user_achievement.is_achieved %}complete{% endif %}" 
+                   style="width: {{ item.progress_percentage|default:0 }}%"></div>
+            </div>
+            <div class="progress-val">{{ item.current_count|default:0 }} / {{ item.target_count|default:0 }}</div>
+
+            {% if item.user_achievement.is_achieved and not item.user_achievement.is_rewarded %}
+              <form method="POST" action="{% url 'codemon:claim_achievement_reward' item.achievement.achievement_id %}">
+                {% csrf_token %}
+                <button type="submit" class="claim-btn-small">ほうしゅう！</button>
+              </form>
+            {% elif item.user_achievement.is_rewarded %}
+              <div style="font-size: 13px; font-weight: 900; color: #4cd97b; margin-top: 8px;">✅ GET済み</div>
+            {% else %}
+              <div style="font-size: 11px; color: #94a3b8; margin-top: 8px; font-weight: 800;">あと少し！</div>
+            {% endif %}
+          </div>
+        </div>
+        {% endwith %}
+      {% endif %}
+    {% endfor %}
+
+    <a href="{% url 'accounts:karihome' %}" class="trophy-medal back-home-panel">
+        <div class="back-home-icon-group">
+          <div class="back-arrow"><i class="fas fa-chevron-left"></i></div>
+          <div class="back-home-icon">🏠</div>
+        </div>
+        <div>
+          <div class="back-home-text">ホームへ</div>
+          <div style="font-size: 11px; color: #718096; font-weight: 800;">またあそぼう！</div>
+        </div>
+    </a>
+  </div>
+
+</div>
+
+{% if new_achievements %}
+<div class="achievement-modal show" id="achievementModal">
+  <div class="modal-content">
+    <h2 style="font-size: 32px; color: #FFA500; font-weight: 900; margin-bottom: 10px;">🎉 やったね！ 🎉</h2>
+    <p style="font-weight: 800; color: #718096; font-size: 15px;">新しいトロフィーをゲット！</p>
+    
+    <div style="margin: 20px 0;">
+      {% for ach in new_achievements %}
+      <div style="background: #fdfcf0; border-radius: 25px; padding: 15px; border: 4px solid #ffd700; margin-bottom: 10px; display: flex; align-items: center; gap: 15px; text-align: left;">
+        <span style="font-size: 45px;">{{ ach.icon|default:"🏆" }}</span>
+        <div>
+          <div style="font-size: 18px; font-weight: 900; color: #333;">{{ ach.name }}</div>
+          <div style="color: #ff9f43; font-weight: 900; font-size: 18px;">💰 +{{ ach.reward|default:0 }} コイン</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <form method="POST" action="{% url 'codemon:claim_all_achievements' %}">
+      {% csrf_token %}
+      <button type="submit" style="background: #4cd97b; color: white; border: none; padding: 15px 40px; border-radius: 50px; font-weight: 900; font-size: 20px; cursor: pointer; box-shadow: 0 8px 0 #39a65d;">うけとる！</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

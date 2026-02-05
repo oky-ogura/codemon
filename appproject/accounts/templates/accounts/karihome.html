@@ -1,391 +1,451 @@
-{% extends 'base.html' %}
-{% block banner_nav %}{% endblock %}
-{% load static %}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ホーム - Codemon</title>
+    {% load static %}
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --color-system: #3fbcd9;    /* システム（シアン） */
+            --color-algo: #B197FC;      /* アルゴリズム（紫） */
+            --color-checklist: #A8E6CF; /* チェックリスト（緑） */
+            --color-chat: #FFD166;      /* チャット（黄色） */
+            --color-mypage: #E0E0E0;    /* マイページ（グレー） */
+            --color-shop: #ff69b4;
+            --color-trophy: #ff9f43;
+            --color-account: #4cd97b;
+            --color-bg: #f0f4f8;
+            /* キャラクター別テーマカラー（デフォルト：イヌ） */
+            --theme-primary: #FFD700;
+            --theme-secondary: #FFA500;
+            --theme-dark: #FF8C00;
+        }
 
-{% block title %}ホーム - Codemon{% endblock %}
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100vh;
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            overflow: hidden;
+            background-color: transparent;
+        }
 
-{% block body_class %} class="no-scroll"{% endblock %}
+        .full-background {
+            position: fixed; inset: 0;
+            background-size: cover; background-position: center; z-index: -1;
+            opacity: 0.6;
+        }
 
-{% block background_frame %}
-<!-- karihome用外枠（黄色） -->
-<img src="{% static 'codemon/images/frames/bg_frame_yellow.png' %}" 
-     alt="" 
-     class="bg-frame frame-yellow"
-     onerror="this.style.display='none';">
-{% endblock %}
+        .home-grid {
+            display: grid;
+            grid-template-columns: 1.4fr 1.1fr 380px;
+            grid-template-rows: 90px 1fr 110px;
+            height: 100vh; padding: 25px; box-sizing: border-box; gap: 20px;
+            position: relative; z-index: 10;
+        }
 
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'codemon/css/redesign.css' %}">
-<style>
-  /* karihome専用: コンテンツラッパーの調整 */
-  .content-wrapper {
-    padding: 0 !important;
-    overflow: visible !important;
-    height: calc(100vh - 120px);
-    position: relative;
-  }
-  
-  .karihome-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    overflow: visible; /* visible に変更 */
-  }
-  
-  /* キャラクターを画面中央右寄りに配置 */
-  .character-container {
-    position: fixed !important;
-    right: 15%;
-    bottom: 0;
-    transform: none;
-    z-index: 100 !important;
-    display: flex;
-    align-items: flex-end;
-  }
-  
-  .character-image {
-    max-width: 400px !important;
-    max-height: 500px !important;
-    pointer-events: auto;
-    transition: transform 0.3s ease;
-    transform-origin: bottom center;
-    display: block;
-    border: none !important;
-    outline: none !important;
-    box-shadow: none !important;
-  }
-  
-  .character-container img {
-    border: none !important;
-    outline: none !important;
-  }
-  
-  /* ホバー時に傾く */
-  .character-image:hover {
-    transform: scale(1.05) rotate(2deg) !important;
-  }
-  
-  /* 吹き出しを左側に配置 */
-  .speech-bubble-container {
-    position: fixed !important;
-    left: 25%;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 101;
-    max-width: 450px;
-    display: flex;
-    justify-content: flex-end;
-  }
-  
-  .speech-bubble {
-    background: white;
-    border-radius: 30px;
-    padding: 35px 45px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-    position: relative;
-    font-size: 24px;
-    line-height: 1.8;
-    color: #333;
-    border: 3px solid #FFD700;
-    animation: bubbleFloat 2s ease-in-out infinite;
-  }
-  
-  /* 吹き出しアニメーション */
-  @keyframes bubbleFloat {
-    0%, 100% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-10px);
-    }
-  }
-  
-  /* 吹き出しの三角部分 */
-  .speech-bubble::after {
-    content: '';
-    position: absolute;
-    /* キャラクターを画面中央右寄りに配置 */
-    .character-container {
-      position: fixed !important;
-      right: 15%;
-      bottom: 0;
-      transform: none;
-      z-index: 10 !important; /* ナビゲーションより下に */
-      display: flex;
-      align-items: flex-end;
-    }
-  /* キラキラエフェクト */
-  .sparkle {
-    position: absolute;
-    font-size: 24px;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.3s;
-  }
-  
-  .chat-trigger-btn:hover .sparkle {
-    opacity: 1;
-    animation: sparkleFloat 1.5s ease-in-out infinite;
-  }
-  
-    .speech-bubble-container {
-      position: fixed !important;
-      left: 25%;
-      top: 50%;
-      transform: translateY(-50%);
-      z-index: 11; /* キャラクターより上、ナビゲーションより下 */
-      max-width: 450px;
-      display: flex;
-      justify-content: flex-end;
-    }
-  
-  .sparkle:nth-child(1) { top: -10px; left: -10px; animation-delay: 0s; }
-  .sparkle:nth-child(2) { top: -10px; right: -10px; animation-delay: 0.2s; }
-  .sparkle:nth-child(3) { bottom: -10px; left: -10px; animation-delay: 0.4s; }
-  .sparkle:nth-child(4) { bottom: -10px; right: -10px; animation-delay: 0.6s; }
-  
-  /* 話しかけるボタン */
-  .chat-trigger-btn {
-    position: fixed;
-    left: 31%;
-    top: 67%;
-    background: linear-gradient(135deg, #FFD700, #FFA500);
-    color: white;
-    border: none;
-    padding: 15px 30px;
-    .top-tabs {
-      z-index: 1000 !important;
-      position: relative;
-    }
-    border-radius: 50px;
-    font-size: 18px;
-    font-weight: bold;
-    cursor: pointer;
-    box-shadow: 0 5px 15px rgba(255, 165, 0, 0.4);
-    z-index: 102;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transition: all 0.3s;
-  }
-  
-  .chat-trigger-btn .sparkle {
-    position: absolute;
-  }
-  
-  .chat-trigger-btn:hover {
-    transform: scale(1.1);
-    box-shadow: 0 8px 20px rgba(255, 165, 0, 0.6);
-  }
-  
-  /* キャラクターコンテナ */
-  .character-container {
-    position: fixed !important;
-    right: 25%;
-    bottom: 0;
-    transform: none;
-    z-index: 100 !important;
-    display: flex;
-    align-items: flex-end;
-  }
-  
-  /* ==================== チャットモーダル ==================== */
-  .chat-modal {
-    display: none;
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 9998 !important;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .chat-modal.active {
-    display: flex;
-  }
-  
-  .chat-window {
-    background: white;
-    border-radius: 30px;
-    width: 90%;
-    max-width: 800px;
-    height: 80%;
-    max-height: 600px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    animation: modalSlideIn 0.3s ease-out;
-    position: relative !important;
-    z-index: 9999 !important;
-  }
-  
-  @keyframes modalSlideIn {
-    from {
-      transform: scale(0.8) translateY(-50px);
-      opacity: 0;
-    }
-    to {
-      transform: scale(1) translateY(0);
-      opacity: 1;
-    }
-  }
-  
-  .chat-header {
-    background: linear-gradient(135deg, #FFD700, #FFA500);
-    padding: 20px 30px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 3px solid #FF8C00;
-  }
-  
-  .chat-header h2 {
-    margin: 0;
-    color: white;
-    font-size: 24px;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-  }
-  
-  .chat-close-btn {
-    background: white;
-    border: none;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    font-size: 24px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s;
-    color: #FF8C00;
-    font-weight: bold;
-  }
-  
-  .chat-close-btn:hover {
-    transform: rotate(90deg) scale(1.1);
-    background: #FFE4B5;
-  }
-  
-  .chat-messages {
-    flex: 1;
-    overflow-y: auto;
-    padding: 20px;
-    background: #FFF9E6;
-  }
-  
-  .chat-message {
-    display: flex;
-    margin-bottom: 15px;
-    animation: messageSlideIn 0.3s ease-out;
-  }
-  
-  @keyframes messageSlideIn {
-    from {
-      transform: translateY(20px);
-      opacity: 0;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
-  }
-  
-  .chat-message.user {
-    flex-direction: row-reverse;
-    background: none !important;
-  }
-  
-  .chat-message-content {
-    max-width: 70%;
-    padding: 15px 20px;
-    border-radius: 20px;
-    font-size: 16px;
-    line-height: 1.5;
-  }
-  
-  .chat-message.ai .chat-message-content {
-    background: white;
-    border: 3px solid #FFD700;
-    color: #333;
-  }
-  
-  .chat-message.user .chat-message-content {
-    background: #FFD700 !important;
-    color: #333;
-    font-weight: bold;
-    border: none !important;
-    box-shadow: none !important;
-  }
-  
-  .chat-input-area {
-    padding: 20px;
-    background: white;
-    border-top: 3px solid #FFD700;
-    display: flex;
-    gap: 10px;
-  }
-  
-  .chat-input {
-    flex: 1;
-    padding: 15px 20px;
-    border: 3px solid #FFD700;
-    border-radius: 25px;
-    font-size: 16px;
-    outline: none;
-    transition: all 0.3s;
-  }
-  
-  .chat-input:focus {
-    border-color: #FFA500;
-    box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
-  }
-  
-  .chat-send-btn {
-    background: linear-gradient(135deg, #FFD700, #FFA500);
-    border: none;
-    padding: 15px 30px;
-    border-radius: 25px;
-    color: white;
-    font-size: 18px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
-  }
-  
-  .chat-send-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 5px 15px rgba(255, 165, 0, 0.4);
-  }
-  
-  .chat-send-btn:active {
-    transform: scale(0.98);
-  }
-  
-  .chat-loading {
-    display: none;
-    text-align: center;
-    padding: 10px;
-    color: #666;
-  }
-  
-  .chat-loading.active {
-    display: block;
-  }
+        /* --- 共通：押下時のアニメーション（クリック感） --- */
+        .account-btn:active, .deadline-item:active, .menu-panel:active, .chat-trigger-btn:active {
+            transform: scale(0.95) !important;
+            transition: transform 0.1s !important;
+            box-shadow: none !important;
+        }
 
-</style>
-{% endblock %}
+        /* --- アカウント・コイン --- */
+        .account-section { grid-column: 1 / 2; grid-row: 1 / 2; display: flex; align-items: center; gap: 15px; }
+        .account-btn {
+            background: white; color: var(--color-account);
+            padding: 12px 28px; border-radius: 50px;
+            text-decoration: none; font-weight: 900;
+            border: 4px solid var(--color-account);
+            box-shadow: 0 6px 0 var(--color-account);
+            display: flex; align-items: center; gap: 10px;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .account-btn:hover { transform: scale(1.05) translateY(-2px); }
 
-{% block content %}
-{# karihomeでは空のコンテンツ（キャラクターウィジェットがメイン） #}
-{% endblock %}
+        .coin-btn {
+            background: white; color: #d99300;
+            padding: 12px 24px; border-radius: 50px;
+            font-weight: 900; border: 4px solid #ffcc00;
+            box-shadow: 0 6px 0 #d99300;
+            display: flex; align-items: center; gap: 8px;
+            cursor: default;
+        }
 
-{# karihomeページでは global_character_widget ブロックをオーバーライドしてkarihomeモードで表示 #}
-{% block global_character_widget %}
-  {% include 'includes/character_widget.html' with mode='karihome' %}
-{% endblock %}
+        /* --- 期限通知（ボタン） --- */
+        .deadline-item {
+            background: linear-gradient(135deg, #ff7675 0%, #ff4d4d 100%);
+            color: white; padding: 10px 25px; border-radius: 25px;
+            font-weight: 900; font-size: 15px; text-decoration: none;
+            box-shadow: 0 5px 0 #cc3333; display: inline-flex; align-items: center; gap: 10px;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+        }
+        .deadline-item:hover { transform: translateY(-4px) scale(1.03); box-shadow: 0 8px 0 #cc3333; }
+
+        /* --- パネル基本設定 --- */
+        .menu-panel {
+            position: relative; text-decoration: none; color: white;
+            display: flex; align-items: center;
+            transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+            z-index: 1; border: 4px solid rgba(255,255,255,0.2);
+        }
+        .menu-panel:hover {
+            z-index: 50; transform: scale(1.03);
+            border-color: rgba(255,255,255,0.8);
+        }
+
+        .panel-label { position: absolute; left: 40px; z-index: 10; pointer-events: none; }
+        .panel-label h2 { margin: 0; font-size: 42px; font-weight: 900; text-shadow: 3px 3px 0px rgba(0,0,0,0.2); }
+        .panel-label span { font-size: 14px; opacity: 0.9; letter-spacing: 2px; font-weight: 800; background: rgba(0,0,0,0.1); padding: 2px 8px; border-radius: 4px; }
+
+        /* --- レイアウト設定 --- */
+        .panel-system {
+            grid-column: 1 / 2; grid-row: 2 / 3;
+            background: var(--color-system);
+            clip-path: polygon(0 0, 100% 0, 85% 100%, 0% 100%);
+            border-radius: 30px 0 0 30px;
+        }
+        .panel-algo {
+            grid-column: 2 / 3; grid-row: 2 / 3;
+            background: var(--color-algo);
+            height: calc(50% - 10px); align-self: start;
+            margin-left: -15%; 
+            clip-path: polygon(15% 0, 100% 0, 100% 100%, 7.5% 100%);
+            border-radius: 0 30px 0 0;
+        }
+        /* 🌟 修正：文字が切れないように右へ寄せる */
+        .panel-algo .panel-label { left: 100px; }
+
+        .panel-checklist {
+            grid-column: 2 / 3; grid-row: 2 / 3;
+            background: var(--color-checklist);
+            height: calc(50% - 10px); align-self: end;
+            margin-left: -15%;
+            clip-path: polygon(7.5% 0, 100% 0, 100% 100%, 0% 100%);
+            border-radius: 0 0 30px 0;
+        }
+
+        /* --- 🌟 Microinteractions --- */
+        .micro-icon {
+            position: absolute; right: 12%; top: 50%;
+            transform: translateY(-50%); width: 100px; height: 100px;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* 💻 システム: シンプルな水平1回転 */
+        .laptop-icon { 
+            font-size: 60px; 
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+        .panel-system:hover .laptop-icon { transform: rotateY(360deg); }
+
+        /* ⚙️ アルゴリズム */
+        .gear { font-size: 55px; opacity: 0.8; }
+        .panel-algo:hover .gear { animation: spin 4s linear infinite; }
+
+        /* ✅ チェックリスト */
+        .check-anim { font-size: 55px; position: relative; color: #fff; }
+        .pencil { 
+            position: absolute; top: -5px; right: -5px; font-size: 30px; 
+            color: #ff69b4; filter: drop-shadow(2px 2px 0 #fff); 
+            opacity: 0; transition: 0.3s;
+        }
+        .panel-checklist:hover .pencil { opacity: 1; animation: writing 1s infinite; }
+
+        /* 🛒 ショップ & 🏆 トロフィー: 抑制された共通の跳ね */
+        .calm-bounce { font-size: 30px; color: white; transition: 0.3s; }
+        .panel-shop:hover .calm-bounce,
+        .panel-trophy:hover .calm-bounce { animation: bounceIcon 0.8s infinite alternate; }
+
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes writing { 50% { transform: translate(-5px, 5px); } }
+        @keyframes bounceIcon { 
+            from { transform: translateY(0); } 
+            to { transform: translateY(-8px) rotate(3deg); } 
+        }
+
+        /* --- キャラクター領域 --- */
+        .character-area { grid-column: 3 / 4; grid-row: 1 / 4; position: relative; display: flex; align-items: flex-end; justify-content: center; }
+        .character-container { position: relative; width: 100%; height: 85vh; display: flex; align-items: flex-end; justify-content: center; }
+        .character-img { max-height: 100%; width: auto; max-width: 420px; filter: drop-shadow(15px 15px 0 rgba(0,0,0,0.05)); transition: transform 0.3s ease; cursor: pointer; position: absolute; bottom: 0; }
+        .character-img.hover { opacity: 0; }
+
+        /* 吹き出し・ボタン */
+        .speech-bubble { position: absolute; top: 120px; left: -30px; background: white; border: 4px solid var(--theme-primary); padding: 15px 25px; border-radius: 25px; font-weight: 900; box-shadow: 0 10px 0 rgba(0,0,0,0.05); z-index: 100; animation: float 3s ease-in-out infinite; color: #333; min-width: 150px; text-align: center; }
+        .speech-bubble::after { content: ''; position: absolute; bottom: -15px; right: 30px; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 15px solid var(--theme-primary); }
+        
+        .chat-trigger-btn { 
+            position: absolute; bottom: 40px; left: 10px; 
+            background: linear-gradient(135deg, var(--theme-primary), var(--theme-secondary)); color: white; 
+            border: none; padding: 12px 25px; border-radius: 50px; font-weight: 900; 
+            cursor: pointer; box-shadow: 0 6px 0 var(--theme-dark); transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            z-index: 110; display: flex; align-items: center; gap: 8px; 
+        }
+        .chat-trigger-btn:hover { transform: translateY(-5px) scale(1.08); box-shadow: 0 10px 0 var(--theme-dark); }
+
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+        /* 下部ボタン */
+        .bottom-area { grid-column: 1 / 3; grid-row: 3 / 4; display: flex; gap: 15px; align-items: center; }
+        .panel-small { flex: 1; border-radius: 50px; height: 75px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 900; box-shadow: 0 6px 0 rgba(0,0,0,0.1); transition: all 0.2s; }
+        .panel-small:hover { transform: translateY(-3px); }
+    </style>
+</head>
+<body>
+
+    <!-- デバッグ用：画像URLを確認 -->
+    <!-- 画像URL: {% static 'codemon/images/backgrounds/bg_common.png' %} -->
+    
+    <div class="full-background" style="background-image: url('{% static "codemon/images/backgrounds/bg_common.png" %}');"></div>
+
+    <div class="home-grid">
+        <div class="account-section">
+            {% if user_coin %}
+            <div class="coin-btn">
+                <i class="fas fa-coins" style="color: #ffcc00;"></i> {{ user_coin.balance|default:0 }}
+            </div>
+            {% endif %}
+        </div>
+
+        <div style="grid-column: 2/3; display: flex; align-items: center;">
+            {% if upcoming_checklists %}
+                <a href="{% url 'codemon:checklist_list' %}" class="deadline-item">
+                    <i class="fas fa-bell"></i> 期限が近いリストがあるよ！
+                </a>
+            {% endif %}
+        </div>
+
+        <a href="{% url 'accounts:system_choice' %}" class="menu-panel panel-system">
+            <div class="panel-label">
+                <span>Management</span>
+                <h2>システム</h2>
+            </div>
+            <div class="micro-icon">
+                <i class="fas fa-laptop-code laptop-icon"></i>
+            </div>
+        </a>
+
+        <a href="{% url 'accounts:block_choice' %}" class="menu-panel panel-algo">
+            <div class="panel-label">
+                <span>Learning</span>
+                <h2 style="font-size: 32px;">アルゴリズム</h2>
+            </div>
+            <div class="micro-icon">
+                <i class="fas fa-cog gear"></i>
+            </div>
+        </a>
+
+        <a href="{% url 'codemon:checklist_selection' %}" class="menu-panel panel-checklist">
+            <div class="panel-label">
+                <span>Daily Task</span>
+                <h2 style="font-size: 32px;">チェックリスト</h2>
+            </div>
+            <div class="micro-icon">
+                <div class="check-anim">
+                    <i class="fas fa-check-square"></i>
+                    <i class="fas fa-pen pencil"></i>
+                </div>
+            </div>
+        </a>
+
+        <div class="bottom-area">
+            <a href="{% url 'codemon:accessory_shop' %}" class="menu-panel panel-small panel-shop" style="background: var(--color-shop);">
+                <i class="fas fa-shopping-cart calm-bounce"></i>&nbsp;ショップ
+            </a>
+            <a href="{% url 'codemon:achievements' %}" class="menu-panel panel-small panel-trophy" style="background: var(--color-trophy);">
+                <i class="fas fa-trophy calm-bounce"></i>&nbsp;トロフィー
+            </a>
+            <a href="http://127.0.0.1:8000/codemon/chat/student/" class="menu-panel panel-small" style="background: var(--color-chat);">
+                <i class="fas fa-comments calm-bounce"></i>&nbsp;チャット
+            </a>
+            {% if is_teacher %}
+                <a href="{% url 'accounts:account_dashboard' %}" class="menu-panel panel-small" style="background: var(--color-mypage); color: #666;">
+                    <i class="fas fa-user calm-bounce"></i>&nbsp;マイページ
+                </a>
+            {% else %}
+                <a href="{% url 'accounts:s_account' %}" class="menu-panel panel-small" style="background: var(--color-mypage); color: #666;">
+                    <i class="fas fa-user calm-bounce"></i>&nbsp;マイページ
+                </a>
+            {% endif %}
+        </div>
+
+        <div class="character-area">
+            <div class="speech-bubble" id="charSpeech">
+                おかえり！✨<br>なにする？
+            </div>
+
+            <div class="character-container" id="charContainer">
+                <img src="{% static 'codemon/images/characters/' %}{{ appearance }}" class="character-img" id="characterDefault">
+                <img src="{% static 'codemon/images/characters/' %}{{ appearance|slice:':-4' }} 笑顔.png" class="character-img hover" id="characterHover">
+            </div>
+
+            <button class="chat-trigger-btn" id="chatTriggerBtn">
+                <i class="fas fa-comment-dots"></i> はなしかける
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ========================================
+        // キャラクター別台詞と色の設定
+        // ========================================
+        const characterDialogues = {
+            'ウサギ.png': {
+                mumbles: ['え、えっと…何しようかな…', 'ぼ、ぼく、ここにいるよ…', 'う、うんと…少し眠いかも…', 'あ、あの…誰かいるかな…', 'ぼ、ぼくでよければ…話そうよ…', 'え、えっと…今日もがんばるね…', 'ぼ、ぼく…ちょっと緊張する…', 'あ、あの…よかったら声かけてね…'],
+                greeting: 'おかえり！✨<br>なにする？',
+                hoverMessage: 'いっしょに<br>あそぼう！',
+                chatGreeting: 'こ、こんにちは…！ ぼ、ぼくは{{ user.ai_name|default:"うたー"|escapejs }}です。<br>え、えっと…なんでも聞いてね…！',
+                colors: { primary: '#F5E3F4', secondary: '#E8C4E8', dark: '#D4A5D4' }
+            },
+            'キツネ.png': {
+                mumbles: ['ふぁ…退屈だなぁ', 'なんか面白いことないかね', 'ま、暇つぶしにはなるか', 'おまえ、そこにいるんだろ？', 'へぇ…見てるのさ', 'あくびが出ちゃうな', '誰か構ってくれないかねぇ', 'ま、気が向いたら話しかけなよ'],
+                greeting: 'よぉ。<br>何する？',
+                hoverMessage: 'ま、<br>付き合ってやるか',
+                chatGreeting: 'よぉ、オレは{{ user.ai_name|default:"うたー"|escapejs }}さ。<br>何か用かい？',
+                colors: { primary: '#FCD37D', secondary: '#F5B942', dark: '#E5A020' }
+            },
+            'イヌ.png': {
+                mumbles: ['今日もいい天気だな！', '誰か遊びに来ないかな', 'お腹すいてきたぞ', 'よし、やる気出てきた！', 'なんかワクワクするな', 'ちょっと眠くなってきた…', '散歩したいな', '話しかけてくれよ！'],
+                greeting: 'おかえり！✨<br>なにする？',
+                hoverMessage: 'いっしょに<br>あそぼう！',
+                chatGreeting: 'やぁ！ボクは{{ user.ai_name|default:"うたー"|escapejs }}だよ！<br>なんでも聞いてね！✨',
+                colors: { primary: '#FFD700', secondary: '#FFA500', dark: '#FF8C00' }
+            },
+            'パンダ.png': {
+                mumbles: ['ふぁぁ…のんびりするねぇ', 'お昼寝したいなぁ', 'ゆっくりでいいよぉ', '笹が食べたいなぁ', 'まったりしてるねぇ', 'あったかいねぇ…', '急がなくていいよぉ', 'ぼく、ここにいるよぉ'],
+                greeting: 'やぁ…<br>ゆっくりでいいよぉ',
+                hoverMessage: 'いっしょに<br>まったりしようぉ',
+                chatGreeting: 'やぁ…ぼくは{{ user.ai_name|default:"うたー"|escapejs }}だよぉ。<br>ゆっくりでいいから、なんでも聞いてねぇ。',
+                colors: { primary: '#FEF5DB', secondary: '#F5E6B8', dark: '#E5D090' }
+            },
+            'リス.png': {
+                mumbles: ['もう、何してるのよ', 'ちゃんとやってる？', 'しょうがないわね…', 'アタシに任せなさいよ', 'ふん、別に暇じゃないし', '何か手伝ってあげようか？', 'ちょっと、聞いてるの？', 'まったく、世話が焼けるわね'],
+                greeting: 'ふん、おかえり。<br>なによ？',
+                hoverMessage: 'しょうがないわね…<br>遊んであげる',
+                chatGreeting: 'アタシは{{ user.ai_name|default:"うたー"|escapejs }}よ。<br>何か用？ まぁ、聞いてあげるわ。',
+                colors: { primary: '#FEB6AC', secondary: '#F59A8E', dark: '#E57A6E' }
+            },
+            'フクロウ.png': {
+                mumbles: ['ふむ…考え事をしていました', '静かで落ち着きますね', '知識は宝ですよ', '何かお困りですか？', 'ゆっくり考えましょう', 'なるほど…興味深いですね', '学ぶことは楽しいですよ', 'いつでもお手伝いしますよ'],
+                greeting: 'おかえりなさい。<br>いかがいたしましょう',
+                hoverMessage: 'お話ししましょうか',
+                chatGreeting: 'こんにちは。私は{{ user.ai_name|default:"うたー"|escapejs }}と申します。<br>何なりとお尋ねください。',
+                colors: { primary: '#92B7D6', secondary: '#6A9BC5', dark: '#4A7BA5' }
+            },
+            'ネコ.png': {
+                mumbles: ['……ふぁ', '……眠い', '……なに？', '……ま、いいけど', '……暇だな', '……そこにいるの？', '……気が向いたら話す', '……別に待ってないし'],
+                greeting: '……おかえり<br>……なに？',
+                hoverMessage: '……ま、いいけど',
+                chatGreeting: '……{{ user.ai_name|default:"うたー"|escapejs }}。<br>……聞きたいことあるの？',
+                colors: { primary: '#9CBDB6', secondary: '#7AA59D', dark: '#5A8A80' }
+            },
+            'アルパカ.png': {
+                mumbles: ['ごきげんよう', 'お紅茶が飲みたいですわ', 'よくってよ', 'わたくしに任せなさい', 'ふふ、素敵ですわね', '何かお手伝いしましょうか？', 'ついていらっしゃい', 'さあ、何でもおっしゃって'],
+                greeting: 'ごきげんよう<br>なんでしょう？',
+                hoverMessage: 'お話ししましょう',
+                chatGreeting: 'ごきげんよう。わたくしは{{ user.ai_name|default:"うたー"|escapejs }}ですわ。<br>どうぞお気軽にお話しください。',
+                colors: { primary: '#FFF5CD', secondary: '#F5E8A5', dark: '#E5D580' }
+            }
+        };
+
+        const charContainer = document.getElementById('charContainer');
+        const defaultImg = document.getElementById('characterDefault');
+        const hoverImg = document.getElementById('characterHover');
+        const speech = document.getElementById('charSpeech');
+        const chatTriggerBtn = document.getElementById('chatTriggerBtn');
+        
+        // キャラクター設定を取得
+        const appearance = '{{ appearance|default:"イヌ.png"|escapejs }}';
+        const charData = characterDialogues[appearance] || characterDialogues['イヌ.png'];
+        
+        // キャラクターコードを取得（例: 'ネコ.png' -> 'neko'）
+        const characterCodeMap = {
+            'ウサギ.png': 'usagi',
+            'キツネ.png': 'kitsune',
+            'イヌ.png': 'inu',
+            'パンダ.png': 'panda',
+            'リス.png': 'risu',
+            'フクロウ.png': 'fukurou',
+            'ネコ.png': 'neko',
+            'アルパカ.png': 'arupaka'
+        };
+        const characterCode = characterCodeMap[appearance] || 'inu';
+        
+        // character-containerにdata-character属性を追加（ai_chat_base.htmlで使用）
+        charContainer.setAttribute('data-character', characterCode);
+        console.log('設定されたキャラクター:', appearance, 'コード:', characterCode);
+        
+        // テーマカラーを適用
+        document.documentElement.style.setProperty('--theme-primary', charData.colors.primary);
+        document.documentElement.style.setProperty('--theme-secondary', charData.colors.secondary);
+        document.documentElement.style.setProperty('--theme-dark', charData.colors.dark);
+        document.documentElement.style.setProperty('--theme-light', charData.colors.primary + '20'); // 透明度20%
+        
+        // 初期メッセージを設定
+        let mumbleIndex = 0;
+        speech.innerHTML = charData.greeting;
+        
+        // 定期的に独り言を変更（5秒ごと）
+        setInterval(() => {
+            if (defaultImg.style.opacity !== '0') { // ホバーしていない時のみ
+                speech.innerHTML = charData.mumbles[mumbleIndex % charData.mumbles.length];
+                mumbleIndex++;
+            }
+        }, 5000);
+        
+        // ホバー時の処理
+        charContainer.addEventListener('mouseenter', () => {
+            defaultImg.style.opacity = '0';
+            hoverImg.style.opacity = '1';
+            speech.innerHTML = charData.hoverMessage;
+        });
+        charContainer.addEventListener('mouseleave', () => {
+            defaultImg.style.opacity = '1';
+            hoverImg.style.opacity = '0';
+            speech.innerHTML = charData.greeting;
+        });
+        
+        // キャラクタークリックで次の独り言
+        charContainer.addEventListener('click', () => {
+            speech.innerHTML = charData.mumbles[mumbleIndex % charData.mumbles.length];
+            mumbleIndex++;
+        });
+        
+        // 「はなしかける」ボタンでAIチャットウィジェットを開く
+        if (chatTriggerBtn) {
+            chatTriggerBtn.addEventListener('click', function(event) {
+                event.stopPropagation(); // イベント伝播を止める（documentのクリックイベントを防止）
+                console.log('はなしかけるボタンがクリックされました');
+                // ai_chat_base.htmlのopenAIChat()関数を呼び出す
+                if (typeof window.openAIChat === 'function') {
+                    console.log('window.openAIChat関数を呼び出します');
+                    window.openAIChat();
+                } else {
+                    console.error('window.openAIChat関数が見つかりません');
+                    // フォールバック: ウィジェットを直接表示
+                    const widget = document.getElementById('character-widget');
+                    const bubble = document.getElementById('chat-bubble');
+                    if (widget && bubble) {
+                        widget.style.display = 'block';
+                        bubble.className = 'expanded';
+                        const expandedView = document.getElementById('expanded-view');
+                        const minimizedView = document.getElementById('minimized-view');
+                        if (expandedView && minimizedView) {
+                            minimizedView.style.display = 'none';
+                            expandedView.style.display = 'flex';
+                            expandedView.style.flexDirection = 'column';
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+
+    <!-- AI会話機能（右下ウィジェット） -->
+    {% include 'includes/ai_chat_base.html' %}
+</body>
+</html>

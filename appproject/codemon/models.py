@@ -71,6 +71,7 @@ class Checklist(models.Model):
     user = models.ForeignKey('accounts.Account', on_delete=models.CASCADE, verbose_name='ユーザーID')
     checklist_name = models.CharField(max_length=100, verbose_name='チェックリスト名')
     checklist_description = models.TextField(blank=True, null=True, verbose_name='チェックリスト概要')
+    due_date = models.DateField(blank=True, null=True, verbose_name='期限')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新日時')
     is_selected = models.BooleanField(default=False, verbose_name='選択フラグ')
@@ -82,6 +83,14 @@ class Checklist(models.Model):
 
     def __str__(self):
         return f"{self.checklist_name} (ID: {self.checklist_id})"
+    
+    def days_until_due(self):
+        """期限までの残り日数を返す"""
+        if not self.due_date:
+            return None
+        from datetime import date
+        delta = self.due_date - date.today()
+        return delta.days
 
 
 class ChecklistItem(models.Model):
@@ -333,3 +342,187 @@ class AIMessage(models.Model):
 
     def __str__(self):
         return f"{self.role}@{self.created_at:%H:%M:%S}"
+
+
+# --- ユーザーコイン・実績システム ---
+class UserCoin(models.Model):
+    """ユーザーの所持コイン"""
+    user = models.OneToOneField(
+        'accounts.Account',
+        on_delete=models.CASCADE,
+        primary_key=True,
+        related_name='coin_balance'
+    )
+    balance = models.IntegerField(default=0, verbose_name='コイン残高')
+    total_earned = models.IntegerField(default=0, verbose_name='累計獲得コイン')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新日時')
+
+    class Meta:
+        db_table = 'user_coin'
+        verbose_name = 'ユーザーコイン'
+        verbose_name_plural = 'ユーザーコイン'
+
+    def __str__(self):
+        return f"{self.user.user_name}: {self.balance}コイン"
+
+
+class Achievement(models.Model):
+    """実績マスターデータ"""
+    TIER_CHOICES = [
+        ('bronze', 'ブロンズ'),
+        ('silver', 'シルバー'),
+        ('gold', 'ゴールド'),
+        ('diamond', 'ダイヤ'),
+        ('platinum', 'プラチナ'),
+    ]
+    
+    CATEGORY_CHOICES = [
+        ('system', 'システム作成'),
+        ('algorithm', 'アルゴリズム作成'),
+        ('login', 'ログイン'),
+        ('consecutive_login', '連続ログイン'),
+        ('ai_chat', 'AI会話'),
+        ('ai_chat_consecutive', 'AI連続会話'),
+        ('checklist_create', 'チェックリスト作成'),
+        ('checklist_complete', 'チェックリスト完了'),
+        ('accessory', 'アクセサリー'),
+    ]
+    
+    achievement_id = models.BigAutoField(primary_key=True)
+    name = models.CharField(max_length=100, verbose_name='実績名')
+    description = models.TextField(verbose_name='説明', blank=True)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, verbose_name='カテゴリー', default='system')
+    tier = models.CharField(max_length=10, choices=TIER_CHOICES, verbose_name='段階', blank=True, null=True)
+    target_count = models.IntegerField(verbose_name='目標回数', default=1)
+    reward_coins = models.IntegerField(verbose_name='報酬コイン')
+    icon = models.CharField(max_length=10, default='🏆', verbose_name='アイコン')
+    display_order = models.IntegerField(default=0, verbose_name='表示順')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
+
+    class Meta:
+        db_table = 'achievement'
+        verbose_name = '実績'
+        verbose_name_plural = '実績'
+        ordering = ['display_order', 'category', 'target_count']
+
+    def __str__(self):
+        tier_display = f" ({self.get_tier_display()})" if self.tier else ""
+        return f"{self.name}{tier_display}"
+
+
+class UserAchievement(models.Model):
+    """ユーザーの実績達成状況"""
+    id = models.BigAutoField(primary_key=True)
+    user = models.ForeignKey('accounts.Account', on_delete=models.CASCADE, related_name='user_achievements')
+    achievement = models.ForeignKey(Achievement, on_delete=models.CASCADE)
+    current_count = models.IntegerField(default=0, verbose_name='現在のカウント')
+    is_achieved = models.BooleanField(default=False, verbose_name='達成済み')
+    is_rewarded = models.BooleanField(default=False, verbose_name='報酬受取済み')
+    achieved_at = models.DateTimeField(null=True, blank=True, verbose_name='達成日時')
+    rewarded_at = models.DateTimeField(null=True, blank=True, verbose_name='報酬受取日時')
+
+    class Meta:
+        db_table = 'user_achievement'
+        verbose_name = 'ユーザー実績'
+        verbose_name_plural = 'ユーザー実績'
+        unique_together = [['user', 'achievement']]
+
+    def __str__(self):
+        status = "達成済み" if self.is_achieved else f"{self.current_count}/{self.achievement.target_count}"
+        return f"{self.user.user_name} - {self.achievement.name} ({status})"
+
+
+class UserStats(models.Model):
+    """ユーザーの統計情報"""
+    id = models.BigAutoField(primary_key=True)
+    user = models.OneToOneField('accounts.Account', on_delete=models.CASCADE, related_name='stats')
+    total_systems = models.IntegerField(default=0, verbose_name='システム作成数')
+    total_algorithms = models.IntegerField(default=0, verbose_name='アルゴリズム作成数')
+    total_login_days = models.IntegerField(default=0, verbose_name='総ログイン日数')
+    consecutive_login_days = models.IntegerField(default=0, verbose_name='連続ログイン日数')
+    last_login_date = models.DateField(null=True, blank=True, verbose_name='最終ログイン日')
+    total_ai_chats = models.IntegerField(default=0, verbose_name='AI会話回数')
+    consecutive_ai_chat_days = models.IntegerField(default=0, verbose_name='連続AI会話日数')
+    last_ai_chat_date = models.DateField(null=True, blank=True, verbose_name='最終AI会話日')
+    total_checklists_created = models.IntegerField(default=0, verbose_name='作成チェックリスト数')
+    total_checklist_items_completed = models.IntegerField(default=0, verbose_name='完了チェック項目数')
+    total_accessories_purchased = models.IntegerField(default=0, verbose_name='購入アクセサリー数')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新日時')
+
+    class Meta:
+        db_table = 'user_stats'
+        verbose_name = 'ユーザー統計'
+        verbose_name_plural = 'ユーザー統計'
+
+    def __str__(self):
+        return f"{self.user.user_name} の統計"
+
+
+# --- アクセサリーシステム ---
+class Accessory(models.Model):
+    """アクセサリーマスターデータ"""
+    CATEGORY_CHOICES = [
+        ('flower', '花'),
+        ('glasses', '眼鏡'),
+        ('hat', '帽子'),
+        ('star', '星'),
+        ('crown', '王冠'),
+        ('ribbon', 'リボン'),
+        ('other', 'その他'),
+    ]
+    
+    accessory_id = models.BigAutoField(primary_key=True)
+    name = models.CharField(max_length=100, verbose_name='アクセサリー名')
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, verbose_name='カテゴリ')
+    css_class = models.CharField(max_length=100, verbose_name='CSSクラス名', help_text='例: flower.inu')
+    image_path = models.CharField(max_length=255, blank=True, null=True, verbose_name='画像パス', help_text='例: accessories/flower_inu.png')
+    use_image = models.BooleanField(default=False, verbose_name='画像を使用', help_text='TrueならCSS背景画像、FalseならCSS描画')
+    description = models.TextField(blank=True, null=True, verbose_name='説明')
+    
+    # 解放条件（どちらか片方を設定）
+    unlock_coins = models.IntegerField(default=0, verbose_name='必要コイン数')
+    unlock_achievement = models.ForeignKey(
+        Achievement,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name='必要実績'
+    )
+    
+    # 小アイコン用の簡略表示設定
+    simple_style = models.JSONField(
+        blank=True,
+        null=True,
+        verbose_name='簡略表示スタイル',
+        help_text='小アイコン用のCSS設定（JSON形式）'
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
+
+    class Meta:
+        db_table = 'accessory'
+        verbose_name = 'アクセサリー'
+        verbose_name_plural = 'アクセサリー'
+
+    def __str__(self):
+        return self.name
+
+
+class UserAccessory(models.Model):
+    """ユーザーの所持アクセサリー"""
+    id = models.BigAutoField(primary_key=True)
+    user = models.ForeignKey('accounts.Account', on_delete=models.CASCADE, related_name='owned_accessories')
+    accessory = models.ForeignKey(Accessory, on_delete=models.CASCADE)
+    is_equipped = models.BooleanField(default=False, verbose_name='装備中')
+    obtained_at = models.DateTimeField(auto_now_add=True, verbose_name='取得日時')
+
+    class Meta:
+        db_table = 'user_accessory'
+        verbose_name = 'ユーザーアクセサリー'
+        verbose_name_plural = 'ユーザーアクセサリー'
+        unique_together = [['user', 'accessory']]
+
+    def __str__(self):
+        equipped = " [装備中]" if self.is_equipped else ""
+        return f"{self.user.user_name} - {self.accessory.name}{equipped}"

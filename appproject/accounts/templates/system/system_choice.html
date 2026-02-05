@@ -9,400 +9,427 @@
 {% endblock %}
 
 {% block extra_css %}
-  <style>
-    /* content-wrapperの調整 */
-    .content-wrapper {
-      padding: 0 !important;
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      padding-left: 100px !important;
-    }
-    
-    /* mainとh1の左寄せ配置 */
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+  :root {
+    --bg-main: #f0f4f8;
+    --panel-bg: rgba(255, 255, 255, 0.95);
+    --accent-main: #3fbcd9;    /* シアン */
+    --btn-pop: #FFD200;       /* イエロー */
+    --btn-shadow: #e6bd00;
+    --error-pop: #ff7675;     /* ピンク */
+    --text-dark: #2d3748;
+    --text-brown: #5d4037;
+  }
+
+  body {
+    background-color: var(--bg-main);
+    font-family: "M PLUS Rounded 1c", sans-serif;
+    margin: 0;
+    overflow-x: hidden;
+  }
+
+  /* --- レイアウト構造 --- */
+  .content-wrapper {
+    padding: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    width: 100%;
+  }
+
+  main {
+    width: 100%;
+    max-width: 1400px; /* 画面幅を広めに確保 */
+    display: flex;
+    justify-content: center; /* コンテンツ全体を中央寄せ */
+    align-items: flex-start; /* 上端揃え */
+    padding: 100px 20px 40px; /* 上部を60px追加 */
+    gap: 40px; /* 左パネルとメインパネルの隙間 */
+    position: relative;
+    z-index: 10;
+    min-height: calc(100vh - 80px); /* 画面の高さいっぱいに */
+  }
+
+  /* --- 左側：プレイヤーステータスカード --- */
+  .side-panel {
+    position: absolute;
+    left: 55px;
+    top: 60px;
+    width: 250px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    animation: slideInLeft 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  /* ステータスカードのデザイン */
+  .status-card {
+    background: #fff;
+    border: 4px solid var(--btn-pop);
+    border-radius: 20px;
+    padding: 15px;
+    box-shadow: 0 8px 0 rgba(230, 189, 0, 0.4), 0 10px 20px rgba(0,0,0,0.05);
+    transform: rotate(-2deg); /* 遊び心で少し傾ける */
+    transition: transform 0.3s;
+  }
+
+  .status-card:hover {
+    transform: rotate(0deg) scale(1.02);
+  }
+
+  .user-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+
+  .user-avatar {
+    width: 60px;
+    height: 60px;
+    background: var(--bg-main);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    color: var(--accent-main);
+    border: 3px solid var(--accent-main);
+    margin-bottom: 8px;
+  }
+
+  .user-name {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-dark);
+    margin: 0;
+  }
+
+  .user-rank {
+    display: inline-block;
+    background: var(--error-pop);
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 10px;
+    margin-top: 5px;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.1);
+  }
+
+  .status-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+  }
+
+  .status-item {
+    background: var(--bg-main);
+    border-radius: 12px;
+    padding: 10px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--text-dark);
+    font-weight: 700;
+  }
+
+  .status-icon {
+    color: var(--btn-pop);
+    font-size: 18px;
+  }
+
+  /* ヒントカード（下に追加） */
+  .hint-card {
+    background: rgba(255,255,255,0.8);
+    border: 3px dashed var(--accent-main);
+    border-radius: 20px;
+    padding: 15px;
+    text-align: center;
+    color: var(--text-dark);
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  /* --- 右側（中央）：メインメニューパネル --- */
+  .menu-panel {
+    flex: 0 0 420px; /* 幅を420pxに縮小 */
+    background: var(--panel-bg);
+    border: 6px solid var(--accent-main);
+    border-radius: 40px;
+    padding: 25px 35px;
+    box-shadow: 0 20px 0 rgba(63, 188, 217, 0.2), 0 10px 30px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    animation: zoomIn 0.5s ease;
+  }
+
+  .menu-title-area {
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .menu-title {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--accent-main);
+    margin: 0;
+    letter-spacing: 2px;
+    text-shadow: 2px 2px 0 #fff, 4px 4px 0 rgba(0,0,0,0.05);
+    background: #fff;
+    padding: 8px 24px;
+    border-radius: 50px;
+    border: 3px solid var(--accent-main);
+    display: inline-block;
+  }
+
+  .menu-subtitle {
+    margin-top: 10px;
+    font-size: 16px;
+    color: #718096;
+    font-weight: 700;
+  }
+
+  .action-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    width: 100%;
+  }
+
+  .action-btn {
+    appearance: none;
+    border: none;
+    background: var(--btn-pop);
+    color: var(--text-brown);
+    font-family: "M PLUS Rounded 1c", sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    padding: 16px;
+    border-radius: 25px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.1s ease;
+    box-shadow: 0 8px 0 var(--btn-shadow), 0 15px 20px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 130px;
+  }
+
+  .action-btn i {
+    font-size: 36px;
+    color: #fff;
+    filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.1));
+    transition: transform 0.2s;
+  }
+
+  .action-btn:hover {
+    transform: translateY(-4px);
+    background: #ffe033;
+    box-shadow: 0 12px 0 var(--btn-shadow), 0 20px 25px rgba(0,0,0,0.15);
+  }
+  
+  .action-btn:hover i {
+    transform: scale(1.1) rotate(-5deg);
+  }
+
+  .action-btn:active {
+    transform: translateY(8px);
+    box-shadow: 0 0 0 var(--btn-shadow);
+  }
+
+  /* 新規作成ボタンの特別色 */
+  #btn-new {
+    background: var(--error-pop);
+    color: white;
+    box-shadow: 0 8px 0 #e15f5e, 0 15px 20px rgba(0,0,0,0.1);
+  }
+  #btn-new:hover {
+    background: #ff8e8d;
+    box-shadow: 0 12px 0 #e15f5e, 0 20px 25px rgba(0,0,0,0.15);
+  }
+  #btn-new:active {
+    box-shadow: 0 0 0 #e15f5e;
+  }
+
+  /* アニメーション定義 */
+  @keyframes slideInLeft {
+    from { opacity: 0; transform: translateX(-50px) rotate(-5deg); }
+    to { opacity: 1; transform: translateX(0) rotate(0); }
+  }
+  @keyframes zoomIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* レスポンシブ対応 */
+  @media (max-width: 900px) {
     main {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      justify-content: center;
-      min-height: calc(100vh - 100px);
-      width: 100%;
-      max-width: 700px;
-      padding-top: 100px;
-    }
-    
-    /* 新規追加: アクションパネル（左寄せ配置） */
-    .action-panel {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      justify-content: center;
-      gap: 12px;
-      max-width: 600px;
-      width: 100%;
-      padding: 0;
-    }
-    .action-btn {
-      display: flex;
+      flex-direction: column; /* 縦並びに */
       align-items: center;
-      justify-content: center;
-      padding: 40px 24px;
-      border: none;
-      background: url("{% static 'codemon/images/button/button_blue.png' %}") no-repeat center center;
-      background-size: contain;
-      color: #073763;
-      font-weight: 700;
-      font-size: 18px;
-      cursor: pointer;
-      text-align: center;
-      transition: transform .12s ease;
-      min-height: 80px;
+
+    }
+    .side-panel {
+      flex: none;
       width: 100%;
       max-width: 500px;
+      flex-direction: row; /* 横並びにしてコンパクトに */
     }
-    .action-btn:hover {
-      transform: translateY(-2px);
-    }
-    .action-btn:active {
-      transform: translateY(1px);
-    }
-    .action-btn.disabled {
-      opacity: 0.7;
-      cursor: default;
-      pointer-events: none;
-    }
+    .status-card {
+      transform: none; /* 傾き解除 */
 
-    /* 右側の説明エリア（削除） */
-
-    /* AIキャラクター表示（右下固定） */
-    .character-container {
-      position: fixed !important;
-      right: 5%;
-      bottom: 0;
-      z-index: 100 !important;
-      display: flex;
-      align-items: flex-end;
-      pointer-events: none;
-    }
-    
-    .character-image {
-      max-width: 280px !important;
-      max-height: 350px !important;
-      pointer-events: auto;
-      transition: transform 0.3s ease;
-      transform-origin: bottom center;
-      display: block;
-      border: none !important;
-      outline: none !important;
-      box-shadow: none !important;
-      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
-    }
-    
-    .character-container img {
-      border: none !important;
-      outline: none !important;
-    }
-    
-    /* ホバー時に軽く動く */
-    .character-image:hover {
-      transform: scale(1.05) rotate(2deg) !important;
-      cursor: pointer;
-    }
-
-    /* ==================== チャットモーダル ==================== */
-    .chat-modal {
-      display: none;
-      position: fixed !important;
-      top: 0 !important;
-      left: 0 !important;
-      width: 100% !important;
-      height: 100% !important;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 9998 !important;
-      justify-content: center;
-      align-items: center;
-    }
-    
-    .chat-modal.active {
-      display: flex;
-    }
-    
-    .chat-window {
-      background: white;
-      border-radius: 30px;
-      width: 90%;
-      max-width: 800px;
-      height: 80%;
-      max-height: 600px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      animation: modalSlideIn 0.3s ease-out;
-      position: relative !important;
-      z-index: 9999 !important;
-    }
-    
-    @keyframes modalSlideIn {
-      from {
-        transform: scale(0.8) translateY(-50px);
-        opacity: 0;
-      }
-      to {
-        transform: scale(1) translateY(0);
-        opacity: 1;
-      }
-    }
-    
-    .chat-header {
-      background: linear-gradient(135deg, #FFD700, #FFA500);
-      padding: 20px 30px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 3px solid #FF8C00;
-    }
-    
-    .chat-header h2 {
-      margin: 0;
-      color: white;
-      font-size: 24px;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-    }
-    
-    .chat-close-btn {
-      background: white;
-      border: none;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      font-size: 24px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.3s;
-      color: #FF8C00;
-      font-weight: bold;
-    }
-    
-    .chat-close-btn:hover {
-      transform: rotate(90deg) scale(1.1);
-      background: #FFE4B5;
-    }
-    
-    .chat-messages {
       flex: 1;
-      overflow-y: auto;
-      padding: 20px;
-      background: white;
     }
-    
-    .chat-message {
-      display: flex;
-      margin-bottom: 15px;
-      animation: messageSlideIn 0.3s ease-out;
+    .hint-card {
+      display: none; /* スマホではヒント非表示など調整 */
     }
-    
-    @keyframes messageSlideIn {
-      from {
-        transform: translateY(20px);
-        opacity: 0;
-      }
-      to {
-        transform: translateY(0);
-        opacity: 1;
-      }
-    }
-    
-    .chat-message.user {
-      flex-direction: row-reverse;
-    }
-    
-    .chat-message-content {
-      max-width: 70%;
-      padding: 15px 20px;
-      border-radius: 20px;
-      font-size: 16px;
-      line-height: 1.5;
-    }
-    
-    .chat-message.ai .chat-message-content {
-      background: white;
-      border: 3px solid #FFD700;
-      color: #333;
-    }
-    
-    .chat-message.user .chat-message-content {
-      background: #FFD700 !important;
-      color: #333;
-      font-weight: bold;
-      border: none !important;
-      box-shadow: none !important;
-    }
-    
-    .chat-input-area {
-      padding: 20px;
-      background: white;
-      border-top: 3px solid #FFD700;
-      display: flex;
-      gap: 10px;
-    }
-    
-    .chat-input {
-      flex: 1;
-      padding: 15px 20px;
-      border: 3px solid #FFD700;
-      border-radius: 25px;
-      font-size: 16px;
-      outline: none;
-      transition: all 0.3s;
-    }
-    
-    .chat-input:focus {
-      border-color: #FFA500;
-      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
-    }
-    
-    .chat-send-btn {
-      background: linear-gradient(135deg, #FFD700, #FFA500);
-      border: none;
-      padding: 15px 30px;
-      border-radius: 25px;
-      color: white;
-      font-size: 18px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.3s;
-      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
-    }
-    
-    .chat-send-btn:hover {
-      transform: scale(1.05);
-      box-shadow: 0 5px 15px rgba(255, 165, 0, 0.4);
-    }
-    
-    .chat-send-btn:active {
-      transform: scale(0.98);
-    }
-    
-    .chat-loading {
-      display: none;
-      text-align: center;
-      padding: 10px;
-      color: #666;
-    }
-    
-    .chat-loading.active {
-      display: block;
-    }
+  }
 
-    .helper { margin-top:8px; color:#777; font-size:13px; text-align:center; }
-    .note { margin-top:12px; color:#444; font-size:13px; text-align:center; }
-    @media (max-width:880px){
-      .action-panel {
-        gap: 16px;
-        padding: 0 16px;
-      }
-      .action-btn {
-        max-width: 100%;
-      }
+  @media (max-width: 600px) {
+    .menu-panel {
+      padding: 30px 20px;
     }
-  </style>
+    .action-grid {
+      grid-template-columns: 1fr;
+    }
+    .action-btn {
+      min-height: 100px;
+      flex-direction: row;
+      font-size: 16px;
+    }
+    .action-btn i {
+      font-size: 28px;
+    }
+    /* スマホで左パネルが邪魔なら非表示にする場合は以下 */
+    /* .side-panel { display: none; } */
+  }
+
+  .character-container {
+    right: 2% !important;
+    bottom: -20px !important;
+    z-index: 100 !important;
+  }
+  .character-image {
+    max-height: 300px !important; 
+  }
+
+</style>
 {% endblock %}
-</head>
+
 {% block content %}
+<main>
 
-<body>
-  
 
-  <main>
-    <div class="action-panel" role="region" aria-label="システム操作">
-      <!-- 1行目  -->
-      <button class="action-btn" id="btn-list">作成したシステム一覧を開く</button>
-      
-      <!-- 1行目  -->
-      <button class="action-btn" id="btn-new">新しいシステムを作成</button>
-      
-      <!-- 2行目  -->
-      <button class="action-btn" id="btn-tutorial">チュートリアル</button>
-      
-      <!-- 3行目 -->
-      <button class="action-btn" id="btn-roulette-topics">ルーレットお題表示</button>
+  <aside class="side-panel">
+    <div class="status-card">
+      <div class="user-info">
+        <div class="user-avatar">
+          <i class="fas fa-user-astronaut"></i>
+        </div>
+        <span class="user-rank">{{ achievement_title }}</span>
+      </div>
+      <ul class="status-list">
+        <li class="status-item">
+          <i class="fas fa-cog status-icon"></i>
+          <span>つくった数: {{ total_systems }}</span>
+        </li>
+      </ul>
+
     </div>
 
-  </main>
+    <div class="hint-card">
+      <i class="fas fa-lightbulb" style="color:var(--btn-pop); font-size:24px; margin-bottom:5px;"></i><br>
+      きょうは なにをつくる？<br>
+      「おだいルーレット」で<br>アイデアをさがそう！
+    </div>
+  </aside>
 
-  <!-- AIキャラクターとチャット機能はbase.htmlのglobal_character_widgetで表示されるため削除 -->
+  <div class="menu-panel" role="region" aria-label="システム操作メニュー">
+    
+    <div class="menu-title-area">
+      <h1 class="menu-title"><i class="fas fa-gamepad"></i> システムメニュー</h1>
+      <p class="menu-subtitle">なにをするか えらんでね！</p>
+    </div>
 
-  <script>
-    // タブ見た目切替および一部タブで遷移（画面構成は変更しない）
-    document.querySelectorAll('.nav-tab').forEach(tab=>{
-      tab.addEventListener('click', function(e){
-        try{
-          document.querySelectorAll('.nav-tab').forEach(t=>{
+    <div class="action-grid">
+      <button class="action-btn" id="btn-new">
+        <i class="fas fa-plus-circle"></i>
+        <span>あたらしくつくる</span>
+      </button>
+
+      <button class="action-btn" id="btn-list">
+        <i class="fas fa-list-ul"></i>
+        <span>つくったものをみる</span>
+      </button>
+
+      <button class="action-btn" id="btn-tutorial">
+        <i class="fas fa-book-open"></i>
+        <span>つかいかた</span>
+      </button>
+
+      <button class="action-btn" id="btn-roulette-topics">
+        <i class="fas fa-dice"></i>
+        <span>おだいルーレット</span>
+      </button>
+    </div>
+
+  </div>
+
+</main>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    
+    // タブ操作（base.htmlのタブ用）
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+      tab.addEventListener('click', function(e) {
+        document.querySelectorAll('.nav-tab').forEach(t => {
             t.classList.remove('active');
-            t.setAttribute('aria-pressed','false');
-          });
-          this.classList.add('active');
-          this.setAttribute('aria-pressed','true');
-          if (typeof this.blur === 'function') this.blur();
+            t.setAttribute('aria-pressed', 'false');
+        });
+        this.classList.add('active');
+        this.setAttribute('aria-pressed', 'true');
 
-          // システムタブ押下でシステム選択画面（自己）または明示的に choice へ遷移
-          if (this.id === 'tab-system') {
+        if (this.id === 'tab-system') {
             window.location.href = '/accounts/system/choice/';
-            return;
-          }
-
-          // 変更: アルゴリズムタブ押下で block/choice へ遷移
-          if (this.id === 'tab-algorithm') {
+        } else if (this.id === 'tab-algorithm') {
             window.location.href = '/accounts/block/choice/';
-            return;
-          }
-
-          // 他タブは見た目切替のみ（必要なら遷移先を追加）
-        }catch(err){
-          console.error('tab click handler error', err);
         }
       });
     });
 
-    // 作成したシステム一覧ボタンは system_list へ遷移
-    const btnList = document.getElementById('btn-list');
-    if (btnList) {
-      btnList.addEventListener('click', function(e){
+    // ボタン遷移設定
+    const setLink = (id, url) => {
+      const btn = document.getElementById(id);
+      if(btn) btn.addEventListener('click', (e) => {
         e.preventDefault();
-        window.location.href = '/accounts/system/list/';
+        window.location.href = url;
       });
-    }
+    };
 
-    // 新しいシステム作成ボタンはindex.htmlへ遷移
-    const btnNew = document.getElementById('btn-new');
-    if (btnNew) {
-      btnNew.addEventListener('click', function(e){
-        e.preventDefault();
-        window.location.href = '/accounts/system/';
-      });
-    }
+    setLink('btn-new', '/accounts/system/');
+    setLink('btn-list', '/accounts/system/list/');
+    setLink('btn-tutorial', '/accounts/system/tutorial/');
+    setLink('btn-roulette-topics', '/accounts/system/roulette-topics/');
 
-    // 追加: チュートリアルボタンはチュートリアルページへ遷移
-    const btnTutorial = document.getElementById('btn-tutorial');
-    if (btnTutorial) {
-      btnTutorial.addEventListener('click', function(e){
-        e.preventDefault();
-        window.location.href = '/accounts/system/tutorial/';
-      });
-    }
-
-    // 追加: ルーレットお題表示ボタン
-    const btnRouletteTopics = document.getElementById('btn-roulette-topics');
-    if (btnRouletteTopics) {
-      btnRouletteTopics.addEventListener('click', function(e){
-        e.preventDefault();
-        window.location.href = '/accounts/system/roulette-topics/';
-      });
-    }
-  </script>
-</body>
+  });
+</script>
 {% endblock %}
-</html>
+
+{% block ai_chat_widget %}
+  {% include 'includes/ai_chat_base.html' %}
+{% endblock %}
+

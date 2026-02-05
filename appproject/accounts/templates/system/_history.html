@@ -14,6 +14,12 @@
     history.push(snapshot);
     historyIndex = history.length - 1;
     updateUndoRedoButtons();
+    
+    // 要素が追加/変更されたので isDirty を true にする
+    if (typeof window.isDirty !== 'undefined') {
+      window.isDirty = true;
+      console.log('🔄 saveHistory called - isDirty set to true');
+    }
   };
 
   window.restoreHistory = function() {
@@ -23,17 +29,86 @@
     const inputContainers = slide.querySelectorAll('.input-container');
     inputContainers.forEach(container => makeDraggable(container));
     const draggableBtns = slide.querySelectorAll('.draggable-btn');
-    draggableBtns.forEach(btn => makeDraggable(btn));
+    draggableBtns.forEach(btn => {
+      makeDraggable(btn);
+      // アルゴリズムが設定されているボタンにインジケーターを表示
+      if (btn.hasAttribute('data-algorithm-id') && !btn.querySelector('.algorithm-indicator')) {
+        if (typeof addAlgorithmIndicator === 'function') {
+          addAlgorithmIndicator(btn);
+        }
+      }
+    });
     const textInputContainers = slide.querySelectorAll('.text-input-container');
     textInputContainers.forEach(container => makeDraggable(container));
+    const textBoxContainers = slide.querySelectorAll('.text-box-container');
+    textBoxContainers.forEach(container => makeDraggable(container));
     const checkboxGroups = slide.querySelectorAll('.checkbox-group');
     checkboxGroups.forEach(g => makeDraggable(g));
     const radioGroups = slide.querySelectorAll('.radio-group');
     radioGroups.forEach(g => makeDraggable(g));
     const roulettes = slide.querySelectorAll('.roulette-container');
-    roulettes.forEach(r => makeDraggable(r));
+    roulettes.forEach(r => {
+      makeDraggable(r);
+      if (typeof attachRouletteListeners === 'function') {
+        attachRouletteListeners(r);
+      }
+    });
     const timers = slide.querySelectorAll('.timer-container');
     timers.forEach(t => makeDraggable(t));
+    const shapes = slide.querySelectorAll('.shape-element');
+    shapes.forEach(s => {
+      makeDraggable(s);
+      // ダブルクリックイベントを再設定
+      s.addEventListener('dblclick', function(e) {
+        e.stopPropagation();
+        if (typeof openShapeSettings === 'function') {
+          openShapeSettings(s);
+        }
+      });
+      // 右クリックイベントを再設定
+      s.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof openShapeSettings === 'function') {
+          openShapeSettings(s);
+        }
+      });
+      // リサイズハンドラーを再設定
+      const shapeType = s.getAttribute('data-shape-type');
+      if (typeof attachResizeHandlers === 'function' && shapeType) {
+        attachResizeHandlers(s, shapeType);
+      }
+      // 矢印の場合はスタイルを再適用
+      if (s.classList.contains('shape-arrow')) {
+        const color = s.getAttribute('data-shape-color') || '#333';
+        if (typeof updateArrowStyles === 'function') {
+          updateArrowStyles(s, color);
+        }
+      }
+    });
+    const images = slide.querySelectorAll('.image-element');
+    images.forEach(img => {
+      makeDraggable(img);
+      // ダブルクリックイベントを再設定
+      img.addEventListener('dblclick', function(e) {
+        e.stopPropagation();
+        if (typeof openImageSettings === 'function') {
+          openImageSettings(img);
+        }
+      });
+      // 右クリックイベントを再設定
+      img.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof openImageSettings === 'function') {
+          openImageSettings(img);
+        }
+      });
+      // リサイズハンドラーを再設定
+      if (typeof attachResizeHandlers === 'function') {
+        attachResizeHandlers(img, 'image');
+      }
+    });
     updateUndoRedoButtons();
   };
 
@@ -213,18 +288,32 @@ const colorOptions = [
     });
   }
   if (confirmBtn) {
-    confirmBtn.addEventListener('click', function(e){
+    confirmBtn.addEventListener('click', async function(e){
       e.preventDefault();
       const labelInput = document.getElementById('optionsLabel');
       const label = labelInput ? labelInput.value.trim() : '';
+      
+      // ラベルの必須チェック
+      if (!label) {
+        await customAlert('ラベルを入力してください。', {
+          title: 'エラー'
+        });
+        labelInput.focus();
+        return;
+      }
+      
       const n = parseInt(countInput.value, 10) || 0;
       if (n <= 0) {
-        alert('項目数は1以上を指定してください。');
+        await customAlert('項目数は1以上を指定してください。', {
+          title: 'エラー'
+        });
         return;
       }
       const capped = Math.min(n, 10);
       if (n > 10) {
-        alert('項目数は最大10までです。10に設定します。');
+        await customAlert('項目数は最大10までです。10に設定します。', {
+          title: '通知'
+        });
       }
       if (pendingType === 'checkbox') {
         createCheckboxGroup(capped, label);
@@ -308,13 +397,20 @@ if (executeBtn) {
 // ========================================
 const clearAllBtn = document.getElementById('clearAllBtn');
 if (clearAllBtn) {
-  clearAllBtn.addEventListener('click', function(e){
+  clearAllBtn.addEventListener('click', async function(e){
     e.preventDefault();
-    if (confirm('すべての要素を削除してもよろしいですか？\nこの操作は取り消せません。')) {
+    const confirmed = await customConfirm('すべての要素を削除してもよろしいですか？\nこの操作は取り消せません。', {
+      title: '全削除の確認',
+      confirmText: '削除する',
+      cancelText: 'キャンセル',
+      danger: true
+    });
+    
+    if (confirmed) {
       const slide = document.getElementById('slideArea');
       if (slide) {
         const trash = slide.querySelector('#trash');
-        const trashHTML = trash ? trash.outerHTML : '<div id="trash" title="ここにドラッグで削除">🗑️</div>';
+        const trashHTML = trash ? trash.outerHTML : '<div id="trash" title="ここにドラッグで削除"><i class="fas fa-trash-alt"></i></div>';
         slide.innerHTML = trashHTML;
         saveHistory();
         console.log('すべての要素を削除しました');
@@ -322,4 +418,147 @@ if (clearAllBtn) {
     }
   });
 }
+
+// ========================================
+// レイヤー操作機能
+// ========================================
+let selectedElement = null;
+
+// 要素選択の視覚的フィードバック
+function selectElement(element) {
+  // 以前の選択を解除
+  if (selectedElement && selectedElement !== element) {
+    selectedElement.style.outline = '';
+    selectedElement.style.outlineOffset = '';
+  }
+  
+  selectedElement = element;
+  
+  // 選択された要素にアウトライン表示
+  if (selectedElement) {
+    selectedElement.style.outline = '3px solid #3fbcd9';
+    selectedElement.style.outlineOffset = '2px';
+  }
+}
+
+// スライドエリア内の要素クリックで選択
+document.addEventListener('DOMContentLoaded', function() {
+  const slideArea = document.getElementById('slideArea');
+  if (slideArea) {
+    slideArea.addEventListener('click', function(e) {
+      const target = e.target;
+      
+      // ドラッグ可能な要素かチェック
+      const draggableElement = target.closest('.input-container, .text-input-container, .checkbox-group, .radio-group, .roulette-container, .timer-container, .draggable-btn, .shape-element, .draggable-image');
+      
+      if (draggableElement && draggableElement.id !== 'trash') {
+        selectElement(draggableElement);
+        e.stopPropagation();
+      } else if (!target.closest('#trash')) {
+        // 空白エリアをクリックしたら選択解除
+        if (selectedElement) {
+          selectedElement.style.outline = '';
+          selectedElement.style.outlineOffset = '';
+          selectedElement = null;
+        }
+      }
+    });
+  }
+});
+
+// レイヤー操作関数
+function getAllDraggableElements() {
+  const slideArea = document.getElementById('slideArea');
+  if (!slideArea) return [];
+  
+  return Array.from(slideArea.querySelectorAll('.input-container, .text-input-container, .checkbox-group, .radio-group, .roulette-container, .timer-container, .draggable-btn, .shape-element, .draggable-image'))
+    .filter(el => el.id !== 'trash');
+}
+
+function getElementZIndex(element) {
+  const zIndex = element.style.zIndex || '1';
+  return parseInt(zIndex);
+}
+
+function setElementZIndex(element, zIndex) {
+  element.style.zIndex = zIndex.toString();
+}
+
+// 最前面へ
+function bringToFront() {
+  if (!selectedElement) {
+    customAlert('要素を選択してください', { title: 'レイヤー操作' });
+    return;
+  }
+  
+  const elements = getAllDraggableElements();
+  const maxZ = Math.max(...elements.map(el => getElementZIndex(el)), 1);
+  setElementZIndex(selectedElement, maxZ + 1);
+  saveHistory();
+}
+
+// 前面へ
+function bringForward() {
+  if (!selectedElement) {
+    customAlert('要素を選択してください', { title: 'レイヤー操作' });
+    return;
+  }
+  
+  const currentZ = getElementZIndex(selectedElement);
+  setElementZIndex(selectedElement, currentZ + 1);
+  saveHistory();
+}
+
+// 背面へ
+function sendBackward() {
+  if (!selectedElement) {
+    customAlert('要素を選択してください', { title: 'レイヤー操作' });
+    return;
+  }
+  
+  const currentZ = getElementZIndex(selectedElement);
+  if (currentZ > 1) {
+    setElementZIndex(selectedElement, currentZ - 1);
+    saveHistory();
+  }
+}
+
+// 最背面へ
+function sendToBack() {
+  if (!selectedElement) {
+    customAlert('要素を選択してください', { title: 'レイヤー操作' });
+    return;
+  }
+  
+  const elements = getAllDraggableElements();
+  const minZ = Math.min(...elements.map(el => getElementZIndex(el)), 1);
+  setElementZIndex(selectedElement, Math.max(minZ - 1, 1));
+  saveHistory();
+}
+
+// レイヤーボタンのイベントリスナー
+const layerToFrontBtn = document.getElementById('layerToFrontBtn');
+if (layerToFrontBtn) {
+  layerToFrontBtn.addEventListener('click', bringToFront);
+}
+
+const layerForwardBtn = document.getElementById('layerForwardBtn');
+if (layerForwardBtn) {
+  layerForwardBtn.addEventListener('click', bringForward);
+}
+
+const layerBackwardBtn = document.getElementById('layerBackwardBtn');
+if (layerBackwardBtn) {
+  layerBackwardBtn.addEventListener('click', sendBackward);
+}
+
+const layerToBackBtn = document.getElementById('layerToBackBtn');
+if (layerToBackBtn) {
+  layerToBackBtn.addEventListener('click', sendToBack);
+}
+
+// グローバル変数として公開
+window.selectedElement = selectedElement;
+window.selectElement = selectElement;
 </script>
+

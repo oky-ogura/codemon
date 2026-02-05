@@ -870,6 +870,7 @@ window.collectCurrentElements = function collectCurrentElements() {
     const targetSystemId = btn.getAttribute('data-target-system');
     const algorithmId = btn.getAttribute('data-algorithm-id');
     const algorithmXml = btn.getAttribute('data-algorithm-xml');
+    const buttonId = btn.getAttribute('data-button-id');
     let buttonText = btn.textContent.trim();
     buttonText = buttonText.replace(/≡/g, '').trim();
     
@@ -886,6 +887,7 @@ window.collectCurrentElements = function collectCurrentElements() {
         color: btn.style.color
       },
       element_config: {
+        button_id: buttonId,
         target_system_id: targetSystemId,
         algorithm_id: algorithmId,
         algorithm_xml: algorithmXml
@@ -973,7 +975,11 @@ window.executeAlgorithmFromButton = async function executeAlgorithmFromButton(bl
       console.log('✅ Blockly loaded successfully');
     } catch (error) {
       console.error('❌ Blockly loading failed:', error);
-      const retry = confirm('Blocklyの読み込みに失敗しました。\n\nページをリロードして再度お試しください。\n\nリロードしますか？');
+      const retry = await customConfirm('Blocklyの読み込みに失敗しました。\n\nページをリロードして再度お試しください。\n\nリロードしますか？', {
+        title: '読み込みエラー',
+        confirmText: 'リロードする',
+        cancelText: 'キャンセル'
+      });
       if (retry) {
         location.reload();
       }
@@ -982,6 +988,18 @@ window.executeAlgorithmFromButton = async function executeAlgorithmFromButton(bl
   }
   
   console.log('✅ Blockly ready, executing algorithm');
+
+  // ⚡ 重要: XMLからブロックを復元する前にsystemsListを設定
+  const currentSystemId = {{ system.system_id|default:"null" }};
+  const otherSystems = {{ other_systems_json|safe }};
+  window._systemsList = otherSystems || [];
+  if (currentSystemId) {
+    window._systemsList.unshift({
+      system_id: currentSystemId,
+      system_name: '現在のシステム'
+    });
+  }
+  console.log('✅ window._systemsList設定完了:', window._systemsList.length, '件');
 
   try {
     // 非表示のBlocklyワークスペースを作成
@@ -1007,29 +1025,143 @@ window.executeAlgorithmFromButton = async function executeAlgorithmFromButton(bl
       };
     }
 
+    // システム条件ブロック用のヘルパー関数
+    window.systemConditionHelpers = {
+      systemsCache: null,
+      
+      // 利用可能なシステム一覧を取得（キャッシュ付き）
+      async getSystemList() {
+        if (this.systemsCache) {
+          return this.systemsCache;
+        }
+        
+        const currentSystemId = {{ system.system_id|default:"null" }};
+        const otherSystems = {{ other_systems_json|safe }};
+        
+        const systems = [
+          ['せんたくしてね', '0']
+        ];
+        
+        if (currentSystemId) {
+          systems.push(['現在のシステム', String(currentSystemId)]);
+        }
+        
+        if (otherSystems && Array.isArray(otherSystems)) {
+          otherSystems.forEach(sys => {
+            systems.push([sys.system_name, String(sys.system_id)]);
+          });
+        }
+        
+        this.systemsCache = systems;
+        
+        // Blockly実行用にグローバル変数に設定
+        window._systemsList = otherSystems || [];
+        if (currentSystemId) {
+          window._systemsList.unshift({
+            system_id: currentSystemId,
+            system_name: '現在のシステム'
+          });
+        }
+        
+        return systems;
+      },
+      
+      // 指定システムのラベル一覧を取得
+      async getSystemLabels(systemId) {
+        if (!systemId || systemId === '0') {
+          return [['せんたくしてね', '']];
+        }
+        
+        try {
+          const response = await fetch(`/accounts/system/api/system-elements/${systemId}/`);
+          if (!response.ok) throw new Error('Failed to fetch labels');
+          
+          const data = await response.json();
+          const labels = [['せんたくしてね', '']];
+          
+          if (data.elements && Array.isArray(data.elements)) {
+            data.elements.forEach(elem => {
+              if (elem.element_label) {
+                labels.push([elem.element_label, JSON.stringify({
+                  label: elem.element_label,
+                  type: elem.element_type,
+                  config: elem.element_config
+                })]);
+              }
+            });
+          }
+          
+          return labels;
+        } catch (error) {
+          console.error('ラベル取得エラー:', error);
+          return [['エラー', '']];
+        }
+      },
+      
+      // チェックボックス/ラジオの項目一覧を取得
+      getCheckboxItems(labelData) {
+        try {
+          const data = JSON.parse(labelData);
+          if (data.config && data.config.options && Array.isArray(data.config.options)) {
+            const items = [['せんたくしてね', '']];
+            data.config.options.forEach(opt => {
+              items.push([opt, opt]);
+            });
+            return items;
+          }
+        } catch (e) {
+          console.error('項目取得エラー:', e);
+        }
+        return [['項目なし', '']];
+      }
+    };
+
+    // system_conditionブロック（mutation機能付き）
     if (!Blockly.Blocks['system_condition']) {
       Blockly.Blocks['system_condition'] = {
         init: function() {
-          this.appendDummyInput()
+          const block = this;
+          
+          // SYSTEM_IDドロップダウン: menuGenerator_を関数で設定し、常に最新のwindow._systemsListを参照
+          const systemDropdown = new Blockly.FieldDropdown(function() {
+            const systems = window._systemsList || [];
+            if (systems.length > 0) {
+              return [['せんたくしてね', '0'], ...systems.map(sys => [sys.system_name, sys.system_id.toString()])];
+            }
+            return [['システムがありません', '0']];
+          });
+          
+          this.appendDummyInput('SYSTEM_INPUT')
             .appendField("もし システム")
-            .appendField(new Blockly.FieldTextInput("0"), "SYSTEM_ID")
+            .appendField(systemDropdown, "SYSTEM_ID")
             .appendField("の");
-          this.appendDummyInput()
+          
+          // ELEMENT_NAMEドロップダウン: 任意の値を許可するvalidator設定
+          const labelDropdown = new Blockly.FieldDropdown([['せんたくしてね', '']]);
+          labelDropdown.setValidator(function(newValue) {
+            // 任意の値を許可（エラーを防ぐ）
+            return newValue;
+          });
+          
+          this.appendDummyInput('LABEL_INPUT')
             .appendField("ラベル：")
-            .appendField(new Blockly.FieldTextInput("文字："), "ELEMENT_NAME")
-            .appendField("が");
-          this.appendDummyInput()
+            .appendField(labelDropdown, "ELEMENT_NAME");
+          
+          this.appendDummyInput('CONDITION_INPUT')
+            .appendField("が")
             .appendField(new Blockly.FieldDropdown([
-              ["=", "EQ"],
-              ["≠", "NEQ"],
-              [">", "GT"],
-              ["<", "LT"],
-              ["≧", "GTE"],
-              ["≦", "LTE"],
-              ["含む", "CONTAINS"]
+              ["=","EQ"],
+              ["≠","NEQ"],
+              [">","GT"],
+              ["<","LT"],
+              ["≥","GTE"],
+              ["≤","LTE"],
+              ["ふくむ","CONTAINS"],
+              ["チェックされている","CHECKED"]
             ]), "OP")
             .appendField(new Blockly.FieldTextInput("あたい"), "VALUE")
             .appendField("なら");
+          
           this.appendStatementInput("DO")
             .appendField("すること");
           this.appendStatementInput("ELSE")
@@ -1037,10 +1169,150 @@ window.executeAlgorithmFromButton = async function executeAlgorithmFromButton(bl
           this.setPreviousStatement(true);
           this.setNextStatement(true);
           this.setColour(290);
+          
+          this.itemCount = 0;
+          this.isCheckboxMode = false;
+        },
+        
+        // mutation機能: 保存
+        mutationToDom: function() {
+          const container = document.createElement('mutation');
+          container.setAttribute('item_count', this.itemCount || 0);
+          container.setAttribute('is_checkbox', this.isCheckboxMode || false);
+          if (this.currentItems) {
+            container.setAttribute('items_json', JSON.stringify(this.currentItems));
+          }
+          // SYSTEM_IDとELEMENT_NAMEも保存
+          const systemIdField = this.getField('SYSTEM_ID');
+          const elementNameField = this.getField('ELEMENT_NAME');
+          if (systemIdField) {
+            container.setAttribute('system_id_value', systemIdField.getValue());
+          }
+          if (elementNameField) {
+            container.setAttribute('element_name_value', elementNameField.getValue());
+          }
+          for (let i = 0; i < (this.itemCount || 0); i++) {
+            const field = this.getField('ITEM_' + i);
+            if (field) {
+              container.setAttribute('item_' + i + '_value', field.getValue());
+            }
+          }
+          return container;
+        },
+        
+        // mutation機能: 復元
+        domToMutation: function(xmlElement) {
+          const itemCount = parseInt(xmlElement.getAttribute('item_count')) || 0;
+          const isCheckbox = xmlElement.getAttribute('is_checkbox') === 'true';
+          const itemsJson = xmlElement.getAttribute('items_json');
+          const systemIdValue = xmlElement.getAttribute('system_id_value');
+          const elementNameValue = xmlElement.getAttribute('element_name_value');
+          
+          // SYSTEM_IDとELEMENT_NAMEのドロップダウン選択肢を更新
+          const systems = window._systemsList || [];
+          if (systems.length > 0) {
+            const systemOptions = [['せんたくしてね', '0'], ...systems.map(sys => [sys.system_name, sys.system_id.toString()])];
+            const systemField = this.getField('SYSTEM_ID');
+            if (systemField) {
+              systemField.menuGenerator_ = systemOptions;
+              // 保存された値を復元
+              if (systemIdValue) {
+                setTimeout(() => {
+                  systemField.setValue(systemIdValue);
+                }, 50);
+              }
+            }
+          }
+          
+          // ELEMENT_NAMEフィールドの値を復元
+          if (elementNameValue) {
+            const elementNameField = this.getField('ELEMENT_NAME');
+            if (elementNameField) {
+              // 選択肢を設定（現在は空でもOK、XMLの値があれば受け入れる）
+              elementNameField.menuGenerator_ = [[elementNameValue, elementNameValue], ['せんたくしてね', '']];
+              setTimeout(() => {
+                elementNameField.setValue(elementNameValue);
+              }, 50);
+            }
+          }
+          
+          if (isCheckbox && itemCount > 0) {
+            this.isCheckboxMode = true;
+            this.currentItems = itemsJson ? JSON.parse(itemsJson) : [['せんたくしてね', '']];
+            
+            if (this.getInput('CONDITION_INPUT')) {
+              this.removeInput('CONDITION_INPUT');
+            }
+            
+            const doConnection = this.getInput('DO') ? this.getInput('DO').connection.targetConnection : null;
+            const elseConnection = this.getInput('ELSE') ? this.getInput('ELSE').connection.targetConnection : null;
+            if (this.getInput('DO')) this.removeInput('DO');
+            if (this.getInput('ELSE')) this.removeInput('ELSE');
+            
+            this.appendDummyInput('ITEM_INPUT_0')
+              .appendField("の　項目：")
+              .appendField(new Blockly.FieldDropdown(this.currentItems), "ITEM_0");
+            
+            for (let i = 1; i < itemCount; i++) {
+              this.appendDummyInput('ITEM_INPUT_' + i)
+                .appendField("　　　　　")
+                .appendField(new Blockly.FieldDropdown(this.currentItems), "ITEM_" + i);
+            }
+            
+            this.appendDummyInput('BUTTONS_INPUT');
+            
+            this.appendDummyInput('LOGIC_INPUT')
+              .appendField(new Blockly.FieldDropdown([
+                ["のみ","AND"],
+                ["ふくめる","OR"]
+              ]), "LOGIC")
+              .appendField("が");
+            
+            this.appendDummyInput('CHECK_STATUS_INPUT')
+              .appendField(new Blockly.FieldDropdown([
+                ["チェックされている","CHECKED"],
+                ["チェックされていない","UNCHECKED"]
+              ]), "CHECK_STATUS")
+              .appendField("なら");
+            
+            this.itemCount = itemCount;
+            
+            this.appendStatementInput("DO")
+              .appendField("すること");
+            this.appendStatementInput("ELSE")
+              .appendField("そうでなければ");
+            
+            if (doConnection) {
+              this.getInput('DO').connection.connect(doConnection);
+            }
+            if (elseConnection) {
+              this.getInput('ELSE').connection.connect(elseConnection);
+            }
+            
+            // ELEMENT_NAMEのドロップダウン選択肢も更新
+            const elementNameField = this.getField('ELEMENT_NAME');
+            if (elementNameField && this.currentItems) {
+              // currentItemsからラベル情報を含む選択肢を作成
+              // 注: currentItemsは項目一覧なので、ラベル選択肢は別途必要
+              // ここでは、XMLからELEMENT_NAMEの値が復元されることを期待
+            }
+            
+            setTimeout(() => {
+              for (let i = 0; i < itemCount; i++) {
+                const savedValue = xmlElement.getAttribute('item_' + i + '_value');
+                if (savedValue) {
+                  const field = this.getField('ITEM_' + i);
+                  if (field) {
+                    field.setValue(savedValue);
+                  }
+                }
+              }
+            }, 100);
+          }
         }
       };
     }
-
+    
     if (!Blockly.Blocks['display_system']) {
       Blockly.Blocks['display_system'] = {
         init: function() {
@@ -1071,6 +1343,55 @@ window.executeAlgorithmFromButton = async function executeAlgorithmFromButton(bl
     const xml = Blockly.utils.xml.textToDom(blocklyXml);
     Blockly.Xml.domToWorkspace(xml, workspace);
 
+    // 🔧 XMLからの復元エラーを修正: system_conditionブロックのフィールド値を復元
+    const xmlDoc = Blockly.utils.xml.textToDom(blocklyXml);
+    const systemConditionBlocks = xmlDoc.querySelectorAll('block[type="system_condition"]');
+    systemConditionBlocks.forEach(blockXml => {
+      const mutationTag = blockXml.querySelector('mutation');
+      if (mutationTag) {
+        const systemIdValue = mutationTag.getAttribute('system_id_value');
+        const elementNameValue = mutationTag.getAttribute('element_name_value');
+        
+        if (systemIdValue || elementNameValue) {
+          // ワークスペース内の対応するブロックを見つける
+          const blockId = blockXml.getAttribute('id');
+          const block = workspace.getBlockById(blockId);
+          
+          if (block) {
+            // SYSTEM_IDフィールドの選択肢を更新して値を設定
+            if (systemIdValue) {
+              const systemField = block.getField('SYSTEM_ID');
+              if (systemField && window._systemsList) {
+                const systemOptions = [['せんたくしてね', '0'], ...window._systemsList.map(sys => [sys.system_name, sys.system_id.toString()])];
+                systemField.menuGenerator_ = systemOptions;
+                setTimeout(() => {
+                  systemField.setValue(systemIdValue);
+                  console.log('✅ SYSTEM_ID復元:', systemIdValue);
+                }, 10);
+              }
+            }
+            
+            // ELEMENT_NAMEフィールドの選択肢を更新して値を設定
+            if (elementNameValue) {
+              const elementField = block.getField('ELEMENT_NAME');
+              if (elementField) {
+                console.log('🔧 ELEMENT_NAME復元開始:', elementNameValue);
+                elementField.menuGenerator_ = [[elementNameValue, elementNameValue], ['せんたくしてね', '']];
+                setTimeout(() => {
+                  try {
+                    elementField.setValue(elementNameValue);
+                    console.log('✅ ELEMENT_NAME復元完了:', elementNameValue);
+                  } catch (e) {
+                    console.error('❌ ELEMENT_NAME復元エラー:', e);
+                  }
+                }, 100);
+              }
+            }
+          }
+        }
+      }
+    });
+
     // ブロックを直接処理
     const blocks = workspace.getTopBlocks(true);
     
@@ -1087,137 +1408,258 @@ window.executeAlgorithmFromButton = async function executeAlgorithmFromButton(bl
         case 'system_condition':
           const sysId = block.getFieldValue('SYSTEM_ID');
           const elementName = block.getFieldValue('ELEMENT_NAME');
-          const op = block.getFieldValue('OP');
-          const expectedValue = block.getFieldValue('VALUE');
           
-          console.log('🔍 条件ブロック詳細:', {
+          // チェックボックスモードかどうかを判定
+          const isCheckboxMode = block.getField('LOGIC') !== null;
+          
+          console.log('🔍 system_condition実行開始:', {
             systemId: sysId,
             elementName: elementName,
-            operator: op,
-            expectedValue: expectedValue
+            isCheckboxMode: isCheckboxMode
           });
           
-          try {
-            // 現在の実行画面から要素の値を取得
-            const previewArea = document.getElementById('previewSlideArea');
-            if (!previewArea) {
-              throw new Error('実行画面が見つかりません');
-            }
+          let conditionMet = false;
+          
+          if (isCheckboxMode) {
+            // チェックボックス/ラジオモード
+            const logic = block.getFieldValue('LOGIC'); // AND or OR
+            const checkStatus = block.getFieldValue('CHECK_STATUS'); // CHECKED or UNCHECKED
             
-            // ラベルが一致する入力要素を探す
-            let actualValue = '';
-            
-            // テキスト入力・数値入力・日時入力を探す
-            const inputContainers = previewArea.querySelectorAll('.input-container');
-            for (const container of inputContainers) {
-              const label = container.querySelector('.input-label');
-              if (label && label.textContent.trim() === elementName) {
-                const input = container.querySelector('.input-box');
-                if (input) {
-                  actualValue = input.value || '';
-                  console.log(`📍 入力欄「${elementName}」から値を取得: "${actualValue}"`);
-                  break;
+            // 選択された項目を取得（ITEM_0, ITEM_1, ITEM_2...）
+            const selectedItems = [];
+            for (let i = 0; i < 10; i++) {
+              const field = block.getField('ITEM_' + i);
+              if (field) {
+                const value = field.getValue();
+                if (value && value !== '' && value !== 'せんたくしてね') {
+                  selectedItems.push(value);
                 }
               }
             }
             
-            // チェックボックスグループを探す（グループラベルまたは選択された項目のラベルで検索）
-            if (!actualValue) {
+            console.log('🔍 チェックボックス条件:', {
+              systemId: sysId,
+              elementName: elementName,
+              selectedItems: selectedItems,
+              logic: logic,
+              checkStatus: checkStatus
+            });
+            
+            // 実行画面からチェックされている項目を取得
+            const previewArea = document.getElementById('previewSlideArea');
+            if (previewArea) {
+              const checkedItems = [];
+              
+              // ラベル名からelementNameのJSONを取り出す
+              let targetLabel = elementName;
+              try {
+                const parsed = JSON.parse(elementName);
+                if (parsed.label) targetLabel = parsed.label;
+                console.log('📌 検索するラベル名:', targetLabel);
+              } catch (e) {
+                console.log('📌 検索するラベル名（JSON解析なし）:', targetLabel);
+              }
+              
+              // チェックボックスグループを探す
               const checkboxGroups = previewArea.querySelectorAll('.checkbox-group');
+              console.log('📋 見つかったチェックボックスグループ数:', checkboxGroups.length);
+              
               for (const group of checkboxGroups) {
                 const groupLabel = group.querySelector('.checkbox-group-label');
                 const groupLabelText = groupLabel ? groupLabel.textContent.trim() : '';
+                console.log('  - グループラベル:', groupLabelText);
                 
-                // グループラベルが一致する場合、選択された項目を取得
-                if (groupLabelText === elementName) {
-                  const checkedItems = [];
+                if (groupLabelText === targetLabel) {
+                  console.log('✅ 一致するグループを発見!');
                   const rows = group.querySelectorAll('.checkbox-row');
                   rows.forEach(row => {
                     const checkbox = row.querySelector('input[type="checkbox"]');
                     const label = row.querySelector('.checkbox-label');
-                    if (checkbox && checkbox.checked && label) {
-                      checkedItems.push(label.textContent.trim());
+                    if (checkbox && label) {
+                      const labelText = label.textContent.trim();
+                      const isChecked = checkbox.checked;
+                      console.log(`  ・項目「${labelText}」: ${isChecked ? 'チェック✓' : 'チェックなし☐'}`);
+                      if (isChecked) {
+                        checkedItems.push(labelText);
+                      }
                     }
                   });
-                  actualValue = checkedItems.join(',');
-                  console.log(`📍 チェックボックスグループ「${elementName}」から選択項目を取得: "${actualValue}"`);
                   break;
                 }
-                
-                // 選択された項目のラベルが一致する場合
-                const rows = group.querySelectorAll('.checkbox-row');
-                for (const row of rows) {
-                  const checkbox = row.querySelector('input[type="checkbox"]');
-                  const label = row.querySelector('.checkbox-label');
-                  if (checkbox && checkbox.checked && label && label.textContent.trim() === expectedValue) {
-                    actualValue = label.textContent.trim();
-                    console.log(`📍 チェックボックス「${expectedValue}」が選択されています`);
+              }
+              
+              console.log('📍 実際にチェックされている項目:', checkedItems);
+              console.log('📍 判定する項目:', selectedItems);
+              
+              // 判定ロジック
+              if (checkStatus === 'CHECKED') {
+                if (logic === 'AND') {
+                  // 「のみ」= 完全一致（選択した項目だけがチェックされている）
+                  const selectedSet = new Set(selectedItems);
+                  const checkedSet = new Set(checkedItems);
+                  
+                  const sameSize = selectedSet.size === checkedSet.size;
+                  const allMatch = [...selectedSet].every(item => checkedSet.has(item));
+                  
+                  conditionMet = sameSize && allMatch;
+                  
+                  console.log(`✓ 「のみ」判定: 項目数一致=${sameSize}, 全項目一致=${allMatch} → ${conditionMet ? '✅条件満たす' : '❌条件満たさない'}`);
+                } else {
+                  // 「ふくめる」= 選択した項目が1つ以上チェックされている
+                  conditionMet = selectedItems.some(item => checkedItems.includes(item));
+                  console.log(`✓ 「ふくめる」判定: ${conditionMet ? '✅条件満たす' : '❌条件満たさない'}`);
+                }
+              } else {
+                // UNCHECKED = チェックされていない
+                if (logic === 'AND') {
+                  // すべての項目がチェックされていない
+                  conditionMet = selectedItems.every(item => !checkedItems.includes(item));
+                  console.log(`✓ 「のみ」+「チェックされていない」判定: ${conditionMet ? '✅条件満たす' : '❌条件満たさない'}`);
+                } else {
+                  // いずれかの項目がチェックされていない
+                  conditionMet = selectedItems.some(item => !checkedItems.includes(item));
+                  console.log(`✓ 「ふくめる」+「チェックされていない」判定: ${conditionMet ? '✅条件満たす' : '❌条件満たさない'}`);
+                }
+              }
+            } else {
+              console.error('❌ previewSlideAreaが見つかりません');
+            }
+          } else {
+            // テキスト入力モード（従来の処理）
+            const op = block.getFieldValue('OP');
+            const expectedValue = block.getFieldValue('VALUE');
+            
+            console.log('🔍 条件ブロック詳細:', {
+              systemId: sysId,
+              elementName: elementName,
+              operator: op,
+              expectedValue: expectedValue
+            });
+            
+            try {
+              // 現在の実行画面から要素の値を取得
+              const previewArea = document.getElementById('previewSlideArea');
+              if (!previewArea) {
+                throw new Error('実行画面が見つかりません');
+              }
+              
+              // ラベルが一致する入力要素を探す
+              let actualValue = '';
+              
+              // テキスト入力・数値入力・日時入力を探す
+              const inputContainers = previewArea.querySelectorAll('.input-container');
+              for (const container of inputContainers) {
+                const label = container.querySelector('.input-label');
+                if (label && label.textContent.trim() === elementName) {
+                  const input = container.querySelector('.input-box');
+                  if (input) {
+                    actualValue = input.value || '';
+                    console.log(`📍 入力欄「${elementName}」から値を取得: "${actualValue}"`);
                     break;
                   }
                 }
-                if (actualValue) break;
               }
-            }
-            
-            // ラジオボタングループを探す
-            if (!actualValue) {
-              const radioGroups = previewArea.querySelectorAll('.radio-group');
-              for (const group of radioGroups) {
-                const groupLabel = group.querySelector('.radio-group-label');
-                const groupLabelText = groupLabel ? groupLabel.textContent.trim() : '';
-                
-                // グループラベルが一致する場合、選択された項目を取得
-                if (groupLabelText === elementName) {
-                  const rows = group.querySelectorAll('.radio-row');
+              
+              // チェックボックスグループを探す（グループラベルまたは選択された項目のラベルで検索）
+              if (!actualValue) {
+                const checkboxGroups = previewArea.querySelectorAll('.checkbox-group');
+                for (const group of checkboxGroups) {
+                  const groupLabel = group.querySelector('.checkbox-group-label');
+                  const groupLabelText = groupLabel ? groupLabel.textContent.trim() : '';
+                  
+                  // グループラベルが一致する場合、選択された項目を取得
+                  if (groupLabelText === elementName) {
+                    const checkedItems = [];
+                    const rows = group.querySelectorAll('.checkbox-row');
+                    rows.forEach(row => {
+                      const checkbox = row.querySelector('input[type="checkbox"]');
+                      const label = row.querySelector('.checkbox-label');
+                      if (checkbox && checkbox.checked && label) {
+                        checkedItems.push(label.textContent.trim());
+                      }
+                    });
+                    actualValue = checkedItems.join(',');
+                    console.log(`📍 チェックボックスグループ「${elementName}」から選択項目を取得: "${actualValue}"`);
+                    break;
+                  }
+                  
+                  // 選択された項目のラベルが一致する場合
+                  const rows = group.querySelectorAll('.checkbox-row');
                   for (const row of rows) {
-                    const radio = row.querySelector('input[type="radio"]');
-                    const label = row.querySelector('.radio-label');
-                    if (radio && radio.checked && label) {
+                    const checkbox = row.querySelector('input[type="checkbox"]');
+                    const label = row.querySelector('.checkbox-label');
+                    if (checkbox && checkbox.checked && label && label.textContent.trim() === expectedValue) {
                       actualValue = label.textContent.trim();
-                      console.log(`📍 ラジオボタングループ「${elementName}」から選択項目を取得: "${actualValue}"`);
+                      console.log(`📍 チェックボックス「${expectedValue}」が選択されています`);
                       break;
                     }
                   }
-                  break;
+                  if (actualValue) break;
                 }
               }
-            }
-            
-            // テキストボックスを探す
-            if (!actualValue) {
-              const textContainers = previewArea.querySelectorAll('.text-input-container');
-              for (const container of textContainers) {
-                const textDiv = container.querySelector('.text-input');
-                if (textDiv && textDiv.textContent.trim() === elementName) {
-                  actualValue = textDiv.textContent || '';
-                  console.log(`📍 テキストボックス「${elementName}」から値を取得: "${actualValue}"`);
-                  break;
+              
+              // ラジオボタングループを探す
+              if (!actualValue) {
+                const radioGroups = previewArea.querySelectorAll('.radio-group');
+                for (const group of radioGroups) {
+                  const groupLabel = group.querySelector('.radio-group-label');
+                  const groupLabelText = groupLabel ? groupLabel.textContent.trim() : '';
+                  
+                  // グループラベルが一致する場合、選択された項目を取得
+                  if (groupLabelText === elementName) {
+                    const rows = group.querySelectorAll('.radio-row');
+                    for (const row of rows) {
+                      const radio = row.querySelector('input[type="radio"]');
+                      const label = row.querySelector('.radio-label');
+                      if (radio && radio.checked && label) {
+                        actualValue = label.textContent.trim();
+                        console.log(`📍 ラジオボタングループ「${elementName}」から選択項目を取得: "${actualValue}"`);
+                        break;
+                      }
+                    }
+                    break;
+                  }
                 }
               }
+              
+              // テキストボックスを探す
+              if (!actualValue) {
+                const textContainers = previewArea.querySelectorAll('.text-input-container');
+                for (const container of textContainers) {
+                  const textDiv = container.querySelector('.text-input');
+                  if (textDiv && textDiv.textContent.trim() === elementName) {
+                    actualValue = textDiv.textContent || '';
+                    console.log(`📍 テキストボックス「${elementName}」から値を取得: "${actualValue}"`);
+                    break;
+                  }
+                }
+              }
+              
+              switch(op) {
+                case 'EQ': conditionMet = (actualValue == expectedValue); break;
+                case 'NEQ': conditionMet = (actualValue != expectedValue); break;
+                case 'GT': conditionMet = (Number(actualValue) > Number(expectedValue)); break;
+                case 'LT': conditionMet = (Number(actualValue) < Number(expectedValue)); break;
+                case 'GTE': conditionMet = (Number(actualValue) >= Number(expectedValue)); break;
+                case 'LTE': conditionMet = (Number(actualValue) <= Number(expectedValue)); break;
+                case 'CONTAINS': conditionMet = actualValue.includes(expectedValue); break;
+                case 'CHECKED': conditionMet = actualValue !== ''; break;
+              }
+              
+              console.log(`🔍 「${elementName}」の値: "${actualValue}" ${conditionMet ? '✓条件満たす' : '✗条件満たさない'} (期待値: "${expectedValue}", 演算子: ${op})`);
+              
+            } catch (error) {
+              console.error('❌ エラー:', error.message);
             }
-            
-            let conditionMet = false;
-            switch(op) {
-              case 'EQ': conditionMet = (actualValue == expectedValue); break;
-              case 'NEQ': conditionMet = (actualValue != expectedValue); break;
-              case 'GT': conditionMet = (Number(actualValue) > Number(expectedValue)); break;
-              case 'LT': conditionMet = (Number(actualValue) < Number(expectedValue)); break;
-              case 'GTE': conditionMet = (Number(actualValue) >= Number(expectedValue)); break;
-              case 'LTE': conditionMet = (Number(actualValue) <= Number(expectedValue)); break;
-              case 'CONTAINS': conditionMet = actualValue.includes(expectedValue); break;
-            }
-            
-            console.log(`🔍 「${elementName}」の値: "${actualValue}" ${conditionMet ? '✓条件満たす' : '✗条件満たさない'} (期待値: "${expectedValue}", 演算子: ${op})`);
-            
-            if (conditionMet) {
-              const doBlock = block.getInputTargetBlock('DO');
-              if (doBlock) await processBlock(doBlock);
-            } else {
-              const elseBlock = block.getInputTargetBlock('ELSE');
-              if (elseBlock) await processBlock(elseBlock);
-            }
-          } catch (error) {
-            console.error('❌ エラー:', error.message);
+          }
+          
+          // 条件に応じてDOまたはELSEを実行
+          if (conditionMet) {
+            const doBlock = block.getInputTargetBlock('DO');
+            if (doBlock) await processBlock(doBlock);
+          } else {
+            const elseBlock = block.getInputTargetBlock('ELSE');
+            if (elseBlock) await processBlock(elseBlock);
           }
           break;
           

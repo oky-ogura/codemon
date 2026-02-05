@@ -1,4 +1,6 @@
 {% extends 'base.html' %}
+{% block global_navigation %}{% endblock %}
+{% block global_character_widget %}{% endblock %}
 {% load static %}
 
 {% block title %}メンバー削除確認 - Codemon{% endblock %}
@@ -11,22 +13,151 @@
 {% endblock %}
 
 {% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
 <style>
-  .container{width:720px;margin:160px auto 80px;background:#fff;border:1px solid #ddd;padding:40px;box-sizing:border-box;box-shadow:0 6px 20px rgba(0,0,0,0.05);}
-  .header{text-align:center;margin-bottom:30px;}
-  .header h1{font-size:22px;color:#333;margin:0 0 10px;}
-  .confirm-box{background:#f9f9f9;border:2px solid #ddd;border-radius:12px;padding:30px;margin:20px 0;}
-  .confirm-row{margin:12px 0;font-size:16px;color:#333;}
-  .confirm-row strong{display:inline-block;width:100px;}
-  .actions{display:flex;justify-content:space-between;margin-top:30px;}
-  .btn{padding:12px 24px;border-radius:8px;border:none;cursor:pointer;font-size:16px;text-decoration:none;display:inline-block;}
-  .btn-cancel{background:#e0e6ef;color:#333;}
-  .btn-delete{background:#ff4444;color:#fff;}
-  .btn-cancel:hover{background:#d0d6df;}
-  .btn-delete:hover{background:#dd3333;}
+  body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100vh;
+    font-family: 'M PLUS Rounded 1c', sans-serif;
+    overflow-x: hidden;
+  }
+
+  .container {
+    max-width: 720px;
+    margin: 100px auto 80px;
+    background: white;
+    border-radius: 30px;
+    padding: 40px;
+    box-sizing: border-box;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+
+  .header h1 {
+    font-size: 28px;
+    font-weight: 900;
+    color: #333;
+    margin: 0 0 15px;
+    position: relative;
+    padding-bottom: 15px;
+  }
+
+  .header h1::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 5px;
+    background: linear-gradient(135deg, #ff7675, #ff4d4d);
+    border-radius: 3px;
+  }
+
+  .header p {
+    font-size: 16px;
+    font-weight: 700;
+    color: #666;
+    margin: 0;
+  }
+
+  .confirm-box {
+    background: linear-gradient(135deg, #f0f4f8, #e6eef5);
+    border: 3px solid #d0dfe8;
+    border-radius: 25px;
+    padding: 30px;
+    margin: 20px 0;
+    box-shadow: 0 4px 0 #c0d5e0;
+  }
+
+  .confirm-row {
+    margin: 15px 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .confirm-row strong {
+    width: 100px;
+    font-weight: 900;
+    color: #555;
+  }
+
+  .actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-top: 30px;
+  }
+
+  .btn {
+    padding: 15px 35px;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 900;
+    font-family: 'M PLUS Rounded 1c', sans-serif;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .btn-cancel {
+    background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+    color: white;
+    box-shadow: 0 5px 0 #6d7a7b;
+  }
+
+  .btn-cancel:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 0 #6d7a7b;
+  }
+
+  .btn-delete {
+    background: linear-gradient(135deg, #ff7675, #ff4d4d);
+    color: white;
+    box-shadow: 0 5px 0 #cc3333;
+  }
+
+  .btn-delete:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 0 #cc3333;
+  }
+
+  .btn:active {
+    transform: scale(0.95);
+    box-shadow: none;
+  }
   
-  @media(max-width:720px){
-    .container{margin-top:120px;width:90%;padding:20px;}
+  @media(max-width: 720px) {
+    .container {
+      margin-top: 120px;
+      width: 90%;
+      padding: 30px 20px;
+    }
+
+    .actions {
+      flex-direction: column;
+    }
+
+    .btn {
+      width: 100%;
+      justify-content: center;
+    }
   }
 </style>
 {% endblock %}
@@ -51,10 +182,14 @@
     </div>
 
     <div class="actions">
-      <a href="{% url 'accounts:group_menu' group.group_id %}" class="btn btn-cancel">キャンセル</a>
+      <a href="{% url 'accounts:group_menu' group.group_id %}" class="btn btn-cancel">
+        <i class="fas fa-times"></i> キャンセル
+      </a>
       <form method="post" action="{% url 'codemon:group_remove_member' group.group_id member.user_id %}" style="display:inline;">
         {% csrf_token %}
-        <button type="submit" class="btn btn-delete">削除する</button>
+        <button type="submit" class="btn btn-delete">
+          <i class="fas fa-trash-alt"></i> 削除する
+        </button>
       </form>
     </div>
   </div>

@@ -1,3 +1,4 @@
+import json
 from functools import wraps
 import uuid
 import re
@@ -7,9 +8,25 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.db import models
 from django.contrib import messages
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.decorators import login_required as _login_required
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse, HttpResponseForbidden, FileResponse
+# チェックリストアイテム一覧API
+from django.views.decorators.http import require_GET
+
+@require_GET
+def get_checklist_items_api(request, checklist_id):
+    """
+    特定のチェックリストに紐づくアイテムをJSON形式で返します
+    """
+    # checklist_id に紐づくアイテムを取得
+    # フィールド名（checklist_id, item_text, is_done）は実際のモデルに合わせて修正してください
+    items = ChecklistItem.objects.filter(checklist_id=checklist_id).values(
+        'checklist_item_id', 'item_text', 'is_done'
+    )
+    # 取得したデータをリストにして返す
+    return JsonResponse({'items': list(items)})
 from django.urls import reverse
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
@@ -24,6 +41,40 @@ from accounts.models import Account
 from django.utils import timezone
 from django.db.models import Q
 from django.db import transaction
+
+# 実績システムのビューをインポート
+from .views_achievements import achievements_view, claim_achievement_reward, clear_achievement_notifications, claim_all_achievements
+
+
+# _get_write_owner: セッションまたはrequest.userからAccountを取得
+def _get_write_owner(request):
+    """セッション認証でユーザーを取得するヘルパー関数"""
+    print("=== DEBUG _get_write_owner ===")
+    print(f"Session keys: {list(request.session.keys())}")
+    print(f"is_account_authenticated: {request.session.get('is_account_authenticated')}")
+    print(f"account_user_id: {request.session.get('account_user_id')}")
+    
+    if not request.session.get('is_account_authenticated'):
+        print("Not authenticated - returning None")
+        return None
+    
+    user_id = request.session.get('account_user_id')
+    print(f"Got user_id from session: {user_id}")
+    
+    if not user_id:
+        print("No user_id in session - returning None")
+        return None
+    
+    try:
+        from accounts.models import Account
+        owner = Account.objects.get(user_id=user_id)
+        print(f"Found owner: {owner}")
+        return owner
+    except Account.DoesNotExist:
+        print(f"Account not found for user_id={user_id}")
+        return None
+
+
 
 # 互換用エイリアス（chat側のメッセージグループをGroup名で扱う既存コード向け）
 Group = MessegeGroup
@@ -44,6 +95,12 @@ def session_login_required(view_func):
 		
 	return _wrapped_view
 
+if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
+    def login_required(fn):
+        return fn
+else:
+    login_required = session_login_required
+
 # 教師専用のログイン必須デコレータ
 def teacher_login_required(view_func):
 	"""
@@ -58,6 +115,78 @@ def teacher_login_required(view_func):
 		
 	return _wrapped_view
 
+def account_or_login_required(view_func):
+    """
+    Custom decorator that checks both Django auth and custom session auth
+    """
+    def wrapper(request, *args, **kwargs):
+        print('DEBUG account_or_login_required: session =', dict(request.session))
+        print('DEBUG account_or_login_required: user =', request.user, 'is_authenticated =', getattr(request.user, 'is_authenticated', None))
+        # Check Django standard authentication
+        if request.user.is_authenticated:
+            print('DEBUG account_or_login_required: Django user authenticated')
+            return view_func(request, *args, **kwargs)
+        # Check custom session authentication
+        if request.session.get('is_account_authenticated'):
+            print('DEBUG account_or_login_required: session is_account_authenticated = True')
+            return view_func(request, *args, **kwargs)
+        # Not authenticated
+        print('DEBUG account_or_login_required: authentication failed, returning 401')
+        return JsonResponse({"error": "authentication required"}, status=401)
+    return wrapper
+
+@require_POST
+@account_or_login_required
+def checklist_toggle_item(request, pk, item_id):
+    print('DEBUG checklist_toggle_item: session =', dict(request.session))
+    print('DEBUG checklist_toggle_item: user =', request.user, 'is_authenticated =', getattr(request.user, 'is_authenticated', None))
+    print('DEBUG checklist_toggle_item: session =', dict(request.session))
+    print('DEBUG checklist_toggle_item: user =', getattr(request, 'user', None))
+    print('DEBUG checklist_toggle_item: COOKIES =', request.COOKIES)
+    print('DEBUG checklist_toggle_item: session =', dict(request.session))
+    owner = _get_write_owner(request)
+    if owner is None:
+        # AjaxリクエストならJsonResponseで401返す
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json':
+            return JsonResponse({'error': 'login required'}, status=401)
+        return redirect('accounts:student_login')
+
+    if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
+        cl = get_object_or_404(Checklist, checklist_id=pk)
+    else:
+        cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
+
+    item = get_object_or_404(ChecklistItem, checklist=cl, checklist_item_id=item_id)
+
+    # Ajax/JSからのリクエストの場合、is_done値を受け取る
+    import json
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        is_done = data.get('is_done', None)
+        if isinstance(is_done, bool):
+            item.is_done = is_done
+            item.save()
+            
+            # 実績チェック（項目を完了した場合のみ）
+            if is_done:
+                from codemon.achievement_utils import update_checklist_complete_count
+                update_checklist_complete_count(owner)
+            
+            return JsonResponse({'status': 'ok', 'is_done': item.is_done})
+        # is_doneがboolでない場合は反転（従来互換）
+    except Exception:
+        pass
+
+    # フォールバック: 反転(従来のフォームPOST用)
+    item.is_done = not item.is_done
+    item.save()
+    
+    # 実績チェック（項目を完了した場合のみ）
+    if item.is_done:
+        from codemon.achievement_utils import update_checklist_complete_count
+        update_checklist_complete_count(owner)
+    
+    return redirect('codemon:checklist_detail', pk=pk)
 # When ALLOW_ANONYMOUS_VIEWS is True (development convenience), make
 # login_required a no-op so pages can be opened without logging in.
 if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
@@ -478,9 +607,34 @@ def checklist_selection(request):
         pass
 
     # Account オブジェクトをテンプレートコンテキストに追加
+    # チェックリスト数と実績称号の取得
+    total_checklists = 0
+    achievement_title = 'チェックリスト入門'  # デフォルト称号
+    
+    if owner:
+        try:
+            from codemon.models import UserStats, Achievement, UserAchievement
+            stats, _ = UserStats.objects.get_or_create(user=owner)
+            total_checklists = stats.total_checklists_created
+            
+            # チェックリスト作成実績から現在の称号を取得（達成済みの最高ティア）
+            checklist_achievements = UserAchievement.objects.filter(
+                user=owner,
+                achievement__category='checklist_create',
+                is_achieved=True
+            ).select_related('achievement').order_by('-achievement__target_count')
+            
+            if checklist_achievements.exists():
+                achievement_title = checklist_achievements.first().achievement.name
+            
+        except Exception:
+            pass
+    
     context = {
         'checklists': checklists,
         'account': owner,  # Account オブジェクトをテンプレートで使用可能に
+        'total_checklists': total_checklists,
+        'achievement_title': achievement_title,
     }
 
     return render(request, 'codemon/checklist_selection.html', context)
@@ -521,73 +675,129 @@ def checklist_list(request):
     return render(request, 'codemon/checklist_list.html', {'checklists': checklists})
 
 def checklist_create(request):
-	# 認証チェックを最初に実行
-	owner = _get_write_owner(request)
-	if owner is None:
-		return redirect('accounts:student_login')
-	
-	if request.method == 'POST':
-		name = request.POST.get('name')
-		description = request.POST.get('description', '')
-		if name:
-			cl = Checklist.objects.create(user=owner, checklist_name=name, checklist_description=description)
+    # 認証チェックを最初に実行
+    owner = _get_write_owner(request)
+    if owner is None:
+        return redirect('accounts:student_login')
 
-			# チェックリスト項目の保存
-			sort_order = 1
-			for key, value in request.POST.items():
-				if key.startswith('item_text_') and value.strip():
-					ChecklistItem.objects.create(
-						checklist=cl,
-						item_text=value.strip(),
-						sort_order=sort_order
-					)
-					sort_order += 1
+    # セッションから編集データを取得
+    editing_id = request.session.get('editing_checklist_id')
+    editing_name = request.session.get('editing_checklist_name', '')
+    editing_description = request.session.get('editing_checklist_description', '')
+    editing_due_date = request.session.get('editing_checklist_due_date', '')
+    editing_items = request.session.get('editing_checklist_items', [])
 
-			messages.success(request, 'チェックリストを作成しました。')
-			return redirect('codemon:checklist_detail', pk=cl.checklist_id)
-	return render(request, 'codemon/checklist_create.html', {'user': owner})
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        description = request.POST.get('description', '')
+        due_date_str = request.POST.get('due_date', '')
+        
+        # 期限日の処理
+        due_date = None
+        if due_date_str:
+            try:
+                from datetime import datetime
+                due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                pass
+        
+        if name:
+            # 編集モードの場合は既存のチェックリストを更新
+            if editing_id:
+                cl = get_object_or_404(Checklist, checklist_id=editing_id, user=owner)
+                cl.checklist_name = name
+                cl.checklist_description = description
+                cl.due_date = due_date
+                cl.save()
+                
+                # 既存の項目を削除
+                cl.items.all().delete()
+            else:
+                # 新規作成
+                cl = Checklist.objects.create(
+                    user=owner, 
+                    checklist_name=name, 
+                    checklist_description=description,
+                    due_date=due_date
+                )
+
+            # チェックリスト項目の保存
+            items = request.POST.getlist('items[]')
+            sort_order = 1
+            for value in items:
+                if value.strip():
+                    ChecklistItem.objects.create(
+                        checklist=cl,
+                        item_text=value.strip(),
+                        sort_order=sort_order
+                    )
+                    sort_order += 1
+
+            # セッションをクリア
+            request.session.pop('editing_checklist_id', None)
+            request.session.pop('editing_checklist_name', None)
+            request.session.pop('editing_checklist_description', None)
+            request.session.pop('editing_checklist_due_date', None)
+            request.session.pop('editing_checklist_items', None)
+
+            # 実績チェック（新規作成の場合のみ）
+            if not editing_id:
+                from codemon.achievement_utils import update_checklist_create_count
+                update_checklist_create_count(owner)
+
+            messages.success(request, 'チェックリストを保存しました。')
+            return redirect('codemon:checklist_detail', pk=cl.checklist_id)
+    
+    # 編集データをテンプレートに渡す
+    context = {
+        'user': owner,
+        'editing_name': editing_name,
+        'editing_due_date': editing_due_date,
+        'editing_description': editing_description,
+        'editing_items_json': json.dumps(editing_items),
+        'is_editing': bool(editing_id),
+    }
+    return render(request, 'codemon/checklist_create.html', context)
 
 
 def checklist_detail(request, pk):
-	owner = _get_write_owner(request)
-	if owner is None:
-		return redirect('accounts:student_login')
-	
-	if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
-		cl = get_object_or_404(Checklist, checklist_id=pk)
-	else:
-		cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
-	if request.method == 'POST':
-		# new item
-		text = request.POST.get('item_text')
-		if text:
-			max_order = cl.items.aggregate(models.Max('sort_order'))['sort_order__max'] or 0
-			ChecklistItem.objects.create(checklist=cl, item_text=text, sort_order=max_order + 1)
-			return redirect('codemon:checklist_detail', pk=pk)
-	return render(request, 'codemon/checklist_detail.html', {'checklist': cl})
+    """チェックリスト作成後、一覧画面にリダイレクト"""
+    return redirect('codemon:checklist_list')
 
 
-@require_POST
-def checklist_toggle_item(request, pk, item_id):
-	if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
-		cl = get_object_or_404(Checklist, checklist_id=pk)
-	else:
-		cl = get_object_or_404(Checklist, checklist_id=pk, user=request.user)
-	item = get_object_or_404(ChecklistItem, checklist=cl, checklist_item_id=item_id)
-	item.is_done = not item.is_done
-	item.save()
-	return redirect('codemon:checklist_detail', pk=pk)
-
-
+@login_required
 def checklist_edit(request, pk):
+    """チェックリスト編集（新規作成画面に遷移してフォームに既存データを入力）"""
     if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
         cl = get_object_or_404(Checklist, checklist_id=pk)
     else:
-        cl = get_object_or_404(Checklist, checklist_id=pk, user=request.user)
-    return render(request, 'codemon/checklist_edit.html', {'checklist': cl})
+        owner = _get_write_owner(request)  # ← ownerを取得
+        if owner is None:
+            return redirect('accounts:student_login')
+        cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)  # ← user=ownerに修正
+    
+    # セッションにチェックリストデータを保存（is_doneは不要）
+    request.session['editing_checklist_id'] = pk
+    request.session['editing_checklist_name'] = cl.checklist_name
+    request.session['editing_checklist_due_date'] = cl.due_date.strftime('%Y-%m-%d') if cl.due_date else ''
+    request.session['editing_checklist_description'] = cl.checklist_description or ''
+    request.session['editing_checklist_items'] = [
+        {'item_text': item.item_text}  # is_doneを削除
+        for item in cl.items.all().order_by('sort_order')
+    ]
+    
+    return redirect('codemon:checklist_create')
 
 def checklist_save(request, pk):
-    checklist = get_object_or_404(Checklist, checklist_id=pk)
+    owner = _get_write_owner(request)
+    if owner is None:
+        return redirect('accounts:student_login')
+    
+    if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
+        checklist = get_object_or_404(Checklist, checklist_id=pk)
+    else:
+        checklist = get_object_or_404(Checklist, checklist_id=pk, user=owner)
+    
     if request.method == 'POST':
         name = request.POST.get('checklist_name')
         desc = request.POST.get('checklist_description', '')
@@ -629,30 +839,47 @@ def checklist_save(request, pk):
     return redirect('codemon:checklist_edit', pk=pk)
 
 def checklist_delete_confirm(request, pk):
-	if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
-		cl = get_object_or_404(Checklist, checklist_id=pk)
-	else:
-		cl = get_object_or_404(Checklist, checklist_id=pk, user=request.user)
-	return render(request, 'codemon/checklist_delete_confirm.html', {'checklist': cl})
-
-
-def checklist_delete(request, pk):
+    """削除確認画面（GET リクエスト用）"""
+    # デバッグ情報を出力
+    print("=== DEBUG checklist_delete_confirm ===")
+    print(f"Session data: {dict(request.session)}")
+    print(f"is_account_authenticated: {request.session.get('is_account_authenticated')}")
+    print(f"account_user_id: {request.session.get('account_user_id')}")
+    
     if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
         cl = get_object_or_404(Checklist, checklist_id=pk)
     else:
-        cl = get_object_or_404(Checklist, checklist_id=pk, user=request.user)
+        owner = _get_write_owner(request)
+        print(f"owner: {owner}")
+        if owner is None:
+            print("Owner is None - redirecting to login")
+            return redirect('accounts:student_login')
+        cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
+    
+    print(f"Checklist found: {cl}")
+    return render(request, 'codemon/checklist_delete_confirm.html', {'checklist': cl})
+
+
+def checklist_delete(request, pk):
+    """削除処理を実行（POST リクエスト用）"""
+    if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
+        cl = get_object_or_404(Checklist, checklist_id=pk)
+    else:
+        owner = _get_write_owner(request)
+        if owner is None:
+            return redirect('accounts:student_login')
+        cl = get_object_or_404(Checklist, checklist_id=pk, user=owner)
 
     if request.method == 'POST':
-        deleted_pk = cl.checklist_id
-        deleted_name = cl.checklist_name
-        deleted_description = getattr(cl, 'checklist_description', '')
-        deleted_items = list(cl.items.values('checklist_item_id', 'item_text', 'is_done'))
-        items_count = len(deleted_items)
+        checklist_name = cl.checklist_name
+        items_count = cl.items.count()
         cl.delete()
         messages.success(request,
             f'チェックリスト「{checklist_name}」と{items_count}個の項目が削除されました。')
         return render(request, 'codemon/checklist_delete_complete.html',
             {'deleted_name': checklist_name, 'deleted_items_count': items_count})
+    
+    # GET リクエストの場合は確認画面にリダイレクト
     return redirect('codemon:checklist_delete_confirm', pk=pk)
 
 
@@ -1330,11 +1557,11 @@ if not getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
     systems_list = _login_required(systems_list)
     algorithms_list = _login_required(algorithms_list)
     chat_view = _login_required(chat_view)
-    # checklist_selection, checklist_list, checklist_create, checklist_detail は _get_write_owner で認証チェック済み
-    checklist_toggle_item = _login_required(checklist_toggle_item)
+    # checklist_selection, checklist_list, checklist_create, checklist_detail, checklist_save は _get_write_owner で認証チェック済み
+    # checklist_toggle_item = _login_required(checklist_toggle_item)  # ← account_or_login_required で認証判定するため不要
     checklist_save = _login_required(checklist_save)
-    checklist_delete_confirm = _login_required(checklist_delete_confirm)
-    checklist_delete = _login_required(checklist_delete)
+    # checklist_delete_confirm = _login_required(checklist_delete_confirm)
+    # checklist_delete = _login_required(checklist_delete)
     score_thread = _login_required(score_thread)
     get_thread_readers = _login_required(get_thread_readers)
     # グループ管理関連のビュー
@@ -1368,29 +1595,32 @@ def index(request):
 
 
 # ====== AI Chat API ======
-def account_or_login_required(view_func):
-    """
-    Custom decorator that checks both Django auth and custom session auth
-    """
-    def wrapper(request, *args, **kwargs):
-        # Check Django standard authentication
-        if request.user.is_authenticated:
-            return view_func(request, *args, **kwargs)
-        # Check custom session authentication
-        if request.session.get('is_account_authenticated'):
-            return view_func(request, *args, **kwargs)
-        # Not authenticated
-        return JsonResponse({"error": "authentication required"}, status=401)
-    return wrapper
+
 
 
 @account_or_login_required
 @require_POST
 def ai_chat_api(request):
+    print(f"[DEBUG AI CHAT] Method: {request.method}")
+    print(f"[DEBUG AI CHAT] Content-Type: {request.content_type}")
+    
     try:
-        body = json.loads(request.body.decode("utf-8"))
-    except Exception:
-        return JsonResponse({"error": "invalid json"}, status=400)
+        # request.bodyを読み取る前にデバッグ
+        body_bytes = request.body
+        print(f"[DEBUG AI CHAT] Body length: {len(body_bytes)}")
+        print(f"[DEBUG AI CHAT] Body raw: {body_bytes[:200]}")
+        
+        body = json.loads(body_bytes.decode("utf-8"))
+        print(f"[DEBUG AI CHAT] Body parsed: {body}")
+    except json.JSONDecodeError as e:
+        print(f"[ERROR AI CHAT] JSON decode error: {e}")
+        print(f"[ERROR AI CHAT] Body was: {body_bytes}")
+        return JsonResponse({"error": f"invalid json: {str(e)}"}, status=400)
+    except Exception as e:
+        print(f"[ERROR AI CHAT] Exception: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"error": f"parse error: {str(e)}"}, status=400)
 
     message = (body.get("message") or "").strip()
     character = body.get("character") or "usagi"
@@ -1440,6 +1670,22 @@ def ai_chat_api(request):
             character_id=character,
             title=f"{character}-{timezone.now():%Y%m%d%H%M}",
         )
+        
+        # 実績チェック: AIチャット作成
+        from .achievement_utils import update_ai_chat_count
+        newly_achieved = update_ai_chat_count(account)
+        # JSONレスポンスなのでセッションに保存して次のページで表示
+        # (この場合は次回ページロード時にトースト表示される)
+        if newly_achieved and hasattr(request, 'session'):
+            if 'achievement_notifications' not in request.session:
+                request.session['achievement_notifications'] = []
+            for achievement in newly_achieved:
+                request.session['achievement_notifications'].append({
+                    'name': achievement.name,
+                    'icon': achievement.icon,
+                    'reward': achievement.reward_coins
+                })
+            request.session.modified = True
 
     recent = list(conv.messages.order_by("-created_at")[:20])
     pairs = [(m.role, m.content) for m in reversed(recent)]
@@ -1634,10 +1880,146 @@ def chat_ui_group_manage(request):
     return render(request, 'chat/group_manage.html', {'members': members})
 
 
+# ==================== アクセサリーシステム ====================
+
+@session_login_required
+def accessory_shop(request):
+    """アクセサリーショップ画面"""
+    from .models import Accessory, UserAccessory, UserCoin
+    
+    user_id = request.session.get('account_user_id')
+    user = get_object_or_404(Account, user_id=user_id)
+    
+    # ユーザーのコイン残高を取得（未作成の場合は作成）
+    user_coin, created = UserCoin.objects.get_or_create(user=user)
+    
+    # 全アクセサリーを取得
+    all_accessories = Accessory.objects.all().order_by('category', 'accessory_id')
+    
+    # ユーザーが所持しているアクセサリーのIDリスト
+    owned_accessory_ids = set(
+        UserAccessory.objects.filter(user=user).values_list('accessory_id', flat=True)
+    )
+    
+    # 装備中のアクセサリーを取得
+    equipped_accessory = UserAccessory.objects.filter(user=user, is_equipped=True).first()
+    
+    # アクセサリー情報をテンプレート用に整形
+    accessories_data = []
+    for acc in all_accessories:
+        is_owned = acc.accessory_id in owned_accessory_ids
+        can_unlock = False
+        unlock_reason = ""
+        
+        if not is_owned:
+            if acc.unlock_coins > 0:
+                can_unlock = user_coin.balance >= acc.unlock_coins
+                unlock_reason = f"{acc.unlock_coins}コイン"
+            elif acc.unlock_achievement:
+                # 実績による解放（実装は後で拡張可能）
+                unlock_reason = f"実績「{acc.unlock_achievement.name}」が必要"
+        
+        accessories_data.append({
+            'accessory': acc,
+            'is_owned': is_owned,
+            'is_equipped': equipped_accessory and equipped_accessory.accessory_id == acc.accessory_id,
+            'can_unlock': can_unlock,
+            'unlock_reason': unlock_reason,
+        })
+    
+    context = {
+        'user_coin': user_coin,
+        'accessories': accessories_data,
+        'equipped_accessory': equipped_accessory,
+    }
+    
+    return render(request, 'codemon/accessory_shop.html', context)
+
+
+@session_login_required
+@require_POST
+def purchase_accessory(request, accessory_id):
+    """アクセサリーを購入"""
+    from .models import Accessory, UserAccessory, UserCoin
+    
+    user_id = request.session.get('account_user_id')
+    user = get_object_or_404(Account, user_id=user_id)
+    accessory = get_object_or_404(Accessory, accessory_id=accessory_id)
+    
+    # すでに所持しているかチェック
+    if UserAccessory.objects.filter(user=user, accessory=accessory).exists():
+        messages.error(request, 'すでに所持しているアクセサリーです。')
+        return redirect('codemon:accessory_shop')
+    
+    # コイン残高チェック
+    user_coin, created = UserCoin.objects.get_or_create(user=user)
+    
+    if user_coin.balance < accessory.unlock_coins:
+        messages.error(request, 'コインが足りません。')
+        return redirect('codemon:accessory_shop')
+    
+    # トランザクションで購入処理
+    with transaction.atomic():
+        # コインを減らす
+        user_coin.balance -= accessory.unlock_coins
+        user_coin.save()
+        
+        # アクセサリーを追加
+        UserAccessory.objects.create(user=user, accessory=accessory)
+        
+        # 実績チェック
+        from codemon.achievement_utils import update_accessory_purchase_count
+        update_accessory_purchase_count(user)
+    
+    messages.success(request, f'{accessory.name}を購入しました！')
+    return redirect('codemon:accessory_shop')
+
+
+@session_login_required
+@require_POST
+def equip_accessory(request, accessory_id):
+    """アクセサリーを装備"""
+    from .models import Accessory, UserAccessory
+    
+    user_id = request.session.get('account_user_id')
+    user = get_object_or_404(Account, user_id=user_id)
+    
+    # 所持しているかチェック
+    user_accessory = get_object_or_404(UserAccessory, user=user, accessory_id=accessory_id)
+    
+    # トランザクションで装備変更
+    with transaction.atomic():
+        # 他のアクセサリーの装備を外す（同時装備は1個まで）
+        UserAccessory.objects.filter(user=user, is_equipped=True).update(is_equipped=False)
+        
+        # 指定のアクセサリーを装備
+        user_accessory.is_equipped = True
+        user_accessory.save()
+    
+    messages.success(request, f'{user_accessory.accessory.name}を装備しました！')
+    return redirect('codemon:accessory_shop')
+
+
+@session_login_required
+@require_POST
+def unequip_accessory(request):
+    """アクセサリーの装備を外す"""
+    from .models import UserAccessory
+    
+    user_id = request.session.get('account_user_id')
+    user = get_object_or_404(Account, user_id=user_id)
+    
+    # 全ての装備を外す
+    UserAccessory.objects.filter(user=user, is_equipped=True).update(is_equipped=False)
+    
+    messages.success(request, 'アクセサリーを外しました。')
+    return redirect('codemon:accessory_shop')
+
 # ========================================
 # チャット機能 - 新しいUI画面
 # ========================================
 
+@login_required
 def _can_access_group_chat(owner, group):
     if owner is None:
         return False
@@ -2639,3 +3021,5 @@ def submission_list_student(request):
 def chat_demo_index(request):
     """チャット機能デモインデックス"""
     return render(request, 'chat/index.html')
+
+

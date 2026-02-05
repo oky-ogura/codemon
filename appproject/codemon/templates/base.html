@@ -21,8 +21,8 @@
       margin: 0;
       padding: 0;
       background: #f5f5f5;
-      overflow: hidden; /* スクロール無効化 */
-      height: 100vh;
+      overflow-y: auto; /* 縦スクロールを有効化 */
+      min-height: 100vh;
     }
     
     /* 背景システム（全画面共通） */
@@ -45,195 +45,6 @@
       z-index: -1;
       object-fit: cover;
       pointer-events: none;
-    }
-    
-    /* ナビゲーションタブのスタイル */
-    .top-tabs {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 100; /* モーダルより下に配置 */
-      padding: 10px 20px;
-      margin-top: 50px; /* 外枠から離す */
-      background: transparent;
-      box-shadow: none;
-    }
-    
-    .tabs ul {
-      list-style: none;
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      flex-wrap: wrap;
-      margin: 0;
-      padding: 0;
-    }
-    
-    .tabs ul li {
-      flex: 0 0 auto;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    .tabs a {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-      border: none;
-      text-decoration: none;
-      position: relative; /* 画像を重ねるため */
-    }
-    
-    /* 画像コンテナ */
-    .tabs .nav-image-container {
-      position: relative;
-      height: 50px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    /* ナビゲーション画像のスタイル */
-    .tabs .nav-image-container img {
-      height: 50px;
-      width: auto;
-      display: block;
-      transition: opacity 0.3s;
-    }
-    
-    /* normal画像 */
-    .tabs .nav-image-container .nav-normal {
-      opacity: 1;
-    }
-    
-    /* active画像（通常は非表示） */
-    .tabs .nav-image-container .nav-active {
-      position: absolute;
-      top: 0;
-      left: 0;
-      opacity: 0;
-    }
-    
-    /* ホバー時：normal非表示、active表示 */
-    .tabs a:hover .nav-image-container .nav-normal {
-      opacity: 0;
-    }
-    
-    .tabs a:hover .nav-image-container .nav-active {
-      opacity: 1;
-    }
-    
-    /* アクティブ時：normal非表示、active表示 */
-    .tabs a.active .nav-image-container .nav-normal {
-      opacity: 0;
-    }
-    
-    .tabs a.active .nav-image-container .nav-active {
-      opacity: 1;
-    }
-    
-    /* 画像はJavaScriptで切り替えるため、CSSでの画像変更は不要 */
-    /* ホバー時は画像の切り替えのみ（動きなし） */
-    
-    /* SVGアイコンのスタイル */
-    .tabs a svg {
-      height: 50px;
-      width: 50px;
-      display: block;
-      transition: opacity 0.3s; /* transformの代わりにopacityを使用 */
-      background: white; /* 白背景 */
-      border-radius: 4px;
-      padding: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      box-sizing: border-box; /* paddingを含めて50pxに */
-    }
-    
-    /* SVGアイコンの色変更(通常時) */
-    .tabs a svg path {
-      fill: #F72585 !important; /* ピンク色 */
-      transition: fill 0.3s;
-    }
-    
-    /* SVGアイコンの色変更(ホバー時) - 動きなし、色のみ変更 */
-    .tabs ul li:hover a svg path {
-      fill: #FFD166 !important; /* 黄色 */
-    }
-    
-    /* SVGアイコンの色変更(アクティブ時) */
-    .tabs a.active svg path {
-      fill: #FFD166 !important; /* アクティブ時も黄色 */
-    }
-    
-    /* ホームアイコン専用色指定 */
-    header.top-tabs nav.tabs ul li:first-child a svg path {
-      fill: #F72585 !important;
-    }
-    header.top-tabs nav.tabs ul li:first-child:hover a svg path,
-    header.top-tabs nav.tabs ul li:first-child a.active svg path {
-      fill: #FFD166 !important;
-    }
-
-    /* 通知ボタンスタイル */
-    .nav-notification {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-      border: none;
-      text-decoration: none;
-      position: relative;
-    }
-
-    .nav-notification svg {
-      height: 50px;
-      width: 50px;
-      display: block;
-      transition: opacity 0.3s;
-      background: white;
-      border-radius: 4px;
-      padding: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      box-sizing: border-box;
-    }
-
-    .nav-notification svg path {
-      fill: #F72585 !important;
-      transition: fill 0.3s;
-    }
-
-    .tabs ul li:hover .nav-notification svg path {
-      fill: #FFD166 !important;
-    }
-
-    .nav-notification.active svg path {
-      fill: #FFD166 !important;
-    }
-    
-    /* テキスト表示用(画像未作成時) */
-    .tabs a .nav-text {
-      display: inline-block;
-      padding: 12px 24px;
-      border: 1px solid #000;
-      color: #000;
-      background: #fff;
-      border-radius: 4px;
-      font-weight: 500;
-      font-size: 16px; /* ナビの文字サイズを固定し、ボタンラベルと揃える */
-      transition: background 0.3s, box-shadow 0.3s; /* transformを削除 */
-    }
-    
-    .tabs ul li:hover a .nav-text {
-      background: #f0f0f0;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
-    
-    .tabs a.active .nav-text {
-      background: #667eea;
-      color: #fff;
-      border-color: #667eea;
     }
     
     /* コンテンツエリア */
@@ -270,220 +81,6 @@
       color: #0c5460;
     }
     
-    /* AI キャラクターウィジェット */
-    #character-widget {
-      position: fixed;
-      right: 20px;
-      bottom: 20px;
-      z-index: 9999;
-    }
-    
-    #character-image {
-      width: 120px;
-      height: auto;
-      cursor: pointer;
-      transition: transform 0.2s;
-      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
-    }
-    
-    #character-image:hover {
-      transform: scale(1.05);
-    }
-    
-    #chat-bubble {
-      position: absolute;
-      bottom: 80px;
-      right: 80px;
-      background: linear-gradient(180deg, #fff9e6 0%, #fff4cc 100%); /* 優しい黄色の背景 */
-      border-radius: 20px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.25);
-      padding: 0;
-      width: 0;
-      height: 0;
-      opacity: 0;
-      overflow: hidden;
-      transition: all 0.3s ease;
-    }
-    
-    #chat-bubble.minimized {
-      width: 280px;
-      height: 80px;
-      opacity: 1;
-      padding: 15px;
-    }
-    
-    #chat-bubble.expanded {
-      width: 380px;
-      height: 500px;
-      opacity: 1;
-      padding: 0;
-      display: flex !important;
-      flex-direction: column;
-    }
-    
-    #chat-bubble-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 15px;
-      border-bottom: 2px solid rgba(0,0,0,0.06);
-      background: linear-gradient(90deg, #ffd54f 0%, #ffca28 100%); /* 黄色ベース */
-      color: #333;
-      border-radius: 20px 20px 0 0;
-      flex-shrink: 0;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.08) inset;
-    }
-    
-    #chat-bubble-header strong {
-      font-size: 15px;
-    }
-    
-    #chat-bubble-controls {
-      display: flex;
-      gap: 8px;
-    }
-    
-    #chat-bubble-controls button {
-      background: rgba(255,255,255,0.85);
-      border: 1px solid rgba(0,0,0,0.06);
-      color: #333;
-      cursor: pointer;
-      padding: 6px 10px;
-      border-radius: 10px;
-      font-size: 13px;
-      transition: transform 0.12s ease, background 0.12s;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-    }
-    
-    #chat-bubble-controls button:hover {
-      background: rgba(255,255,255,0.3);
-    }
-    
-    #chat-messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 15px;
-      background: #fafafa;
-      min-height: 0;
-    }
-    
-    #chat-input-area {
-      display: flex;
-      gap: 8px;
-      padding: 12px 15px;
-      border-top: 2px solid rgba(0,0,0,0.04);
-      background: linear-gradient(180deg, #fff, #fff9e6);
-      border-radius: 0 0 18px 18px;
-      flex-shrink: 0;
-      align-items: center;
-    }
-    
-    #chat-input {
-      flex: 1;
-      padding: 12px 16px;
-      border: 2px solid rgba(255,180,0,0.25);
-      border-radius: 24px;
-      font-size: 14px;
-      outline: none;
-      background: #fffef8;
-      box-shadow: 0 2px 6px rgba(255,180,0,0.06) inset;
-    }
-    
-    #chat-input:focus {
-      border-color: #667eea;
-    }
-    
-    #chat-send {
-      padding: 10px 18px;
-      background: linear-gradient(90deg, #ffeb3b 0%, #ffc107 100%); /* 明るい黄色 */
-      color: #333;
-      border: none;
-      border-radius: 18px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 700;
-      transition: transform 0.12s ease, box-shadow 0.12s ease;
-      box-shadow: 0 6px 18px rgba(255,184,0,0.12);
-    }
-    
-    #chat-send:hover {
-      transform: translateY(-2px) scale(1.02);
-      box-shadow: 0 10px 26px rgba(255,184,0,0.16);
-    }
-    
-    #chat-send:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: scale(1);
-    }
-    
-    .chat-message {
-      margin-bottom: 12px;
-      padding: 10px 14px;
-      border-radius: 15px;
-      line-height: 1.5;
-      font-size: 13px;
-    }
-    
-    /* チャットメッセージのスタイルはcharacter_widget.htmlで定義されているためコメントアウト */
-    /*
-    .chat-message.user {
-      background: linear-gradient(90deg, #fff59d 0%, #ffd54f 100%);
-      color: #333;
-      margin-left: 40px;
-      text-align: right;
-      font-weight: 600;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-    }
-    */
-    
-    .chat-message.assistant {
-      background: white;
-      border: 2px solid rgba(0,0,0,0.04);
-      color: #333;
-      margin-right: 40px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-    }
-    
-    .chat-message .role {
-      font-weight: bold;
-      margin-bottom: 4px;
-      font-size: 11px;
-      opacity: 0.8;
-    }
-    
-    .minimized-content {
-      text-align: center;
-    }
-    
-    .minimized-content p {
-      margin: 0;
-      font-size: 15px;
-      color: #b56f00;
-      font-weight: 800;
-      letter-spacing: .5px;
-    }
-    
-    .minimized-content small {
-      font-size: 12px;
-      color: #7a5a00;
-    }
-
-    /* キャラクターの軽い傾きアニメーション (遊び心) */
-    #character-image:hover {
-      transform: rotate(-6deg) scale(1.06);
-      transition: transform 0.18s ease;
-    }
-
-    /* ぷるぷるアニメ (小さい揺れ) */
-    @keyframes wiggle {
-      0% { transform: translateY(0); }
-      50% { transform: translateY(-4px); }
-      100% { transform: translateY(0); }
-    }
-
-    #character-image { animation: wiggle 4s ease-in-out infinite; }
-    
   </style>
 </head>
 <body{% block body_class %}{% endblock %}>
@@ -503,85 +100,8 @@
   {% endblock %}
 
   {% block global_navigation %}
-  <!-- ナビゲーションタブ -->
-  <header class="top-tabs">
-    <nav class="tabs">
-      <ul>
-        <li>
-          <!-- 通知ボタン -->
-          {% if account and account.account_type == 'teacher' %}
-            <a href="{% url 'codemon:chat_teacher' %}" id="tab-notification" class="nav-notification">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
-              </svg>
-            </a>
-          {% elif account %}
-            <a href="{% url 'codemon:chat_student' %}" id="tab-notification" class="nav-notification">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
-              </svg>
-            </a>
-          {% endif %}
-        </li>
-        <li>
-          <a href="{% url 'accounts:karihome' %}" id="tab-home">
-            <!-- ホームアイコン(SVG) -->
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-              <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-            </svg>
-          </a>
-        </li>
-        <li>
-          <a href="{% url 'accounts:system_choice' %}" id="tab-systems">
-            <div class="nav-image-container">
-              <img src="{% static 'codemon/images/nav/system.png' %}" 
-                   class="nav-normal"
-                   alt="システム">
-              <img src="{% static 'codemon/images/nav/system_active.png' %}" 
-                   class="nav-active"
-                   alt="システム">
-            </div>
-          </a>
-        </li>
-        <li>
-          <a href="{% url 'accounts:block_choice' %}" id="tab-algorithms">
-            <div class="nav-image-container">
-              <img src="{% static 'codemon/images/nav/algorithm.png' %}" 
-                   class="nav-normal"
-                   alt="アルゴリズム">
-              <img src="{% static 'codemon/images/nav/algorithm_active.png' %}" 
-                   class="nav-active"
-                   alt="アルゴリズム">
-            </div>
-          </a>
-        </li>
-        <li>
-          <a href="{% url 'codemon:checklist_selection' %}" id="tab-checklist">
-            <div class="nav-image-container">
-              <img src="{% static 'codemon/images/nav/checklist.png' %}" 
-                   class="nav-normal"
-                   alt="チェックリスト">
-              <img src="{% static 'codemon/images/nav/checklist_active.png' %}" 
-                   class="nav-active"
-                   alt="チェックリスト">
-            </div>
-          </a>
-        </li>
-        <li>
-          <a href="{% url 'accounts:account_entry' %}" id="tab-account">
-            <div class="nav-image-container">
-              <img src="{% static 'codemon/images/nav/account.png' %}" 
-                   class="nav-normal"
-                   alt="アカウント">
-              <img src="{% static 'codemon/images/nav/account_active.png' %}" 
-                   class="nav-active"
-                   alt="アカウント">
-            </div>
-          </a>
-        </li>
-      </ul>
-    </nav>
-  </header>
+  <!-- ヘッダーを別ファイルから読み込み -->
+  {% include 'includes/header.html' %}
   {% endblock %}
 
   <!-- コンテンツエリア -->
@@ -596,19 +116,6 @@
   <!-- 共通JavaScript -->
   <script>
   (function(){
-    // キャラごとの初期メッセージ定義（必要に応じて拡張可能）
-    const initialMessages = {
-      usagi: 'どうしたんですか？ぼ、ぼくにできることがあればいってください...！',
-      kitune: 'どうしたんだい？オレが助けてやろうか？',
-      inu: 'どうした? おれがちからになるぞ!',
-      panda: 'どうしたのぉ? なにかぼくがやることある～？',
-      risu: 'どうしたの？あたしがやったげるわ！',
-      fukurou: 'どうかしましたか？手助けしますよ。',
-      neko: '...どうしたの。ぼくにやることある？',
-      arupaka: 'なにかあったのかしら？わたくしに任せなさい。',
-      default: 'こんにちは、どう手伝おうか？'
-    };
-
     // アクティブタブのハイライト
     const currentPath = window.location.pathname;
     const tabLinks = {
@@ -637,194 +144,15 @@
         break;
       }
     }
-    
-    // AIキャラクターウィジェット
-    const widget = document.getElementById('character-widget');
-    const characterImg = document.getElementById('character-image');
-    const bubble = document.getElementById('chat-bubble');
-    const minimizedView = document.getElementById('minimized-view');
-    const expandedView = document.getElementById('expanded-view');
-    const messagesEl = document.getElementById('chat-messages');
-    const inputEl = document.getElementById('chat-input');
-    const sendBtn = document.getElementById('chat-send');
-    const minimizeBtn = document.getElementById('minimize-btn');
-    const closeBtn = document.getElementById('close-btn');
-    const initialMessageEl = document.getElementById('initial-message');
-    
-    let conversationId = null;
-    let isExpanded = false;
-    let isMinimized = false;
-
-    // 現在のキャラコード（未設定時は inu）
-    const characterCode = (characterImg?.dataset?.character || 'inu').trim() || 'inu';
-
-    // 最小化ビューのテキストをキャラに応じて差し替え
-    if (initialMessageEl) {
-      initialMessageEl.textContent = initialMessages[characterCode] || initialMessages.default;
-    }
-    
-    // safety: if widget not present (excluded by template), skip all handlers
-    if (!widget) return;
-
-    // Ensure widget is visible in DOM (template may render it but keep inline styles)
-    widget.style.display = 'block';
-
-    // キャラクター画像クリック → 最小化表示
-    if (characterImg) {
-      characterImg.addEventListener('click', () => {
-        if (!isMinimized && !isExpanded) {
-          showMinimized();
-        }
-      });
-    }
-    
-    // 最小化表示クリック → 展開
-    minimizedView.addEventListener('click', () => {
-      if (isMinimized) {
-        showExpanded();
-      }
-    });
-    
-    // 最小化ボタン
-    minimizeBtn.addEventListener('click', () => {
-      showMinimized();
-    });
-    
-    // 閉じるボタン
-    closeBtn.addEventListener('click', () => {
-      hideBubble();
-    });
-    
-    function showMinimized() {
-      bubble.className = 'minimized';
-      minimizedView.style.display = 'block';
-      expandedView.style.display = 'none';
-      isMinimized = true;
-      isExpanded = false;
-    }
-    
-    function showExpanded() {
-      bubble.className = 'expanded';
-      minimizedView.style.display = 'none';
-      expandedView.style.display = 'flex';
-      expandedView.style.flexDirection = 'column';
-      isMinimized = false;
-      isExpanded = true;
-      inputEl.focus();
-      
-      // 初回展開時に初期メッセージを表示
-      if (messagesEl.children.length === 0) {
-        appendMessage('assistant', initialMessages[characterCode] || initialMessages.default);
-      }
-      
-      // 最新メッセージ(一番下)にスクロール
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
-    
-    function hideBubble() {
-      bubble.className = '';
-      isMinimized = false;
-      isExpanded = false;
-    }
-    
-    function appendMessage(role, text) {
-      const div = document.createElement('div');
-      div.className = `chat-message ${role}`;
-      const roleLabel = role === 'user' ? 'あなた' : 'AI';
-      div.innerHTML = `<div class="role">${roleLabel}</div>${escapeHtml(text)}`;
-      messagesEl.appendChild(div);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
-    
-    function escapeHtml(text) {
-      return text.replace(/</g, '&lt;')
-                 .replace(/>/g, '&gt;')
-                 .replace(/\n/g, '<br>');
-    }
-    
-    async function sendMessage() {
-      const msg = inputEl.value.trim();
-      if (!msg) return;
-      
-      appendMessage('user', msg);
-      inputEl.value = '';
-      sendBtn.disabled = true;
-      
-      try {
-        const resp = await fetch('/codemon/api/ai/chat', {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrf()
-          },
-          body: JSON.stringify({
-            message: msg,
-            character: characterCode,
-            conversation_id: conversationId
-          })
-        });
-        
-        const data = await resp.json();
-        
-        if (data.error) {
-          appendMessage('assistant', '[エラー] ' + data.error);
-        } else {
-          conversationId = data.conversation_id;
-          appendMessage('assistant', data.reply);
-        }
-      } catch(e) {
-        appendMessage('assistant', '[通信失敗] ' + e.message);
-      } finally {
-        sendBtn.disabled = false;
-        inputEl.focus();
-      }
-    }
-    
-    function getCsrf() {
-      const name = 'csrftoken';
-      const cookies = document.cookie.split(';');
-      for (const c of cookies) {
-        const trimmed = c.trim();
-        if (trimmed.startsWith(name + '=')) {
-          return trimmed.slice(name.length + 1);
-        }
-      }
-      return '';
-    }
-    
-    sendBtn.addEventListener('click', sendMessage);
-    inputEl.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        sendMessage();
-      }
-    });
-
-    // ポップアップ以外をクリックしたらポップアップを閉じる
-    document.addEventListener('click', (e) => {
-      // まだ表示されていない(非表示状態)の場合は無視
-      if (!isMinimized && !isExpanded) return;
-
-      // ポップアップ内部をクリックした場合は閉じない
-      if (bubble.contains(e.target)) return;
-
-      // キャラクター画像をクリックした場合は閉じない(画像クリックで表示した直後に閉じてしまう問題を防止)
-      if (characterImg.contains(e.target)) return;
-
-      // それ以外の領域クリックで閉じる
-      hideBubble();
-    });
-
-    // 初回ロード時は最小化して表示する
-    try {
-      showMinimized();
-    } catch (e) {
-      // safe fallback: ignore
-    }
   })();
   </script>
   
   {% block extra_js %}{% endblock %}
+
+  {% block ai_chat_widget %}
+  {# AI会話機能が必要なページで ai_chat_base.html をインクルード #}
+  {# 例: {% include 'includes/ai_chat_base.html' %} #}
+  {% endblock %}
 
   {% block global_character_widget %}
     {% with current_path=request.path %}
@@ -849,5 +177,108 @@
       {% endif %}
     {% endwith %}
   {% endblock %}
+  
+  <!-- トースト通知エリア -->
+  <div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 10000;"></div>
+  
+  <script>
+  // トースト通知表示関数
+  function showAchievementToast(achievement) {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'achievement-toast';
+    toast.innerHTML = `
+      <div class="achievement-toast-icon">${achievement.icon}</div>
+      <div class="achievement-toast-content">
+        <div class="achievement-toast-title">🎉 実績達成！</div>
+        <div class="achievement-toast-name">${achievement.name}</div>
+        <div class="achievement-toast-reward">💰 ${achievement.reward}コイン 獲得！</div>
+      </div>
+    `;
+    
+    container.appendChild(toast);
+    
+    // アニメーション
+    setTimeout(() => toast.classList.add('show'), 10);
+    
+    // 5秒後に削除
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 300);
+    }, 5000);
+  }
+  
+  // セッションから通知を取得して表示
+  {% if request.session.achievement_notifications %}
+    const notifications = {{ request.session.achievement_notifications|safe }};
+    notifications.forEach((achievement, index) => {
+      setTimeout(() => showAchievementToast(achievement), index * 300);
+    });
+    // 表示後にセッションから削除
+    fetch('{% url "codemon:clear_achievement_notifications" %}', {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      }
+    });
+  {% endif %}
+  </script>
+  
+  <style>
+  .achievement-toast {
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+    color: white;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 10px;
+    box-shadow: 0 10px 30px rgba(255, 215, 0, 0.5);
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    min-width: 300px;
+    opacity: 0;
+    transform: translateX(400px);
+    transition: all 0.3s ease;
+  }
+  
+  .achievement-toast.show {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  
+  .achievement-toast-icon {
+    font-size: 3rem;
+    animation: bounce 0.6s ease infinite alternate;
+  }
+  
+  @keyframes bounce {
+    from { transform: translateY(0); }
+    to { transform: translateY(-10px); }
+  }
+  
+  .achievement-toast-content {
+    flex: 1;
+  }
+  
+  .achievement-toast-title {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    margin-bottom: 5px;
+  }
+  
+  .achievement-toast-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  
+  .achievement-toast-reward {
+    font-size: 1rem;
+    background: rgba(255,255,255,0.2);
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 8px;
+  }
+  </style>
 </body>
 </html>

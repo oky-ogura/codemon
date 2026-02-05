@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'accounts',
     'codemon',
+    
     # Channels for WebSocket/real-time chat
     'channels',
 ]
@@ -281,3 +282,12 @@ AI_MODEL = os.getenv('AI_MODEL', 'gemini-2.5-flash')
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
+CSRF_TRUSTED_ORIGINS = [
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+]
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_COOKIE_SAMESITE = None
+SESSION_COOKIE_SECURE = False  # ローカル開発用
+CSRF_COOKIE_SAMESITE = None
+CSRF_COOKIE_SECURE = False

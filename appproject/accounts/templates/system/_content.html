@@ -1,59 +1,85 @@
 {% load static %}
 <div class="content-wrapper">
-  <!-- 左側のボタンバー（縦並び） -->
-  <div class="button-bar">
-    <!-- 矢印ボタン（元に戻す・やり直し） -->
-    <div class="undo-redo-btns">
-      <button id="undoBtn" title="元に戻す (Ctrl+Z)">←</button>
-      <button id="redoBtn" title="やり直し (Ctrl+Y)">→</button>
+  <!-- 上部のツールバー（横並び） -->
+  <div class="toolbar">
+    <!-- アクションボタングループ -->
+    <div class="action-buttons">
+      <button id="executeBtn" title="実行"><i class="fas fa-play"></i> 実行</button>
+      <button id="saveBtn" title="保存"><i class="fas fa-save"></i> 保存</button>
+      <button id="undoBtn" title="元に戻す (Ctrl+Z)"><i class="fas fa-undo"></i></button>
+      <button id="redoBtn" title="やり直し (Ctrl+Y)"><i class="fas fa-redo"></i></button>
     </div>
 
-    <!-- 実行、保存ボタン -->
-    <button id="executeBtn" aria-disabled="false">
-      <img src="{% static 'codemon/images/button/execution_button.png' %}" alt="実行">
-    </button>
-    <button id="saveBtn" aria-disabled="false">
-      <img src="{% static 'codemon/images/button/save_button.png' %}" alt="保存">
-    </button>
+    <!-- ツールボタングループ -->
+    <div class="tool-buttons">
+      <!-- フォームボタン + プルダウン -->
+      <div class="form-dropdown dropdown-btn" id="formDropdownWrap">
+        <button id="formBtn" class="tool-btn" aria-haspopup="true" aria-expanded="false" title="フォーム">
+          <i class="fas fa-rectangle-list"></i>
+          <span style="position: absolute; bottom: 4px; right: 4px; font-size: 10px;">▼</span>
+        </button>
+        <div class="dropdown-menu" id="formDropdown" role="menu" aria-hidden="true">
+          <button id="addTextBtn" role="menuitem"><i class="fas fa-i-cursor"></i> テキスト入力</button>
+          <button id="addNumberBtn" role="menuitem"><i class="fas fa-hashtag"></i> 数値入力</button>
+          <button id="addDatetimeBtn" role="menuitem"><i class="fas fa-calendar-alt"></i> 日時</button>
+          <button id="addTextBoxBtn" role="menuitem"><i class="fas fa-align-left"></i> テキストボックス</button>
+          <button id="addCheckboxBtn" role="menuitem"><i class="fas fa-check-square"></i> チェックボックス</button>
+          <button id="addRadioBtn" role="menuitem"><i class="fas fa-dot-circle"></i> ラジオボタン</button>
+        </div>
 
-    <!-- フォームボタン + プルダウン -->
-    <div class="form-dropdown" id="formDropdownWrap">
-      <button id="formBtn" aria-haspopup="true" aria-expanded="false">フォーム ▾</button>
-      <div class="dropdown-menu" id="formDropdown" role="menu" aria-hidden="true">
-        <button id="addTextBtn" role="menuitem">あいう</button>
-        <button id="addNumberBtn" role="menuitem">123</button>
-        <button id="addDatetimeBtn" role="menuitem">日時</button>
-        <button id="addCheckboxBtn" role="menuitem">チェックボックス</button>
-        <button id="addRadioBtn" role="menuitem">ラジオボタン</button>
+        <!-- チェックボックス/ラジオ作成パネル（共通） -->
+        <div class="create-options-panel" id="createOptionsPanel" role="dialog" aria-hidden="true">
+          <label for="optionsLabel">ラベル</label>
+          <div>
+            <input id="optionsLabel" type="text" placeholder="例：好きな色" />
+          </div>
+          <label for="optionsCount">項目の数</label>
+          <div>
+            <input id="optionsCount" type="number" min="1" max="10" value="3" />
+            <span style="color:#666;font-size:13px;">個</span>
+          </div>
+          <div class="panel-actions">
+            <button id="createOptionsCancel">キャンセル</button>
+            <button id="createOptionsConfirm">作成</button>
+          </div>
+        </div>
       </div>
 
-      <!-- チェックボックス/ラジオ作成パネル（共通） -->
-      <div class="create-options-panel" id="createOptionsPanel" role="dialog" aria-hidden="true">
-        <label for="optionsLabel">ラベル</label>
-        <div>
-          <input id="optionsLabel" type="text" placeholder="例：好きな色" style="width:180px;padding:4px 6px;margin-bottom:8px;" />
-        </div>
-        <label for="optionsCount">項目の数</label>
-        <div>
-          <input id="optionsCount" type="number" min="1" max="10" value="3" />
-          <span style="color:#666;font-size:13px;">個</span>
-        </div>
-        <div class="panel-actions">
-          <button id="createOptionsCancel">キャンセル</button>
-          <button id="createOptionsConfirm">作成</button>
+      <button id="addRouletteBtn" class="tool-btn" title="ルーレット"><i class="fas fa-spinner"></i></button>
+      <button id="addTimerBtn" class="tool-btn" title="タイマー"><i class="fas fa-hourglass-half"></i></button>
+      <button id="addButtonBtn" class="tool-btn" title="ボタン追加"><i class="fas fa-square-plus"></i></button>
+
+      <!-- 図形ボタン + ドロップダウン -->
+      <div class="form-dropdown dropdown-btn" id="shapeDropdownWrap">
+        <button id="shapeBtn" class="tool-btn" aria-haspopup="true" aria-expanded="false" title="図形">
+          <i class="fas fa-shapes"></i>
+          <span style="position: absolute; bottom: 4px; right: 4px; font-size: 10px;">▼</span>
+        </button>
+        <div class="dropdown-menu" id="shapeDropdown" role="menu" aria-hidden="true">
+          <button id="addRectangleBtn" role="menuitem"><i class="fas fa-square"></i> 四角形</button>
+          <button id="addCircleBtn" role="menuitem"><i class="fas fa-circle"></i> 円</button>
+          <button id="addTriangleBtn" role="menuitem"><i class="fas fa-play"></i> 三角形</button>
+          <button id="addLineBtn" role="menuitem"><i class="fas fa-minus"></i> 線</button>
+          <button id="addArrowBtn" role="menuitem"><i class="fas fa-long-arrow-alt-right"></i> 矢印</button>
         </div>
       </div>
+
+      <button id="addImageBtn" class="tool-btn" title="画像追加"><i class="fas fa-image"></i></button>
     </div>
-
-    <button id="addRouletteBtn">ルーレット</button>
-    <button id="addTimerBtn">タイマー</button>
-    <button id="addButtonBtn">ボタン追加</button>
+    
+    <!-- レイヤー操作ボタングループ -->
+    <div class="layer-buttons" style="display: flex; gap: 8px; padding-left: 15px; border-left: 2px solid #e0e0e0;">
+      <button id="layerToFrontBtn" class="tool-btn" title="最前面へ"><i class="fas fa-angle-double-up"></i></button>
+      <button id="layerForwardBtn" class="tool-btn" title="前面へ"><i class="fas fa-angle-up"></i></button>
+      <button id="layerBackwardBtn" class="tool-btn" title="背面へ"><i class="fas fa-angle-down"></i></button>
+      <button id="layerToBackBtn" class="tool-btn" title="最背面へ"><i class="fas fa-angle-double-down"></i></button>
+    </div>
   </div>
 
   <!-- 右側のメインエリア -->
   <div class="main-area">
     <div id="slideArea">
-      <div id="trash" title="ここにドラッグで削除">🗑️</div>
+      <div id="trash" title="ここにドラッグで削除"><i class="fas fa-trash-alt"></i></div>
     </div>
   </div>
 </div>

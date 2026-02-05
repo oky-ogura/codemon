@@ -3,7 +3,7 @@ from django.views.generic import RedirectView
 from . import views
 from django.contrib.auth import views as auth_views
 app_name = 'accounts'  # アプリケーション名前空間を追加 
-from codemon import views as codemon_views
+# from codemon import views as codemon_views
 urlpatterns = [
     # Redirect the accounts root to the student login page
     path('', RedirectView.as_view(url='student_login/', permanent=False), name='accounts_root'),
@@ -57,6 +57,7 @@ urlpatterns = [
     path('system/', views.system_index, name='system_index'),
     path('system/save/', views.system_save, name='system_save'),
     path('system/elements/', views.get_system_elements, name='get_system_elements'),
+    path('system/api/system-elements/<int:system_id>/', views.api_get_system_elements, name='api_get_system_elements'),
     path('api/system/<int:system_id>/element/<str:element_name>/', views.get_system_element_value, name='get_system_element_value'),
     path('system/choice/', views.system_choice, name='system_choice'),
     path('system/create/', views.system_create, name='system_create'),
