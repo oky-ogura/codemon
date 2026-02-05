@@ -35,7 +35,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label-pop">あなたのとし</label>
+                    <label class="form-label-pop">あなたのねんれい</label>
                     <div class="custom-dropdown" id="ageDropdown">
                         <div class="dropdown-selected">
                             {% if form.age.value %}{{ form.age.value }} さい{% else %}えらんでね{% endif %}
@@ -52,11 +52,12 @@
                     {% if form.age.errors %}
                         <div class="error-msg-pop">⚠️ あなたの としを えらんでね！わすれてるよ！</div>
                     {% endif %}
+                    <div class="error-msg-pop" id="age-error" style="display: none;">⚠️ あなたの としを えらんでね！わすれてるよ！</div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label-pop">メールアドレス</label>
-                    <input type="email" class="form-input-pop" id="id_email" name="email" placeholder="example@mail.com" required value="{{ form.email.value|default_if_none:'' }}">
+                    <input type="email" class="form-input-pop" id="id_email" name="email" placeholder="example@mail.com" pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}" title="正しいメールアドレス形式で入力してください" required value="{{ form.email.value|default_if_none:'' }}">
                     {% if form.email.errors %}
                         <div class="error-msg-pop">
                             {% with err=form.email.errors.0 %}
@@ -76,7 +77,8 @@
 
                 <div class="form-group">
                     <label class="form-label-pop">パスワード</label>
-                    <input type="password" class="form-input-pop" id="id_password1" name="password1" placeholder="ないしょのあいことば" required value="{{ form.password1.value|default_if_none:'' }}">
+                    <input type="text" class="form-input-pop" id="id_password1_display" placeholder="ないしょのあいことば" autocomplete="off">
+                    <input type="hidden" id="id_password1" name="password1">
                     {% if form.password1.errors %}
                         <div class="error-msg-pop">⚠️ ないしょのあいことばを きめてね！</div>
                     {% endif %}
@@ -84,7 +86,8 @@
 
                 <div class="form-group">
                     <label class="form-label-pop">もういちど！</label>
-                    <input type="password" class="form-input-pop" id="id_password2" name="password2" placeholder="おなじあいことばを入力してね" required>
+                    <input type="text" class="form-input-pop" id="id_password2_display" placeholder="おなじあいことばを入力してね" autocomplete="off">
+                    <input type="hidden" id="id_password2" name="password2">
                     {% if form.password2.errors %}
                         <div class="error-msg-pop">⚠️ こっちも おなじあいことばを 入力してね！</div>
                     {% endif %}
@@ -223,12 +226,65 @@
                 selected.textContent = opt.textContent;
                 hiddenInput.value = val;
                 dropdown.classList.remove('is-open');
+                // エラーメッセージを非表示
+                document.getElementById('age-error').style.display = 'none';
             });
         });
 
         // 外側をクリックしたら閉じる
         document.addEventListener('click', () => {
             dropdown.classList.remove('is-open');
+        });
+
+        // --- パスワード入力の伏字処理 ---
+        function setupPasswordField(displayId, hiddenId) {
+            const displayField = document.getElementById(displayId);
+            const hiddenField = document.getElementById(hiddenId);
+            let actualPassword = '';
+
+            displayField.addEventListener('input', function(e) {
+                const currentValue = e.target.value;
+                const currentLength = currentValue.length;
+                const previousLength = actualPassword.length;
+
+                if (currentLength > previousLength) {
+                    const addedChars = currentValue.substring(previousLength);
+                    actualPassword += addedChars;
+                } else if (currentLength < previousLength) {
+                    actualPassword = actualPassword.substring(0, currentLength);
+                }
+
+                if (actualPassword.length === 0) {
+                    displayField.value = '';
+                } else if (actualPassword.length === 1) {
+                    displayField.value = actualPassword;
+                } else {
+                    displayField.value = '●'.repeat(actualPassword.length - 1) + actualPassword[actualPassword.length - 1];
+                }
+
+                hiddenField.value = actualPassword;
+            });
+        }
+
+        setupPasswordField('id_password1_display', 'id_password1');
+        setupPasswordField('id_password2_display', 'id_password2');
+
+        // フォーム送信時に実際のパスワードが送信されることを確認
+        document.getElementById('mainForm').addEventListener('submit', function(e) {
+            const hiddenField1 = document.getElementById('id_password1');
+            const hiddenField2 = document.getElementById('id_password2');
+            const ageValue = document.getElementById('id_age_hidden').value;
+            const ageError = document.getElementById('age-error');
+            
+            // 年齢が未選択の場合
+            if (!ageValue || ageValue === '') {
+                e.preventDefault();
+                ageError.style.display = 'inline-block';
+                document.getElementById('ageDropdown').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return false;
+            } else {
+                ageError.style.display = 'none';
+            }
         });
 
         // --- キャラクターアニメーション (既存) ---

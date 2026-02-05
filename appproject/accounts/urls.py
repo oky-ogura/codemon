@@ -100,4 +100,9 @@ urlpatterns = [
     path('block/delete/', views.block_delete, name='block_delete'),
     path('block/delete/success/', views.block_delete_success, name='block_delete_success'),
     path('system/tutorial/', views.system_tutorial, name='system_tutorial'),
+    
+    # チュートリアル関連API
+    path('mark-tutorial-step/', views.mark_tutorial_step, name='mark_tutorial_step'),
+    path('skip-tutorial-step/', views.skip_tutorial_step, name='skip_tutorial_step'),
+    path('complete-tutorial-step/', views.complete_tutorial_step, name='complete_tutorial_step'),
 ]
