@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body_class %} class="no-scroll"{% endblock %}
+
+{% block background_frame %}
+  <img src="{% static 'codemon/images/frames/bg_frame_yellow.png' %}" 
+       alt="" 
+       class="bg-frame frame-yellow"
+       onerror="this.style.display='none';">
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'codemon/css/submission_box.css' %}">
+<style>
+/* ここでチャット画面のサイズと位置を直接カスタマイズできます */
+:root {
+  /* デスクトップ中央配置(カード風) */
+  --chat-max-width: 800px;
+  --chat-max-height: 70vh;
+  --chat-margin: 20px auto;
+  --chat-border-radius: 12px;
+  --chat-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --chat-position: fixed;
+  --chat-position-x: 50px;
+  --chat-position-y: 130px;
+  --chat-margin: 0;
+  */
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="submission-box-container">
+  <!-- ヘッダー -->
+  <div class="box-header">
+    <button class="btn-back" onclick="location.href='{% url 'codemon:chat_teacher' %}'">←</button>
+    <h1 class="box-title">投函ボックスを作成</h1>
+  </div>
+
+  <!-- コンテンツ -->
+  <div class="box-content">
+    <form id="create-box-form" method="POST" action="{% url 'codemon:submission_box_create' %}">
+      {% csrf_token %}
+      <div class="form-group">
+        <label>ボックス名</label>
+        <input type="text" name="box_name" id="box-name" placeholder="例：数学 第1回課題" required>
+      </div>
+      <div class="form-group">
+        <label>説明</label>
+        <textarea name="box_description" id="box-description" placeholder="課題の説明を入力..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>期限</label>
+        <input type="date" name="box_deadline" id="box-deadline" required>
+      </div>
+      <div class="form-group">
+        <label>メッセージグループ</label>
+        <select name="box_group" id="box-group" required>
+          <option value="">選択してください</option>
+          {% for group in groups %}
+          <option value="{{ group.group_id }}">{{ group.group_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group checkbox">
+        <input type="checkbox" name="allow_multiple" id="allow-multiple" checked>
+        <label for="allow-multiple">複数ファイルの提出を許可</label>
+      </div>
+      <div class="form-footer">
+        <button type="button" class="btn-cancel" onclick="window.location.href='/codemon/chat/teacher/submission-box/'">キャンセル</button>
+        <button type="submit" class="btn-submit">作成する</button>
+      </div>
+    </form>
+
+    <script>
+      // フォーム送信時の処理（特に何もしない）
+      document.getElementById('create-box-form').addEventListener('submit', function(e) {
+        // 投函ボックス一覧画面へリダイレクト
+      });
+    </script>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% endblock %}

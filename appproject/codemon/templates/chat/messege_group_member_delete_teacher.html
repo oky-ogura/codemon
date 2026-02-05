@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body_class %} class="no-scroll"{% endblock %}
+
+{% block background_frame %}
+  <img src="{% static 'codemon/images/frames/bg_frame_yellow.png' %}" 
+       alt="" 
+       class="bg-frame frame-yellow"
+       onerror="this.style.display='none';">
+{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+  --chat-max-width: 800px;
+  --chat-max-height: 70vh;
+  --chat-margin: 20px auto;
+  --chat-border-radius: 12px;
+  --chat-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --chat-position: fixed;
+  --chat-position-x: 50px;
+  --chat-position-y: 130px;
+}
+
+.delete-container {
+  position: var(--chat-position);
+  left: var(--chat-position-x);
+  top: var(--chat-position-y);
+  width: var(--chat-max-width);
+  max-height: var(--chat-max-height);
+  background: white;
+  border-radius: var(--chat-border-radius);
+  box-shadow: var(--chat-box-shadow);
+  overflow-y: auto;
+}
+
+.delete-header {
+  padding: 24px 20px 16px;
+  background: #fff3cd;
+  border-bottom: 1px solid #ffecb5;
+}
+
+.delete-icon {
+  font-size: 48px;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.delete-title {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+}
+
+.delete-subtitle {
+  margin: 0;
+  font-size: 16px;
+  color: #666;
+  text-align: center;
+}
+
+.delete-content {
+  padding: 30px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.warning-message {
+  background: #fff3cd;
+  border: 2px solid #ffc107;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 0;
+  height: fit-content;
+}
+
+.warning-message p {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  color: #856404;
+  font-weight: 600;
+}
+
+.warning-message ul {
+  margin: 8px 0 0 20px;
+  padding: 0;
+  list-style: disc;
+}
+
+.warning-message li {
+  font-size: 14px;
+  color: #856404;
+  margin-bottom: 6px;
+}
+
+.member-info {
+  background: #f8f8f8;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.member-info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.member-info-row:last-child {
+  margin-bottom: 0;
+}
+
+.member-info-label {
+  font-size: 14px;
+  color: #666;
+  font-weight: 600;
+}
+
+.member-info-value {
+  font-size: 14px;
+  color: #333;
+}
+
+.confirmation-box {
+  background: #f8f8f8;
+  border: 1px solid #e5e5ea;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 0;
+}
+
+.confirmation-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.confirmation-checkbox input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.confirmation-checkbox label {
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+  user-select: none;
+}
+
+.delete-footer {
+  padding: 20px;
+  border-top: 1px solid #e5e5ea;
+  background: #f8f8f8;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.btn-cancel,
+.btn-delete {
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-cancel {
+  background: #e5e5ea;
+  color: #333;
+}
+
+.btn-cancel:hover {
+  background: #d8d8dc;
+}
+
+.btn-delete {
+  background: #ff3b30;
+  color: white;
+}
+
+.btn-delete:hover {
+  background: #e63028;
+}
+
+.btn-delete:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="delete-container">
+  <div class="delete-header">
+    <div class="delete-icon">⚠️</div>
+    <h1 class="delete-title">メンバーを削除しますか？</h1>
+    <p class="delete-subtitle">この操作は取り消すことができません</p>
+  </div>
+
+  <div class="delete-content">
+    <div class="warning-message">
+      <p>削除されます：</p>
+      <ul>
+        <li>このメンバーがグループから削除されます</li>
+        <li>削除後、このメンバーはこのグループにアクセスできなくなります</li>
+        <li>過去のメッセージデータは保持されます</li>
+      </ul>
+    </div>
+
+    <div class="right-column">
+      <div class="member-info">
+        <div class="member-info-row">
+          <span class="member-info-label">メンバー名</span>
+          <span class="member-info-value">{{ member.user_name }}</span>
+        </div>
+        <div class="member-info-row">
+          <span class="member-info-label">メールアドレス</span>
+          <span class="member-info-value">{{ member.email }}</span>
+        </div>
+        <div class="member-info-row">
+          <span class="member-info-label">役割</span>
+          <span class="member-info-value">{{ membership.get_role_display }}</span>
+        </div>
+        <div class="member-info-row">
+          <span class="member-info-label">グループ</span>
+          <span class="member-info-value">{{ group.group_name }}</span>
+        </div>
+      </div>
+
+      <div class="confirmation-box">
+        <div class="confirmation-checkbox">
+          <input type="checkbox" id="confirmDelete" onchange="toggleDeleteButton()">
+          <label for="confirmDelete">メンバーの削除を確認します</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="delete-footer">
+    <button class="btn-cancel" onclick="history.back()">キャンセル</button>
+    <form method="post" style="display: inline;">
+      {% csrf_token %}
+      <button type="submit" class="btn-delete" id="deleteBtn" disabled onclick="return confirmDelete()">削除</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function toggleDeleteButton() {
+  const checkbox = document.getElementById('confirmDelete');
+  const deleteBtn = document.getElementById('deleteBtn');
+  deleteBtn.disabled = !checkbox.checked;
+}
+
+function confirmDelete() {
+  return confirm('本当にこのメンバーを削除しますか？');
+}
+</script>
+{% endblock %}

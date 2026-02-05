@@ -7,7 +7,11 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.contrib import messages
-from .models import ChatThread, ChatMessage, Group, GroupMember
+from .models import ChatThread, ChatMessage, MessegeGroup, MessegeMember
+
+# 互換用エイリアス（chat側のメッセージグループをGroup名で扱う既存コード向け）
+Group = MessegeGroup
+GroupMember = MessegeMember
 
 def teacher_required(view_func):
     """教師権限が必要なビューのデコレーター"""

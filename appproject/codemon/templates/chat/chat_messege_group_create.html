@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body_class %} class="no-scroll"{% endblock %}
+
+{% block background_frame %}
+	<img src="{% static 'codemon/images/frames/bg_frame_yellow.png' %}"
+			 alt=""
+			 class="bg-frame frame-yellow"
+			 onerror="this.style.display='none';">
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'codemon/css/group_management.css' %}">
+<style>
+:root {
+  --chat-max-width: 800px;
+  --chat-max-height: 70vh;
+  --chat-margin: 20px auto;
+  --chat-border-radius: 12px;
+  --chat-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --chat-position: fixed;
+  --chat-position-x: 50px;
+  --chat-position-y: 130px;
+}
+
+.form-card {
+	background: #fff;
+	border-radius: 12px;
+	padding: 24px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.form-row {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-bottom: 16px;
+}
+
+.form-row label {
+	font-weight: 600;
+	color: #333;
+}
+
+.form-row input {
+	padding: 10px 12px;
+	border: 1px solid #ddd;
+	border-radius: 8px;
+}
+
+.form-actions {
+	display: flex;
+	gap: 12px;
+	justify-content: flex-end;
+}
+
+.btn-primary {
+	background: #5BD4F0;
+	color: #fff;
+	border: none;
+	padding: 10px 18px;
+	border-radius: 8px;
+	cursor: pointer;
+}
+
+.btn-secondary {
+	background: #eee;
+	color: #333;
+	border: none;
+	padding: 10px 18px;
+	border-radius: 8px;
+	cursor: pointer;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="group-management-container">
+	<div class="management-header">
+		<button class="btn-back" onclick="window.location.href='{% url 'codemon:group_management' %}'">←</button>
+		<h1 class="management-title">グループ新規作成</h1>
+	</div>
+
+	<div class="management-content">
+		<div class="form-card">
+			{% if messages %}
+				<div class="messages" style="margin-bottom: 15px;">
+					{% for message in messages %}
+						<div class="message {{ message.tags }}" style="padding: 10px 20px; border-radius: 8px; font-size: 0.9em; margin-bottom: 8px; text-align: center;
+							{% if message.tags == 'error' %}background: #fdecea; color: #611a15; border: 1px solid #f5c6cb;
+							{% elif message.tags == 'success' %}background: #e6ffed; color: #164d2b; border: 1px solid #b3e6c1;
+							{% endif %}">
+							{{ message }}
+						</div>
+					{% endfor %}
+				</div>
+			{% endif %}
+
+			<form method="post" action="{% url 'codemon:messege_group_create' %}">
+				{% csrf_token %}
+				<div class="form-row">
+					<label for="group_name">グループ名</label>
+					<input type="text" name="group_name" id="group_name" placeholder="グループ名を入力" required>
+				</div>
+				<div class="form-row">
+					<label for="group_password">パスワード（任意）</label>
+					<input type="password" name="group_password" id="group_password" placeholder="パスワードを入力">
+				</div>
+				<div class="form-actions">
+					<button type="button" class="btn-secondary" onclick="window.location.href='{% url 'codemon:group_management' %}'">戻る</button>
+					<button type="submit" class="btn-primary">作成</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+{% endblock %}

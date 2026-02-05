@@ -117,6 +117,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         # 認証チェック
         user = self.scope.get('user')
+        logger.debug(f"User from scope: {user}, is_authenticated: {getattr(user, 'is_authenticated', False)}")
+        logger.debug(f"Scope keys: {self.scope.keys()}")
+        logger.debug(f"Session: {self.scope.get('session')}")
+        
         if not user or not user.is_authenticated:
             error_msg = "認証が必要です"
             logger.error(error_msg)
@@ -184,7 +188,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         try:
             # メッセージを保存
-            saved = await self.create_message(user.id, content, attachments)
+            saved = await self.create_message(user.user_id, content, attachments)
 
             # グループにブロードキャスト
             await self.channel_layer.group_send(
@@ -227,7 +231,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         try:
             # 既読状態を保存
-            await self.mark_messages_as_read(message_ids, user.id)
+            await self.mark_messages_as_read(message_ids, user.user_id)
             
             # 既読情報を送信
             for message_id in message_ids:

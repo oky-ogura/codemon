@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body_class %} class="no-scroll"{% endblock %}
+
+{% block background_frame %}
+  <img src="{% static 'codemon/images/frames/bg_frame_yellow.png' %}" 
+       alt="" 
+       class="bg-frame frame-yellow"
+       onerror="this.style.display='none';">
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'codemon/css/group_management.css' %}">
+<style>
+:root {
+  --chat-max-width: 800px;
+  --chat-max-height: 70vh;
+  --chat-border-radius: 12px;
+  --chat-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --chat-position: fixed;
+  --chat-position-x: 50px;
+  --chat-position-y: 135px;
+}
+
+/* 投函ボックスカードのスタイル */
+.group-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.group-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.group-info h3 {
+  margin: 0 0 8px 0;
+  color: #333;
+  font-size: 18px;
+}
+
+.group-info p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.group-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-edit, .btn-delete {
+  padding: 8px 16px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 14px;
+  transition: all 0.3s;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-edit {
+  background: #FFD700;
+  color: #333;
+}
+
+.btn-edit:hover {
+  background: #FFC700;
+}
+
+.btn-delete {
+  background: #ff4444;
+  color: white;
+}
+
+.btn-delete:hover {
+  background: #cc0000;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+}
+
+.empty-state p:first-child {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+.empty-state p:last-child {
+  font-size: 14px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="group-management-container">
+  <!-- ヘッダー -->
+  <div class="management-header">
+    <button class="btn-back" onclick="location.href='{% url 'codemon:chat_teacher' %}'">←</button>
+    {% if group %}
+    <h1 class="management-title">{{ group.group_name }} - 投函ボックス</h1>
+    {% else %}
+    <h1 class="management-title">投函ボックス管理</h1>
+    {% endif %}
+    {% if group %}
+    <a href="{% url 'codemon:submission_box_create' %}?group={{ group.group_id }}" class="btn-create-group">新規作成</a>
+    {% else %}
+    <a href="{% url 'codemon:submission_box_create' %}" class="btn-create-group">新規作成</a>
+    {% endif %}
+  </div>
+
+  <!-- コンテンツ -->
+  <div class="management-content">
+    <!-- 投函ボックス一覧 -->
+    <div class="groups-list">
+      {% if boxes %}
+        {% for box in boxes %}
+        <div class="group-card">
+          <div class="group-info">
+            <h3 class="group-name">{{ box.title }}</h3>
+            <p class="group-members">作成日: {{ box.created_at|date:"Y/m/d" }}</p>
+            {% if box.group %}
+            <p class="group-members">グループ: {{ box.group.group_name }}</p>
+            {% endif %}
+            {% if box.description %}
+              <p class="group-members">{{ box.description }}</p>
+            {% endif %}
+            <div class="box-link-container">
+              <label style="font-size: 12px; color: #666; display: block; margin-bottom: 4px;">投函ボックスリンク:</label>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="text" 
+                       class="box-link-input" 
+                       value="{{ request.scheme }}://{{ request.get_host }}/codemon/chat/submission-box/{{ box.thread_id }}/" 
+                       readonly 
+                       id="box-link-{{ box.thread_id }}"
+                       style="flex: 1; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; background: #f9f9f9;">
+                {% if box.is_expired %}
+                <span style="font-size: 12px; color: #d32f2f;">期限切れ</span>
+                {% else %}
+                <button class="btn-copy-link" 
+                        onclick="copyBoxLink('box-link-{{ box.thread_id }}')"
+                        style="padding: 6px 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; white-space: nowrap;">
+                  📋 コピー
+                </button>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          <div class="group-actions">
+            {% if box.is_expired %}
+            <span class="btn-edit" style="opacity: 0.5; cursor: not-allowed;">確認</span>
+            {% else %}
+            <a href="{% url 'codemon:submission_box_detail' box.thread_id %}" class="btn-edit">確認</a>
+            {% endif %}
+            <a href="{% url 'codemon:submission_box_delete' box.thread_id %}" class="btn-delete">削除</a>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state">
+          <p>投函ボックスがまだありません</p>
+          <p>新規作成ボタンから投函ボックスを作成してください</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function copyBoxLink(inputId) {
+    const input = document.getElementById(inputId);
+    input.select();
+    input.setSelectionRange(0, 99999); // モバイル対応
+    
+    try {
+      document.execCommand('copy');
+      // コピー成功のフィードバック
+      const button = event.target.closest('button');
+      const originalText = button.innerHTML;
+      button.innerHTML = '✓ コピーしました！';
+      button.style.background = '#45a049';
+      
+      setTimeout(() => {
+        button.innerHTML = originalText;
+        button.style.background = '#4CAF50';
+      }, 2000);
+    } catch (err) {
+      alert('コピーに失敗しました');
+    }
+  }
+</script>
+{% endblock %}

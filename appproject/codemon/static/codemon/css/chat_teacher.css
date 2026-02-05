@@ -70,3 +70,31 @@
 .chat-list-item {
   animation: slideIn 0.3s ease-out;
 }
+
+/* サイドバーセクションのスタイル */
+.sidebar-section {
+  margin-top: 20px;
+}
+
+.sidebar-section-title {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+/* グループアイテムの無効状態 */
+.group-item--disabled {
+  opacity: 0.6;
+}
+
+/* メッセージ内のリンク */
+.message-link {
+  color: #1e90ff;
+  text-decoration: underline;
+}
+
+/* 添付画像 */
+.attachment-image-img {
+  max-width: 220px;
+  border-radius: 6px;
+}

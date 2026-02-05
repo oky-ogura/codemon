@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body_class %} class="no-scroll"{% endblock %}
+
+{% block extra_head %}
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+{% endblock %}
+
+{% block background_frame %}
+  <img src="{% static 'codemon/images/frames/bg_frame_yellow.png' %}" 
+       alt="" 
+       class="bg-frame frame-yellow"
+       onerror="this.style.display='none';">
+{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+  --chat-max-width: 800px;
+  --chat-max-height: 70vh;
+  --chat-border-radius: 12px;
+  --chat-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --chat-position: fixed;
+  --chat-position-x: 50px;
+  --chat-position-y: 135px;
+}
+
+.detail-container {
+  position: var(--chat-position);
+  left: var(--chat-position-x);
+  top: var(--chat-position-y);
+  width: calc(100% - 100px);
+  max-width: var(--chat-max-width);
+  height: calc(85vh - 100px);
+  background: white;
+  border-radius: var(--chat-border-radius);
+  box-shadow: var(--chat-box-shadow);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.detail-header {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  color: white;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.detail-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.btn-back {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.detail-content {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.detail-section {
+  margin-bottom: 24px;
+}
+
+.section-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.submission-info {
+  background: #f9fafb;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 1px solid #e5e7eb;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.info-row:last-child {
+  margin-bottom: 0;
+}
+
+.info-label {
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.info-value {
+  color: #1f2937;
+}
+
+.content-display {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  line-height: 1.6;
+  color: #1f2937;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.score-display {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  color: white;
+  padding: 24px;
+  border-radius: 12px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.score-label {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-bottom: 8px;
+}
+
+.score-value {
+  font-size: 48px;
+  font-weight: 700;
+}
+
+.detail-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.btn-edit, .btn-close {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: opacity 0.2s;
+}
+
+.btn-edit {
+  background: #059669;
+  color: white;
+}
+
+.btn-edit:hover {
+  opacity: 0.9;
+}
+
+.btn-close {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.btn-close:hover {
+  opacity: 0.8;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 24px;
+  color: #6b7280;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.empty-text {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.empty-subtext {
+  font-size: 14px;
+  color: #9ca3af;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="detail-container">
+  <div class="detail-header">
+    <h1 class="detail-title">採点詳細</h1>
+    <button class="btn-back" onclick="history.back()">戻る</button>
+  </div>
+
+  <div class="detail-content">
+    {% if score %}
+    <!-- 提出課題の情報 -->
+    <div class="submission-info">
+      <div class="info-row">
+        <span class="info-label">提出者</span>
+        <span class="info-value">{{ score.message.sender.user_name }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">提出日時</span>
+        <span class="info-value">{{ score.message.created_at|date:"Y/m/d H:i" }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">採点者</span>
+        <span class="info-value">{{ score.scorer.user_name }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">採点日時</span>
+        <span class="info-value">{{ score.created_at|date:"Y/m/d H:i" }}</span>
+      </div>
+    </div>
+
+    <!-- 提出内容 -->
+    {% if score.message.content %}
+    <div class="detail-section">
+      <span class="section-label">提出内容</span>
+      <div class="content-display">{{ score.message.content }}</div>
+    </div>
+    {% endif %}
+
+    <!-- 点数 -->
+    <div class="detail-section">
+      <div class="score-display">
+        <div class="score-label">点数</div>
+        <div class="score-value">{{ score.score }}点</div>
+      </div>
+    </div>
+
+    <!-- 良かったこと -->
+    <div class="detail-section">
+      <span class="section-label">良かったこと</span>
+      <div class="content-display">{{ score.good_points }}</div>
+    </div>
+
+    <!-- 惜しかったこと -->
+    <div class="detail-section">
+      <span class="section-label">惜しかったこと</span>
+      <div class="content-display">{{ score.improvement_points }}</div>
+    </div>
+
+    <!-- まとめ・アドバイス -->
+    <div class="detail-section">
+      <span class="section-label">まとめ・アドバイス</span>
+      <div class="content-display">{{ score.advice }}</div>
+    </div>
+
+    <!-- 添付ファイル -->
+    {% if score.message.attachments.all %}
+    <div class="detail-section">
+      <span class="section-label">提出ファイル</span>
+      <div style="background: #f9fafb; padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb;">
+        {% for attachment in score.message.attachments.all %}
+        <div style="margin-bottom: 8px;">
+          <a href="{% url 'codemon:download_attachment' attachment.attachment_id %}" style="color: #4f46e5; text-decoration: none;">
+            📎 {{ attachment.file.name }}
+          </a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- 採点データなし -->
+    <div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <p class="empty-text">採点データはまだ保存されていません</p>
+      <p class="empty-subtext">採点画面で採点データを入力してください</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="detail-footer">
+    {% if score and is_teacher %}
+    <a href="{% url 'codemon:grading_with_message' score.message.message_id %}" class="btn-edit">編集</a>
+    {% endif %}
+    <button class="btn-close" onclick="history.back()">閉じる</button>
+  </div>
+</div>
+{% endblock %}

@@ -1606,45 +1606,33 @@ def group_create(request):
         try:
             # まず Account インスタンスを解決
             account_owner = Account.objects.filter(user_id=user_id).first()
+            
+            if not account_owner:
+                raise Exception('アカウント情報が見つかりません')
 
             # トランザクション内でグループ作成とメンバー登録を行い、途中で失敗したらロールバックする
             with transaction.atomic():
-                # 多くの既存 DB スキーマでは group.password が NOT NULL の場合があるため
-                # raw SQL で確実に挿入する
-                with connection.cursor() as cursor:
-                    # 最後のグループIDを取得して+1した値を新しいグループIDとする
-                    cursor.execute('SELECT COALESCE(MAX(group_id), 0) FROM "group"')
-                    last_id = cursor.fetchone()[0]
-                    new_group_id = last_id + 1
-                    
-                    cursor.execute(
-                        'INSERT INTO "group" (group_id, group_name, owner_id, password, created_at, updated_at) '
-                        'VALUES (%s, %s, %s, %s, now(), now())',
-                        [new_group_id, group_name, user_id, hashed or '']
-                    )
-                    group_id = new_group_id
+                # ORMを使ってグループを作成（SQLiteとPostgreSQLの両方に対応）
+                group = Group.objects.create(
+                    group_name=group_name,
+                    password=hashed,
+                    owner=account_owner,
+                    description='',
+                    is_active=True
+                )
+                group_id = group.group_id
 
                 if group_id is None:
                     raise Exception('グループ作成後に group_id を取得できませんでした')
 
-                # ORM オブジェクトとして利用可能なら取得しておく（proxy を使っているため models の互換性に注意）
-                group = Group.objects.filter(group_id=group_id).first()
-
-                # DB スキーマに member_id が存在して NOT NULL 制約がある環境があるため
-                # 安全策として raw SQL で member_user_id と member_id の両方を明示して挿入する。
-                with connection.cursor() as cursor:
-                    # 重複防止: 既に同じ member_user_id が登録されていないか確認
-                    cursor.execute('SELECT 1 FROM group_member WHERE group_id = %s AND member_user_id = %s', [group_id, user_id])
-                    if not cursor.fetchone():
-                        try:
-                            cursor.execute('INSERT INTO group_member (group_id, member_user_id, member_id, role, created_at) VALUES (%s, %s, %s, %s, now())', [group_id, user_id, user_id, 'teacher'])
-                        except Exception:
-                            # まれにカラム名/制約が違うスキーマが混在する可能性があるのでフォールバックで別カラム順を試す
-                            try:
-                                cursor.execute('INSERT INTO group_member (group_id, member_user_id, role, created_at) VALUES (%s, %s, %s, now())', [group_id, user_id, 'teacher'])
-                            except Exception:
-                                # ここまで失敗したら例外を再送出して transaction.atomic に任せる
-                                raise
+                # グループメンバーに作成者を追加
+                # 重複防止: 既に同じ member が登録されていないか確認
+                if not GroupMember.objects.filter(group=group, member=account_owner).exists():
+                    GroupMember.objects.create(
+                        group=group,
+                        member=account_owner,
+                        role='teacher'
+                    )
 
         except Exception as e:
             # ログに完全なトレースを残す（開発用）
@@ -1655,14 +1643,9 @@ def group_create(request):
             # Render the same template with an explicit error message so it is visible
             return render(request, 'group/create_group.html', {'error_message': err})
 
-        # 要求: 作成後は教員アカウント用テンプレート `t_account.html` に戻す
-        # URLconf では t_account ページは name='account_dashboard' にマッピングされているため
-        # ここではその名前へリダイレクトする
-        try:
-            return redirect('accounts:account_dashboard')
-        except Exception:
-            # 万一リダイレクトに失敗したらアカウントトップへフォールバック
-            return redirect('accounts:account_entry')
+        # グループ作成後はグループ管理画面へリダイレクト
+        messages.success(request, f'グループ「{group_name}」を作成しました。')
+        return redirect('codemon:group_management')
 
     # GET の場合は作成ページを表示
     return render(request, 'group/create_group.html', {})
@@ -1985,7 +1968,7 @@ def group_join_confirm(request):
 
         try:
             with connection.cursor() as cursor:
-                cursor.execute('SELECT group_id, password, user_id FROM "group" WHERE group_name = %s', [group_name])
+                cursor.execute('SELECT group_id, password, owner_id FROM "group" WHERE group_name = %s', [group_name])
                 row = cursor.fetchone()
                 # 一致するグループがあるか、かつパスワードが一致するかをまとめて検証します。
                 if not row:
@@ -2002,6 +1985,7 @@ def group_join_confirm(request):
                         return render(request, 'group/group_select.html', {})
                 else:
                     # ハッシュがある場合は check_password で検証
+                    from django.contrib.auth.hashers import check_password
                     if not check_password(group_password, stored_hashed):
                         messages.error(request, 'グループ名かパスワードが間違っています')
                         return render(request, 'group/group_select.html', {})

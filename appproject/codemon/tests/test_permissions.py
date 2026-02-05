@@ -7,8 +7,12 @@ from django.utils import timezone
 from accounts.models import Account
 from codemon.models import (
     ChatThread, ChatMessage, ReadReceipt, ChatScore,
-    Group, GroupMember
+    MessegeGroup, MessegeMember
 )
+
+# 互換用エイリアス（chat側のメッセージグループをGroup名で扱う既存テスト向け）
+Group = MessegeGroup
+GroupMember = MessegeMember
 
 class PermissionsTest(TestCase):
     def setUp(self):

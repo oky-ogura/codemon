@@ -1,4 +1,8 @@
 from functools import wraps
+import uuid
+import re
+import os
+from datetime import date
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db import models
 from django.contrib import messages
@@ -12,12 +16,18 @@ from channels.layers import get_channel_layer
 from .permissions import teacher_required, can_access_thread, can_modify_message
 from .models import (
     Checklist, ChecklistItem, ChatThread, ChatScore, ChatMessage, ChatAttachment,
-    Group, GroupMember, AIConversation, AIMessage
+    MessegeGroup, MessegeMember, MessegeGroupInvite,
+    DirectMessageThread, DirectMessage,
+    AIConversation, AIMessage
 )
 from accounts.models import Account
 from django.utils import timezone
 from django.db.models import Q
 from django.db import transaction
+
+# 互換用エイリアス（chat側のメッセージグループをGroup名で扱う既存コード向け）
+Group = MessegeGroup
+GroupMember = MessegeMember
 
 # カスタムログイン必須デコレータ（セッションベース認証用）
 def session_login_required(view_func):
@@ -87,6 +97,20 @@ def _get_write_owner(request):
 		)
 		return acct
 	return None
+
+
+def _extract_deadline_from_thread(thread):
+    """Threadの最初のメッセージから期限日(YYYY-MM-DD)を抽出"""
+    try:
+        first_message = thread.messages.order_by('created_at').first()
+        if not first_message or not first_message.content:
+            return None
+        match = re.search(r"期限：\s*(\d{4}-\d{2}-\d{2})", first_message.content)
+        if not match:
+            return None
+        return date.fromisoformat(match.group(1))
+    except Exception:
+        return None
 
 
 def systems_list(request):
@@ -678,93 +702,117 @@ def upload_attachments(request):
     - sender_id: int (optional if ALLOW_ANONYMOUS_VIEWS)
     - file: uploaded file
     """
-    owner = _get_write_owner(request)
-    if owner is None:
-        return HttpResponseForbidden('ログインが必要です')
-
-    thread_id = request.POST.get('thread_id')
-    if not thread_id:
-        return JsonResponse({'error': 'thread_id is required'}, status=400)
-
     try:
-        thread = ChatThread.objects.get(thread_id=thread_id)
-    except ChatThread.DoesNotExist:
-        # create a simple thread if not exists
-        thread = ChatThread.objects.create(thread_id=thread_id, title=f'Thread {thread_id}', created_by=owner)
+        owner = _get_write_owner(request)
+        if owner is None:
+            print(f"[ERROR] upload_attachments: ログインが必要です")
+            return JsonResponse({'error': 'ログインが必要です'}, status=403)
 
-    # Support multiple files uploaded under the key 'files' (FormData.append('files', file))
-    upload_files = request.FILES.getlist('files') or []
-    # Fallback to single-file key 'file' for backward compatibility
-    single = request.FILES.get('file')
-    if single and not upload_files:
-        upload_files = [single]
+        thread_id = request.POST.get('thread_id')
+        print(f"[DEBUG] upload_attachments: thread_id={thread_id}, user={owner.user_id}")
+        
+        if not thread_id:
+            print(f"[ERROR] upload_attachments: thread_id is required")
+            return JsonResponse({'error': 'thread_id is required'}, status=400)
 
-    if not upload_files:
-        return JsonResponse({'error': 'file is required'}, status=400)
+        try:
+            thread = ChatThread.objects.get(thread_id=thread_id)
+            print(f"[DEBUG] upload_attachments: thread found - {thread.title}")
+        except ChatThread.DoesNotExist:
+            # create a simple thread if not exists
+            print(f"[WARNING] upload_attachments: thread not found, creating new thread")
+            thread = ChatThread.objects.create(thread_id=thread_id, title=f'Thread {thread_id}', created_by=owner)
 
-    # Validate each file and create attachments
-    attachments_created = []
-    # Create a single ChatMessage for all uploaded files
-    msg = ChatMessage.objects.create(thread=thread, sender=owner, content='')
+        # Support multiple files uploaded under the key 'files' (FormData.append('files', file))
+        upload_files = request.FILES.getlist('files') or []
+        # Fallback to single-file key 'file' for backward compatibility
+        single = request.FILES.get('file')
+        if single and not upload_files:
+            upload_files = [single]
 
-    for upload_file in upload_files:
-        # ファイルサイズの検証
-        if upload_file.size > settings.MAX_UPLOAD_SIZE:
-            max_mb = settings.MAX_UPLOAD_SIZE / (1024 * 1024)
-            return JsonResponse({
-                'error': f'ファイルサイズは{max_mb}MB以下にしてください'
-            }, status=400)
+        print(f"[DEBUG] upload_attachments: files count={len(upload_files)}")
+        
+        if not upload_files:
+            print(f"[ERROR] upload_attachments: file is required")
+            return JsonResponse({'error': 'file is required'}, status=400)
 
-        # 拡張子の検証
-        ext = os.path.splitext(upload_file.name)[1].lower()
-        if ext not in settings.ALLOWED_UPLOAD_EXTENSIONS:
-            allowed = ', '.join(settings.ALLOWED_UPLOAD_EXTENSIONS)
-            return JsonResponse({
-                'error': f'許可されているファイル形式: {allowed}'
-            }, status=400)
+        # Validate each file and create attachments
+        attachments_created = []
+        # Create a single ChatMessage for all uploaded files
+        msg = ChatMessage.objects.create(thread=thread, sender=owner, content='')
+        print(f"[DEBUG] upload_attachments: created message {msg.message_id}")
 
-        chat_attachment = ChatAttachment.objects.create(message=msg, file=upload_file)
-        attachments_created.append(chat_attachment)
+        for upload_file in upload_files:
+            print(f"[DEBUG] upload_attachments: processing file {upload_file.name}, size={upload_file.size}")
+            
+            # ファイルサイズの検証
+            if upload_file.size > settings.MAX_UPLOAD_SIZE:
+                max_mb = settings.MAX_UPLOAD_SIZE / (1024 * 1024)
+                error_msg = f'ファイルサイズは{max_mb}MB以下にしてください'
+                print(f"[ERROR] upload_attachments: {error_msg}")
+                return JsonResponse({'error': error_msg}, status=400)
 
-    # Prepare payload to broadcast (match consumer payload shape)
-    attachments_payload = []
-    import mimetypes as _mimetypes
-    for a, original in zip(attachments_created, upload_files):
-        attachments_payload.append({
-            'attachment_id': a.attachment_id,
-            'url': a.file.url,
-            'filename': getattr(original, 'name', ''),
-            'mime_type': _mimetypes.guess_type(getattr(a.file, 'name', ''))[0]
-        })
+            # 拡張子の検証
+            ext = os.path.splitext(upload_file.name)[1].lower()
+            print(f"[DEBUG] upload_attachments: file extension={ext}")
+            
+            if ext not in settings.ALLOWED_UPLOAD_EXTENSIONS:
+                allowed = ', '.join(settings.ALLOWED_UPLOAD_EXTENSIONS)
+                error_msg = f'許可されているファイル形式: {allowed}'
+                print(f"[ERROR] upload_attachments: {error_msg}")
+                return JsonResponse({'error': error_msg}, status=400)
 
-    message_payload = {
-        'message_id': msg.message_id,
-        'thread_id': thread.thread_id,
-        'sender_id': owner.user_id,
-        'sender_name': getattr(owner, 'user_name', ''),
-        'content': msg.content,
-        'created_at': msg.created_at.isoformat(),
-        'attachments': attachments_payload
-    }
+            chat_attachment = ChatAttachment.objects.create(message=msg, file=upload_file)
+            attachments_created.append(chat_attachment)
+            print(f"[DEBUG] upload_attachments: created attachment {chat_attachment.attachment_id}")
 
-    # Broadcast to channel layer
-    try:
-        from channels.layers import get_channel_layer
-        from asgiref.sync import async_to_sync
-        channel_layer = get_channel_layer()
-        group_name = f'chat_{thread.thread_id}'
-        async_to_sync(channel_layer.group_send)(
-            group_name,
-            {
-                'type': 'chat.message',
-                'message': message_payload,
-            }
-        )
-    except Exception:
-        # If channel layer fails, ignore and just return success
-        pass
+        # Prepare payload to broadcast (match consumer payload shape)
+        attachments_payload = []
+        import mimetypes as _mimetypes
+        for a, original in zip(attachments_created, upload_files):
+            attachments_payload.append({
+                'attachment_id': a.attachment_id,
+                'url': a.file.url,
+                'filename': getattr(original, 'name', ''),
+                'mime_type': _mimetypes.guess_type(getattr(a.file, 'name', ''))[0]
+            })
 
-    return JsonResponse({'status': 'ok', 'message': message_payload})
+        message_payload = {
+            'message_id': msg.message_id,
+            'thread_id': thread.thread_id,
+            'sender_id': owner.user_id,
+            'sender_name': getattr(owner, 'user_name', ''),
+            'content': msg.content,
+            'created_at': msg.created_at.isoformat(),
+            'attachments': attachments_payload
+        }
+
+        # Broadcast to channel layer
+        try:
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+            channel_layer = get_channel_layer()
+            group_name = f'chat_{thread.thread_id}'
+            async_to_sync(channel_layer.group_send)(
+                group_name,
+                {
+                    'type': 'chat.message',
+                    'message': message_payload,
+                }
+            )
+        except Exception as e:
+            # If channel layer fails, ignore and just return success
+            print(f"[WARNING] upload_attachments: channel layer broadcast failed - {e}")
+            pass
+
+        print(f"[DEBUG] upload_attachments: success - message_id={msg.message_id}, attachments={len(attachments_created)}")
+        return JsonResponse({'status': 'ok', 'message': message_payload})
+    
+    except Exception as e:
+        import traceback
+        print(f"[ERROR] upload_attachments: unexpected error")
+        print(traceback.format_exc())
+        return JsonResponse({'error': f'サーバーエラー: {str(e)}'}, status=500)
 
 
 @login_required
@@ -854,7 +902,7 @@ def group_list(request):
             is_active=True
         ).distinct()
 
-    return render(request, 'codemon/group_list.html', {
+    return render(request, 'chat/messege_group_management_teacher.html', {
         'groups': groups,
         'is_teacher': owner.type == 'teacher'
     })
@@ -1162,32 +1210,116 @@ def group_edit(request, group_id):
             group.description = description
             group.save()
             messages.success(request, f'グループ「{name}」を更新しました')
-            return redirect('codemon:group_detail', group_id=group.group_id)
+            return redirect('codemon:group_list')
 
-    return render(request, 'codemon/group_edit.html', {'group': group})
+    return render(request, 'chat/messege_group_edit_teacher.html', {'group': group})
 
 
-@require_POST
+def group_member_delete(request, group_id, member_id):
+    """グループメンバーの削除確認画面"""
+    owner = _get_write_owner(request)
+    if owner is None or owner.type != 'teacher':
+        messages.error(request, '教師権限が必要です')
+        return redirect('codemon:group_list')
+    
+    group = get_object_or_404(MessegeGroup, group_id=group_id, owner=owner, is_active=True)
+    member = get_object_or_404(Account, user_id=member_id)
+    
+    try:
+        membership = MessegeMember.objects.get(group=group, member=member, is_active=True)
+    except MessegeMember.DoesNotExist:
+        messages.error(request, 'メンバーが見つかりません')
+        return redirect('codemon:messege_group_edit', group_id=group_id)
+    
+    if request.method == 'POST':
+        # メンバーを非アクティブ化（削除）
+        membership.is_active = False
+        membership.save()
+        
+        messages.success(request, f'{member.user_name}をグループから削除しました')
+        return redirect('codemon:group_member_delete_complete', group_id=group_id, member_id=member_id)
+    
+    context = {
+        'group': group,
+        'member': member,
+        'membership': membership,
+    }
+    return render(request, 'chat/messege_group_member_delete_teacher.html', context)
+
+
+def group_member_delete_complete(request, group_id, member_id):
+    """グループメンバー削除完了画面"""
+    owner = _get_write_owner(request)
+    if owner is None or owner.type != 'teacher':
+        messages.error(request, '教師権限が必要です')
+        return redirect('codemon:group_list')
+    
+    group = get_object_or_404(MessegeGroup, group_id=group_id, owner=owner, is_active=True)
+    member = get_object_or_404(Account, user_id=member_id)
+    
+    context = {
+        'group': group,
+        'member': member,
+    }
+    return render(request, 'chat/messege_group_member_delete_complete_teacher.html', context)
+
+
 def group_delete(request, group_id):
     """グループの削除（論理削除）"""
-    if request.method != 'POST':
-        return HttpResponseForbidden('POSTメソッドが必要です')
+    owner = _get_write_owner(request)
+    if owner is None or owner.type != 'teacher':
+        messages.error(request, '教師権限が必要です')
+        return redirect('codemon:group_list')
     
-    # セッションから現在のユーザーIDを取得
-    current_user_id = request.session.get('account_user_id')
-    if not current_user_id:
-        messages.error(request, 'ログインが必要です')
-        return redirect('accounts:account_entry')
+    group = get_object_or_404(Group, group_id=group_id, owner=owner, is_active=True)
     
-    # グループを非アクティブ化（論理削除）
-    group.is_active = False
-    group.save()
+    if request.method == 'POST':
+        # 削除前にグループ情報を保存
+        group_name = group.group_name
+        member_count = group.memberships.filter(is_active=True).count()
+        
+        # グループを非アクティブ化（論理削除）
+        group.is_active = False
+        group.save()
 
-    # メンバーシップも非アクティブ化
-    GroupMember.objects.filter(group=group).update(is_active=False)
+        # メンバーシップも非アクティブ化
+        GroupMember.objects.filter(group=group).update(is_active=False)
 
-    messages.success(request, f'グループ「{group.group_name}」を削除しました')
-    return redirect('codemon:group_list')
+        # セッションに削除情報を保存
+        request.session['group_delete_info'] = {
+            'group_name': group_name,
+            'member_count': member_count,
+            'deleted_at': timezone.now().isoformat()
+        }
+
+        # JSONレスポンスで成功を返す（AJAX用）
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'status': 'success'})
+        
+        # フォーム送信時は完了画面へリダイレクト
+        return redirect('codemon:group_delete_complete')
+    
+    # GETリクエストの場合は確認画面を表示
+    return render(request, 'chat/messege_group_delete_teacher.html', {'group': group})
+
+
+def group_delete_complete(request):
+    """グループ削除完了画面"""
+    owner = _get_write_owner(request)
+    if owner is None or owner.type != 'teacher':
+        return redirect('codemon:group_list')
+    
+    # セッションから削除情報を取得
+    delete_info = request.session.pop('group_delete_info', {})
+    
+    if not delete_info:
+        return redirect('codemon:group_list')
+    
+    return render(request, 'chat/messege_group_delete_complete_teacher.html', {
+        'group_name': delete_info.get('group_name', ''),
+        'member_count': delete_info.get('member_count', 0),
+        'deleted_at': delete_info.get('deleted_at', '')
+    })
 
 
 # If ALLOW_ANONYMOUS_VIEWS is False, wrap the view callables with the real
@@ -1206,10 +1338,7 @@ if not getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
     score_thread = _login_required(score_thread)
     get_thread_readers = _login_required(get_thread_readers)
     # グループ管理関連のビュー
-    group_list = _login_required(group_list)
-    group_create = _login_required(group_create)
-    group_detail = _login_required(group_detail)
-    group_edit = _login_required(group_edit)
+    # group_list, group_create, group_detail, group_edit, group_delete は _get_write_owner で認証チェック済み
     group_invite = _login_required(group_invite)
     # group_remove_member は @teacher_login_required デコレータを使用しているため、ここではラップしない
     group_leave = _login_required(group_leave)
@@ -1509,53 +1638,541 @@ def chat_ui_group_manage(request):
 # チャット機能 - 新しいUI画面
 # ========================================
 
-@login_required
-@login_required
+def _can_access_group_chat(owner, group):
+    if owner is None:
+        return False
+
+    if getattr(owner, 'type', '') == 'teacher' and group.owner == owner:
+        return True
+
+    return MessegeMember.objects.filter(
+        group=group,
+        member=owner,
+        is_active=True
+    ).exists()
+
+
+def _get_or_create_group_chat_thread(group, owner):
+    """グループチャット用のスレッドを取得または作成
+    
+    投函ボックスとは異なり、グループに対して1つの共有チャットスレッドを使用します。
+    title に 'group_chat:' プレフィックスを付けて投函ボックスと区別します。
+    """
+    title = f'group_chat:{group.group_name}'
+    thread = ChatThread.objects.filter(group=group, title=title, is_active=True).first()
+    if thread:
+        return thread
+
+    created_by = group.owner if group.owner else owner
+    return ChatThread.objects.create(
+        title=title,
+        description='グループチャット用スレッド',
+        created_by=created_by,
+        group=group
+    )
+
+
+@session_login_required
+def group_chat_thread(request, group_id):
+    owner = _get_write_owner(request)
+    if owner is None:
+        return JsonResponse({'error': 'auth_required'}, status=403)
+
+    group = get_object_or_404(MessegeGroup, group_id=group_id, is_active=True)
+    if not _can_access_group_chat(owner, group):
+        return HttpResponseForbidden('このグループにアクセスする権限がありません')
+
+    thread = _get_or_create_group_chat_thread(group, owner)
+    return JsonResponse({'thread_id': thread.thread_id})
+
+
+@session_login_required
+def group_chat_messages(request, group_id):
+    owner = _get_write_owner(request)
+    if owner is None:
+        return JsonResponse({'error': 'auth_required'}, status=403)
+
+    group = get_object_or_404(MessegeGroup, group_id=group_id, is_active=True)
+    if not _can_access_group_chat(owner, group):
+        return HttpResponseForbidden('このグループにアクセスする権限がありません')
+
+    if request.method == 'POST':
+        # メッセージ送信
+        import json
+        try:
+            data = json.loads(request.body)
+            content = data.get('content', '').strip()
+            if not content:
+                return JsonResponse({'error': 'メッセージが空です'}, status=400)
+            
+            thread = _get_or_create_group_chat_thread(group, owner)
+            
+            # メッセージを作成
+            message = ChatMessage.objects.create(
+                thread=thread,
+                sender=owner,
+                content=content
+            )
+            
+            return JsonResponse({
+                'status': 'ok',
+                'message': {
+                    'message_id': message.message_id,
+                    'sender_user_id': owner.user_id,
+                    'sender_name': owner.user_name,
+                    'sender_avatar': owner.avatar.url if owner.avatar else None,
+                    'content': message.content,
+                    'created_at': message.created_at.isoformat(),
+                    'read_count': 0,
+                    'attachments': []
+                }
+            })
+        except json.JSONDecodeError:
+            return JsonResponse({'error': '不正なリクエスト'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    # GETリクエスト：メッセージ一覧を取得
+    thread = _get_or_create_group_chat_thread(group, owner)
+    print(f"[DEBUG] group_chat_messages - thread_id: {thread.thread_id}")
+    
+    messages_qs = ChatMessage.objects.filter(
+        thread=thread,
+        is_deleted=False
+    ).select_related('sender').prefetch_related('attachments', 'read_receipts').order_by('created_at')
+    
+    print(f"[DEBUG] group_chat_messages - messages count: {messages_qs.count()}")
+
+    messages = []
+    for msg in messages_qs:
+        print(f"[DEBUG] Processing message: {msg.message_id}, content: {msg.content[:50] if msg.content else 'None'}")
+        
+        # 添付ファイルを処理
+        attachments_data = []
+        for att in msg.attachments.all():
+            att_info = {
+                'id': att.attachment_id,
+                'name': att.file.name.split('/')[-1],  # ファイル名のみを取得
+                'url': att.file.url,
+            }
+            # 画像ファイルの判定（拡張子で判定）
+            image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp')
+            if att.file.name.lower().endswith(image_extensions):
+                att_info['type'] = 'image'
+            else:
+                att_info['type'] = 'file'
+            attachments_data.append(att_info)
+        
+        # 既読情報を取得（自分以外の既読者）
+        read_by = []
+        for receipt in msg.read_receipts.all():
+            if receipt.reader.user_id != owner.user_id:
+                read_by.append({
+                    'user_id': receipt.reader.user_id,
+                    'user_name': receipt.reader.user_name,
+                    'read_at': receipt.read_at.isoformat()
+                })
+        
+        messages.append({
+            'message_id': msg.message_id,
+            'sender_user_id': msg.sender.user_id,
+            'sender_name': getattr(msg.sender, 'user_name', ''),
+            'sender_avatar': msg.sender.avatar.url if msg.sender.avatar else None,
+            'content': msg.content,
+            'created_at': msg.created_at.isoformat(),
+            'read_count': msg.read_receipts.count(),
+            'read_by': read_by,
+            'attachments': attachments_data
+        })
+
+    return JsonResponse({'thread_id': thread.thread_id, 'messages': messages})
+
+@session_login_required
+def thread_messages(request, thread_id):
+    """投函ボックスのメッセージを取得（投函ボックス詳細画面用）"""
+    owner = _get_write_owner(request)
+    if owner is None:
+        return JsonResponse({'error': 'auth_required'}, status=403)
+
+    thread = get_object_or_404(ChatThread, thread_id=thread_id, is_active=True)
+    
+    # 権限確認：投函ボックスは'投函ボックス：'で始まる title を持つ
+    if not thread.title.startswith('投函ボックス：'):
+        return HttpResponseForbidden('このスレッドにアクセスする権限がありません')
+
+    if request.method == 'POST':
+        # メッセージ送信
+        import json
+        try:
+            data = json.loads(request.body)
+            content = data.get('content', '').strip()
+            if not content:
+                return JsonResponse({'error': 'メッセージが空です'}, status=400)
+            
+            # メッセージを作成
+            message = ChatMessage.objects.create(
+                thread=thread,
+                sender=owner,
+                content=content
+            )
+            
+            return JsonResponse({
+                'status': 'ok',
+                'message': {
+                    'message_id': message.message_id,
+                    'sender_user_id': owner.user_id,
+                    'sender_name': owner.user_name,
+                    'sender_avatar': owner.avatar.url if owner.avatar else None,
+                    'content': message.content,
+                    'created_at': message.created_at.isoformat(),
+                    'read_count': 0,
+                    'attachments': []
+                }
+            })
+        except json.JSONDecodeError:
+            return JsonResponse({'error': '不正なリクエスト'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    # GETリクエスト：メッセージ一覧を取得
+    messages_qs = ChatMessage.objects.filter(
+        thread=thread,
+        is_deleted=False
+    ).select_related('sender').prefetch_related('attachments', 'read_receipts').order_by('created_at')
+
+    messages = []
+    for msg in messages_qs:
+        # 添付ファイルを処理
+        attachments_data = []
+        for att in msg.attachments.all():
+            att_info = {
+                'id': att.attachment_id,
+                'name': att.file.name.split('/')[-1],  # ファイル名のみを取得
+                'url': att.file.url,
+            }
+            # 画像ファイルの判定（拡張子で判定）
+            image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp')
+            if att.file.name.lower().endswith(image_extensions):
+                att_info['type'] = 'image'
+            else:
+                att_info['type'] = 'file'
+            attachments_data.append(att_info)
+        
+        messages.append({
+            'message_id': msg.message_id,
+            'sender_user_id': msg.sender.user_id,
+            'sender_name': getattr(msg.sender, 'user_name', ''),
+            'sender_avatar': msg.sender.avatar.url if msg.sender.avatar else None,
+            'content': msg.content,
+            'created_at': msg.created_at.isoformat(),
+            'read_count': msg.read_receipts.count(),
+            'attachments': attachments_data
+        })
+
+    return JsonResponse({'thread_id': thread.thread_id, 'messages': messages})
+
+@session_login_required
 def chat_student(request):
     """生徒側チャット画面"""
-    return render(request, 'chat/chat_student.html')
+    user_id = request.session.get('account_user_id')
+    groups = []
+    direct_threads = []
+    context = {}
+    if user_id:
+        account = Account.objects.filter(user_id=user_id).first()
+        if account:
+            print(f"[DEBUG] chat_student - account.avatar: {account.avatar}")
+            print(f"[DEBUG] chat_student - has avatar: {bool(account.avatar)}")
+            memberships = MessegeMember.objects.filter(member=account, is_active=True).select_related('group')
+            groups = [m.group for m in memberships if m.group and m.group.is_active]
+            if account.email:
+                direct_threads = DirectMessageThread.objects.filter(
+                    Q(owner=account) | Q(participant_email=account.email)
+                ).order_by('-updated_at')
+            # ユーザーのアバター情報をコンテキストに追加
+            if account.avatar:
+                context['user_avatar'] = account.avatar.url
+                print(f"[DEBUG] chat_student - user_avatar: {context['user_avatar']}")
+    context['groups'] = groups
+    context['direct_threads'] = direct_threads
+    print(f"[DEBUG] chat_student - context keys: {context.keys()}")
+    return render(request, 'chat/chat_student.html', context)
 
 
-@login_required
+@teacher_login_required
 def chat_teacher(request):
     """教師側チャット画面"""
-    return render(request, 'chat/chat_teacher.html')
+    user_id = request.session.get('account_user_id')
+    groups = []
+    direct_threads = []
+    context = {}
+    selected_group_id = request.GET.get('group')
+    
+    if user_id:
+        account = Account.objects.filter(user_id=user_id).first()
+        if account:
+            print(f"[DEBUG] chat_teacher - account.avatar: {account.avatar}")
+            print(f"[DEBUG] chat_teacher - has avatar: {bool(account.avatar)}")
+            owned_groups = MessegeGroup.objects.filter(owner=account, is_active=True)
+            memberships = MessegeMember.objects.filter(member=account, is_active=True).select_related('group')
+            member_groups = [m.group for m in memberships if m.group and m.group.is_active]
+            groups = list(owned_groups) + [g for g in member_groups if g not in owned_groups]
+            if account.email:
+                direct_threads = DirectMessageThread.objects.filter(
+                    Q(owner=account) | Q(participant_email=account.email)
+                ).order_by('-updated_at')
+            # ユーザーのアバター情報をコンテキストに追加
+            if account.avatar:
+                context['user_avatar'] = account.avatar.url
+                print(f"[DEBUG] chat_teacher - user_avatar: {context['user_avatar']}")
+    
+    context['groups'] = groups
+    context['direct_threads'] = direct_threads
+    
+    # 選択されたグループの投函ボックスを取得
+    # グループチャット用スレッド（title が 'group_chat:' で始まるもの）は除外
+    # 投函ボックス用スレッド（title が '投函ボックス：' で始まるもの）のみを取得
+    if selected_group_id:
+        try:
+            selected_group = MessegeGroup.objects.get(group_id=selected_group_id, is_active=True)
+            submission_boxes = ChatThread.objects.filter(
+                group=selected_group,
+                is_active=True,
+                title__startswith='投函ボックス：'
+            ).order_by('-created_at')
+            context['submission_boxes'] = submission_boxes
+            context['selected_group_id'] = selected_group_id
+        except MessegeGroup.DoesNotExist:
+            pass
+    
+    print(f"[DEBUG] chat_teacher - context keys: {context.keys()}")
+    return render(request, 'chat/chat_teacher.html', context)
 
 
-@login_required
+@session_login_required
 def icon_settings_student(request):
     """生徒側アイコン設定"""
-    return render(request, 'chat/icon_settings_student.html')
+    user_id = request.session.get('account_user_id')
+    account = Account.objects.filter(user_id=user_id).first() if user_id else None
+    context = {}
+    if account and account.avatar:
+        context['current_avatar'] = account.avatar.url
+    return render(request, 'chat/icon_settings_student.html', context)
 
 
-@login_required
+@teacher_login_required
 def icon_settings_teacher(request):
     """教師側アイコン設定"""
-    return render(request, 'chat/icon_settings_teacher.html')
+    user_id = request.session.get('account_user_id')
+    account = Account.objects.filter(user_id=user_id).first() if user_id else None
+    context = {}
+    if account and account.avatar:
+        context['current_avatar'] = account.avatar.url
+    return render(request, 'chat/icon_settings_teacher.html', context)
 
 
-@login_required
+@session_login_required
+@require_POST
+def save_avatar(request):
+    """ユーザーのアバター画像を保存"""
+    user_id = request.session.get('account_user_id')
+    if not user_id:
+        return JsonResponse({'error': 'unauthorized'}, status=403)
+    
+    try:
+        account = Account.objects.get(user_id=user_id)
+    except Account.DoesNotExist:
+        return JsonResponse({'error': 'user not found'}, status=404)
+    
+    # ファイルアップロード時
+    if 'avatar' in request.FILES:
+        avatar_file = request.FILES['avatar']
+        account.avatar = avatar_file
+        account.save()
+        return JsonResponse({
+            'status': 'ok',
+            'message': 'アバターを保存しました',
+            'avatar_url': account.avatar.url
+        })
+    
+    return JsonResponse({'error': 'no file provided'}, status=400)
+
+
+@session_login_required
 def upload_file_student(request):
     """生徒側ファイル投函"""
     return render(request, 'chat/upload_file_student.html')
 
 
-@login_required
+@teacher_login_required
 def upload_file_teacher(request):
     """教師側ファイル投函"""
     return render(request, 'chat/upload_file_teacher.html')
 
 
-@login_required
+@session_login_required
 def upload_image_student(request):
     """生徒側画像投函"""
     return render(request, 'chat/upload_image_student.html')
 
 
-@login_required
+@teacher_login_required
 def upload_image_teacher(request):
     """教師側画像投函"""
     return render(request, 'chat/upload_image_teacher.html')
+
+
+@teacher_login_required
+def chat_invitation(request):
+    """教師側メンバー招待"""
+    return render(request, 'chat/chat_invitation.html')
+
+
+@teacher_login_required
+@require_POST
+def add_group_member(request, group_id):
+    """メッセージグループにメンバーを追加（チャット用）"""
+    user_id = request.session.get('account_user_id')
+    if not user_id:
+        messages.error(request, '認証が必要です')
+        return redirect('accounts:teacher_login')
+
+    owner = Account.objects.filter(user_id=user_id).first()
+    if not owner:
+        messages.error(request, 'ユーザーが見つかりません')
+        return redirect('accounts:teacher_login')
+
+    group = MessegeGroup.objects.filter(group_id=group_id, owner=owner, is_active=True).first()
+    if not group:
+        messages.error(request, 'グループが見つかりません')
+        return redirect('codemon:chat_teacher')
+
+    identifier = request.POST.get('identifier', '').strip()
+    role = request.POST.get('role', 'student')
+
+    if not identifier:
+        messages.error(request, 'メールアドレスまたはユーザーIDを入力してください')
+        return redirect('codemon:chat_invitation')
+
+    # メールアドレスか数値かで処理を分ける
+    member = None
+    invited_email = None
+    
+    if '@' in identifier:
+        # メールアドレスとして処理
+        invited_email = identifier
+        member = Account.objects.filter(email=identifier).first()
+    else:
+        # ユーザーIDとして処理（数値）
+        try:
+            user_id = int(identifier)
+            member = Account.objects.filter(user_id=user_id).first()
+            invited_email = member.email if member else identifier
+        except ValueError:
+            # 数値でもメールでもない場合はメールアドレスとして扱う
+            invited_email = identifier
+
+    # 招待リンクを作成
+    token = uuid.uuid4().hex
+    invite = MessegeGroupInvite.objects.create(
+        group=group,
+        invited_email=invited_email,
+        invited_by=owner,
+        token=token
+    )
+
+    invite_link = request.build_absolute_uri(
+        reverse('codemon:messege_group_invite', args=[invite.token])
+    )
+
+    # 個別チャット（メールアドレス単位）に招待リンクを送信
+    dm_thread, _ = DirectMessageThread.objects.get_or_create(
+        owner=owner,
+        participant_email=invited_email
+    )
+    DirectMessage.objects.create(
+        thread=dm_thread,
+        sender=owner,
+        sender_label=owner.user_name,
+        content=f"グループ『{group.group_name}』への招待リンク: {invite_link}"
+    )
+
+    messages.success(request, f'{invited_email}へ招待リンクを送信しました')
+    return redirect('codemon:chat_teacher')
+
+
+@session_login_required
+def messege_group_invite(request, token):
+    """招待リンクからメッセージグループに参加"""
+    invite = MessegeGroupInvite.objects.filter(token=token, is_used=False).select_related('group', 'invited_by').first()
+    if not invite:
+        messages.error(request, '招待リンクが無効です')
+        return redirect('accounts:karihome')
+
+    user_id = request.session.get('account_user_id')
+    account = Account.objects.filter(user_id=user_id).first() if user_id else None
+    if not account:
+        messages.error(request, 'ログインが必要です')
+        return redirect('accounts:student_login')
+
+    if account.email != invite.invited_email:
+        messages.error(request, 'この招待リンクはあなた宛てではありません')
+        return redirect('accounts:karihome')
+
+    # GET時は確認画面を表示
+    if request.method == 'GET':
+        context = {
+            'invite': invite,
+            'group': invite.group,
+            'invited_by': invite.invited_by,
+            'member_count': MessegeMember.objects.filter(group=invite.group).count(),
+        }
+        return render(request, 'chat/invitation_confirm.html', context)
+
+    # POST時はグループに参加
+    if request.method == 'POST':
+        if not MessegeMember.objects.filter(group=invite.group, member=account).exists():
+            MessegeMember.objects.create(group=invite.group, member=account, role='student')
+
+        invite.is_used = True
+        invite.used_at = timezone.now()
+        invite.save(update_fields=['is_used', 'used_at'])
+
+        messages.success(request, f'グループ「{invite.group.group_name}」に参加しました')
+        if account.type == 'teacher':
+            return redirect('codemon:chat_teacher')
+        return redirect('codemon:chat_student')
+
+
+
+@session_login_required
+def direct_messages(request, thread_id):
+    """個別チャットのメッセージ一覧を返す（JSON）"""
+    user_id = request.session.get('account_user_id')
+    account = Account.objects.filter(user_id=user_id).first() if user_id else None
+    if not account:
+        return JsonResponse({'error': 'unauthorized'}, status=403)
+
+    thread = DirectMessageThread.objects.filter(thread_id=thread_id).first()
+    if not thread:
+        return JsonResponse({'error': 'not_found'}, status=404)
+
+    if not (thread.owner_id == account.user_id or thread.participant_email == account.email):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+
+    messages_qs = thread.messages.select_related('sender').all()
+    data = []
+    for msg in messages_qs:
+        data.append({
+            'id': msg.message_id,
+            'content': msg.content,
+            'created_at': msg.created_at.isoformat(),
+            'sender_user_id': msg.sender.user_id if msg.sender else None,
+            'sender_name': msg.sender.user_name if msg.sender else (msg.sender_label or 'system'),
+            'sender_avatar': msg.sender.avatar.url if msg.sender and msg.sender.avatar else None
+        })
+
+    return JsonResponse({'thread_id': thread.thread_id, 'messages': data})
 
 
 @login_required
@@ -1564,22 +2181,458 @@ def grades_view_student(request):
     return render(request, 'chat/grades_view_student.html')
 
 
-@login_required
-def submission_box_teacher(request):
-    """教師側投函ボックス管理"""
-    return render(request, 'chat/submission_box_teacher.html')
+@teacher_login_required
+def submission_box_teacher(request, group_id=None):
+    """教師側投函ボックス管理（グループごと）"""
+    owner = _get_write_owner(request)
+    boxes = []
+    group = None
+    
+    if owner is not None:
+        if group_id:
+            # 特定のグループの投函ボックスのみを表示
+            # グループが見つからない場合はリダイレクト
+            try:
+                group = MessegeGroup.objects.get(group_id=group_id, is_active=True)
+            except MessegeGroup.DoesNotExist:
+                messages.warning(request, 'グループが見つかりません')
+                return redirect('codemon:submission_box')
+            
+            # 投函ボックスは作成者で制限（自分が作成したもののみ表示）
+            # グループチャット用スレッドではなく、投函ボックス用スレッドのみを取得
+            boxes = ChatThread.objects.filter(
+                created_by=owner,
+                group=group,
+                is_active=True,
+                title__startswith='投函ボックス：'
+            ).order_by('-created_at')
+        else:
+            # グループが指定されていない場合は、グループがないボックスを表示
+            # グループチャット用スレッドではなく、投函ボックス用スレッドのみを取得
+            boxes = ChatThread.objects.filter(
+                created_by=owner,
+                is_active=True,
+                title__startswith='投函ボックス：'
+            ).order_by('-created_at')
+    
+    today = date.today()
+    for box in boxes:
+        box.deadline_date = _extract_deadline_from_thread(box)
+        box.is_expired = bool(box.deadline_date and box.deadline_date < today)
+
+    return render(request, 'chat/submission_box_management_teacher.html', {
+        'boxes': boxes,
+        'group': group,
+        'group_id': group_id
+    })
 
 
-@login_required
+@teacher_login_required
+def submission_box_create_teacher(request):
+    """教師側投函ボックス新規作成"""
+    if request.method == 'POST':
+        # フォーム送信時の処理
+        name = request.POST.get('box_name', '').strip()
+        description = request.POST.get('box_description', '').strip()
+        deadline = request.POST.get('box_deadline', '')
+        group_id = request.POST.get('box_group', '')
+        allow_multiple = request.POST.get('allow_multiple', 'off') == 'on'
+        
+        if name and deadline and group_id:
+            try:
+                # グループを取得
+                group = MessegeGroup.objects.get(group_id=group_id)
+                account = Account.objects.get(user_id=request.session.get('account_user_id'))
+                
+                # チャットスレッドを作成（投函ボックス用）
+                thread = ChatThread.objects.create(
+                    title=f"投函ボックス：{name}",
+                    description=description,
+                    created_by=account,
+                    group=group
+                )
+                
+                # グループチャットへの自動投稿は行わない
+                
+                # セッションに投函ボックス作成情報を保存（チャット画面での表示用）
+                request.session['submission_box_created'] = {
+                    'thread_id': thread.thread_id,
+                    'box_title': thread.title,
+                    'group_id': group_id
+                }
+                
+                next_url = request.POST.get('next')
+                if next_url:
+                    return redirect(next_url)
+                # 投函ボックス一覧画面へリダイレクト（グループなし）
+                return redirect('codemon:submission_box')
+            except MessegeGroup.DoesNotExist:
+                pass
+            except Account.DoesNotExist:
+                pass
+            except Exception as e:
+                print(f"投函ボックス作成エラー: {e}")
+    
+    # 自分が参加しているメッセージグループを取得（所有者または メンバーとして参加しているグループ）
+    user_id = request.session.get('account_user_id')
+    account = Account.objects.filter(user_id=user_id).first() if user_id else None
+    
+    groups = []
+    if account:
+        # 自分が所有しているグループ
+        owned_groups = MessegeGroup.objects.filter(owner=account, is_active=True)
+        # 自分がメンバーとして参加しているグループ
+        memberships = MessegeMember.objects.filter(member=account, is_active=True).select_related('group')
+        member_groups = [m.group for m in memberships if m.group and m.group.is_active]
+        # 重複を排除して結合
+        groups = list(owned_groups) + [g for g in member_groups if g not in owned_groups]
+    
+    return render(request, 'chat/submission_box_create_teacher.html', {
+        'groups': groups
+    })
+
+
+@teacher_login_required
+def submission_box_delete_teacher(request, thread_id):
+    """投函ボックス削除（論理削除）"""
+    owner = _get_write_owner(request)
+    if owner is None or getattr(owner, 'type', '') != 'teacher':
+        messages.error(request, '教師権限が必要です')
+        return redirect('codemon:submission_box')
+
+    box = get_object_or_404(ChatThread, thread_id=thread_id, created_by=owner, is_active=True)
+
+    if request.method == 'POST':
+        box_title = box.title
+        submission_count = box.messages.filter(is_deleted=False).count()
+
+        box.is_active = False
+        box.save()
+
+        ChatMessage.objects.filter(thread=box).update(is_deleted=True)
+
+        request.session['submission_box_delete_info'] = {
+            'box_title': box_title,
+            'submission_count': submission_count,
+            'deleted_at': timezone.now().isoformat()
+        }
+
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'status': 'success'})
+
+        return redirect('codemon:submission_box_delete_complete')
+
+    return render(request, 'chat/submission_box_delete_teacher.html', {'box': box})
+
+
+@session_login_required
+def submission_box_detail(request, thread_id):
+    """投函ボックス詳細画面（投稿閲覧・投稿）"""
+    owner = _get_write_owner(request)
+    if owner is None:
+        messages.error(request, 'ログインが必要です')
+        return redirect('accounts:student_login')
+    
+    box = get_object_or_404(ChatThread, thread_id=thread_id, is_active=True)
+    
+    deadline_date = _extract_deadline_from_thread(box)
+    is_expired = bool(deadline_date and deadline_date < date.today())
+
+    # POSTリクエストの場合（投稿処理）
+    if request.method == 'POST':
+        if is_expired:
+            return HttpResponseForbidden('期限切れのため投稿できません')
+        content = request.POST.get('content', '').strip()
+        
+        if content:
+            # メッセージを作成
+            message = ChatMessage.objects.create(
+                thread=box,
+                sender=owner,
+                content=content
+            )
+            
+            # 添付ファイルの処理
+            files = request.FILES.getlist('attachments')
+            for file in files:
+                ChatAttachment.objects.create(
+                    message=message,
+                    file=file
+                )
+            
+            # AJAXリクエストの場合はJSONを返す
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'status': 'success', 'message_id': message.message_id})
+            
+            # 通常のPOSTの場合はリダイレクト
+            return redirect('codemon:submission_box_detail', thread_id=thread_id)
+    
+    # 投稿一覧を取得
+    submissions = box.messages.filter(is_deleted=False).select_related('sender').prefetch_related('attachments').order_by('created_at')
+    
+    is_teacher = getattr(owner, 'type', '') == 'teacher'
+
+    return render(request, 'chat/submission_box_detail.html', {
+        'box': box,
+        'submissions': submissions,
+        'is_teacher': is_teacher,
+        'deadline_date': deadline_date,
+        'is_expired': is_expired,
+    })
+
+
+@teacher_login_required
+def submission_box_delete_complete(request):
+    """投函ボックス削除完了画面"""
+    owner = _get_write_owner(request)
+    if owner is None or getattr(owner, 'type', '') != 'teacher':
+        return redirect('codemon:submission_box')
+
+    delete_info = request.session.pop('submission_box_delete_info', {})
+    if not delete_info:
+        return redirect('codemon:submission_box')
+
+    return render(request, 'chat/submission_box_delete_complete_teacher.html', {
+        'box_title': delete_info.get('box_title', ''),
+        'submission_count': delete_info.get('submission_count', 0),
+        'deleted_at': delete_info.get('deleted_at', '')
+    })
+
+
+@teacher_login_required
 def group_management_teacher(request):
     """教師側グループ管理"""
-    return render(request, 'chat/group_management_teacher.html')
+    user_id = request.session.get('account_user_id')
+    groups = []
+    if user_id:
+        account = Account.objects.filter(user_id=user_id).first()
+        if account:
+            groups = MessegeGroup.objects.filter(owner=account, is_active=True)
+    return render(request, 'chat/messege_group_management_teacher.html', {'groups': groups})
 
 
-@login_required
-def grading_teacher(request):
+@teacher_login_required
+def chat_messege_group_create(request):
+    """教師側メッセージグループ作成"""
+    return render(request, 'chat/chat_messege_group_create.html')
+
+
+@teacher_login_required
+@require_POST
+def messege_group_create(request):
+    """教師側メッセージグループ作成（POST）"""
+    user_id = request.session.get('account_user_id')
+    account = Account.objects.filter(user_id=user_id).first() if user_id else None
+    if not account:
+        messages.error(request, 'アカウント情報が見つかりません')
+        return redirect('accounts:teacher_login')
+
+    group_name = request.POST.get('group_name', '').strip()
+    group_password = request.POST.get('group_password', '').strip()
+
+    if not group_name:
+        messages.error(request, 'グループ名を入力してください')
+        return redirect('codemon:chat_messege_group_create')
+
+    group = MessegeGroup.objects.create(
+        group_name=group_name,
+        password=group_password or None,
+        owner=account,
+        description='',
+        is_active=True
+    )
+
+    MessegeMember.objects.get_or_create(
+        group=group,
+        member=account,
+        defaults={'role': 'teacher'}
+    )
+
+    messages.success(request, f'メッセージグループ「{group_name}」を作成しました')
+    return redirect('codemon:group_management')
+
+
+@teacher_login_required
+def toggle_grading_check(request, message_id):
+    """採点済みチェックボックスのトグル"""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'POST method required'}, status=400)
+    
+    teacher = _get_write_owner(request)
+    if teacher is None:
+        return JsonResponse({'status': 'error', 'message': 'Not authenticated'}, status=401)
+    
+    try:
+        message = ChatMessage.objects.get(message_id=message_id)
+        is_checked = request.POST.get('is_checked') == 'true'
+        
+        # 既存のスコアを取得または作成
+        score, created = ChatScore.objects.get_or_create(
+            message=message,
+            defaults={'scorer': teacher, 'is_checked': is_checked}
+        )
+        
+        if not created:
+            score.is_checked = is_checked
+            score.save()
+        
+        return JsonResponse({'status': 'success', 'is_checked': score.is_checked})
+    except ChatMessage.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Message not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@session_login_required
+def mark_messages_read(request):
+    """メッセージを既読にする"""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'POST method required'}, status=400)
+    
+    reader = _get_write_owner(request)
+    if reader is None:
+        return JsonResponse({'status': 'error', 'message': 'Not authenticated'}, status=401)
+    
+    try:
+        import json
+        data = json.loads(request.body)
+        message_ids = data.get('message_ids', [])
+        
+        if not message_ids:
+            return JsonResponse({'status': 'error', 'message': 'message_ids required'}, status=400)
+        
+        # 既読レコードを作成（自分以外のメッセージのみ）
+        from .models import ReadReceipt
+        created_count = 0
+        for message_id in message_ids:
+            try:
+                message = ChatMessage.objects.get(message_id=message_id, is_deleted=False)
+                # 自分のメッセージは既読マークしない
+                if message.sender.user_id != reader.user_id:
+                    # 既に既読マークがある場合は作成しない
+                    _, created = ReadReceipt.objects.get_or_create(
+                        message=message,
+                        reader=reader
+                    )
+                    if created:
+                        created_count += 1
+            except ChatMessage.DoesNotExist:
+                continue
+        
+        return JsonResponse({
+            'status': 'success',
+            'marked_count': created_count
+        })
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        print(f"[ERROR] mark_messages_read: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@teacher_login_required
+def grading_teacher(request, message_id=None):
     """教師側採点管理"""
-    return render(request, 'chat/grading_teacher.html')
+    teacher = _get_write_owner(request)
+    if teacher is None:
+        return redirect('accounts:teacher_login')
+    
+    message = None
+    existing_score = None
+    
+    # メッセージIDが指定されている場合は取得
+    if message_id:
+        try:
+            message = ChatMessage.objects.select_related('sender', 'thread').prefetch_related('attachments').get(message_id=message_id)
+            # 既存の採点情報を取得
+            existing_score = ChatScore.objects.filter(message=message).first()
+        except ChatMessage.DoesNotExist:
+            messages.error(request, '指定された提出課題が見つかりません')
+            return redirect('codemon:submission_box_teacher')
+    
+    if request.method == 'POST':
+        if not message:
+            messages.error(request, '提出課題が指定されていません')
+            return redirect('codemon:submission_box_teacher')
+        
+        score_value = request.POST.get('score')
+        good_points = request.POST.get('good_points', '').strip()
+        improvement_points = request.POST.get('improvement_points', '').strip()
+        advice = request.POST.get('advice', '').strip()
+        
+        if existing_score:
+            # 既存の採点を更新
+            existing_score.score = score_value
+            existing_score.good_points = good_points
+            existing_score.improvement_points = improvement_points
+            existing_score.advice = advice
+            existing_score.save()
+            messages.success(request, '採点を更新しました')
+        else:
+            # 新規採点を保存
+            ChatScore.objects.create(
+                message=message,
+                scorer=teacher,
+                score=score_value,
+                good_points=good_points,
+                improvement_points=improvement_points,
+                advice=advice
+            )
+            messages.success(request, '採点を保存しました')
+        
+        # 投函ボックス詳細画面に戻る
+        return redirect('codemon:submission_box_detail', thread_id=message.thread.thread_id)
+    
+    context = {
+        'message': message,
+        'existing_score': existing_score,
+    }
+    return render(request, 'chat/grading_teacher.html', context)
+
+
+@teacher_login_required
+def grading_detail_view(request, message_id):
+    """採点詳細確認画面"""
+    teacher = _get_write_owner(request)
+    if teacher is None:
+        return redirect('accounts:teacher_login')
+    
+    try:
+        message = ChatMessage.objects.select_related('sender', 'thread').prefetch_related('attachments').get(message_id=message_id)
+        score = ChatScore.objects.filter(message=message).first()
+    except ChatMessage.DoesNotExist:
+        messages.error(request, '指定された提出課題が見つかりません')
+        return redirect('codemon:submission_box_teacher')
+    
+    context = {
+        'score': score,
+        'is_teacher': True,
+    }
+    return render(request, 'chat/grading_detail_view.html', context)
+
+
+
+@session_login_required
+def submission_list_student(request):
+    """生徒側提出課題一覧"""
+    owner = _get_write_owner(request)
+    if owner is None:
+        messages.error(request, 'ログインが必要です')
+        return redirect('accounts:student_login')
+    
+    # 生徒が投稿したメッセージ（投函ボックスへの投稿のみ）を取得
+    # グループチャット（title='group_chat:*'）は除外し、投函ボックス（title='投函ボックス：*'）のみを対象とする
+    submissions = ChatMessage.objects.filter(
+        sender=owner,
+        is_deleted=False,
+        thread__title__startswith='投函ボックス：'
+    ).select_related('thread', 'thread__group', 'sender').prefetch_related('attachments').order_by('-created_at')
+    
+    return render(request, 'chat/submission_list_student.html', {
+        'submissions': submissions
+    })
 
 
 @login_required

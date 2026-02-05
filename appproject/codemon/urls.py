@@ -38,6 +38,7 @@ urlpatterns = [
     path('groups/<int:group_id>/', views.group_detail, name='group_detail'),
     path('groups/<int:group_id>/edit/', views.group_edit, name='group_edit'),
     path('groups/<int:group_id>/delete/', views.group_delete, name='group_delete'),
+    path('groups/delete/complete/', views.group_delete_complete, name='group_delete_complete'),
     path('groups/<int:group_id>/members/<int:member_id>/remove/', 
         accounts_views.group_remove_member, name='group_remove_member'),
     path('groups/<int:group_id>/leave/', views.group_leave, name='group_leave'),
@@ -49,7 +50,8 @@ urlpatterns = [
     # 投函ボックス（スレッド）管理
     path('chat/threads/', views.thread_list, name='thread_list'),
     path('chat/threads/create/', views.thread_create, name='thread_create'),
-    path('chat/threads/<int:thread_id>/', views.thread_detail, name='thread_detail'),
+    # 旧URLを新URLにリダイレクト
+    path('chat/threads/<int:thread_id>/', views.submission_box_detail, name='thread_detail'),
     path('chat/threads/<int:thread_id>/edit/', views.thread_edit, name='thread_edit'),
     path('chat/threads/<int:thread_id>/delete/', views.thread_delete, name='thread_delete'),
     # Upload attachments for chat (AJAX POST)
@@ -84,15 +86,44 @@ urlpatterns = [
     path('chat/student/upload-file/', views.upload_file_student, name='upload_file'),
     path('chat/student/upload-image/', views.upload_image_student, name='upload_image'),
     path('chat/student/grades/', views.grades_view_student, name='grades_view'),
+    path('chat/student/submissions/', views.submission_list_student, name='submission_list_student'),
+    path('chat/group/<int:group_id>/thread/', views.group_chat_thread, name='group_chat_thread'),
+    path('chat/group/<int:group_id>/messages/', views.group_chat_messages, name='group_chat_messages'),
+    path('chat/thread/<int:thread_id>/messages/', views.thread_messages, name='thread_messages'),
     
     # 教師側
     path('chat/teacher/', views.chat_teacher, name='chat_teacher'),
     path('chat/teacher/icon-settings/', views.icon_settings_teacher, name='teacher_icon_settings'),
     path('chat/teacher/upload-file/', views.upload_file_teacher, name='upload_file_teacher'),
     path('chat/teacher/upload-image/', views.upload_image_teacher, name='upload_image_teacher'),
+    path('chat/teacher/invitation/', views.chat_invitation, name='chat_invitation'),
+    path('chat/teacher/invitation/<int:group_id>/add-member/', views.add_group_member, name='add_group_member'),
+    path('chat/invite/<str:token>/', views.messege_group_invite, name='messege_group_invite'),
+    path('chat/direct/<int:thread_id>/messages/', views.direct_messages, name='direct_messages'),
     path('chat/teacher/submission-box/', views.submission_box_teacher, name='submission_box'),
+    path('chat/teacher/submission-box/<int:group_id>/', views.submission_box_teacher, name='submission_box_by_group'),
+    path('chat/teacher/submission-box/create/', views.submission_box_create_teacher, name='submission_box_create'),
+    path('chat/teacher/submission-box/<int:thread_id>/delete/', views.submission_box_delete_teacher, name='submission_box_delete'),
+    path('chat/teacher/submission-box/delete/complete/', views.submission_box_delete_complete, name='submission_box_delete_complete'),
+    path('chat/submission-box/<int:thread_id>/', views.submission_box_detail, name='submission_box_detail'),
     path('chat/teacher/group-management/', views.group_management_teacher, name='group_management'),
+    path('chat/teacher/group-create/', views.chat_messege_group_create, name='chat_messege_group_create'),
+    path('chat/teacher/group-create/submit/', views.messege_group_create, name='messege_group_create'),
+    path('chat/teacher/group-edit/<int:group_id>/', views.group_edit, name='messege_group_edit'),
+    path('chat/teacher/group/<int:group_id>/member/<int:member_id>/delete/', views.group_member_delete, name='group_member_delete'),
+    path('chat/teacher/group/<int:group_id>/member/<int:member_id>/delete/complete/', views.group_member_delete_complete, name='group_member_delete_complete'),
     path('chat/teacher/grading/', views.grading_teacher, name='grading'),
+    path('chat/teacher/grading/<int:message_id>/', views.grading_teacher, name='grading_with_message'),
+    path('chat/teacher/grading/<int:message_id>/detail/', views.grading_detail_view, name='grading_detail'),
+    
+    # 採点済みチェック API
+    path('api/toggle-grading-check/<int:message_id>/', views.toggle_grading_check, name='toggle_grading_check'),
+    
+    # 既読マークAPI
+    path('api/mark-messages-read/', views.mark_messages_read, name='mark_messages_read'),
+    
+    # アバター保存API
+    path('api/save-avatar/', views.save_avatar, name='save_avatar'),
     
     # チャット機能デモインデックス
     path('chat/demo/', views.chat_demo_index, name='chat_demo_index'),

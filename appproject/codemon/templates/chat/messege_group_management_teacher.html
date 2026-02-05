@@ -13,9 +13,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'codemon/css/group_management.css' %}">
 <style>
-/* ここでチャット画面のサイズと位置を直接カスタマイズできます */
 :root {
-  /* デスクトップ中央配置(カード風) */
   --chat-max-width: 800px;
   --chat-max-height: 70vh;
   --chat-margin: 20px auto;
@@ -24,8 +22,84 @@
   --chat-position: fixed;
   --chat-position-x: 50px;
   --chat-position-y: 130px;
-  --chat-margin: 0;
-  */
+}
+
+/* グループカードのスタイル */
+.group-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.group-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.group-info h3 {
+  margin: 0 0 8px 0;
+  color: #333;
+  font-size: 18px;
+}
+
+.group-info p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.group-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-edit, .btn-delete {
+  padding: 8px 16px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 14px;
+  transition: all 0.3s;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-edit {
+  background: #FFD700;
+  color: #333;
+}
+
+.btn-edit:hover {
+  background: #FFC700;
+}
+
+.btn-delete {
+  background: #ff4444;
+  color: white;
+}
+
+.btn-delete:hover {
+  background: #cc0000;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+}
+
+.empty-state p:first-child {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+.empty-state p:last-child {
+  font-size: 14px;
 }
 </style>
 {% endblock %}
@@ -34,16 +108,34 @@
 <div class="group-management-container">
   <!-- ヘッダー -->
   <div class="management-header">
-    <button class="btn-back" onclick="history.back()">←</button>
+    <button class="btn-back" onclick="location.href='{% url 'codemon:chat_teacher' %}'">←</button>
     <h1 class="management-title">グループ管理</h1>
-    <button class="btn-create-group">新規作成</button>
+    <a href="{% url 'codemon:chat_messege_group_create' %}" class="btn-create-group">新規作成</a>
   </div>
 
   <!-- コンテンツ -->
   <div class="management-content">
     <!-- グループ一覧 -->
     <div class="groups-list">
-      <!-- グループがここに動的に表示されます -->
+      {% if groups %}
+        {% for group in groups %}
+        <div class="group-card">
+          <div class="group-info">
+            <h3 class="group-name">{{ group.group_name }}</h3>
+            <p class="group-members">メンバー数: {{ group.memberships.count }}人</p>
+          </div>
+          <div class="group-actions">
+            <a href="{% url 'codemon:group_edit' group.group_id %}" class="btn-edit">編集</a>
+            <a href="{% url 'codemon:group_delete' group.group_id %}" class="btn-delete">削除</a>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state">
+          <p>グループがまだありません</p>
+          <p>新規作成ボタンからグループを作成してください</p>
+        </div>
+      {% endif %}
     </div>
   </div>
 {% endblock %}
