@@ -1952,8 +1952,8 @@ def group_create(request):
                 # ORMを使ってグループを作成（SQLiteとPostgreSQLの両方に対応）
                 group = Group.objects.create(
                     group_name=group_name,
-                    password=hashed,
-                    owner=account_owner,
+                    password=hashed or '',   # NOT NULL 対策
+                    owner=account_owner,     # user_id / owner の整合をモデル側で管理
                     description='',
                     is_active=True
                 )
