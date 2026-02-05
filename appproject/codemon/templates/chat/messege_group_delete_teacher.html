@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body_class %} class="no-scroll"{% endblock %}
+
+{% block background_frame %}
+  <img src="{% static 'codemon/images/frames/bg_frame_yellow.png' %}" 
+       alt="" 
+       class="bg-frame frame-yellow"
+       onerror="this.style.display='none';">
+{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+  --chat-max-width: 800px;
+  --chat-max-height: 70vh;
+  --chat-margin: 20px auto;
+  --chat-border-radius: 12px;
+  --chat-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --chat-position: fixed;
+  --chat-position-x: 50px;
+  --chat-position-y: 130px;
+}
+
+.delete-container {
+  position: var(--chat-position);
+  left: var(--chat-position-x);
+  top: var(--chat-position-y);
+  width: var(--chat-max-width);
+  max-height: var(--chat-max-height);
+  background: white;
+  border-radius: var(--chat-border-radius);
+  box-shadow: var(--chat-box-shadow);
+  overflow-y: auto;
+}
+
+.delete-header {
+  padding: 24px 20px 16px;
+  background: #fff3cd;
+  border-bottom: 1px solid #ffecb5;
+}
+
+.delete-icon {
+  font-size: 48px;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.delete-title {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+}
+
+.delete-subtitle {
+  margin: 0;
+  font-size: 16px;
+  color: #666;
+  text-align: center;
+}
+
+.delete-content {
+  padding: 30px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.warning-message {
+  background: #fff3cd;
+  border: 2px solid #ffc107;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 0;
+  height: fit-content;
+}
+
+.warning-message p {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  color: #856404;
+  font-weight: 600;
+}
+
+.warning-message ul {
+  margin: 8px 0 0 20px;
+  padding: 0;
+  list-style: disc;
+}
+
+.warning-message li {
+  font-size: 14px;
+  color: #856404;
+  margin-bottom: 6px;
+}
+
+.group-info {
+  background: #f8f8f8;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.group-info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.group-info-row:last-child {
+  margin-bottom: 0;
+}
+
+.group-info-label {
+  font-size: 14px;
+  color: #666;
+  font-weight: 600;
+}
+
+.group-info-value {
+  font-size: 14px;
+  color: #333;
+}
+
+.confirmation-box {
+  background: #f8f8f8;
+  border: 1px solid #e5e5ea;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 0;
+}
+
+.confirmation-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.confirmation-checkbox input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.confirmation-checkbox label {
+  font-size: 16px;
+  color: #333;
+  cursor: pointer;
+  user-select: none;
+}
+
+.delete-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid #e5e5ea;
+  background: #f8f8f8;
+}
+
+.btn-cancel, .btn-delete {
+  flex: 1;
+  padding: 14px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, opacity 0.2s;
+}
+
+.btn-cancel {
+  background-color: #e5e5ea;
+  color: #333;
+}
+
+.btn-cancel:hover {
+  background-color: #d1d1d6;
+}
+
+.btn-delete {
+  background-color: #ff4444;
+  color: white;
+}
+
+.btn-delete:hover {
+  background-color: #cc0000;
+}
+
+.btn-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-delete:disabled:hover {
+  background-color: #ff4444;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="delete-container">
+  <!-- ヘッダー -->
+  <div class="delete-header">
+    <div class="delete-icon">⚠️</div>
+    <h1 class="delete-title">グループを削除しますか？</h1>
+    <p class="delete-subtitle">この操作は取り消せません</p>
+  </div>
+
+  <!-- コンテンツ -->
+  <div class="delete-content">
+    <!-- 警告メッセージ -->
+    <div class="warning-message">
+      <p>⚠️ 重要：以下の内容が完全に削除されます</p>
+      <ul>
+        <li>グループ内のすべてのメッセージ履歴</li>
+        <li>グループメンバーの登録情報</li>
+        <li>グループに関連するすべての設定</li>
+      </ul>
+    </div>
+
+    <!-- 右側カラム -->
+    <div class="right-column">
+      <!-- グループ情報 -->
+      <div class="group-info">
+        <div class="group-info-row">
+          <span class="group-info-label">グループ名:</span>
+          <span class="group-info-value">{{ group.group_name }}</span>
+        </div>
+        <div class="group-info-row">
+          <span class="group-info-label">メンバー数:</span>
+          <span class="group-info-value">{{ group.memberships.count }}人</span>
+        </div>
+        <div class="group-info-row">
+          <span class="group-info-label">作成日:</span>
+          <span class="group-info-value">{{ group.created_at|date:"Y年m月d日" }}</span>
+        </div>
+      </div>
+
+      <!-- 確認チェックボックス -->
+      <div class="confirmation-box">
+        <div class="confirmation-checkbox">
+          <input type="checkbox" id="confirm-delete" onchange="toggleDeleteButton()">
+          <label for="confirm-delete">内容を理解し、グループを削除することに同意します</label>
+        </div>
+      </div>
+    </div>
+
+    <form method="post" id="delete-form">
+      {% csrf_token %}
+    </form>
+  </div>
+
+  <!-- フッター -->
+  <div class="delete-footer">
+    <button class="btn-cancel" onclick="history.back()">キャンセル</button>
+    <button class="btn-delete" id="btn-delete" disabled onclick="deleteGroup()">削除する</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function toggleDeleteButton() {
+    const checkbox = document.getElementById('confirm-delete');
+    const deleteBtn = document.getElementById('btn-delete');
+    deleteBtn.disabled = !checkbox.checked;
+  }
+
+  function deleteGroup() {
+    const checkbox = document.getElementById('confirm-delete');
+    if (!checkbox.checked) {
+      alert('削除する前に確認チェックボックスをチェックしてください');
+      return;
+    }
+
+    // AJAXで削除処理を実行
+    const formData = new FormData(document.getElementById('delete-form'));
+    
+    fetch(window.location.href, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+    .then(response => {
+      if (response.ok) {
+        return response.json();
+      }
+      throw new Error('削除処理に失敗しました');
+    })
+    .then(data => {
+      if (data.status === 'success') {
+        // 削除完了画面に遷移
+        window.location.href = '{% url "codemon:group_delete_complete" %}';
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('削除処理に失敗しました');
+    });
+  }
+</script>
+{% endblock %}

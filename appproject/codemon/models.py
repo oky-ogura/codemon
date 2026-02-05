@@ -113,32 +113,33 @@ class ChecklistItem(models.Model):
         return f"{self.item_text[:40]}{'...' if len(self.item_text) > 40 else ''} (ID: {self.checklist_item_id})"
 
 
-class Group(models.Model):
-    """教師が作成・管理するグループ。メンバーはGroupMemberを通じて管理。"""
+class MessegeGroup(models.Model):
+    """教師が作成・管理するメッセージグループ。メンバーはMessegeMemberを通じて管理。"""
     # group_id は PostgreSQL のシーケンスで管理（7000001 から開始）
     group_id = models.BigAutoField(primary_key=True)
     group_name = models.CharField(max_length=50, verbose_name='グループ名')
     description = models.TextField(blank=True, null=True, verbose_name='グループ説明')
+    password = models.CharField(max_length=255, blank=True, null=True, verbose_name='グループパスワード')
     owner = models.ForeignKey('accounts.Account', on_delete=models.CASCADE, null=True, blank=True)
-    members = models.ManyToManyField('accounts.Account', through='GroupMember', related_name='joined_groups')
+    members = models.ManyToManyField('accounts.Account', through='MessegeMember', related_name='joined_messege_groups')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新日時')
     is_active = models.BooleanField(default=True, verbose_name='アクティブフラグ')
 
     class Meta:
-        db_table = 'group'
-        verbose_name = 'グループ'
-        verbose_name_plural = 'グループ'
+        db_table = 'messege_group'
+        verbose_name = 'メッセージグループ'
+        verbose_name_plural = 'メッセージグループ'
 
     def __str__(self):
         return f"{self.group_name} (ID: {self.group_id})"
 
 
-class GroupMember(models.Model):
-    """グループのメンバーシップを管理。役割や参加日時も記録。"""
+class MessegeMember(models.Model):
+    """メッセージグループのメンバーシップを管理。役割や参加日時も記録。"""
     id = models.BigAutoField(primary_key=True)
-    group = models.ForeignKey('Group', on_delete=models.CASCADE, related_name='memberships')
-    member = models.ForeignKey('accounts.Account', on_delete=models.CASCADE, related_name='group_memberships')
+    group = models.ForeignKey('MessegeGroup', on_delete=models.CASCADE, related_name='memberships')
+    member = models.ForeignKey('accounts.Account', on_delete=models.CASCADE, related_name='messege_memberships')
     role = models.CharField(max_length=20, choices=[
         ('owner', 'オーナー'),
         ('teacher', '教師'),
@@ -148,13 +149,70 @@ class GroupMember(models.Model):
     is_active = models.BooleanField(default=True)
 
     class Meta:
-        db_table = 'group_member'
-        verbose_name = 'グループメンバー'
-        verbose_name_plural = 'グループメンバー'
+        db_table = 'messege_group_member'
+        verbose_name = 'メッセージグループメンバー'
+        verbose_name_plural = 'メッセージグループメンバー'
         unique_together = [['group', 'member']]
 
     def __str__(self):
         return f"{self.member.user_name} in {self.group.group_name} ({self.role})"
+
+
+class MessegeGroupInvite(models.Model):
+    """メッセージグループ招待リンク"""
+    invite_id = models.BigAutoField(primary_key=True)
+    group = models.ForeignKey('MessegeGroup', on_delete=models.CASCADE, related_name='invites')
+    invited_email = models.EmailField(max_length=255)
+    invited_by = models.ForeignKey('accounts.Account', on_delete=models.CASCADE, related_name='messege_invites_sent')
+    token = models.CharField(max_length=64, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_used = models.BooleanField(default=False)
+    used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'messege_group_invite'
+        verbose_name = 'メッセージグループ招待'
+        verbose_name_plural = 'メッセージグループ招待'
+
+    def __str__(self):
+        return f"Invite {self.invite_id} for {self.invited_email}"
+
+
+class DirectMessageThread(models.Model):
+    """個別チャット（メールアドレス単位のスレッド）"""
+    thread_id = models.BigAutoField(primary_key=True)
+    owner = models.ForeignKey('accounts.Account', on_delete=models.CASCADE, related_name='direct_threads_owned')
+    participant_email = models.EmailField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'direct_message_thread'
+        verbose_name = '個別チャットスレッド'
+        verbose_name_plural = '個別チャットスレッド'
+        unique_together = [['owner', 'participant_email']]
+
+    def __str__(self):
+        return f"DM {self.thread_id} ({self.participant_email})"
+
+
+class DirectMessage(models.Model):
+    """個別チャットメッセージ"""
+    message_id = models.BigAutoField(primary_key=True)
+    thread = models.ForeignKey('DirectMessageThread', on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey('accounts.Account', on_delete=models.SET_NULL, null=True, blank=True)
+    sender_label = models.CharField(max_length=100, blank=True, null=True)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'direct_message'
+        verbose_name = '個別チャットメッセージ'
+        verbose_name_plural = '個別チャットメッセージ'
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"DM message {self.message_id}"
 
 
 class ChatThread(models.Model):
@@ -163,7 +221,7 @@ class ChatThread(models.Model):
     title = models.CharField(max_length=200, verbose_name='スレッド名')
     description = models.TextField(blank=True, null=True, verbose_name='説明')
     created_by = models.ForeignKey('accounts.Account', on_delete=models.CASCADE, verbose_name='作成者')
-    group = models.ForeignKey('Group', on_delete=models.CASCADE, null=True, blank=True, related_name='threads', verbose_name='グループ')
+    group = models.ForeignKey('MessegeGroup', on_delete=models.CASCADE, null=True, blank=True, related_name='threads', verbose_name='メッセージグループ')
     is_active = models.BooleanField(default=True, verbose_name='アクティブフラグ')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
 
@@ -232,7 +290,12 @@ class ChatScore(models.Model):
     scorer = models.ForeignKey('accounts.Account', on_delete=models.CASCADE, verbose_name='採点者')
     score = models.IntegerField(null=True, blank=True)
     comment = models.TextField(blank=True, null=True)
+    good_points = models.TextField(blank=True, null=True, verbose_name='良かったこと')
+    improvement_points = models.TextField(blank=True, null=True, verbose_name='惜しかったこと')
+    advice = models.TextField(blank=True, null=True, verbose_name='まとめ・アドバイス')
+    is_checked = models.BooleanField(default=False, verbose_name='採点済みチェック')
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'chat_score'

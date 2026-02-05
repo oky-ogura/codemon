@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body_class %} class="no-scroll"{% endblock %}
+
+{% block background_frame %}
+  <img src="{% static 'codemon/images/frames/bg_frame_yellow.png' %}" 
+       alt="" 
+       class="bg-frame frame-yellow"
+       onerror="this.style.display='none';">
+{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+  --chat-max-width: 800px;
+  --chat-max-height: 70vh;
+  --chat-border-radius: 12px;
+  --chat-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --chat-position: fixed;
+  --chat-position-x: 50px;
+  --chat-position-y: 135px;
+}
+
+.submission-list-container {
+  position: var(--chat-position);
+  top: var(--chat-position-y);
+  left: var(--chat-position-x);
+  width: calc(100% - 100px);
+  max-width: var(--chat-max-width);
+  max-height: calc(85vh - 100px);
+  background: white;
+  border-radius: var(--chat-border-radius);
+  box-shadow: var(--chat-box-shadow);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.list-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.list-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.btn-back {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.btn-back:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.list-content {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.submission-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  transition: all 0.2s;
+}
+
+.submission-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.box-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.submission-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 10px;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.submission-content-preview {
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.5;
+  margin-bottom: 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.attachment-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.attachment-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #374151;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-graded {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-submitted {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.btn-view {
+  padding: 6px 12px;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-view:hover {
+  background: #4338ca;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #9ca3af;
+}
+
+.empty-state-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.empty-state p:first-of-type {
+  font-size: 18px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.empty-state p:last-of-type {
+  font-size: 14px;
+  color: #9ca3af;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="submission-list-container">
+  <div class="list-header">
+    <h1 class="list-title">提出課題一覧</h1>
+    <button class="btn-back" onclick="history.back()">← 戻る</button>
+  </div>
+
+  <div class="list-content">
+    {% if submissions %}
+      {% for submission in submissions %}
+      <div class="submission-card">
+        <div class="card-header">
+          <h2 class="box-title">{{ submission.thread.title }}</h2>
+        </div>
+
+        <div class="submission-meta">
+          <div class="meta-item">
+            <span>📅</span>
+            <span>投稿日時: {{ submission.created_at|date:"Y/m/d H:i" }}</span>
+          </div>
+          {% if submission.thread.group %}
+          <div class="meta-item">
+            <span>👥</span>
+            <span>{{ submission.thread.group.group_name }}</span>
+          </div>
+          {% endif %}
+        </div>
+
+        {% if submission.content %}
+        <div class="submission-content-preview">
+          {{ submission.content }}
+        </div>
+        {% endif %}
+
+        {% if submission.attachments.all %}
+        <div class="attachment-list">
+          {% for attachment in submission.attachments.all %}
+          <span class="attachment-badge">
+            📎 {{ attachment.file.name|truncatechars:20 }}
+          </span>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="card-footer">
+          <div>
+            <span class="status-badge status-submitted">投稿済み</span>
+            {% if submission.scores.first %}
+            <span class="status-badge status-graded" style="margin-left: 8px;">採点済み: {{ submission.scores.first.score }}点</span>
+            {% endif %}
+          </div>
+          {% if submission.scores.first %}
+          <a href="{% url 'codemon:grading_detail' submission.message_id %}" class="btn-view" style="background: #059669;">採点詳細</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-state-icon">📭</div>
+        <p>まだ提出課題がありません</p>
+        <p>投函ボックスに投稿すると、ここに表示されます</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

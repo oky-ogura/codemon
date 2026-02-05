@@ -1,0 +1,599 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body_class %} class="no-scroll"{% endblock %}
+
+{% block background_frame %}
+  <img src="{% static 'codemon/images/frames/bg_frame_yellow.png' %}" 
+       alt="" 
+       class="bg-frame frame-yellow"
+       onerror="this.style.display='none';">
+{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+  --box-max-width: 800px;
+  --box-position-x: 50px;
+  --box-position-y: 135px;
+}
+
+.submission-box-container {
+  position: fixed;
+  left: var(--box-position-x);
+  top: var(--box-position-y);
+  width: calc(100% - 100px);
+  max-width: var(--box-max-width);
+  height: calc(85vh - 100px);
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.box-header {
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.box-title {
+  margin: 0 0 8px 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.box-meta {
+  display: flex;
+  gap: 20px;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.box-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.box-description {
+  margin: 12px 0 0 0;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.box-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.submissions-list {
+  flex: 1;
+  padding: 20px 24px;
+  overflow-y: auto;
+}
+
+.submission-item {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid #e9ecef;
+}
+
+.submission-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.submitter-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.submitter-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #667eea;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+}
+
+.submitter-name {
+  font-weight: 600;
+  color: #333;
+}
+
+.submission-time {
+  font-size: 13px;
+  color: #6c757d;
+}
+
+.submission-content {
+  color: #495057;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.submission-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.attachment-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #495057;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.attachment-item:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.box-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #e9ecef;
+  background: #f8f9fa;
+}
+
+.form-toggle {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.btn-toggle-form {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #cbd5f5;
+  background: #eef2ff;
+  color: #374151;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-toggle-form:hover {
+  background: #e0e7ff;
+}
+
+.form-collapsible.is-collapsed {
+  display: none;
+}
+
+.submission-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-row {
+  display: flex;
+  gap: 8px;
+}
+
+.message-input {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 14px;
+  resize: none;
+  font-family: inherit;
+}
+
+.message-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.btn-attach, .btn-submit {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-attach {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-attach:hover {
+  background: #5a6268;
+}
+
+.btn-submit {
+  background: #667eea;
+  color: white;
+}
+
+.btn-submit:hover {
+  background: #5568d3;
+}
+
+.btn-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6c757d;
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.btn-back {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.btn-back:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.expired-banner {
+  background: #fff3cd;
+  border: 1px solid #ffeeba;
+  color: #856404;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+.form-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.submission-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #555;
+  background: #f3f4f6;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+}
+
+.submission-check input {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+.grade-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #1f2937;
+  background: #e0f2fe;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid #bae6fd;
+}
+
+.grade-check input {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+.btn-grade {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid #4f46e5;
+  background: #4f46e5;
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-grade:hover {
+  opacity: 0.9;
+}
+
+.btn-view-grade {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid #059669;
+  background: #059669;
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  border: none;
+}
+
+.btn-view-grade:hover {
+  opacity: 0.9;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="submission-box-container">
+  <!-- ヘッダー -->
+  <div class="box-header">
+    {% if is_teacher %}
+    <button class="btn-back" onclick="location.href='{% url 'codemon:submission_box' %}'">戻る</button>
+    {% else %}
+    <button class="btn-back" onclick="location.href='{% url 'codemon:chat_student' %}'">戻る</button>
+    {% endif %}
+    <h1 class="box-title">{{ box.title }}</h1>
+    <div class="box-meta">
+      {% if box.group %}
+      <div class="box-meta-item">
+        <span>👥</span>
+        <span>{{ box.group.group_name }}</span>
+      </div>
+      {% endif %}
+      <div class="box-meta-item">
+        <span>📅</span>
+        <span>作成日: {{ box.created_at|date:"Y/m/d H:i" }}</span>
+      </div>
+      <div class="box-meta-item">
+        <span>📝</span>
+        <span>投稿数: {{ submissions.count }}件</span>
+      </div>
+    </div>
+    {% if box.description %}
+    <div class="box-description">
+      {{ box.description }}
+    </div>
+    {% endif %}
+    {% if is_expired %}
+    <div class="expired-banner">この投函ボックスは期限切れのため、投稿できません。</div>
+    {% endif %}
+  </div>
+
+  <!-- コンテンツ -->
+  <div class="box-content">
+    <div class="submissions-list" id="submissionsList">
+      {% if submissions %}
+        {% for submission in submissions %}
+        <div class="submission-item">
+          <div class="submission-header">
+            <div class="submitter-info">
+              <div class="submitter-avatar">
+                {% if submission.sender.avatar %}
+                <img src="{{ submission.sender.avatar.url }}" alt="" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                {% else %}
+                {{ submission.sender.user_name|first|upper }}
+                {% endif %}
+              </div>
+              <div>
+                <div class="submitter-name">{{ submission.sender.user_name }}</div>
+                <div class="submission-time">{{ submission.created_at|date:"Y/m/d H:i" }}</div>
+              </div>
+            </div>
+            {% if is_teacher %}
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <label class="grade-check">
+                <input type="checkbox" 
+                       class="grade-check-input" 
+                       data-message-id="{{ submission.message_id }}"
+                       {% if submission.scores.first and submission.scores.first.is_checked %}checked{% endif %}
+                       onchange="toggleGradeCheck(this)">
+                採点済み
+              </label>
+              <a class="btn-grade" href="{% url 'codemon:grading_with_message' submission.message_id %}">採点</a>
+              {% if submission.scores.first %}
+              <a class="btn-view-grade" href="{% url 'codemon:grading_detail' submission.message_id %}">詳細を見る</a>
+              {% endif %}
+            </div>
+            {% endif %}
+          </div>
+          {% if submission.content %}
+          <div class="submission-content">
+            {{ submission.content|linebreaks }}
+          </div>
+          {% endif %}
+          {% if submission.attachments.all %}
+          <div class="submission-attachments">
+            {% for attachment in submission.attachments.all %}
+            <a href="{% url 'codemon:download_attachment' attachment.attachment_id %}" class="attachment-item" target="_blank">
+              📎 {{ attachment.file.name }}
+            </a>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-state-icon">📭</div>
+          <p style="font-size: 16px; margin-bottom: 8px;">まだ投稿がありません</p>
+          <p style="font-size: 14px;">最初の投稿をしてみましょう</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- フッター（投稿フォーム） -->
+  <div class="box-footer {% if is_expired %}form-disabled{% endif %}">
+    <div class="form-toggle">
+      <button type="button" class="btn-toggle-form" id="toggleFormBtn" aria-expanded="false">
+        入力を開く
+      </button>
+    </div>
+    <div class="form-collapsible is-collapsed" id="formCollapsible">
+      <form class="submission-form" method="POST" enctype="multipart/form-data" id="submissionForm">
+      {% csrf_token %}
+      <textarea 
+        class="message-input" 
+        name="content" 
+        placeholder="メッセージを入力..." 
+        rows="3"
+        required
+        id="messageInput"></textarea>
+      <div class="form-row">
+        <input type="file" id="fileInput" name="attachments" multiple style="display: none;">
+        <button type="button" class="btn-attach" onclick="document.getElementById('fileInput').click()">
+          📎 ファイル添付
+        </button>
+        <button type="submit" class="btn-submit" id="submitBtn">投稿する</button>
+      </div>
+      <div id="fileList" style="font-size: 13px; color: #6c757d;"></div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const fileInput = document.getElementById('fileInput');
+  const fileList = document.getElementById('fileList');
+  const submissionForm = document.getElementById('submissionForm');
+  const submissionsList = document.getElementById('submissionsList');
+  const toggleFormBtn = document.getElementById('toggleFormBtn');
+  const formCollapsible = document.getElementById('formCollapsible');
+
+  // ファイル選択時の処理
+  fileInput.addEventListener('change', function() {
+    if (this.files.length > 0) {
+      const fileNames = Array.from(this.files).map(f => f.name).join(', ');
+      fileList.textContent = `選択されたファイル: ${fileNames}`;
+    } else {
+      fileList.textContent = '';
+    }
+  });
+
+  // フォーム送信時の処理
+  submissionForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = '投稿中...';
+
+    const formData = new FormData(this);
+
+    try {
+      const response = await fetch(window.location.href, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+
+      if (response.ok) {
+        // ページをリロードして新しい投稿を表示
+        window.location.reload();
+      } else {
+        alert('投稿に失敗しました');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('投稿に失敗しました');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = '投稿する';
+    }
+  });
+
+  // 投稿リストを自動スクロール（最新が下）
+  const list = document.getElementById('submissionsList');
+  list.scrollTop = list.scrollHeight;
+  
+  // 入力フォームの開閉
+  if (toggleFormBtn && formCollapsible) {
+    toggleFormBtn.addEventListener('click', () => {
+      const isCollapsed = formCollapsible.classList.toggle('is-collapsed');
+      toggleFormBtn.setAttribute('aria-expanded', (!isCollapsed).toString());
+      toggleFormBtn.textContent = isCollapsed ? '入力を開く' : '入力を閉じる';
+    });
+  }
+</script>
+
+<script>
+// 採点済みチェックボックスのトグル
+async function toggleGradeCheck(checkbox) {
+  const messageId = checkbox.dataset.messageId;
+  const isChecked = checkbox.checked;
+  
+  try {
+    const response = await fetch(`/codemon/api/toggle-grading-check/${messageId}/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      },
+      body: `is_checked=${isChecked}`
+    });
+    
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      // 成功時はチェック状態を維持
+      checkbox.checked = data.is_checked;
+    } else {
+      // エラー時は元に戻す
+      checkbox.checked = !isChecked;
+      alert('チェック状態の保存に失敗しました');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    checkbox.checked = !isChecked;
+    alert('チェック状態の保存に失敗しました');
+  }
+}
+</script>
+{% endblock %}
