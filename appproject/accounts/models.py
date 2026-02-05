@@ -53,26 +53,46 @@ class AiConfig(models.Model):
     def __str__(self):
         return f"AI設定 {self.ai_setting_id} - {self.ai_name}"
 
-# 他アプリの既存モデル（codemon.models.Group / GroupMember）を参照する
-# 重複したテーブル定義を避けるため、ここでは Proxy モデルを定義します。
-# Proxy モデルは同じ DB テーブルを参照しますが、新しいテーブルを作成せず、
-# accounts アプリ内で使いやすい名前空間を提供します。
-try:
-    from codemon.models import Group as CodemonGroup, GroupMember as CodemonGroupMember
+# accounts側のグループ（group）
+class Group(models.Model):
+    """accountsアプリで作成・管理するグループ"""
+    group_id = models.BigAutoField(primary_key=True)
+    group_name = models.CharField(max_length=50, verbose_name='グループ名')
+    description = models.TextField(blank=True, null=True, verbose_name='グループ説明')
+    password = models.CharField(max_length=255, blank=True, null=True, verbose_name='グループパスワード')
+    owner = models.ForeignKey('accounts.Account', on_delete=models.CASCADE, null=True, blank=True)
+    members = models.ManyToManyField('accounts.Account', through='GroupMember', related_name='joined_groups')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新日時')
+    is_active = models.BooleanField(default=True, verbose_name='アクティブフラグ')
 
-    class Group(CodemonGroup):
-        class Meta:
-            proxy = True
-            app_label = 'accounts'
-            verbose_name = 'グループ'
-            verbose_name_plural = 'グループ'
+    class Meta:
+        db_table = 'group'
+        verbose_name = 'グループ'
+        verbose_name_plural = 'グループ'
 
-    class GroupMember(CodemonGroupMember):
-        class Meta:
-            proxy = True
-            app_label = 'accounts'
-            verbose_name = 'グループメンバー'
-            verbose_name_plural = 'グループメンバー'
-except Exception:
-    # インポートに失敗した場合は何もしない（起動時の循環インポート回避）
-    pass
+    def __str__(self):
+        return f"{self.group_name} (ID: {self.group_id})"
+
+
+class GroupMember(models.Model):
+    """accounts側グループのメンバーシップ"""
+    id = models.BigAutoField(primary_key=True)
+    group = models.ForeignKey('Group', on_delete=models.CASCADE, related_name='memberships')
+    member = models.ForeignKey('accounts.Account', on_delete=models.CASCADE, related_name='group_memberships')
+    role = models.CharField(max_length=20, choices=[
+        ('owner', 'オーナー'),
+        ('teacher', '教師'),
+        ('student', '学生')
+    ], default='student')
+    joined_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'group_member'
+        verbose_name = 'グループメンバー'
+        verbose_name_plural = 'グループメンバー'
+        unique_together = [['group', 'member']]
+
+    def __str__(self):
+        return f"{self.member.user_name} in {self.group.group_name} ({self.role})"

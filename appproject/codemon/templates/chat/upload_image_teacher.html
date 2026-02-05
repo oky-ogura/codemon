@@ -13,19 +13,36 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'codemon/css/image_upload_teacher.css' %}">
 <style>
-/* ここでチャット画面のサイズと位置を直接カスタマイズできます */
 :root {
-  /* デスクトップ中央配置(カード風) */
   --chat-max-width: 800px;
   --chat-max-height: 70vh;
-  --chat-margin: 20px auto;
   --chat-border-radius: 12px;
   --chat-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   --chat-position: fixed;
   --chat-position-x: 50px;
   --chat-position-y: 130px;
-  --chat-margin: 0;
-  */
+}
+
+.upload-alert {
+  margin: 0 20px 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  display: none;
+}
+
+.upload-alert.error {
+  display: block;
+  background: #fdecea;
+  color: #611a15;
+  border: 1px solid #f5c6cb;
+}
+
+.upload-alert.success {
+  display: block;
+  background: #e6ffed;
+  color: #164d2b;
+  border: 1px solid #b3e6c1;
 }
 </style>
 {% endblock %}
@@ -34,7 +51,7 @@
 <div class="image-upload-container teacher">
   <!-- ヘッダー -->
   <div class="upload-header">
-    <button class="btn-back" onclick="history.back()">←</button>
+    <button class="btn-back" onclick="location.href='{% url 'codemon:chat_teacher' %}'">←</button>
     <h1 class="upload-title">画像を投函</h1>
   </div>
 
@@ -78,6 +95,7 @@
   </div>
 
   <!-- フッター -->
+  <div id="upload-alert" class="upload-alert" role="status" aria-live="polite"></div>
   <div class="upload-footer">
     <button class="btn-cancel" onclick="history.back()">キャンセル</button>
     <button class="btn-upload">投函する</button>
@@ -88,10 +106,61 @@
 {% block extra_js %}
 <script>
   let selectedImages = [];
+  const currentUserId = {{ request.session.account_user_id|default:"null" }};
 
   const uploadArea = document.querySelector('#upload-area');
   const imageInput = document.querySelector('#image-input');
   const previewGrid = document.querySelector('#image-preview-grid');
+  const recipientSelect = document.querySelector('#recipient-select');
+  const uploadAlert = document.querySelector('#upload-alert');
+
+  function showAlert(message, type) {
+    if (!uploadAlert) return;
+    uploadAlert.textContent = message;
+    uploadAlert.className = `upload-alert ${type}`;
+  }
+
+  window.alert = (message) => {
+    showAlert(message, 'error');
+  };
+
+  function applyRecipientFromQuery() {
+    const params = new URLSearchParams(window.location.search);
+    const groupId = params.get('group_id');
+    const groupName = params.get('group_name') || '';
+    if (!groupId || !recipientSelect) {
+      return;
+    }
+    recipientSelect.innerHTML = '';
+    const option = document.createElement('option');
+    option.value = groupId;
+    option.textContent = groupName ? `グループ: ${groupName}` : `グループID: ${groupId}`;
+    recipientSelect.appendChild(option);
+    recipientSelect.value = groupId;
+    recipientSelect.disabled = true;
+  }
+
+  applyRecipientFromQuery();
+
+  function saveAttachmentMessage(groupId, text, attachments) {
+    const key = `messages_group_${groupId}`;
+    const messages = JSON.parse(localStorage.getItem(key) || '[]');
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes() < 10 ? '0' + now.getMinutes() : now.getMinutes();
+    const time = hours + ':' + minutes;
+    messages.push({
+      id: 'msg_' + now.getTime() + '_' + Math.random().toString(36).substr(2, 9),
+      text: text || '',
+      sender: 'user',
+      senderUserId: currentUserId,
+      senderAvatar: null,
+      attachments: attachments || [],
+      timestamp: now.getTime(),
+      time: time
+    });
+    localStorage.setItem(key, JSON.stringify(messages));
+  }
 
   // ドラッグ＆ドロップ処理
   uploadArea.addEventListener('dragover', (e) => {
@@ -150,17 +219,17 @@
   }
 
   // 投函処理
-  document.querySelector('.btn-upload').addEventListener('click', () => {
+  document.querySelector('.btn-upload').addEventListener('click', async () => {
     const recipient = document.querySelector('#recipient-select').value;
     const message = document.querySelector('#message').value;
 
     if (!recipient) {
-      alert('宛先を選択してください');
+      showAlert('宛先を選択してください', 'error');
       return;
     }
 
     if (selectedImages.length === 0) {
-      alert('画像を選択してください');
+      showAlert('画像を選択してください', 'error');
       return;
     }
 
@@ -170,8 +239,63 @@
       message: message
     });
 
-    alert('画像が投函されました！');
-    history.back();
+    // FormDataを作成して、複数画像をアップロード
+    const formData = new FormData();
+    formData.append('thread_id', recipient);
+    selectedImages.forEach((img) => {
+      formData.append('files', img.file);
+    });
+
+    try {
+      console.log('アップロード開始:', {
+        endpoint: '/codemon/chat/upload_attachment/',
+        thread_id: recipient,
+        imageCount: selectedImages.length
+      });
+      
+      const response = await fetch('/codemon/chat/upload_attachment/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken')
+        }
+      });
+
+      console.log('レスポンスステータス:', response.status);
+
+      if (!response.ok) {
+        let errorMessage = 'アップロードに失敗しました';
+        try {
+          const error = await response.json();
+          errorMessage = error.error || errorMessage;
+          console.error('サーバーエラー:', error);
+        } catch (e) {
+          const errorText = await response.text();
+          console.error('レスポンスパースエラー:', errorText);
+          errorMessage = `エラー (${response.status}): ${errorText.substring(0, 100)}`;
+        }
+        showAlert(errorMessage, 'error');
+        return;
+      }
+
+      const result = await response.json();
+      showAlert('画像が投函されました！', 'success');
+      
+      setTimeout(() => {
+        window.location.href = document.referrer || '/codemon/chat/teacher/';
+        // referrerがなければチャット画面に戻る
+      }, 800);
+    } catch (error) {
+      console.error('アップロードエラー:', error);
+      showAlert('アップロード中にエラーが発生しました', 'error');
+    }
   });
+
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+  }
 </script>
 {% endblock %}

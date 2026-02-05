@@ -76,6 +76,174 @@ body.no-scroll {
   gap: 12px;
 }
 
+/* ハンバーガーメニューボタン */
+.btn-hamburger {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: opacity 0.2s;
+}
+
+.btn-hamburger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background-color: var(--text-primary);
+  transition: all 0.3s ease;
+}
+
+.btn-hamburger:hover {
+  opacity: 0.6;
+}
+
+/* サイドバー */
+.sidebar {
+  position: fixed;
+  left: -300px;
+  top: 0;
+  width: 300px;
+  height: 100vh;
+  background-color: var(--bg-white);
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  transition: left 0.3s ease;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar.open {
+  left: 0;
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--secondary-color);
+}
+
+.sidebar-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.btn-close-sidebar {
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  padding: 4px 8px;
+  color: var(--text-secondary);
+  transition: color 0.2s;
+}
+
+.btn-close-sidebar:hover {
+  color: var(--text-primary);
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.group-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.group-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  margin-bottom: 8px;
+  background-color: var(--secondary-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  position: relative;
+}
+
+.group-item:hover {
+  background-color: #e5e5ea;
+}
+
+.btn-add-member {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  margin-left: 8px;
+  flex-shrink: 0;
+  transition: transform 0.2s, opacity 0.2s;
+}
+
+.btn-add-member:hover {
+  transform: scale(1.2);
+  opacity: 0.8;
+}
+
+.btn-add-member:active {
+  transform: scale(0.95);
+}
+
+.group-icon {
+  font-size: 24px;
+  margin-right: 12px;
+}
+
+.group-info {
+  flex: 1;
+}
+
+.group-name {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.group-members {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.no-groups {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-top: 20px;
+}
+
+/* サイドバーオーバーレイ */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  z-index: 999;
+}
+
+.sidebar-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+
 .btn-back {
   background: none;
   border: none;
@@ -124,8 +292,17 @@ body.no-scroll {
 }
 
 .chat-list {
-  width: 100%;
+  width: 30%;
+  min-width: 280px;
   overflow-y: auto;
+  background-color: var(--bg-white);
+  border-right: 1px solid var(--border-color);
+}
+
+.chat-detail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   background-color: var(--bg-white);
 }
 
@@ -238,8 +415,8 @@ body.no-scroll {
 }
 
 .message-avatar img {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   object-fit: cover;
 }
@@ -265,6 +442,7 @@ body.no-scroll {
   word-wrap: break-word;
   font-size: 15px;
   line-height: 1.4;
+  position: relative;
 }
 
 .message.sent .message-bubble {
@@ -277,16 +455,71 @@ body.no-scroll {
   color: var(--text-primary);
 }
 
+/* メッセージ編集・削除ボタン */
+.message-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-edit-message,
+.btn-delete-message {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  opacity: 0.8;
+}
+
+.btn-edit-message:hover,
+.btn-delete-message:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.15);
+  transform: scale(1.1);
+}
+
+.btn-edit-message:active,
+.btn-delete-message:active {
+  transform: scale(0.95);
+}
+
+.message-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+}
+
+.message.sent .message-meta {
+  justify-content: flex-end;
+}
+
+.message.received .message-meta {
+  justify-content: flex-start;
+}
+
 .message-time {
   font-size: 12px;
   color: var(--text-secondary);
-  padding: 0 8px;
+  padding: 0;
 }
 
 .message-read,
 .message-read-by {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: #4CAF50;
+  font-weight: 500;
+  display: inline-block;
+  min-width: 40px;
+}
+
+.message-read:empty {
+  display: none;
 }
 
 /* ファイル・画像添付 */
@@ -511,10 +744,6 @@ body.no-scroll {
 }
 
 /* ===== チャット詳細画面 ===== */
-.chat-detail.hidden {
-  display: none;
-}
-
 .chat-detail {
   flex: 1;
   display: flex;

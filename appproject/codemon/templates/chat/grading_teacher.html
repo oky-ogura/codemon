@@ -11,251 +11,185 @@
 {% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'codemon/css/grading.css' %}">
 <style>
-/* ここでチャット画面のサイズと位置を直接カスタマイズできます */
 :root {
-  /* デスクトップ中央配置(カード風) */
   --chat-max-width: 800px;
   --chat-max-height: 70vh;
-  --chat-margin: 20px auto;
   --chat-border-radius: 12px;
   --chat-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   --chat-position: fixed;
   --chat-position-x: 50px;
-  --chat-position-y: 130px;
-  --chat-margin: 0;
-  */
+  --chat-position-y: 135px;
+}
+
+.grading-container {
+  position: var(--chat-position);
+  top: var(--chat-position-y);
+  left: var(--chat-position-x);
+  width: calc(100% - 100px);
+  max-width: var(--chat-max-width);
+  max-height: calc(85vh - 100px);
+  background: white;
+  border-radius: var(--chat-border-radius);
+  box-shadow: var(--chat-box-shadow);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.grading-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.grading-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.btn-back {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.grading-content {
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.form-row {
+  margin-bottom: 16px;
+}
+
+.form-row label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+.input-text,
+.textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+}
+
+.textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.score-input {
+  width: 160px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.btn-submit {
+  background: #4f46e5;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.btn-cancel {
+  background: #e5e7eb;
+  color: #374151;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
 }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="grading-container">
-  <!-- ヘッダー -->
   <div class="grading-header">
-    <button class="btn-back" onclick="history.back()">←</button>
-    <h1 class="grading-title">採点管理</h1>
+    <h1 class="grading-title">採点画面</h1>
+    <button class="btn-back" onclick="history.back()">← 戻る</button>
   </div>
 
-  <!-- コンテンツ -->
   <div class="grading-content">
-    <!-- フィルター -->
-    <div class="filter-section">
-      <select id="box-filter" class="filter-dropdown">
-        <option value="all">すべての投函ボックス</option>
-      </select>
-      <select id="status-filter" class="filter-dropdown">
-        <option value="all">すべてのステータス</option>
-        <option value="submitted">提出済み</option>
-        <option value="graded">採点済み</option>
-        <option value="not-graded">未採点</option>
-      </select>
+    {% if message %}
+    <!-- 提出課題の情報 -->
+    <div class="form-row" style="background: #f9fafb; padding: 12px; border-radius: 8px; margin-bottom: 20px;">
+      <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">提出者</div>
+      <div style="font-weight: 600;">{{ message.sender.user_name }}</div>
+      <div style="font-size: 12px; color: #6b7280; margin-top: 8px;">提出日時: {{ message.created_at|date:"Y/m/d H:i" }}</div>
+      {% if message.content %}
+      <div style="margin-top: 12px; padding: 12px; background: white; border-radius: 6px; border: 1px solid #e5e7eb;">
+        {{ message.content|linebreaks }}
+      </div>
+      {% endif %}
+      {% if message.attachments.all %}
+      <div style="margin-top: 8px;">
+        <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">添付ファイル:</div>
+        {% for attachment in message.attachments.all %}
+        <a href="{% url 'codemon:download_attachment' attachment.attachment_id %}" style="display: inline-block; margin-right: 8px; color: #4f46e5; text-decoration: none;">📎 {{ attachment.file.name }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
     </div>
 
-    <!-- 提出一覧 -->
-    <div class="submissions-list">
-      <!-- 提出データがここに動的に表示されます -->
-    </div>
-  </div>
-      <!-- 提出1 -->
-      <div class="submission-card not-graded">
-        <div class="submission-card-header">
-          <h3 class="student-name">田中太郎</h3>
-          <span class="submission-date">2026-01-20 10:30</span>
-        </div>
-        <div class="submission-card-body">
-          <div class="assignment-info">
-            <span class="assignment-name">数学 第1回課題</span>
-            <span class="status-badge not-graded">未採点</span>
-          </div>
-          <div class="file-list">
-            <div class="file-item">
-              <span class="file-icon">📄</span>
-              <span class="file-name">assignment_1.pdf</span>
-              <a href="#" class="btn-download">DL</a>
-            </div>
-          </div>
-        </div>
-        <div class="submission-card-footer">
-          <button class="btn-view-submission" onclick="viewSubmission(1)">詳細表示</button>
-          <button class="btn-grade" onclick="openGradeForm(1)">採点する</button>
-        </div>
+    <form method="post">
+      {% csrf_token %}
+
+      <div class="form-row">
+        <label for="score">提出課題の点数</label>
+        <input type="number" id="score" name="score" class="input-text score-input" min="0" max="100" placeholder="0〜100" value="{% if existing_score %}{{ existing_score.score }}{% endif %}" required>
       </div>
 
-      <!-- 提出2 -->
-      <div class="submission-card graded">
-        <div class="submission-card-header">
-          <h3 class="student-name">鈴木花子</h3>
-          <span class="submission-date">2026-01-18 09:15</span>
-        </div>
-        <div class="submission-card-body">
-          <div class="assignment-info">
-            <span class="assignment-name">数学 第1回課題</span>
-            <span class="status-badge graded">採点済み</span>
-          </div>
-          <div class="grade-info">
-            <span class="grade-label">点数:</span>
-            <span class="grade-value">92点</span>
-          </div>
-          <div class="file-list">
-            <div class="file-item">
-              <span class="file-icon">📄</span>
-              <span class="file-name">assignment_2.pdf</span>
-              <a href="#" class="btn-download">DL</a>
-            </div>
-          </div>
-        </div>
-        <div class="submission-card-footer">
-          <button class="btn-view-submission" onclick="viewSubmission(2)">詳細表示</button>
-          <button class="btn-edit-grade" onclick="editGrade(2)">採点を編集</button>
-        </div>
+      <div class="form-row">
+        <label for="good_points">良かったこと</label>
+        <textarea id="good_points" name="good_points" class="textarea" placeholder="良かった点を入力してください" required>{% if existing_score %}{{ existing_score.good_points }}{% endif %}</textarea>
       </div>
 
-      <!-- 提出3 -->
-      <div class="submission-card not-graded">
-        <div class="submission-card-header">
-          <h3 class="student-name">佐藤次郎</h3>
-          <span class="submission-date">2026-01-19 14:45</span>
-        </div>
-        <div class="submission-card-body">
-          <div class="assignment-info">
-            <span class="assignment-name">英語 リーディング課題</span>
-            <span class="status-badge not-graded">未採点</span>
-          </div>
-          <div class="file-list">
-            <div class="file-item">
-              <span class="file-icon">📄</span>
-              <span class="file-name">reading_task.docx</span>
-              <a href="#" class="btn-download">DL</a>
-            </div>
-            <div class="file-item">
-              <span class="file-icon">🖼️</span>
-              <span class="file-name">notes_image.jpg</span>
-              <a href="#" class="btn-download">DL</a>
-            </div>
-          </div>
-        </div>
-        <div class="submission-card-footer">
-          <button class="btn-view-submission" onclick="viewSubmission(3)">詳細表示</button>
-          <button class="btn-grade" onclick="openGradeForm(3)">採点する</button>
-        </div>
+      <div class="form-row">
+        <label for="improvement_points">惜しかったこと</label>
+        <textarea id="improvement_points" name="improvement_points" class="textarea" placeholder="惜しかった点を入力してください" required>{% if existing_score %}{{ existing_score.improvement_points }}{% endif %}</textarea>
       </div>
-    </div>
-  </div>
 
-  <!-- 採点フォームモーダル -->
-  <div id="grade-modal" class="modal hidden">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>採点フォーム</h2>
-        <button class="btn-close-modal">×</button>
+      <div class="form-row">
+        <label for="advice">まとめ・アドバイス</label>
+        <textarea id="advice" name="advice" class="textarea" placeholder="まとめ・アドバイスを入力してください" required>{% if existing_score %}{{ existing_score.advice }}{% endif %}</textarea>
       </div>
-      <div class="modal-body">
-        <form id="grade-form">
-          <div class="form-group">
-            <label>学生名</label>
-            <input type="text" id="student-name-display" readonly>
-          </div>
-          <div class="form-group">
-            <label>課題名</label>
-            <input type="text" id="assignment-name-display" readonly>
-          </div>
-          <div class="form-group">
-            <label>点数 <span class="required">*</span></label>
-            <div class="grade-input-group">
-              <input type="number" id="grade-score" min="0" max="100" placeholder="0" required>
-              <span class="grade-unit">点</span>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>評価 <span class="required">*</span></label>
-            <select id="grade-rating" required>
-              <option value="">選択してください</option>
-              <option value="excellent">優秀 (90-100点)</option>
-              <option value="good">良好 (80-89点)</option>
-              <option value="fair">可 (70-79点)</option>
-              <option value="poor">不可 (0-69点)</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>フィードバック</label>
-            <textarea id="grade-feedback" placeholder="採点理由やアドバイスを入力..."></textarea>
-          </div>
-          <div class="form-group checkbox">
-            <input type="checkbox" id="send-to-student">
-            <label for="send-to-student">学生にフィードバックを送信</label>
-          </div>
-        </form>
+
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" onclick="history.back()">キャンセル</button>
+        <button type="submit" class="btn-submit">保存</button>
       </div>
-      <div class="modal-footer">
-        <button class="btn-cancel-modal">キャンセル</button>
-        <button class="btn-submit-grade-modal">採点を送信</button>
-      </div>
+    </form>
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: #6b7280;">
+      <p>提出課題が指定されていません</p>
     </div>
+    {% endif %}
   </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-  const gradeModal = document.querySelector('#grade-modal');
-  const closeBtn = document.querySelector('.btn-close-modal');
-  const cancelBtn = document.querySelector('.btn-cancel-modal');
-  const submitBtn = document.querySelector('.btn-submit-grade-modal');
-
-  closeBtn.addEventListener('click', () => {
-    gradeModal.classList.add('hidden');
-  });
-
-  cancelBtn.addEventListener('click', () => {
-    gradeModal.classList.add('hidden');
-  });
-
-  submitBtn.addEventListener('click', () => {
-    const score = document.querySelector('#grade-score').value;
-    const rating = document.querySelector('#grade-rating').value;
-    const feedback = document.querySelector('#grade-feedback').value;
-    const sendToStudent = document.querySelector('#send-to-student').checked;
-
-    if (score !== '' && rating) {
-      console.log('採点を送信:', { score, rating, feedback, sendToStudent });
-      alert('採点が送信されました！');
-      gradeModal.classList.add('hidden');
-      document.querySelector('#grade-form').reset();
-    } else {
-      alert('点数と評価を入力してください');
-    }
-  });
-
-  function openGradeForm(id) {
-    const card = document.querySelectorAll('.submission-card')[id - 1];
-    const studentName = card.querySelector('.student-name').textContent;
-    const assignmentName = card.querySelector('.assignment-name').textContent;
-
-    document.querySelector('#student-name-display').value = studentName;
-    document.querySelector('#assignment-name-display').value = assignmentName;
-
-    gradeModal.classList.remove('hidden');
-  }
-
-  function editGrade(id) {
-    console.log('採点を編集:', id);
-    openGradeForm(id);
-  }
-
-  function viewSubmission(id) {
-    console.log('提出内容を表示:', id);
-    alert('提出内容の詳細表示');
-  }
-
-  // フィルター機能
-  document.querySelector('#box-filter').addEventListener('change', () => {
-    console.log('フィルタリング処理');
-  });
-
-  document.querySelector('#status-filter').addEventListener('change', () => {
-    console.log('ステータスフィルター処理');
-  });
-</script>
 {% endblock %}
