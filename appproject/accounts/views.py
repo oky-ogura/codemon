@@ -174,6 +174,7 @@ def teacher_signup(request):
                 request.session['account_email'] = instance.email
                 request.session['account_user_name'] = instance.user_name
                 request.session['account_age'] = instance.age
+                request.session['account_type'] = instance.account_type  # account_typeを追加
                 request.session.modified = True
                 try:
                     request.session.save()
@@ -208,6 +209,7 @@ def student_signup(request):
                 request.session['account_email'] = instance.email
                 request.session['account_user_name'] = instance.user_name
                 request.session['account_age'] = instance.age
+                request.session['account_type'] = instance.account_type  # account_typeを追加
                 request.session.modified = True
                 try:
                     request.session.save()
@@ -249,6 +251,7 @@ def teacher_login(request):
             request.session['account_user_id'] = account_row[0]
             request.session['account_email'] = account_row[2]
             request.session['account_user_name'] = account_row[1]
+            request.session['account_type'] = account_row[4]  # account_typeを追加
             request.session.modified = True
             
             # ログイン成功 → karihome へリダイレクト（URL を更新して PRG パターンに従う）
@@ -300,6 +303,7 @@ def student_login(request):
             request.session['account_user_id'] = acc.user_id
             request.session['account_email'] = acc.email
             request.session['account_user_name'] = acc.user_name
+            request.session['account_type'] = getattr(acc, 'account_type', 'student')  # account_typeを追加
             # セッションを確実に保存
             request.session.modified = True
             try:

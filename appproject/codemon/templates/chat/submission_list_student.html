@@ -264,7 +264,7 @@
             {% endif %}
           </div>
           {% if submission.scores.first %}
-          <a href="{% url 'codemon:grading_detail' submission.message_id %}" class="btn-view" style="background: #059669;">採点詳細</a>
+          <a href="{% url 'codemon:grading_detail_student' submission.message_id %}" class="btn-view" style="background: #059669;">採点詳細</a>
           {% endif %}
         </div>
       </div>

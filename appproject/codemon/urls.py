@@ -72,6 +72,8 @@ urlpatterns = [
     path('chat/thread/<int:thread_id>/readers/', views.get_thread_readers, name='thread_readers'),
     # メッセージ削除
     path('chat/message/<int:message_id>/delete/', views.delete_message, name='delete_message'),
+    # メッセージ編集
+    path('chat/message/<int:message_id>/edit/', views.edit_message, name='edit_message'),
     # ダウンロード
     path('chat/attachment/<int:attachment_id>/download/', views.download_attachment, name='download_attachment'),
     # メッセージ検索
@@ -125,6 +127,7 @@ urlpatterns = [
     path('chat/teacher/grading/', views.grading_teacher, name='grading'),
     path('chat/teacher/grading/<int:message_id>/', views.grading_teacher, name='grading_with_message'),
     path('chat/teacher/grading/<int:message_id>/detail/', views.grading_detail_view, name='grading_detail'),
+    path('chat/student/grading/<int:message_id>/detail/', views.grading_detail_student, name='grading_detail_student'),
     
     # 採点済みチェック API
     path('api/toggle-grading-check/<int:message_id>/', views.toggle_grading_check, name='toggle_grading_check'),
