@@ -357,7 +357,7 @@ html {
       console.log('[DEBUG] addMessage called with:', { messageId, senderUserId, currentUserId, readCount, readBy });
       const messageEl = document.createElement('div');
       // 自分が送信したメッセージかどうかを判定（送信者IDが現在のIDと一致するか）
-      const isMyMessage = senderUserId === currentUserId;
+      const isMyMessage = String(senderUserId) === String(currentUserId);
       messageEl.className = `message ${isMyMessage ? 'sent' : 'received'}`;
       const time = formatTime(createdAt);
       const id = messageId || 'msg_' + new Date().getTime() + '_' + Math.random().toString(36).substr(2, 9);
@@ -377,10 +377,12 @@ html {
       const attachmentsHtml = (attachments && attachments.length)
         ? `<div class="message-attachments">
             ${attachments.map(att => {
+              const attachmentId = att.id || att.attachment_id || '';
+              const downloadUrl = att.download_url || (attachmentId ? `/codemon/chat/attachment/${attachmentId}/download/` : att.url);
               if (att.type === 'image') {
-                return `<div class="attachment-image"><img src="${att.url}" alt="${att.name || 'image'}" style="max-width: 220px; border-radius: 6px;" /></div>`;
+                return `<div class="attachment-image"><a href="${downloadUrl}" target="_blank" rel="noopener noreferrer"><img src="${att.url}" alt="${att.name || 'image'}" style="max-width: 220px; border-radius: 6px;" /></a></div>`;
               }
-              return `<div class="attachment-file"><a href="${att.url}" target="_blank" rel="noopener noreferrer" style="color: #1e90ff; text-decoration: underline;">📎 ${att.name || 'file'}</a></div>`;
+              return `<div class="attachment-file"><a href="${downloadUrl}" target="_blank" rel="noopener noreferrer" style="color: #1e90ff; text-decoration: underline;">📎 ${att.name || 'file'}</a></div>`;
             }).join('')}
           </div>`
         : '';
@@ -480,7 +482,7 @@ html {
             msg.read_count || 0,
             msg.read_by || []
           );
-          if (msg.sender_user_id !== currentUserId) {
+          if (String(msg.sender_user_id) !== String(currentUserId)) {
             unreadIds.push(msg.message_id);
           }
           lastMessageId = msg.message_id;
@@ -509,7 +511,7 @@ html {
             // 既に表示されているメッセージはスキップ
             if (lastMessageId && msg.message_id <= lastMessageId) {
               // 既読数が更新されている場合は更新
-              if (msg.read_by && msg.sender_user_id === currentUserId) {
+              if (msg.read_by && String(msg.sender_user_id) === String(currentUserId)) {
                 updateReadCount(msg.message_id, msg.read_by);
               }
               return;
@@ -528,7 +530,7 @@ html {
               msg.read_by || []
             );
             
-            if (msg.sender_user_id !== currentUserId) {
+            if (String(msg.sender_user_id) !== String(currentUserId)) {
               unreadIds.push(msg.message_id);
             }
             lastMessageId = msg.message_id;
@@ -540,6 +542,42 @@ html {
         }
       } catch (e) {
         console.error('新しいメッセージの取得エラー:', e);
+      }
+    }
+
+    async function loadNewDirectMessages(threadId) {
+      if (!threadId || threadId !== currentThreadId) return;
+      
+      try {
+        const res = await fetch(`/codemon/chat/direct/${threadId}/messages/`);
+        if (!res.ok) return;
+        
+        const data = await res.json();
+        
+        if (data.messages && data.messages.length > 0) {
+          data.messages.forEach(msg => {
+            // 既に表示されているメッセージはスキップ
+            const msgId = msg.message_id || msg.id;
+            if (lastMessageId && msgId <= lastMessageId) {
+              return;
+            }
+            
+            addMessage(
+              msg.content || '',
+              'user',
+              false,
+              msgId,
+              msg.sender_user_id || null,
+              msg.sender_avatar || null,
+              [],
+              msg.created_at
+            );
+            
+            lastMessageId = msgId;
+          });
+        }
+      } catch (e) {
+        console.error('新しい個別メッセージの取得エラー:', e);
       }
     }
 
@@ -608,6 +646,7 @@ html {
       localStorage.setItem('lastGroupName_student', groupName);
       
       closeSidebarFunc();
+      setInputEnabled(true);
       
       // メッセージエリアをクリア
       messagesContainer.innerHTML = '';
@@ -622,17 +661,20 @@ html {
       } catch (e) {
         console.error('グループチャット読み込みエラー:', e);
         messagesContainer.innerHTML = '<p style="color:#999;">メッセージを読み込めませんでした</p>';
+        setInputEnabled(true);
       }
     }
 
     function setInputEnabled(enabled) {
       messageInput.disabled = !enabled;
       btnSend.disabled = !enabled;
-      messageInput.placeholder = enabled ? 'メッセージを入力...' : '個別チャットは閲覧のみです';
+      messageInput.placeholder = enabled ? 'メッセージを入力...' : 'チャットを選択してください';
     }
 
     async function loadDirectMessages(threadId, threadName) {
       messagesContainer.innerHTML = '';
+      lastMessageId = null;
+      
       try {
         const res = await fetch(`/codemon/chat/direct/${threadId}/messages/`);
         if (!res.ok) {
@@ -640,7 +682,9 @@ html {
         }
         const data = await res.json();
         data.messages.forEach(msg => {
-          addMessage(msg.content, 'user', false, msg.id, msg.sender_user_id || null, msg.sender_avatar || null);
+          const msgId = msg.message_id || msg.id;
+          addMessage(msg.content, 'user', false, msgId, msg.sender_user_id || null, msg.sender_avatar || null);
+          lastMessageId = msgId;
         });
         chatTitle.textContent = threadName + ' チャット';
       } catch (e) {
@@ -651,15 +695,25 @@ html {
     function selectDirectThread(threadId, threadName) {
       currentGroupId = null;
       currentGroupName = null;
-      currentThreadId = null;
+      currentThreadId = threadId;
       
       if (pollingInterval) {
         clearInterval(pollingInterval);
       }
       
-      setInputEnabled(false);
+      // 個別チャットでもメッセージ送信を有効化
+      setInputEnabled(true);
       closeSidebarFunc();
       loadDirectMessages(threadId, threadName);
+      
+      // localStorageに保存
+      localStorage.setItem('lastThreadId_student', threadId);
+      localStorage.setItem('lastThreadName_student', threadName);
+      
+      // ポーリング開始（3秒ごと）
+      pollingInterval = setInterval(() => {
+        loadNewDirectMessages(threadId);
+      }, 3000);
     }
 
     // グループアイテムのクリックイベント
@@ -693,14 +747,28 @@ html {
       const text = messageInput.value.trim();
       if (text === '') return;
       
-      // グループが選択されていない場合は警告
-      if (!currentGroupId) {
-        alert('グループを選択してください');
+      // グループまたは個別チャットが選択されていない場合は警告
+      if (!currentGroupId && !currentThreadId) {
+        alert('チャットを選択してください');
         return;
       }
       
       try {
-        const res = await fetch(`/codemon/chat/group/${currentGroupId}/messages/`, {
+        let url;
+        
+        // グループチャットか個別チャットかで送信先を分岐
+        if (currentGroupId) {
+          // グループチャット
+          url = `/codemon/chat/group/${currentGroupId}/messages/`;
+        } else if (currentThreadId) {
+          // 個別チャット
+          url = `/codemon/chat/direct/${currentThreadId}/messages/`;
+        } else {
+          alert('チャットを選択してください');
+          return;
+        }
+        
+        const res = await fetch(url, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
