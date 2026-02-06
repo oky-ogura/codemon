@@ -72,6 +72,8 @@ urlpatterns = [
     path('chat/thread/<int:thread_id>/readers/', views.get_thread_readers, name='thread_readers'),
     # メッセージ削除
     path('chat/message/<int:message_id>/delete/', views.delete_message, name='delete_message'),
+    # メッセージ編集
+    path('chat/message/<int:message_id>/edit/', views.edit_message, name='edit_message'),
     # ダウンロード
     path('chat/attachment/<int:attachment_id>/download/', views.download_attachment, name='download_attachment'),
     # メッセージ検索
