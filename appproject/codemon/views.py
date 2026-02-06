@@ -522,6 +522,58 @@ def delete_message(request, message_id):
     return JsonResponse({'status': 'ok', 'message_id': message.message_id})
 
 
+@require_POST
+def edit_message(request, message_id):
+    """メッセージ編集（送信者本人のみ実行可能）"""
+    owner = _get_write_owner(request)
+    if owner is None:
+        return HttpResponseForbidden('ログインが必要です')
+
+    message = get_object_or_404(ChatMessage, message_id=message_id)
+
+    # 権限チェック: 発信者本人のみ
+    if message.sender != owner:
+        return HttpResponseForbidden('メッセージの編集には送信者権限が必要です')
+
+    # リクエストボディから新しい内容を取得
+    try:
+        import json
+        data = json.loads(request.body)
+        new_content = data.get('content', '').strip()
+        
+        if not new_content:
+            return JsonResponse({'status': 'error', 'error': 'メッセージ内容が空です'}, status=400)
+        
+        # メッセージ内容を更新
+        message.content = new_content
+        message.save()
+
+        # WebSocket経由で編集を通知
+        try:
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f'chat_{message.thread.thread_id}',
+                {
+                    'type': 'chat.edit',
+                    'message_id': message.message_id,
+                    'content': new_content,
+                    'edited_by_id': owner.user_id,
+                    'edited_by_name': getattr(owner, 'user_name', ''),
+                    'edited_at': timezone.now().isoformat(),
+                }
+            )
+        except Exception:
+            pass
+
+        return JsonResponse({
+            'status': 'ok',
+            'message_id': message.message_id,
+            'content': new_content
+        })
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'error': '不正なリクエストです'}, status=400)
+
+
 @teacher_required
 def get_thread_readers(request, thread_id):
     """スレッド内のメッセージ既読者一覧を取得（教師のみ）"""
@@ -2178,6 +2230,7 @@ def group_chat_messages(request, group_id):
                     'name': att.file.name.split('/')[-1],  # ファイル名のみを取得
                     'url': att.file.url,
                     'download_url': reverse('codemon:download_attachment', args=[att.attachment_id]),
+                    'size': att.file.size,  # ファイルサイズを追加
                 }
                 # 画像ファイルの判定（拡張子で判定）
                 image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp')
@@ -2284,6 +2337,7 @@ def thread_messages(request, thread_id):
                 'name': att.file.name.split('/')[-1],  # ファイル名のみを取得
                 'url': att.file.url,
                 'download_url': reverse('codemon:download_attachment', args=[att.attachment_id]),
+                'size': att.file.size,  # ファイルサイズを追加
             }
             # 画像ファイルの判定（拡張子で判定）
             image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp')
@@ -2976,6 +3030,7 @@ def toggle_grading_check(request, message_id):
 @session_login_required
 def mark_messages_read(request):
     """メッセージを既読にする"""
+    print(f"[DEBUG] mark_messages_read called: method={request.method}, user={request.user}, path={request.path}")
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'message': 'POST method required'}, status=400)
     
@@ -2994,9 +3049,11 @@ def mark_messages_read(request):
         # 既読レコードを作成（自分以外のメッセージのみ）
         from .models import ReadReceipt
         created_count = 0
+        print(f"[DEBUG] mark_messages_read: reader.user_id={reader.user_id}, message_ids={message_ids}")
         for message_id in message_ids:
             try:
                 message = ChatMessage.objects.get(message_id=message_id, is_deleted=False)
+                print(f"[DEBUG] message_id={message_id}, sender={message.sender.user_id}, reader={reader.user_id}")
                 # 自分のメッセージは既読マークしない
                 if message.sender.user_id != reader.user_id:
                     # 既に既読マークがある場合は作成しない
@@ -3004,9 +3061,13 @@ def mark_messages_read(request):
                         message=message,
                         reader=reader
                     )
+                    print(f"[DEBUG] ReadReceipt created={created}")
                     if created:
                         created_count += 1
+                else:
+                    print(f"[DEBUG] Skipped: own message")
             except ChatMessage.DoesNotExist:
+                print(f"[DEBUG] ChatMessage.DoesNotExist: message_id={message_id}")
                 continue
         
         return JsonResponse({

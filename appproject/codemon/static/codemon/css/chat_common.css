@@ -566,6 +566,111 @@ body.no-scroll {
   border-radius: 8px;
 }
 
+/* ===== 添付ファイル関連 ===== */
+.attachment-image {
+  position: relative;
+  display: inline-block;
+  margin: 4px 0;
+}
+
+.attachment-image-img {
+  max-width: 220px;
+  border-radius: 6px;
+  display: block;
+}
+
+.image-download-wrapper {
+  margin-top: 8px;
+  text-align: center;
+}
+
+.attachment-download-btn {
+  display: inline-block;
+  padding: 6px 12px;
+  background-color: var(--primary-color);
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.attachment-download-btn:hover {
+  background-color: var(--primary-dark);
+}
+
+.attachment-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background-color: var(--secondary-color);
+  border-radius: 8px;
+  margin: 4px 0;
+  max-width: 280px;
+}
+
+.attachment-card:hover {
+  background-color: #e0e0e5;
+}
+
+.attachment-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.attachment-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.attachment-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-card-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.attachment-size {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.attachment-download {
+  display: inline-block;
+  padding: 4px 10px;
+  background-color: var(--primary-color);
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.attachment-download:hover {
+  background-color: var(--primary-dark);
+}
+
+.message-attachments {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 /* ===== フッター ===== */
 .chat-footer {
   padding: 12px 16px;
@@ -627,6 +732,22 @@ body.no-scroll {
 
 .btn-send:hover {
   opacity: 0.6;
+}
+
+.btn-cancel-edit {
+  background-color: #999;
+  color: white;
+  border: none;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 15px;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.btn-cancel-edit:hover {
+  background-color: #777;
 }
 
 /* ===== グレード表示 ===== */

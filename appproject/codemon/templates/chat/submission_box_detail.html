@@ -133,7 +133,8 @@
 .submission-attachments {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
+  margin-top: 12px;
 }
 
 .attachment-item {
@@ -153,6 +154,12 @@
 .attachment-item:hover {
   background: #e9ecef;
   border-color: #adb5bd;
+}
+
+/* プレビューカード用スタイル（submission_box用） */
+.submission-attachments .attachment-card {
+  flex: 0 1 calc(50% - 6px);
+  max-width: 350px;
 }
 
 .box-footer {
@@ -447,9 +454,18 @@
           {% if submission.attachments.all %}
           <div class="submission-attachments">
             {% for attachment in submission.attachments.all %}
-            <a href="{% url 'codemon:download_attachment' attachment.attachment_id %}" class="attachment-item" target="_blank">
-              📎 {{ attachment.file.name }}
-            </a>
+            <div class="attachment-card">
+              <div class="attachment-card-header">
+                <span class="attachment-icon" data-filename="{{ attachment.file.name }}">📎</span>
+                <span class="attachment-name">{{ attachment.file.name }}</span>
+              </div>
+              <div class="attachment-card-info">
+                <span class="attachment-size">
+                  {{ attachment.file.size|filesizeformat }}
+                </span>
+                <a href="{% url 'codemon:download_attachment' attachment.attachment_id %}" class="attachment-download" target="_blank" title="ダウンロード">⬇️</a>
+              </div>
+            </div>
             {% endfor %}
           </div>
           {% endif %}
@@ -595,5 +611,22 @@ async function toggleGradeCheck(checkbox) {
     alert('チェック状態の保存に失敗しました');
   }
 }
+
+// ファイルアイコン設定（プレビューカード用）
+function setFileIcons() {
+  document.querySelectorAll('.attachment-icon').forEach(icon => {
+    const fileName = icon.getAttribute('data-filename') || '';
+    const ext = fileName.split('.').pop().toLowerCase();
+    const iconMap = {
+      'pdf': '📄', 'xlsx': '📊', 'xls': '📊', 'csv': '📊',
+      'docx': '📝', 'doc': '📝', 'pptx': '🎯', 'ppt': '🎯',
+      'txt': '📋', 'zip': '🗂️', 'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️'
+    };
+    icon.textContent = iconMap[ext] || '📎';
+  });
+}
+
+// ページロード時に実行
+document.addEventListener('DOMContentLoaded', setFileIcons);
 </script>
 {% endblock %}
