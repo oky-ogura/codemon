@@ -490,6 +490,10 @@
 
 {% block extra_js %}
 <script src="{% static 'codemon/js/tutorial_overlay.js' %}"></script>
+<script src="{% static 'codemon/js/tutorial_helper.js' %}"></script>
+<script src="{% static 'codemon/js/tutorial_manager.js' %}"></script>
+<script src="{% static 'codemon/js/tutorials/tutorial_save.js' %}"></script>
+<script src="{% static 'codemon/js/tutorials/tutorial_create.js' %}"></script>
 <link rel="stylesheet" href="{% static 'codemon/css/tutorial_overlay.css' %}">
 
 <script>
@@ -498,120 +502,23 @@
     window.isNavigating = false;
   }
 
-  // STEP2: せいかい保存のチュートリアル
+  // チュートリアル自動開始
   document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔍 STEP2 保存画面チュートリアル: DOMContentLoaded');
-    
-    // sessionStorageでチュートリアル状態を確認
-    const shouldStartTutorial = sessionStorage.getItem('tutorial_step2_seikai_save');
-    console.log('📋 tutorial_step2_seikai_save:', shouldStartTutorial);
-    
-    if (shouldStartTutorial === 'true') {
-      console.log('✅ せいかい保存チュートリアルを開始します');
-      
-      // フラグをクリア（再読み込み時に再度起動しないように）
-      sessionStorage.removeItem('tutorial_step2_seikai_save');
-      
-      // チュートリアル開始
-      setTimeout(() => {
-        startSaveSystemTutorial();
-      }, 500);
-    } else {
-      console.log('ℹ️ せいかい保存チュートリアルは起動しません');
+    if (window.tutorialManager) {
+      tutorialManager.autoStart();
     }
+    console.log('🔍 STEP2 保存画面: DOMContentLoaded');
   });
 
-  function startSaveSystemTutorial() {
-    console.log('🎬 startSaveSystemTutorial() 開始');
-    
-    const tutorialOverlay = new TutorialOverlay([
-      // ステップ0: システム名入力の説明
-      {
-        message: `
-          <div style="text-align: center;">
-            <div style="font-size: 28px; font-weight: 800; color: #3fbcd9; margin-bottom: 15px;">
-              📝 システムのなまえをいれよう！
-            </div>
-            <div style="font-size: 18px; line-height: 1.8; color: #2d3748;">
-              「せいかい」と いれてね！
-            </div>
-          </div>
-        `,
-        target: '#systemName',
-        centerMessage: false,
-        showNextButton: false,
-        onShow: function() {
-          console.log('📝 ステップ0: システム名入力欄をフォーカス');
-          
-          const nameInput = document.getElementById('systemName');
-          if (nameInput) {
-            // 入力欄をハイライト
-            tutorialOverlay.positionHighlight(nameInput);
-            tutorialOverlay.positionOverlayParts(nameInput);
-            
-            // 入力監視
-            const checkNameInput = setInterval(() => {
-              const value = nameInput.value.trim();
-              console.log('🔍 入力値チェック:', value);
-              
-              if (value.includes('せいかい')) {
-                console.log('✅ 「せいかい」が入力されました');
-                clearInterval(checkNameInput);
-                setTimeout(() => tutorialOverlay.next(), 500);
-              }
-            }, 100);
-          }
-        }
-      },
-      
-      // ステップ1: 保存ボタン説明
-      {
-        message: `
-          <div style="text-align: center;">
-            <div style="font-size: 28px; font-weight: 800; color: #3fbcd9; margin-bottom: 15px;">
-              💾 ほぞんしよう！
-            </div>
-            <div style="font-size: 18px; line-height: 1.8; color: #2d3748;">
-              「ほぞんする」ボタンを おしてね！
-            </div>
-          </div>
-        `,
-        target: '#saveBtn',
-        centerMessage: false,
-        showNextButton: false,
-        onShow: function() {
-          console.log('💾 ステップ1: 保存ボタンをフォーカス');
-          
-          const saveBtn = document.getElementById('saveBtn');
-          if (saveBtn) {
-            // 保存ボタンをハイライト
-            tutorialOverlay.positionHighlight(saveBtn);
-            tutorialOverlay.positionOverlayParts(saveBtn);
-            
-            // 保存ボタンクリック監視
-            const saveClickHandler = function(e) {
-              console.log('✅ 保存ボタンがクリックされました');
-              
-              // チュートリアルを終了
-              tutorialOverlay.end();
-              
-              // ふせいかい作成のフラグを設定
-              sessionStorage.setItem('tutorial_step2_fuseikai_create', 'true');
-              console.log('📝 tutorial_step2_fuseikai_create フラグを設定しました');
-              
-              // 保存処理を続行
-              saveBtn.removeEventListener('click', saveClickHandler);
-            };
-            
-            saveBtn.addEventListener('click', saveClickHandler);
-          }
-        }
+  window.TutorialHelper = {
+    enableDebug: function() {
+      if (window.tutorialManager) {
+        tutorialManager.enableDebugMode();
       }
-    ]);
-    
-    tutorialOverlay.start();
-    console.log('✅ せいかい保存チュートリアル開始完了');
-  }
+    }
+  };
+
+  console.log('🔧 TutorialHelper loaded (Create Page)');
 </script>
 {% endblock %}
 

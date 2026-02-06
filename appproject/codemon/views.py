@@ -223,29 +223,47 @@ def _get_write_owner(request):
 	ALLOW_ANONYMOUS_VIEWS is True, return or create a dev Account.
 	Otherwise return None.
 	"""
+	print("=== DEBUG _get_write_owner (LINE 199) ===")
+	print(f"Session keys: {list(request.session.keys())}")
+	print(f"is_account_authenticated: {request.session.get('is_account_authenticated')}")
+	print(f"account_user_id: {request.session.get('account_user_id')}")
+	
 	# セッションベース認証をチェック
 	if request.session.get('is_account_authenticated'):
 		account_user_id = request.session.get('account_user_id')
+		print(f"✅ セッション認証OK: account_user_id={account_user_id}")
 		if account_user_id:
 			try:
-				return Account.objects.get(user_id=account_user_id)
+				account = Account.objects.get(user_id=account_user_id)
+				print(f"✅ Accountを取得: {account}")
+				return account
 			except Account.DoesNotExist:
+				print(f"❌ Account not found for user_id={account_user_id}")
 				pass
+	else:
+		print("❌ is_account_authenticated is False or not set")
 	
 	# Django標準認証のフォールバック
 	if getattr(request, 'user', None) and getattr(request.user, 'is_authenticated', False):
+		print(f"🔄 Django標準認証をチェック: email={request.user.email}")
 		try:
-			return Account.objects.get(email=request.user.email)
+			account = Account.objects.get(email=request.user.email)
+			print(f"✅ Django認証でAccountを取得: {account}")
+			return account
 		except Account.DoesNotExist:
+			print(f"❌ Account not found for email={request.user.email}")
 			pass
 	
 	# 開発用の匿名アカウント
 	if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
+		print("🔧 開発用匿名アカウントを使用")
 		acct, _ = Account.objects.get_or_create(
 			email='dev_anonymous@local',
 			defaults={'user_name': '開発用匿名', 'password': 'dev', 'account_type': 'dev', 'age': 0}
 		)
 		return acct
+	
+	print("❌ 認証失敗 - Noneを返します")
 	return None
 
 
@@ -838,9 +856,9 @@ def checklist_detail(request, pk):
     return redirect('codemon:checklist_list')
 
 
-@login_required
 def checklist_edit(request, pk):
     """チェックリスト編集（新規作成画面に遷移してフォームに既存データを入力）"""
+    print(f"🔍 checklist_edit called: pk={pk}")
     if getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
         cl = get_object_or_404(Checklist, checklist_id=pk)
     else:
@@ -1117,7 +1135,6 @@ def upload_attachments(request):
         return JsonResponse({'error': f'サーバーエラー: {str(e)}'}, status=500)
 
 
-@login_required
 def download_attachment(request, attachment_id):
     """
     添付ファイルをダウンロードする安全なエンドポイント
@@ -1645,7 +1662,6 @@ if not getattr(settings, 'ALLOW_ANONYMOUS_VIEWS', False):
     # group_remove_member は @teacher_login_required デコレータを使用しているため、ここではラップしない
     group_leave = _login_required(group_leave)
 
-@login_required
 def search_messages(request):
     """
     チャットメッセージを検索するビュー。
@@ -2719,7 +2735,6 @@ def direct_messages(request, thread_id):
     return JsonResponse({'thread_id': thread.thread_id, 'messages': data})
 
 
-@login_required
 def grades_view_student(request):
     """生徒側点数閲覧"""
     return render(request, 'chat/grades_view_student.html')
@@ -3211,7 +3226,6 @@ def submission_list_student(request):
     })
 
 
-@login_required
 def chat_demo_index(request):
     """チャット機能デモインデックス"""
     return render(request, 'chat/index.html')
