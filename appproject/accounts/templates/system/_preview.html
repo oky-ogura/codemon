@@ -405,6 +405,14 @@ function createPreviewDatetimeInput(elem) {
 function createPreviewCheckboxGroup(elem) {
   const group = document.createElement('div');
   group.className = 'checkbox-group';
+  
+  // グループラベルを追加
+  if (elem.element_label) {
+    const groupLabel = document.createElement('div');
+    groupLabel.className = 'group-label';
+    groupLabel.textContent = elem.element_label;
+    group.appendChild(groupLabel);
+  }
 
   const options = elem.element_config?.options || [];
   options.forEach((optText, i) => {
@@ -435,6 +443,14 @@ function createPreviewCheckboxGroup(elem) {
 function createPreviewRadioGroup(elem) {
   const group = document.createElement('div');
   group.className = 'radio-group';
+  
+  // グループラベルを追加
+  if (elem.element_label) {
+    const groupLabel = document.createElement('div');
+    groupLabel.className = 'group-label';
+    groupLabel.textContent = elem.element_label;
+    group.appendChild(groupLabel);
+  }
 
   const uniqueName = 'radio_group_' + Date.now() + '_' + Math.floor(Math.random()*1000);
   const options = elem.element_config?.options || [];
@@ -490,12 +506,21 @@ function createPreviewButton(elem) {
   btn.addEventListener('click', function(e) {
     e.stopPropagation();
     
+    console.log('🔘 ボタンクリック:', {
+      text: btn.textContent,
+      algorithmId: algorithmId,
+      algorithmXml: algorithmXml ? `${algorithmXml.length}文字` : 'なし',
+      targetSystemId: targetSystemId
+    });
+    
     if (algorithmId && algorithmXml) {
-      console.log('アルゴリズム実行:', algorithmId);
+      console.log('✅ アルゴリズム実行:', algorithmId);
       executeAlgorithmFromButton(algorithmXml, btn.textContent);
     } else if (targetSystemId) {
-      console.log('システム遷移:', targetSystemId);
+      console.log('✅ システム遷移:', targetSystemId);
       loadSystemInPreview(targetSystemId);
+    } else {
+      console.warn('⚠️ アルゴリズムもシステムも設定されていません');
     }
   });
 
@@ -781,9 +806,14 @@ function formatTimerDisplay(seconds) {
 
 // 現在のスライドエリアの要素を収集する関数
 window.collectCurrentElements = function collectCurrentElements() {
+  console.log('🔍 collectCurrentElements() 開始');
   const slide = document.getElementById('slideArea');
-  if (!slide) return [];
+  if (!slide) {
+    console.warn('⚠️ slideAreaが見つかりません');
+    return [];
+  }
   
+  console.log('📋 slideArea内の要素を収集中...');
   const elements = [];
   
   // テキスト/数値/日時入力
@@ -896,9 +926,11 @@ window.collectCurrentElements = function collectCurrentElements() {
   });
   
   // テキストボックス
-  slide.querySelectorAll('.text-input-container').forEach(container => {
-    const textInput = container.querySelector('.text-input');
+  slide.querySelectorAll('.text-box-container').forEach(container => {
+    const textInput = container.querySelector('.text-box');
     const content = textInput ? (textInput.value || textInput.textContent || '').trim() : '';
+    
+    console.log('📦 テキストボックスを収集:', { content, position: container.style.left + ',' + container.style.top });
     
     elements.push({
       element_type: 'text_box',
@@ -953,6 +985,63 @@ window.collectCurrentElements = function collectCurrentElements() {
     });
   });
   
+  // 図形
+  slide.querySelectorAll('.shape-element').forEach(shape => {
+    const shapeType = shape.getAttribute('data-shape-type') || 'rectangle';
+    const shapeColor = shape.getAttribute('data-shape-color') || '#333333';
+    const shapeFill = shape.getAttribute('data-shape-fill') || 'transparent';
+    
+    let width, height;
+    if (shapeType === 'triangle') {
+      const borderBottom = shape.style.borderBottomWidth || shape.style.borderBottom;
+      height = parseInt(borderBottom) || 87;
+      width = Math.floor(height * 100 / 87);
+    } else {
+      width = parseInt(shape.style.width) || 100;
+      height = parseInt(shape.style.height) || 100;
+    }
+    
+    console.log('📦 図形を収集:', { type: shapeType, color: shapeColor, fill: shapeFill, position: shape.style.left + ',' + shape.style.top });
+    
+    elements.push({
+      element_type: 'shape',
+      element_label: '',
+      element_value: '',
+      position_x: parseInt(shape.style.left) || 0,
+      position_y: parseInt(shape.style.top) || 0,
+      width: width,
+      height: height,
+      style_data: {},
+      element_config: {
+        shape_type: shapeType,
+        color: shapeColor,
+        fill_color: shapeFill
+      }
+    });
+  });
+  
+  // 画像
+  slide.querySelectorAll('.image-element').forEach(imageContainer => {
+    const imageSrc = imageContainer.getAttribute('data-image-src') || '';
+    const img = imageContainer.querySelector('img');
+    
+    console.log('📦 画像を収集:', { src: imageSrc.substring(0, 50) + '...', position: imageContainer.style.left + ',' + imageContainer.style.top });
+    
+    elements.push({
+      element_type: 'image',
+      element_label: '',
+      element_value: imageSrc,
+      position_x: parseInt(imageContainer.style.left) || 0,
+      position_y: parseInt(imageContainer.style.top) || 0,
+      width: parseInt(imageContainer.style.width) || (img ? img.width : 100),
+      height: parseInt(imageContainer.style.height) || (img ? img.height : 100),
+      style_data: {},
+      element_config: {}
+    });
+  });
+  
+  console.log(`✅ 収集完了: ${elements.length}個の要素`);
+  console.log('📊 要素の内訳:', elements.map(e => e.element_type));
   return elements;
 }
 

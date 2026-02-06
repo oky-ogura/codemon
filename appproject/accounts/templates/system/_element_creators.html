@@ -830,14 +830,27 @@ function createButton(labelText, width, height, color, textColor, targetSystemId
     e.stopPropagation();
     
     const isPreview = btn.closest('#previewSlideArea');
+    
+    console.log('🔘 ボタンクリック (新規作成):', {
+      text: labelText,
+      isPreview: !!isPreview,
+      targetAlgorithmId: targetAlgorithmId,
+      algorithmXml: algorithmXml ? `${algorithmXml.length}文字` : 'なし',
+      targetSystemId: targetSystemId
+    });
+    
     if (isPreview) {
       if (targetAlgorithmId && algorithmXml) {
-        console.log('アルゴリズム実行:', targetAlgorithmId);
+        console.log('✅ アルゴリズム実行:', targetAlgorithmId);
         executeAlgorithmFromButton(algorithmXml, labelText);
       } else if (targetSystemId) {
-        console.log('システム遷移:', targetSystemId);
+        console.log('✅ システム遷移:', targetSystemId);
         loadSystemInPreview(targetSystemId);
+      } else {
+        console.warn('⚠️ アルゴリズムもシステムも設定されていません');
       }
+    } else {
+      console.log('ℹ️ 編集モードではボタンは動作しません。実行ボタンでプレビューモードに入ってください。');
     }
   });
 
@@ -856,7 +869,10 @@ if (addTextBtn) {
   addTextBtn.addEventListener("click", function(e) {
     e.stopPropagation();
     createInput("文字：", "文字を入力（改行可）");
-    // ドロップダウンを閉じる
+    // ドロップダウンを閉じる前にフォーカスを移動
+    const slideArea = document.getElementById('slideArea');
+    if (slideArea) slideArea.focus();
+    
     const formDropdown = document.getElementById('formDropdown');
     if (formDropdown) {
       formDropdown.classList.remove('show');
@@ -870,7 +886,10 @@ if (addNumberBtn) {
   addNumberBtn.addEventListener("click", function(e) {
     e.stopPropagation();
     createInput("数字：", "数字を入力", true);
-    // ドロップダウンを閉じる
+    // ドロップダウンを閉じる前にフォーカスを移動
+    const slideArea = document.getElementById('slideArea');
+    if (slideArea) slideArea.focus();
+    
     const formDropdown = document.getElementById('formDropdown');
     if (formDropdown) {
       formDropdown.classList.remove('show');
@@ -884,7 +903,10 @@ if (addDatetimeBtn) {
   addDatetimeBtn.addEventListener("click", function(e) {
     e.stopPropagation();
     createDatetimeInput();
-    // ドロップダウンを閉じる
+    // ドロップダウンを閉じる前にフォーカスを移動
+    const slideArea = document.getElementById('slideArea');
+    if (slideArea) slideArea.focus();
+    
     const formDropdown = document.getElementById('formDropdown');
     if (formDropdown) {
       formDropdown.classList.remove('show');
@@ -898,7 +920,10 @@ if (addTextBoxBtn) {
   addTextBoxBtn.addEventListener("click", function(e) {
     e.stopPropagation();
     createTextBox();
-    // ドロップダウンを閉じる
+    // ドロップダウンを閉じる前にフォーカスを移動
+    const slideArea = document.getElementById('slideArea');
+    if (slideArea) slideArea.focus();
+    
     const formDropdown = document.getElementById('formDropdown');
     if (formDropdown) {
       formDropdown.classList.remove('show');

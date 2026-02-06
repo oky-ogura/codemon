@@ -11,8 +11,21 @@
 
 {% block extra_css %}
 <style>
+/* --- スクロール防止 --- */
+body {
+    overflow: hidden !important;
+    height: 100vh !important;
+}
+.content-wrapper {
+    overflow: hidden !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 100vh !important;
+    padding: 80px 20px 20px 20px !important;
+}
+
 /* --- 全体レイアウト --- */
-.content-wrapper { padding-top: 100px !important; }
 .checklist-list-container {
     max-width: 1000px; width: 92vw; margin: 0 auto; padding: 25px;
     background-color: rgba(255, 255, 255, 0.98); border-radius: 30px; border: 8px solid #ffffff;

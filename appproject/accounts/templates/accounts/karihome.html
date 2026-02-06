@@ -7,6 +7,7 @@
     {% load static %}
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'codemon/css/tutorial_overlay.css' %}">
     
     <style>
         :root {
@@ -442,6 +443,99 @@
                     }
                 }
             });
+        }
+    </script>
+
+    <!-- チュートリアルスクリプト -->
+    <script src="{% static 'codemon/js/tutorial_overlay.js' %}"></script>
+    <script>
+        // ========================================
+        // STEP1チュートリアル: メイン画面 → システム選択
+        // ========================================
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初回ログインまたは手動起動の判定
+            const startTutorial = {{ start_tutorial|default:'false'|lower }};
+            
+            console.log('DEBUG: start_tutorial =', startTutorial, 'type:', typeof startTutorial);
+            
+            if (startTutorial) {
+                console.log('チュートリアルを開始します');
+                // 少し遅延させてからチュートリアルを開始（画面読み込み完了を待つ）
+                setTimeout(function() {
+                    startStep1Tutorial();
+                }, 500);
+            } else {
+                console.log('チュートリアルはスキップされます');
+            }
+        });
+
+        function startStep1Tutorial() {
+            const steps = [
+                {
+                    target: null,  // ターゲットなし = 画面中央に大きく表示
+                    message: 'Codemonへようこそ！✨<br>はじめに、つかいかたをせつめいするね！',
+                    requireClick: false,
+                    showSkip: true,
+                    centerMessage: true  // 画面中央表示フラグ
+                },
+                {
+                    target: '.character-img',
+                    message: 'わたしは、きみのなかまだよ！<br>いつでもいっしょにがんばろうね！😊',
+                    requireClick: false,
+                    showSkip: true
+                },
+                {
+                    target: '.panel-system',
+                    message: 'さいしょに、「システム」をつくってみよう！<br>したの<strong>システムボタン</strong>をおしてね！💻',
+                    requireClick: true,
+                    showSkip: true,
+                    onClick: function() {
+                        // システムボタンがクリックされた後、次の画面でチュートリアルを続けるフラグをセット
+                        sessionStorage.setItem('tutorial_step1_continue', 'true');
+                    }
+                }
+            ];
+
+            tutorialOverlay.init(steps, {
+                onComplete: function() {
+                    console.log('STEP1チュートリアル完了');
+                },
+                onSkip: function() {
+                    // スキップ時はSTEP1を完了扱いにする
+                    fetch('/accounts/skip-tutorial-step/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({ step: 1 })
+                    });
+                }
+            });
+        }
+
+        // CSRFトークン取得用のヘルパー関数
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // チュートリアルを手動で開始する関数（ボタンから呼び出し用）
+        function startTutorialManually(stepNumber) {
+            if (stepNumber === 1) {
+                startStep1Tutorial();
+            }
+            // 将来的にSTEP2, STEP3も追加予定
         }
     </script>
 

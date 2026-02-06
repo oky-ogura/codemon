@@ -9,98 +9,277 @@
 {% endblock %}
 
 {% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
 <style>
-/* --- 全体レイアウト --- */
-.content-wrapper { 
-    padding-top: 140px !important; 
+  :root {
+    --bg-main: #f0f4f8;
+    --panel-bg: rgba(255, 255, 255, 0.95);
+    --accent-main: #3fbcd9;    /* シアン */
+    --btn-pop: #FFD200;       /* イエロー */
+    --btn-shadow: #e6bd00;
+    --btn-cyan-shadow: #2c8a9e;
+    --error-pop: #ff7675;     /* ピンク */
+    --text-dark: #2d3748;
+    --text-gray: #718096;
+  }
+
+  body {
+    background-color: var(--bg-main);
+    font-family: "M PLUS Rounded 1c", sans-serif;
+    height: 100vh !important;
+    overflow: hidden !important;
+  }
+
+  .content-wrapper {
+    overflow: hidden !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 100vh !important;
+    padding: 0 !important;
+  }
+
+  /* メインレイアウト */
+  main {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    box-sizing: border-box;
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 80vh;
-}
+  }
 
-/* 完了カードコンテナ */
-.deleted-finish-container {
-    max-width: 500px; width: 90vw; padding: 50px 30px;
-    background-color: white; border-radius: 50px; 
-    border: 10px solid #ffffff; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+  /* 完了パネル */
+  .complete-panel {
+    background: var(--panel-bg);
+    border: 6px solid var(--accent-main);
+    border-radius: 30px;
+    width: 100%;
+    /* コンテンツ量に応じて伸縮 */
+    min-height: 400px; 
+    box-shadow: 0 15px 0 rgba(63, 188, 217, 0.2), 0 10px 30px rgba(0,0,0,0.1);
+    display: flex;
+    overflow: hidden;
+    animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  @keyframes bounceIn {
+    0% { transform: scale(0.3); opacity: 0; }
+    50% { transform: scale(1.05); opacity: 1; }
+    70% { transform: scale(0.9); }
+    100% { transform: scale(1); }
+  }
+
+  /* --- 左側：ビジュアルエリア --- */
+  .left-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-right: 3px dashed #e2e8f0;
+    padding: 30px;
+    background: #e0f7fa; /* 薄いシアン */
     text-align: center;
+  }
+
+  /* アイコンエリア */
+  .icon-wrapper {
+    width: 120px;
+    height: 120px;
+    background: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 5px solid var(--error-pop); /* 削除色 */
+    box-shadow: 0 8px 0 rgba(255, 118, 117, 0.2);
+    margin-bottom: 20px;
     position: relative;
-    /* 登場アニメーション */
-    animation: slideUpPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
+  }
 
-@keyframes slideUpPop {
-    from { opacity: 0; transform: translateY(50px) scale(0.9); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-}
+  .main-icon {
+    font-size: 50px;
+    color: var(--error-pop);
+    animation: trashAnim 0.5s ease-in-out;
+  }
 
-/* 完了アイコン（ステッカー風） */
-.finish-icon {
-    width: 140px; height: 140px;
-    background: #e1f7fa; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 30px;
-    font-size: 60px;
-    border: 6px solid #3fbcd9;
-    box-shadow: 0 10px 0 #3fbcd9;
-}
+  @keyframes trashAnim {
+    0% { transform: rotate(0deg) scale(1); }
+    25% { transform: rotate(-15deg) scale(1.1); }
+    50% { transform: rotate(15deg) scale(1.1); }
+    75% { transform: rotate(-5deg) scale(1.1); }
+    100% { transform: rotate(0deg) scale(1); }
+  }
 
-/* バッジスタイル */
-.finish-badge {
-    background: #3fbcd9; color: white; padding: 6px 20px; 
-    border-radius: 50px; font-weight: 900; font-size: 16px;
-    display: inline-block; margin-bottom: 15px;
-}
+  .title-text {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--accent-main);
+    margin: 0 0 10px 0;
+    line-height: 1.4;
+  }
 
-/* 削除された情報 */
-.deleted-info-box {
-    background: #f8fafc; border-radius: 30px;
-    padding: 20px; margin: 25px 0;
-    border: 3px dashed #cbd5e0;
-}
-.deleted-name-text {
-    font-size: 24px; font-weight: 900; color: #2d3748;
+  .sub-text {
+    font-size: 14px;
+    color: var(--text-gray);
+    font-weight: 700;
+  }
+
+  /* --- 右側：情報＆アクションエリア --- */
+  .right-section {
+    flex: 1.2;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 30px 40px;
+    text-align: center;
+  }
+
+  /* 情報表示カード */
+  .info-card {
+    background: #fff;
+    border: 3px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 20px;
+    width: 100%;
+    margin-bottom: 30px;
+    box-shadow: 0 5px 0 #edf2f7;
+    box-sizing: border-box;
+  }
+
+  .deleted-label {
+    font-size: 13px;
+    color: var(--text-gray);
+    font-weight: 700;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .deleted-name {
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--text-dark);
+    margin-bottom: 12px;
     word-break: break-all;
-}
-.deleted-count-tag {
-    color: #ff7675; font-weight: 900; font-size: 1.2em;
-}
+    line-height: 1.4;
+  }
 
-/* ボタン（他画面と統一） */
-.btn-pop {
-    display: inline-flex; align-items: center; gap: 10px;
-    padding: 18px 40px; border-radius: 50px; 
-    font-weight: 900; font-size: 18px; text-decoration: none;
-    background: #3fbcd9; color: white;
-    box-shadow: 0 8px 0 #2a8eab;
-    transition: all 0.2s;
-    border: none; cursor: pointer;
-}
-.btn-pop:hover { transform: translateY(-3px); box-shadow: 0 11px 0 #2a8eab; }
-.btn-pop:active { transform: translateY(5px); box-shadow: none; }
+  .deleted-count {
+    display: inline-block;
+    background: #ffebee; /* 薄いピンク */
+    color: var(--error-pop);
+    padding: 6px 15px;
+    border-radius: 20px;
+    font-weight: 800;
+    font-size: 14px;
+  }
+
+  /* ボタン */
+  .action-grid {
+    display: flex;
+    gap: 15px;
+    width: 100%;
+  }
+
+  .action-btn {
+    border: none;
+    padding: 15px;
+    border-radius: 50px;
+    font-weight: 800;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.1s;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex: 1;
+    text-decoration: none;
+  }
+
+  /* 黄色ボタン（一覧へ戻る） */
+  .btn-yellow {
+    background: var(--btn-pop);
+    color: #5d4037;
+    box-shadow: 0 5px 0 var(--btn-shadow);
+  }
+  .btn-yellow:hover {
+    transform: translateY(2px);
+    box-shadow: 0 3px 0 var(--btn-shadow);
+    background: #ffe033;
+  }
+  .btn-yellow:active { transform: translateY(5px); box-shadow: none; }
+
+  /* 青ボタン（メインへ戻る） */
+  .btn-cyan {
+    background: var(--accent-main);
+    color: white;
+    box-shadow: 0 5px 0 var(--btn-cyan-shadow);
+  }
+  .btn-cyan:hover {
+    transform: translateY(2px);
+    box-shadow: 0 3px 0 var(--btn-cyan-shadow);
+    filter: brightness(1.1);
+  }
+  .btn-cyan:active { transform: translateY(5px); box-shadow: none; }
+
+  /* スマホ対応 */
+  @media (max-width: 700px) {
+    .complete-panel { flex-direction: column; min-height: auto; }
+    .left-section { padding: 30px 20px; border-right: none; border-bottom: 3px dashed #e2e8f0; }
+    .right-section { padding: 30px 20px; }
+    .action-grid { flex-direction: column; }
+  }
 
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="deleted-finish-container">
-    <div class="finish-icon">
-        ✨
-    </div>
-
-    <span class="finish-badge">さくじょ完了！</span>
+<main>
+  
+  <div class="complete-panel" role="region" aria-label="削除完了">
     
-    <div class="deleted-info-box">
-        <p style="color: #718096; font-weight: 800; margin-bottom: 10px;">きれいに整理できました</p>
-        <div class="deleted-name-text">「{{ deleted_name }}」</div>
-        <p style="margin-top: 10px; color: #4a5568; font-weight: 700;">
-            合計 <span class="deleted-count-tag">{{ deleted_items_count }}個</span> の項目を削除しました
-        </p>
+    <div class="left-section">
+      <div class="icon-wrapper">
+        <i class="fas fa-trash-alt main-icon"></i>
+      </div>
+      <h1 class="title-text">さくじょ しました！</h1>
+      <p class="sub-text">リストを かたづけて<br>スッキリしたね！</p>
     </div>
 
-    <a href="{% url 'codemon:checklist_list' %}" class="btn-pop">
-        <span>📋 一覧へもどる</span>
-    </a>
-</div>
+    <div class="right-section">
+      
+      <div class="info-card">
+        <span class="deleted-label">けしたリスト</span>
+        <div class="deleted-name">「{{ deleted_name }}」</div>
+        <div>
+          <span class="deleted-count">
+            <i class="fas fa-tasks"></i> {{ deleted_items_count }}この項目
+          </span>
+          <span style="font-size:12px; font-weight:700; color:#718096; margin-left:5px;">をけしました</span>
+        </div>
+      </div>
+
+      <div class="action-grid">
+        <a href="{% url 'codemon:checklist_list' %}" class="action-btn btn-yellow">
+          <i class="fas fa-list-ul"></i> リストいちらんへ
+        </a>
+        
+        <a href="{% url 'accounts:karihome' %}" class="action-btn btn-cyan">
+          <i class="fas fa-home"></i> メインがめんへ
+        </a>
+      </div>
+
+    </div>
+
+  </div>
+
+</main>
 {% endblock %}

@@ -335,22 +335,58 @@ const colorOptions = [
 // ========================================
 // 保存ボタン
 // ========================================
-const saveBtn = document.getElementById('saveBtn');
-console.log('🔍 保存ボタン要素:', saveBtn);
-console.log('🔍 collectCurrentElements関数:', typeof collectCurrentElements);
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('🔍 DOMContentLoaded: 保存ボタンのイベントリスナーを設定します');
+  
+  const saveBtn = document.getElementById('saveBtn');
+  console.log('🔍 保存ボタン要素:', saveBtn);
 
-if (saveBtn) {
-  saveBtn.addEventListener('click', function(e){
-    e.preventDefault();
-    console.log('💾 保存ボタンがクリックされました');
+  if (saveBtn) {
+    console.log('✅ 保存ボタンが見つかりました。イベントリスナーを追加します。');
+    console.log('🔍 保存ボタンのHTML:', saveBtn.outerHTML.substring(0, 100));
+    console.log('🔍 保存ボタンの親要素:', saveBtn.parentElement);
+    
+    saveBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      console.log('💾 💾 💾 保存ボタンがクリックされました！ 💾 💾 💾');
+      console.log('🎯 イベント詳細:', e);
+      console.log('🎯 イベントターゲット:', e.target);
+    
+    // collectCurrentElements関数のチェックをここで行う
+    if (typeof collectCurrentElements !== 'function') {
+      console.error('❌ collectCurrentElements関数が見つかりません');
+      alert('保存機能の読み込みに失敗しました。ページをリロードしてください。');
+      return;
+    }
+    
+    console.log('✅ collectCurrentElements関数が存在します');
     
     const slide = document.getElementById('slideArea');
+    if (!slide) {
+      console.error('❌ slideAreaが見つかりません');
+      return;
+    }
+    
+    console.log('✅ slideArea要素が見つかりました');
+    console.log('📋 slideArea内のHTML:', slide.innerHTML.substring(0, 500));
+    
     if (slide) {
       try {
+        console.log('🔧 collectCurrentElements()を実行します...');
         const elementsData = collectCurrentElements();
         console.log('📦 収集したデータ:', elementsData);
+        console.log('📊 収集した要素数:', elementsData.length);
         
-        sessionStorage.setItem('systemDesignContent', JSON.stringify(elementsData));
+        if (elementsData.length === 0) {
+          console.warn('⚠️ 警告: 収集した要素が0個です！');
+          console.log('🔍 slideArea内の子要素数:', slide.children.length);
+          console.log('🔍 slideArea内の子要素:', Array.from(slide.children).map(c => c.className));
+        }
+        
+        const jsonString = JSON.stringify(elementsData);
+        console.log('💾 sessionStorageに保存するデータ:', jsonString.substring(0, 200));
+        
+        sessionStorage.setItem('systemDesignContent', jsonString);
         sessionStorage.setItem('navigatingToCreate', 'true');
         
         if (existingSystemData.systemId) {
@@ -377,9 +413,10 @@ if (saveBtn) {
       console.error('❌ slideAreaが見つかりません');
     }
   });
-} else {
-  console.error('❌ 保存ボタンが見つかりません');
-}
+  } else {
+    console.error('❌ 保存ボタンが見つかりません');
+  }
+});
 
 // ========================================
 // 実行ボタン

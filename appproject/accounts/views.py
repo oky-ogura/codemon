@@ -27,6 +27,7 @@ from django.contrib.auth.hashers import check_password, make_password
 from django.conf import settings
 from django import forms
 from django.http import HttpResponseRedirect, HttpResponseForbidden, FileResponse, JsonResponse
+from django.views.decorators.http import require_http_methods
 from .forms import TeacherSignupForm, StudentSignupForm, ProfileEditForm
 
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -252,6 +253,7 @@ def teacher_login(request):
             request.session['account_user_name'] = account_row[1]
             request.session['account_type'] = account_row[4]  # account_typeを追加
             request.session.modified = True
+            
             # ログイン成功 → karihome へリダイレクト（URL を更新して PRG パターンに従う）
             return redirect('accounts:karihome')
         else:
@@ -445,6 +447,10 @@ def karihome(request):
     if acc and acc.account_type == 'teacher':
         is_teacher = True
     
+    # チュートリアル起動フラグを取得
+    start_tutorial = request.session.pop('start_tutorial', False)
+    print(f"DEBUG karihome: start_tutorial = {start_tutorial}, type = {type(start_tutorial)}")
+    
     return render(request, 'accounts/karihome.html', {
         'ai_name': ai_name,
         'character': character,
@@ -453,6 +459,7 @@ def karihome(request):
         'user_coin': user_coin,
         'upcoming_checklists': upcoming_checklists,
         'is_teacher': is_teacher,
+        'start_tutorial': start_tutorial,
     })
 
 
@@ -633,6 +640,26 @@ def ai_initial_save(request):
         except Exception:
             acc = None
 
+    # TutorialProgress作成（学生の場合のみ）
+    if acc and getattr(acc, 'account_type', '').lower() == 'student':
+        try:
+            from codemon.models import TutorialProgress
+            tutorial_progress, created = TutorialProgress.objects.get_or_create(user=acc)
+            
+            print(f"DEBUG ai_initial_save: TutorialProgress取得 created={created}, has_logged_in={tutorial_progress.has_logged_in}")
+            
+            # 初回の場合、チュートリアル開始フラグをセット
+            if not tutorial_progress.has_logged_in:
+                request.session['start_tutorial'] = True
+                tutorial_progress.has_logged_in = True
+                tutorial_progress.save()
+                print(f"DEBUG ai_initial_save: session['start_tutorial'] = True を設定しました")
+            else:
+                print(f"DEBUG ai_initial_save: 既にログイン済みのため、チュートリアルはスキップ")
+        except Exception as e:
+            print(f"DEBUG ai_initial_save: TutorialProgress作成エラー: {e}")
+            pass
+    
     # ✅ リダイレクトに変更
     try:
         if acc and getattr(acc, 'account_type', '').lower() == 'student':
@@ -2952,3 +2979,79 @@ def group_remove_member(request, group_id, member_id):
     except GroupMember.DoesNotExist:
         messages.error(request, '指定されたメンバーが見つかりません')
         return redirect('accounts:group_menu', group_id=group_id)
+
+
+# ============================================
+# チュートリアル関連API
+# ============================================
+
+@require_http_methods(["POST"])
+def mark_tutorial_step(request):
+    """
+    チュートリアルの中間ステップをマークする（完了はしない）
+    例: karihomeからsystem_choiceへの遷移を記録
+    """
+    try:
+        data = json.loads(request.body)
+        step = data.get('step')
+        
+        # セッションに記録（後続処理で使用可能）
+        request.session[f'tutorial_{step}'] = True
+        
+        return JsonResponse({'status': 'success', 'step': step})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+@require_http_methods(["POST"])
+def skip_tutorial_step(request):
+    """
+    チュートリアルをスキップする（そのステップを完了扱いにする）
+    """
+    try:
+        from codemon.models import TutorialProgress
+        
+        data = json.loads(request.body)
+        step = data.get('step')  # 1, 2, 3
+        
+        # ログインユーザーのTutorialProgressを取得
+        account = get_logged_account(request)
+        if not account:
+            return JsonResponse({'status': 'error', 'message': 'ログインが必要です'}, status=401)
+        
+        # TutorialProgressを取得または作成
+        progress, created = TutorialProgress.objects.get_or_create(user=account)
+        
+        # ステップを完了としてマーク
+        progress.mark_step_completed(step)
+        
+        return JsonResponse({'status': 'success', 'step': step, 'skipped': True})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+@require_http_methods(["POST"])
+def complete_tutorial_step(request):
+    """
+    チュートリアルのステップを完了する
+    """
+    try:
+        from codemon.models import TutorialProgress
+        
+        data = json.loads(request.body)
+        step = data.get('step')  # 1, 2, 3
+        
+        # ログインユーザーのTutorialProgressを取得
+        account = get_logged_account(request)
+        if not account:
+            return JsonResponse({'status': 'error', 'message': 'ログインが必要です'}, status=401)
+        
+        # TutorialProgressを取得または作成
+        progress, created = TutorialProgress.objects.get_or_create(user=account)
+        
+        # ステップを完了としてマーク
+        progress.mark_step_completed(step)
+        
+        return JsonResponse({'status': 'success', 'step': step, 'completed': True})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)

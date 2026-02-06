@@ -99,4 +99,4 @@ celerybeat-schedule
 # mypy
 .mypy_cache/
 .dmypy.json
-dmypy.json
+dmypy.jsonnul

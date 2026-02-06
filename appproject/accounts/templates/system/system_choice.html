@@ -11,6 +11,7 @@
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="{% static 'codemon/css/tutorial_overlay.css' %}">
 
 <style>
   :root {
@@ -28,16 +29,17 @@
     background-color: var(--bg-main);
     font-family: "M PLUS Rounded 1c", sans-serif;
     margin: 0;
-    overflow-x: hidden;
+    height: 100vh !important;
+    overflow: hidden !important;
   }
 
-  /* --- レイアウト構造 --- */
   .content-wrapper {
+    overflow: hidden !important;
     padding: 0 !important;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 100vh !important;
     width: 100%;
   }
 
@@ -280,7 +282,10 @@
     main {
       flex-direction: column; /* 縦並びに */
       align-items: center;
+<<<<<<< HEAD
+=======
 
+>>>>>>> main
     }
     .side-panel {
       flex: none;
@@ -290,7 +295,10 @@
     }
     .status-card {
       transform: none; /* 傾き解除 */
+<<<<<<< HEAD
+=======
 
+>>>>>>> main
       flex: 1;
     }
     .hint-card {
@@ -332,7 +340,10 @@
 {% block content %}
 <main>
 
+<<<<<<< HEAD
+=======
 
+>>>>>>> main
   <aside class="side-panel">
     <div class="status-card">
       <div class="user-info">
@@ -347,7 +358,10 @@
           <span>つくった数: {{ total_systems }}</span>
         </li>
       </ul>
+<<<<<<< HEAD
+=======
 
+>>>>>>> main
     </div>
 
     <div class="hint-card">
@@ -416,20 +430,116 @@
       const btn = document.getElementById(id);
       if(btn) btn.addEventListener('click', (e) => {
         e.preventDefault();
+        
+        // つかいかたボタンの場合はsessionStorageを設定
+        if (btn.id === 'btn-tutorial') {
+          console.log('🔧 つかいかたボタンクリック - sessionStorage設定');
+          sessionStorage.setItem('tutorial_step2_start', 'true');
+        }
+        
         window.location.href = url;
       });
     };
 
     setLink('btn-new', '/accounts/system/');
     setLink('btn-list', '/accounts/system/list/');
-    setLink('btn-tutorial', '/accounts/system/tutorial/');
+    setLink('btn-tutorial', '/accounts/system/');
     setLink('btn-roulette-topics', '/accounts/system/roulette-topics/');
 
   });
+</script>
+
+<!-- チュートリアルスクリプト -->
+<script src="{% static 'codemon/js/tutorial_overlay.js' %}"></script>
+<script>
+  // ========================================
+  // STEP1チュートリアルの続き: システム選択画面
+  // ========================================
+  document.addEventListener('DOMContentLoaded', function() {
+    // セッションからチュートリアル起動フラグを確認
+    const fromTutorial = sessionStorage.getItem('tutorial_step1_continue');
+    
+    if (fromTutorial === 'true') {
+      // フラグをクリア
+      sessionStorage.removeItem('tutorial_step1_continue');
+      
+      // 少し遅延させてからチュートリアルを開始
+      setTimeout(function() {
+        continueStep1Tutorial();
+      }, 500);
+    }
+  });
+
+  function continueStep1Tutorial() {
+    const steps = [
+      {
+        target: 'main',
+        message: 'よくできたね！✨<br>ここが「システムせんたく」がめんだよ！',
+        requireClick: false,
+        showSkip: true
+      },
+      {
+        target: '#btn-tutorial',
+        message: 'システムのつかいかたをまなぶには、<br>この<strong>「つかいかた」ボタン</strong>をおしてね！📚',
+        requireClick: true,
+        showSkip: true,
+        onClick: function() {
+          // つかいかたボタンクリック時にSTEP1を完了としてマーク
+          fetch('/accounts/complete-tutorial-step/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ step: 1 })
+          }).then(() => {
+            // STEP2のチュートリアルページへ遷移するフラグをセット
+            sessionStorage.setItem('tutorial_step2_start', 'true');
+          });
+        }
+      }
+    ];
+
+    tutorialOverlay.init(steps, {
+      onComplete: function() {
+        console.log('STEP1チュートリアル（システム選択画面部分）完了');
+      },
+      onSkip: function() {
+        // スキップ時はSTEP1を完了扱いにする
+        fetch('/accounts/skip-tutorial-step/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ step: 1 })
+        });
+      }
+    });
+  }
+
+  // CSRFトークン取得用のヘルパー関数
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
 </script>
 {% endblock %}
 
 {% block ai_chat_widget %}
   {% include 'includes/ai_chat_base.html' %}
 {% endblock %}
+<<<<<<< HEAD
+=======
 
+>>>>>>> main

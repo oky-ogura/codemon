@@ -21,6 +21,20 @@
         --text-color: #4a5568;
     }
 
+    body {
+        height: 100vh !important;
+        overflow: hidden !important;
+    }
+
+    .content-wrapper {
+        overflow: hidden !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        min-height: 100vh !important;
+        padding: 0 !important;
+    }
+
     /* ナビゲーションを非表示 */
     .top-tabs {
         display: none !important;
@@ -208,7 +222,7 @@
         </div>
         {% endif %}
 
-        <form method="post" class="login-form">
+        <form method="post" class="login-form" id="loginForm">
             {% csrf_token %}
             <div class="form-group">
                 <label class="form-label" for="id_username">ユーザー名</label>
@@ -217,7 +231,8 @@
             
             <div class="form-group">
                 <label class="form-label" for="id_password">パスワード</label>
-                <input type="password" class="form-input" name="password" id="id_password" placeholder="パスワードを入力" required>
+                <input type="text" class="form-input" id="id_password_display" placeholder="パスワードを入力" autocomplete="off">
+                <input type="hidden" name="password" id="id_password">
             </div>
 
             <button type="submit" class="submit-btn">ログイン</button>
@@ -229,4 +244,39 @@
         </div>
     </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const displayField = document.getElementById('id_password_display');
+    const hiddenField = document.getElementById('id_password');
+    let actualPassword = '';
+
+    displayField.addEventListener('input', function(e) {
+      const currentValue = e.target.value;
+      const currentLength = currentValue.length;
+      const previousLength = actualPassword.length;
+
+      if (currentLength > previousLength) {
+        const addedChars = currentValue.substring(previousLength);
+        actualPassword += addedChars;
+      } else if (currentLength < previousLength) {
+        actualPassword = actualPassword.substring(0, currentLength);
+      }
+
+      if (actualPassword.length === 0) {
+        displayField.value = '';
+      } else if (actualPassword.length === 1) {
+        displayField.value = actualPassword;
+      } else {
+        displayField.value = '●'.repeat(actualPassword.length - 1) + actualPassword[actualPassword.length - 1];
+      }
+
+      hiddenField.value = actualPassword;
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', function() {
+      hiddenField.value = actualPassword;
+    });
+  });
+</script>
 {% endblock %}

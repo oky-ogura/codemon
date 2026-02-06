@@ -28,21 +28,30 @@
     background-color: var(--bg-main);
     font-family: "M PLUS Rounded 1c", sans-serif;
     margin: 0;
-    overflow-x: hidden;
+    height: 100vh !important;
+    overflow: hidden !important;
   }
 
+<<<<<<< HEAD
+=======
   /* --- レイアウト構造 --- */
+>>>>>>> main
   .content-wrapper {
+    overflow: hidden !important;
     padding: 0 !important;
+<<<<<<< HEAD
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 100vh !important;
+=======
     display: flex;
     align-items: center;
 
     justify-content: center;
     min-height: 100vh;
+>>>>>>> main
     width: 100%;
-    max-width: 700px;
-    padding-top: 100px;
-    margin: 0 auto;
   }
 
   main {
@@ -321,7 +330,10 @@
 {% endblock %}
 
 {% block content %}
+<<<<<<< HEAD
+=======
 
+>>>>>>> main
 <main>
 
   <aside class="side-panel">
@@ -374,5 +386,8 @@
 
 {% block ai_chat_widget %}
   {% include 'includes/ai_chat_base.html' %}
+<<<<<<< HEAD
+=======
 
+>>>>>>> main
 {% endblock %}
