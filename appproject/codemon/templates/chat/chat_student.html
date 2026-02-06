@@ -357,7 +357,7 @@ html {
       console.log('[DEBUG] addMessage called with:', { messageId, senderUserId, currentUserId, readCount, readBy });
       const messageEl = document.createElement('div');
       // 自分が送信したメッセージかどうかを判定（送信者IDが現在のIDと一致するか）
-      const isMyMessage = senderUserId === currentUserId;
+      const isMyMessage = String(senderUserId) === String(currentUserId);
       messageEl.className = `message ${isMyMessage ? 'sent' : 'received'}`;
       const time = formatTime(createdAt);
       const id = messageId || 'msg_' + new Date().getTime() + '_' + Math.random().toString(36).substr(2, 9);
@@ -377,10 +377,12 @@ html {
       const attachmentsHtml = (attachments && attachments.length)
         ? `<div class="message-attachments">
             ${attachments.map(att => {
+              const attachmentId = att.id || att.attachment_id || '';
+              const downloadUrl = att.download_url || (attachmentId ? `/codemon/chat/attachment/${attachmentId}/download/` : att.url);
               if (att.type === 'image') {
-                return `<div class="attachment-image"><img src="${att.url}" alt="${att.name || 'image'}" style="max-width: 220px; border-radius: 6px;" /></div>`;
+                return `<div class="attachment-image"><a href="${downloadUrl}" target="_blank" rel="noopener noreferrer"><img src="${att.url}" alt="${att.name || 'image'}" style="max-width: 220px; border-radius: 6px;" /></a></div>`;
               }
-              return `<div class="attachment-file"><a href="${att.url}" target="_blank" rel="noopener noreferrer" style="color: #1e90ff; text-decoration: underline;">📎 ${att.name || 'file'}</a></div>`;
+              return `<div class="attachment-file"><a href="${downloadUrl}" target="_blank" rel="noopener noreferrer" style="color: #1e90ff; text-decoration: underline;">📎 ${att.name || 'file'}</a></div>`;
             }).join('')}
           </div>`
         : '';
@@ -480,7 +482,7 @@ html {
             msg.read_count || 0,
             msg.read_by || []
           );
-          if (msg.sender_user_id !== currentUserId) {
+          if (String(msg.sender_user_id) !== String(currentUserId)) {
             unreadIds.push(msg.message_id);
           }
           lastMessageId = msg.message_id;
@@ -509,7 +511,7 @@ html {
             // 既に表示されているメッセージはスキップ
             if (lastMessageId && msg.message_id <= lastMessageId) {
               // 既読数が更新されている場合は更新
-              if (msg.read_by && msg.sender_user_id === currentUserId) {
+              if (msg.read_by && String(msg.sender_user_id) === String(currentUserId)) {
                 updateReadCount(msg.message_id, msg.read_by);
               }
               return;
@@ -528,7 +530,7 @@ html {
               msg.read_by || []
             );
             
-            if (msg.sender_user_id !== currentUserId) {
+            if (String(msg.sender_user_id) !== String(currentUserId)) {
               unreadIds.push(msg.message_id);
             }
             lastMessageId = msg.message_id;

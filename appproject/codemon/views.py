@@ -1019,8 +1019,10 @@ def upload_attachments(request):
         import mimetypes as _mimetypes
         for a, original in zip(attachments_created, upload_files):
             attachments_payload.append({
+                'id': a.attachment_id,
                 'attachment_id': a.attachment_id,
                 'url': a.file.url,
+                'download_url': reverse('codemon:download_attachment', args=[a.attachment_id]),
                 'filename': getattr(original, 'name', ''),
                 'mime_type': _mimetypes.guess_type(getattr(a.file, 'name', ''))[0]
             })
@@ -2175,6 +2177,7 @@ def group_chat_messages(request, group_id):
                     'id': att.attachment_id,
                     'name': att.file.name.split('/')[-1],  # ファイル名のみを取得
                     'url': att.file.url,
+                    'download_url': reverse('codemon:download_attachment', args=[att.attachment_id]),
                 }
                 # 画像ファイルの判定（拡張子で判定）
                 image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp')
@@ -2201,7 +2204,7 @@ def group_chat_messages(request, group_id):
                 'sender_avatar': msg.sender.avatar.url if msg.sender.avatar else None,
                 'content': msg.content,
                 'created_at': msg.created_at.isoformat(),
-                'read_count': msg.read_receipts.count(),
+                'read_count': len(read_by),  # 自分以外の既読者数
                 'read_by': read_by,
                 'attachments': attachments_data
             })
@@ -2280,6 +2283,7 @@ def thread_messages(request, thread_id):
                 'id': att.attachment_id,
                 'name': att.file.name.split('/')[-1],  # ファイル名のみを取得
                 'url': att.file.url,
+                'download_url': reverse('codemon:download_attachment', args=[att.attachment_id]),
             }
             # 画像ファイルの判定（拡張子で判定）
             image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp')

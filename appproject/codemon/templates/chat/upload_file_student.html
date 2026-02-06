@@ -213,6 +213,15 @@
     updateFileList();
   }
 
+  async function resolveThreadId(groupId) {
+    const res = await fetch(`/codemon/chat/group/${groupId}/thread/`);
+    if (!res.ok) {
+      throw new Error('thread fetch failed');
+    }
+    const data = await res.json();
+    return data.thread_id;
+  }
+
   // 投函処理
   document.querySelector('.btn-upload').addEventListener('click', async () => {
     const recipient = document.querySelector('#recipient-select').value;
@@ -234,9 +243,17 @@
       message: message
     });
 
+    let threadId;
+    try {
+      threadId = await resolveThreadId(recipient);
+    } catch (e) {
+      showAlert('宛先の取得に失敗しました', 'error');
+      return;
+    }
+
     // FormDataを作成して、複数ファイルをアップロード
     const formData = new FormData();
-    formData.append('thread_id', recipient);
+    formData.append('thread_id', threadId);
     selectedFiles.forEach((file) => {
       formData.append('files', file);
     });

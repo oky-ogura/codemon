@@ -323,7 +323,8 @@ html {
       console.log('[DEBUG] addMessage called with:', { messageId, senderUserId, currentUserId, readCount, readBy });
       const messageEl = document.createElement('div');
       // 自分が送信したメッセージかどうかを判定（送信者IDが現在のIDと一致するか）
-      const isMyMessage = senderUserId === currentUserId;
+      // 型を文字列に統一して比較
+      const isMyMessage = String(senderUserId) === String(currentUserId);
       messageEl.className = `message ${isMyMessage ? 'sent' : 'received'}`;
       const time = formatTime(createdAt);
       const id = messageId || 'msg_' + new Date().getTime() + '_' + Math.random().toString(36).substr(2, 9);
@@ -343,10 +344,12 @@ html {
       const attachmentsHtml = (attachments && attachments.length)
         ? `<div class="message-attachments">
             ${attachments.map(att => {
+              const attachmentId = att.id || att.attachment_id || '';
+              const downloadUrl = att.download_url || (attachmentId ? `/codemon/chat/attachment/${attachmentId}/download/` : att.url);
               if (att.type === 'image') {
-                return `<div class="attachment-image"><img src="${att.url}" alt="${att.name || 'image'}" class="attachment-image-img" style="max-width: 220px; border-radius: 6px;" /></div>`;
+                return `<div class="attachment-image"><a href="${downloadUrl}" target="_blank" rel="noopener noreferrer"><img src="${att.url}" alt="${att.name || 'image'}" class="attachment-image-img" style="max-width: 220px; border-radius: 6px;" /></a></div>`;
               }
-              return `<div class="attachment-file"><a href="${att.url}" target="_blank" rel="noopener noreferrer" class="message-link">📎 ${att.name || 'file'}</a></div>`;
+              return `<div class="attachment-file"><a href="${downloadUrl}" target="_blank" rel="noopener noreferrer" class="message-link">📎 ${att.name || 'file'}</a></div>`;
             }).join('')}
           </div>`
         : '';
@@ -355,12 +358,11 @@ html {
       let readLabel = '';
       if (isMyMessage) {
         console.log('[DEBUG] My message - readBy:', readBy, 'readCount:', readCount);
-        if (readBy && readBy.length > 0) {
-          readLabel = `既読 ${readBy.length}`;
-          console.log('[DEBUG] Using readBy.length:', readBy.length);
-        } else if (readCount > 0) {
-          readLabel = `既読 ${readCount}`;
-          console.log('[DEBUG] Using readCount:', readCount);
+        // readByが配列の場合はその長さを、そうでない場合はreadCountを使用
+        const readerCount = (readBy && Array.isArray(readBy)) ? readBy.length : (readCount || 0);
+        if (readerCount > 0) {
+          readLabel = `既読 ${readerCount}`;
+          console.log('[DEBUG] Using readerCount:', readerCount);
         }
         console.log('[DEBUG] Final readLabel:', readLabel);
       }
@@ -460,7 +462,8 @@ html {
             msg.read_count || 0,
             msg.read_by || []
           );
-          if (msg.sender_user_id !== currentUserId) {
+          // 型を文字列に統一して比較
+          if (String(msg.sender_user_id) !== String(currentUserId)) {
             unreadIds.push(msg.message_id);
           }
           lastMessageId = msg.message_id;
@@ -487,11 +490,11 @@ html {
         
         if (data.messages && data.messages.length > 0) {
           data.messages.forEach(msg => {
-            // 既に表示されているメッセージはスキップ
+            // 既に表示されているメッセージはスキップ（ただし既読数は更新）
             if (lastMessageId && msg.message_id <= lastMessageId) {
-              // 既読数が更新されている場合は更新
-              if (msg.read_by && msg.sender_user_id === currentUserId) {
-                updateReadCount(msg.message_id, msg.read_by);
+              // 既読数を常に更新（型を文字列に統一して比較）
+              if (String(msg.sender_user_id) === String(currentUserId)) {
+                updateReadCount(msg.message_id, msg.read_by || []);
               }
               return;
             }
@@ -509,7 +512,8 @@ html {
               msg.read_by || []
             );
             
-            if (msg.sender_user_id !== currentUserId) {
+            // 型を文字列に統一して比較
+            if (String(msg.sender_user_id) !== String(currentUserId)) {
               unreadIds.push(msg.message_id);
             }
             lastMessageId = msg.message_id;
