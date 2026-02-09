@@ -11,374 +11,513 @@
 {% block title %}アルゴリズム概要 - Codemon{% endblock %}
 
 {% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
 <style>
-  /* ナビゲーション表示状態の制御 */
-  .top-tabs {
-    display: block;
+  :root {
+    --bg-main: #f0f4f8;
+    --panel-bg: rgba(255, 255, 255, 0.95);
+    --accent-main: #9b59b6;    /* パープル */
+    --btn-pop: #FFD200;       /* イエロー */
+    --btn-shadow: #e6bd00;
+    --error-pop: #ff7675;     /* ピンク（エラー） */
+    --text-dark: #2d3748;
+    --input-bg: #f8fafc;
   }
 
-  main{ 
-    width:100%; 
-    max-width:980px; 
-    margin:100px auto 6px auto; 
-    box-sizing:border-box; 
+  html, body {
+    background-color: var(--bg-main);
+    font-family: "M PLUS Rounded 1c", sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    position: fixed;
+    width: 100%;
   }
 
-    /* フォーム周り */
-    .form-card {
-      background:#fff;
-      border-radius:10px;
-      padding:18px;
-      box-shadow:0 6px 18px rgba(10,10,10,0.04);
-      border:1px solid #eef2f6;
-      max-width:820px;
-      margin:18px auto;
-    }
-    .form-row { display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
-    label { font-weight:600; color:#223; font-size:14px; }
-    input[type="text"], textarea, input[type="date"] {
-      width:100%;
-      box-sizing:border-box;
-      padding:10px 12px;
-      border-radius:8px;
-      border:1px solid #d7dce1;
-      font-size:15px;
-      background:#fff;
-      color:#111;
-    }
-    textarea { 
-      height:100px; 
-      resize: none;
-      overflow-y: auto;
-    }
-    .controls { display:flex; gap:12px; justify-content:flex-end; margin-top:8px; }
-    .btn {
-      padding:10px 16px;
-      border-radius:8px;
-      border:0;
-      cursor:pointer;
-      font-weight:700;
-      font-size:14px;
-    }
-    .btn-primary {
-      background: linear-gradient(180deg,#e6f0ff,#cfe6ff);
-      color:#073763;
-      box-shadow:0 8px 18px rgba(10,59,110,0.06);
-    }
-    .btn-ghost {
-      background:transparent;
-      color:#444;
-      border:1px solid #e6e9ee;
-    }
-    .hint { font-size:13px; color:#666; margin-top:6px; }
-    .error { color:#b00020; font-size:13px; margin-top:6px; display:none; }
+  .content-wrapper {
+    height: 100vh;
+    overflow: hidden !important;
+    padding: 0 !important;
+  }
 
-    @media (max-width:640px){
-      .controls { flex-direction:column-reverse; align-items:stretch; }
+  /* メインエリア（画面中央配置・高さ固定） */
+  main {
+    width: 100%;
+    height: calc(100vh - 50px);
+    max-width: 1100px; 
+    margin: 0 auto;
+    padding: 50px 40px 0 40px; /* ヘッダー考慮 */
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+  }
+
+  /* 作成パネル */
+  .create-panel {
+    background: var(--panel-bg);
+    border: 6px solid var(--accent-main);
+    border-radius: 30px;
+    padding: 20px;
+    width: 100%;
+    height: calc(100vh - 90px);
+    max-height: calc(100vh - 90px);
+    box-shadow: 0 15px 0 rgba(155, 89, 182, 0.2), 0 10px 30px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; 
+  }
+
+  /* ヘッダーエリア */
+  .panel-header {
+    text-align: center;
+    border-bottom: 3px dashed #e2e8f0;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+    flex-shrink: 0;
+  }
+  
+  .panel-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--accent-main);
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* フォーム全体（左右分割） */
+  .panel-body {
+    display: flex;
+    gap: 30px;
+    flex: 1; /* 残りの高さを埋める */
+    overflow: hidden;
+    flex-direction: column; 
+  }
+
+  @media (min-width: 801px) {
+    .panel-body {
+      flex-direction: row; /* PCでは横並び */
     }
+  }
+
+  /* --- 左カラム（基本情報＋ボタン） --- */
+  .left-column {
+    flex: 0 0 350px; /* 幅固定 */
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* --- 右カラム（詳細説明） --- */
+  .right-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  /* フォームグループ */
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+  }
+
+  .form-label {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text-dark);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .form-label i {
+    color: var(--accent-main);
+    font-size: 18px;
+  }
+
+  .required-badge {
+    background: var(--error-pop);
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    vertical-align: middle;
+  }
+
+  /* 入力フィールド */
+  .input-field {
+    padding: 12px 15px;
+    border-radius: 15px;
+    border: 3px solid #cbd5e0;
+    background: var(--input-bg);
+    color: var(--text-dark);
+    font-size: 16px;
+    font-weight: 700;
+    font-family: inherit;
+    width: 100%;
+    box-sizing: border-box;
+    transition: all 0.2s;
+    outline: none;
+  }
+
+  .input-field:focus {
+    border-color: var(--accent-main);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(155, 89, 182, 0.2);
+  }
+
+  .input-field:read-only {
+    background: #edf2f7;
+    opacity: 0.8;
+    cursor: default;
+  }
+
+  /* テキストエリア */
+  .textarea-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  
+  textarea.input-field {
+    flex: 1; 
+    resize: none;
+    line-height: 1.6;
+    overflow-y: auto;
+    height: 100%;
+  }
+  
+  /* スクロールバー装飾 */
+  textarea.input-field::-webkit-scrollbar { width: 10px; }
+  textarea.input-field::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 5px; }
+  textarea.input-field::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 5px; }
+
+  /* ヒントとエラー */
+  .hint-text {
+    font-size: 12px;
+    color: #718096;
+    margin-left: 5px;
+  }
+  
+  .error-message {
+    color: var(--error-pop);
+    font-size: 12px;
+    font-weight: 700;
+    margin-top: 4px;
+    display: none;
+    animation: shake 0.3s;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+
+  /* --- アクションボタンエリア --- */
+  .action-area {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 3px dashed #e2e8f0;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+  }
+
+  .action-btn {
+    border: none;
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-weight: 800;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.1s;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 120px;
+  }
+
+  /* 保存ボタン */
+  .btn-save {
+    background: var(--btn-pop); color: #5d4037; box-shadow: 0 4px 0 var(--btn-shadow);
+  }
+  .btn-save:hover { transform: translateY(2px); box-shadow: 0 2px 0 var(--btn-shadow); background: #ffe033; }
+  .btn-save:active { transform: translateY(4px); box-shadow: none; }
+
+  /* 戻るボタン */
+  .btn-cancel {
+    background: #fff; color: var(--text-dark); border: 2px solid #e2e8f0; box-shadow: 0 4px 0 #cbd5e0;
+  }
+  .btn-cancel:hover { transform: translateY(2px); box-shadow: 0 2px 0 #cbd5e0; background: #f7fafc; }
+  .btn-cancel:active { transform: translateY(4px); box-shadow: none; }
+
+  /* スマホ対応 */
+  @media (max-width: 800px) {
+    body, main { height: auto; overflow: auto; }
+    main { padding: 100px 20px 40px 20px; display: block; }
+    .create-panel { height: auto; padding: 20px; }
+    .panel-body { flex-direction: column; gap: 20px; }
+    .left-column { flex: none; width: 100%; }
+    .right-column { flex: none; height: 300px; margin-top: 10px; }
+    .action-area { margin-top: 20px; }
+  }
+
 </style>
+
+<script>
+  window.isDirty = false;
+  window.isNavigating = false;
+</script>
 {% endblock %}
 
 {% block content %}
-  <main class="page-wrap" role="main">
+<main>
+  
+  <form method="post" action="{% url 'accounts:block_create' %}" class="create-panel" aria-labelledby="formTitle">
+    {% csrf_token %}
+    
+    <div id="formTitle" style="display:none">アルゴリズム作成フォーム</div>
+    <input type="hidden" id="algorithmId" name="algorithm_id" value="{{ algorithm_id|default:'' }}" />
+    <input type="hidden" id="blocklyXml" name="blockly_xml" value="" />
 
-    <div class="form-card" aria-labelledby="formTitle" role="form">
-      <div id="formTitle" style="display:none">アルゴリズム作成フォーム</div>
-
-      <form method="post" id="algorithmForm">
-        {% csrf_token %}
-        <input type="hidden" id="algorithmId" name="algorithm_id" value="" />
-        <input type="hidden" id="blocklyXml" name="blockly_xml" value="" />
-        
-        <div class="form-row">
-          <label for="blockName">アルゴリズム名 <span aria-hidden="true">※</span></label>
-          <input id="blockName" name="algorithm_name" type="text" placeholder="例:条件判定" maxlength="20" required aria-required="true" value="{{ algorithm_name|default:'' }}" />
-          <div class="hint" id="nameHint">必須（最大20文字）</div>
-          <div class="error" id="nameError">このフィールドに入力してください</div>
-        </div>
-
-        <div class="form-row">
-          <label for="blockDetail">アルゴリズムの詳細 <span aria-hidden="true">※</span></label>
-          <textarea id="blockDetail" name="algorithm_description" placeholder="アルゴリズムの概要、要件などを入力してください。" required aria-required="true">{{ algorithm_description|default:'' }}</textarea>
-          <div class="hint" id="detailHint">必須（改行可）</div>
-          <div class="error" id="detailError">このフィールドに入力してください</div>
-        </div>
-
-        <div class="form-row">
-          <label for="createdAt">作成日（自動入力のため編集不可）</label>
-          <input id="createdAt" type="date" readonly />
-          <div class="hint" id="createdAtHint">今日の日付が自動入力</div>
-        </div>
-
-        <div class="controls">
-          <button class="btn btn-ghost" id="cancelBtn" type="button">戻る</button>
-          <button class="btn btn-primary" id="saveBtn" type="submit">保存</button>
-        </div>
-      </form>
+    <div class="panel-header">
+      <h1 class="panel-title">
+        <i class="fas fa-code"></i> アルゴリズムをつくろう
+      </h1>
     </div>
-  </main>
+
+    <!-- Djangoメッセージ表示エリア（エラーのみ表示） -->
+    {% if messages %}
+    <div class="messages-area" style="margin-bottom: 15px;">
+      {% for message in messages %}
+      {% if message.tags == 'error' %}
+      <div class="alert alert-{{ message.tags }}" style="
+        padding: 12px 15px;
+        background: #ff7675;
+        color: white;
+        border-radius: 15px;
+        margin-bottom: 8px;
+        font-weight: 700;
+        text-align: center;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+      ">
+        <i class="fas fa-exclamation-circle"></i>
+        {{ message }}
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="panel-body">
+      
+      <div class="left-column">
+        
+        <div class="form-group">
+          <label class="form-label" for="blockName">
+            <i class="fas fa-cube"></i> アルゴリズムのなまえ <span class="required-badge">必須</span>
+          </label>
+          <input id="blockName" name="algorithm_name" class="input-field" type="text" placeholder="例:じょうけんはんてい" maxlength="20" required value="{{ algorithm_name|default:'' }}" />
+          <div class="hint-text">20もじ まで</div>
+          <div class="error-message" id="nameError">なまえを いれてね！</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="createdAt">
+            <i class="far fa-calendar-alt"></i> 作る日
+          </label>
+          <input id="createdAt" name="created_at" class="input-field" type="date" readonly />
+          <div class="hint-text">きょうの ひづけだよ</div>
+        </div>
+
+        <div class="action-area">
+          <button class="action-btn btn-save" id="saveBtn" type="submit">
+            <i class="fas fa-save"></i> ほぞんする
+          </button>
+          
+          <button class="action-btn btn-cancel" id="cancelBtn" type="button">
+            <i class="fas fa-reply"></i> やめる
+          </button>
+        </div>
+
+      </div>
+
+      <div class="right-column">
+        <div class="form-group textarea-wrapper">
+          <label class="form-label" for="blockDetail">
+            <i class="fas fa-align-left"></i> どんなアルゴリズム？ <span class="required-badge">必須</span>
+          </label>
+          <textarea id="blockDetail" name="algorithm_description" class="input-field" placeholder="なにをするアルゴリズムか、くわしく かいてみよう！" required>{{ algorithm_description|default:'' }}</textarea>
+          <div class="error-message" id="detailError">せつめいを かいてね！</div>
+        </div>
+      </div>
+
+    </div>
+
+  </form>
+
+</main>
+
+<script>
+  // カスタム確認ダイアログ
+  function customConfirm(message, options = {}) {
+    return new Promise((resolve) => {
+      if (confirm(message)) resolve(true);
+      else resolve(false);
+    });
+  }
+
+  const nameInput = document.getElementById('blockName');
+  const detailInput = document.getElementById('blockDetail');
+  const createdAtInput = document.getElementById('createdAt');
+  const algorithmIdInput = document.getElementById('algorithmId');
+  const saveBtn = document.getElementById('saveBtn');
+  const cancelBtn = document.getElementById('cancelBtn');
+  const nameError = document.getElementById('nameError');
+  const detailError = document.getElementById('detailError');
+
+  // データ読み込み（編集モード）
+  (function loadExistingAlgorithmData(){
+    // Djangoコンテキストから渡された値を優先（既に設定されている場合はスキップ）
+    const hasContextData = nameInput && nameInput.value.trim() !== '';
+    
+    if (!hasContextData) {
+      // コンテキストにデータがない場合のみsessionStorageから読み込む
+      const savedAlgorithmId = sessionStorage.getItem('algorithmId');
+      const savedAlgorithmName = sessionStorage.getItem('algorithmName');
+      const savedAlgorithmDescription = sessionStorage.getItem('algorithmDescription');
+      
+      if (savedAlgorithmId && algorithmIdInput && !algorithmIdInput.value) algorithmIdInput.value = savedAlgorithmId;
+      if (savedAlgorithmName && nameInput) nameInput.value = savedAlgorithmName;
+      if (savedAlgorithmDescription && detailInput) detailInput.value = savedAlgorithmDescription;
+    }
+  })();
+
+  // 作成日自動入力
+  (function fillCreatedAt(){
+    if (!createdAtInput) return;
+    const d = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    createdAtInput.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  })();
+
+  // 変更検知
+  function markDirty() { window.isDirty = true; }
+  if (nameInput) nameInput.addEventListener('input', markDirty);
+  if (detailInput) detailInput.addEventListener('input', markDirty);
+
+  // 離脱防止
+  window.beforeUnloadHandler = function (e) {
+    if (!window.isDirty || window.isNavigating) return;
+    e.preventDefault();
+    e.returnValue = '';
+  };
+  window.addEventListener('beforeunload', window.beforeUnloadHandler);
+
+  // バリデーション
+  function validate() {
+    let ok = true;
+    const name = nameInput ? nameInput.value.trim() : '';
+    const detail = detailInput ? detailInput.value.trim() : '';
+
+    if (!name) {
+      if (nameError) nameError.style.display = 'block';
+      ok = false;
+    } else {
+      if (nameError) nameError.style.display = 'none';
+    }
+
+    if (!detail) {
+      if (detailError) detailError.style.display = 'block';
+      ok = false;
+    } else {
+      if (detailError) detailError.style.display = 'none';
+    }
+
+    if (!ok) {
+      if (!name && nameInput) nameInput.focus();
+      else if (!detail && detailInput) detailInput.focus();
+    }
+    return ok;
+  }
+
+  // 保存処理
+  saveBtn.addEventListener('click', function(e){
+    e.preventDefault();
+    console.log('💾 block_create.html: 保存ボタンがクリックされました');
+    
+    if (!validate()) {
+      console.warn('⚠️ バリデーションエラー');
+      return;
+    }
+    
+    // BlocklyデータをsessionStorageから取得してフォームに設定
+    const savedBlocklyXml = sessionStorage.getItem('blockly_xml');
+    const blocklyXmlInput = document.getElementById('blocklyXml');
+    
+    console.log('🔍 sessionStorage.blockly_xml:', savedBlocklyXml ? `${savedBlocklyXml.length}文字` : 'なし');
+    
+    if (savedBlocklyXml && blocklyXmlInput) {
+      console.log('✅ Blocklyデータをフォームに設定します');
+      blocklyXmlInput.value = savedBlocklyXml;
+    }
+    
+    console.log('📤 フォームをsubmitします');
+    window.isDirty = false;
+    // セッションクリア
+    sessionStorage.removeItem('blockly_xml');
+    sessionStorage.removeItem('returnFromCreate');
+    sessionStorage.removeItem('navigatingToCreate');
+    sessionStorage.removeItem('algorithmId');
+    sessionStorage.removeItem('algorithmName');
+    sessionStorage.removeItem('algorithmDescription');
+    
+    saveBtn.closest('form').submit();
+  });
+
+  // 戻る処理
+  cancelBtn.addEventListener('click', async function(e){
+    e.preventDefault();
+    if (window.isDirty) {
+      if (!confirm('入力内容が破棄されます。移動してもよろしいですか？')) return;
+    }
+    window.isDirty = false;
+    sessionStorage.setItem('returnFromCreate', 'true');
+    window.location.href = '/accounts/block/';
+  });
+
+  // 入力時にエラー消去
+  if (nameInput) nameInput.addEventListener('input', () => { if(nameInput.value.trim()) nameError.style.display='none'; });
+  if (detailInput) detailInput.addEventListener('input', () => { if(detailInput.value.trim()) detailError.style.display='none'; });
+
+</script>
 {% endblock %}
 
 {% block extra_js %}
-  <script>
-    // 編集モード対応: Django テンプレート変数からアルゴリズムIDを取得
-    const existingAlgorithmData = {
-      algorithmId: '{{ algorithm_id|default:"" }}',
-      algorithmName: '{{ algorithm_name|default:""|escapejs }}',
-      algorithmDescription: '{{ algorithm_description|default:""|escapejs }}'
-    };
+<!-- 既存チュートリアルシステムは削除されました -->
+<script>
+  if (typeof window.isDirty === 'undefined') {
+    window.isDirty = false;
+    window.isNavigating = false;
+  }
 
-    // --- ナビタブ挙動 / ナビ遷移時の確認処理付き ---
-    // isDirty = フォームが未保存の変更ありフラグ
-    let isDirty = false;
-
-    const nameInput = document.getElementById('blockName');
-    const detailInput = document.getElementById('blockDetail');
-    const createdAtInput = document.getElementById('createdAt');
-    const saveBtn = document.getElementById('saveBtn');
-    const cancelBtn = document.getElementById('cancelBtn');
-    const nameError = document.getElementById('nameError');
-    const detailError = document.getElementById('detailError');
-
-    // ページ読み込み時に編集モードのデータを設定
-    (function loadExistingData(){
-      // セッションストレージからBlocklyデータを取得
-      const blocklyXml = sessionStorage.getItem('blockly_xml');
-      if (blocklyXml) {
-        const blocklyXmlInput = document.getElementById('blocklyXml');
-        if (blocklyXmlInput) {
-          blocklyXmlInput.value = blocklyXml;
-        }
-        // データ取得後は削除（一度きり）
-        sessionStorage.removeItem('blockly_xml');
-      }
-      
-      // 一時保存データを取得（戻るボタン経由で保存された内容）
-      const tempName = sessionStorage.getItem('temp_algorithm_name');
-      const tempDescription = sessionStorage.getItem('temp_algorithm_description');
-      const tempId = sessionStorage.getItem('temp_algorithm_id');
-      
-      // 一時保存データがある場合は優先して使用
-      const algorithmId = tempId || existingAlgorithmData.algorithmId;
-      const algorithmName = tempName || existingAlgorithmData.algorithmName;
-      const algorithmDescription = tempDescription || existingAlgorithmData.algorithmDescription;
-      
-      if (algorithmId) {
-        // hidden fieldにアルゴリズムIDを設定
-        const algorithmIdInput = document.getElementById('algorithmId');
-        if (algorithmIdInput) {
-          algorithmIdInput.value = algorithmId;
-        }
-      }
-      
-      // アルゴリズム名を入力フィールドに設定
-      if (algorithmName && nameInput) {
-        nameInput.value = algorithmName;
-      }
-      
-      // アルゴリズム概要をテキストエリアに設定
-      if (algorithmDescription && detailInput) {
-        detailInput.value = algorithmDescription;
-      }
-      
-      // 一時保存データを削除（使い終わったので）
-      if (tempName) {
-        sessionStorage.removeItem('temp_algorithm_name');
-        console.log('一時保存されたアルゴリズム名を復元しました:', tempName);
-      }
-      if (tempDescription) {
-        sessionStorage.removeItem('temp_algorithm_description');
-        console.log('一時保存されたアルゴリズム詳細を復元しました');
-      }
-      if (tempId) {
-        sessionStorage.removeItem('temp_algorithm_id');
-      }
-    })();
-
-    // 作成日を YYYY-MM-DD 形式で自動入力（時間は不要）
-    (function fillCreatedAt(){
-      if (!createdAtInput) return;
-      const d = new Date();
-      const pad = n => String(n).padStart(2,'0');
-      createdAtInput.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-    })();
-
-    // フォーム変更で isDirty を true にする
-    function markDirty() { isDirty = true; }
-    if (nameInput) nameInput.addEventListener('input', markDirty);
-    if (detailInput) detailInput.addEventListener('input', markDirty);
-
-    // beforeunload: ブラウザ閉じる/リロード/バックで確認（変更あり時のみ）
-    window.addEventListener('beforeunload', function (e) {
-      if (!isDirty) return;
-      // 標準メッセージはブラウザが置き換えるため空文字で十分
-      e.preventDefault();
-      e.returnValue = '';
-    });
-
-    // タブクリック時の共通処理：
-    // - 遷移先がある場合は確認ダイアログ（変更ありなら）
-    // - OKなら isDirty=false にして遷移、キャンセルなら何もしない（見た目も遷移しない）
-    document.querySelectorAll('.nav-tab').forEach(tab=>{
-      tab.addEventListener('click', function(e){
-        e.preventDefault();
-
-        let targetUrl = null;
-        if (this.id === 'tab-system') targetUrl = '/accounts/system/choice/';
-        // 変更: アルゴリズムタブ押下で block/choice へ遷移
-        else if (this.id === 'tab-algorithm') targetUrl = '/accounts/block/choice';
-
-        if (!targetUrl) {
-          document.querySelectorAll('.nav-tab').forEach(t=>{
-            t.classList.remove('active');
-            t.setAttribute('aria-pressed','false');
-          });
-          this.classList.add('active');
-          this.setAttribute('aria-pressed','true');
-          return;
-        }
-
-        if (isDirty) {
-          const leave = confirm('入力内容が破棄されます。移動してもよろしいですか？');
-          if (!leave) return;
-          isDirty = false;
-        }
-
-        window.location.href = targetUrl;
-      });
-    });
-
-    // フォームバリデーション（UI用）
-    function validate() {
-      let ok = true;
-      const name = nameInput ? nameInput.value.trim() : '';
-      const detail = detailInput ? detailInput.value.trim() : '';
-
-      // デフォルトメッセージ
-      const requiredMsg = 'このフィールドに入力してください';
-
-      if (!name) {
-        if (nameError) {
-          nameError.textContent = requiredMsg;
-          nameError.style.display = 'block';
-        }
-        ok = false;
-      } else {
-        if (nameError) nameError.style.display = 'none';
-      }
-
-      if (!detail) {
-        if (detailError) {
-          detailError.textContent = requiredMsg;
-          detailError.style.display = 'block';
-        }
-        ok = false;
-      } else {
-        if (detailError) detailError.style.display = 'none';
-      }
-
-      // 未入力があればフォーカスを当てる（最初の未入力項目）
-      if (!ok) {
-        if (!name && nameInput) nameInput.focus();
-        else if (!detail && detailInput) detailInput.focus();
-      }
-
-      return ok;
-    }
-
-    // 保存ボタン: 必須チェックに合格したらフォームを送信
-    const algorithmForm = document.getElementById('algorithmForm');
-    if (algorithmForm) {
-      algorithmForm.addEventListener('submit', function(e){
-        e.preventDefault();
-        // 必須チェック。未入力があれば送信しない。
-        if (!validate()) return;
-        // 未保存フラグ解除してフォームを送信
-        isDirty = false;
-        this.submit();
-      });
-    }
-
-    // 保存ボタンのクリックイベント（フォームのsubmitイベントでも処理される）
-    saveBtn.addEventListener('click', function(e){
-      // フォームのsubmitイベントで処理されるため、ここでは何もしない
-    });
-
-    // 戻るボタン：入力内容を保持してアルゴリズム作成画面に戻る
-    cancelBtn.addEventListener('click', function(e){
-      e.preventDefault();
-      
-      // 現在の入力内容を取得
-      const algorithmName = nameInput ? nameInput.value.trim() : '';
-      const algorithmDescription = detailInput ? detailInput.value.trim() : '';
-      const algorithmId = document.getElementById('algorithmId') ? document.getElementById('algorithmId').value : '';
-      const blocklyXml = document.getElementById('blocklyXml') ? document.getElementById('blocklyXml').value : '';
-      
-      // 新規作成の場合で、かつ入力内容がある場合のみ確認ダイアログを表示
-      const isNewCreation = !algorithmId; // IDがない = 新規作成
-      const hasInput = algorithmName || algorithmDescription;
-      
-      if (isNewCreation && hasInput) {
-        const confirmDiscard = confirm('入力内容を破棄してアルゴリズム作成画面に戻りますか？');
-        if (!confirmDiscard) {
-          return; // キャンセルされたら何もしない
-        }
-      }
-      
-      // 戻るボタン経由であることを示すフラグを設定
-      sessionStorage.setItem('returned_from_create', 'true');
-      
-      // 入力内容を保存（戻るボタン経由の場合のみ復元される）
-      if (algorithmName) {
-        sessionStorage.setItem('temp_algorithm_name', algorithmName);
-      }
-      if (algorithmDescription) {
-        sessionStorage.setItem('temp_algorithm_description', algorithmDescription);
-      }
-      if (algorithmId) {
-        sessionStorage.setItem('temp_algorithm_id', algorithmId);
-      }
-      if (blocklyXml) {
-        sessionStorage.setItem('temp_blockly_xml', blocklyXml);
-      }
-      
-      isDirty = false;
-      
-      // 編集モードの場合はIDをURLパラメータとして渡す
-      if (algorithmId) {
-        window.location.href = `/accounts/block/?id=${algorithmId}`;
-      } else {
-        window.location.href = '/accounts/block/';
-      }
-    });
-
-    // 入力時にエラー表示を消す
-    if (nameInput) {
-      nameInput.addEventListener('input', function(){
-        if (nameInput.value.trim() && nameError) nameError.style.display = 'none';
-      });
-    }
-    if (detailInput) {
-      detailInput.addEventListener('input', function(){
-        if (detailInput.value.trim() && detailError) detailError.style.display = 'none';
-      });
-    }
-
-    // ナビゲーションバーでアルゴリズムタブをアクティブに設定
-    (function setActiveTab(){
-      const algorithmTab = document.getElementById('tab-algorithm');
-      if (algorithmTab) {
-        document.querySelectorAll('.nav-tab').forEach(t => {
-          t.classList.remove('active');
-          t.setAttribute('aria-pressed', 'false');
-        });
-        algorithmTab.classList.add('active');
-        algorithmTab.setAttribute('aria-pressed', 'true');
-      }
-    })();
-  </script>
-{% endblock %}
-
-{% block ai_chat_widget %}
-  {% include 'includes/ai_chat_base.html' %}
+  // 既存チュートリアルシステムは削除されました
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ ブロック作成画面ロード完了');
+  });
+</script>
 {% endblock %}

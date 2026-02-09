@@ -248,7 +248,7 @@ def chat_gemini(user_text: str, history_pairs: List[Tuple[str, str]], character_
     genai.configure(api_key=api_key)
 
     # Prefer settings.AI_MODEL, then GEMINI_MODEL env var, then default Gemini model
-    model_name = getattr(settings, 'AI_MODEL', '') or os.getenv('GEMINI_MODEL', 'gemini-3-flash-preview')
+    model_name = getattr(settings, 'AI_MODEL', '') or os.getenv('GEMINI_MODEL', 'gemini-2.5-flash')
 
     generation_config = {
         "temperature": 0.7,
@@ -277,10 +277,14 @@ def chat_gemini(user_text: str, history_pairs: List[Tuple[str, str]], character_
     max_retries = 2
     for attempt in range(max_retries):
         try:
+            print(f"[DEBUG] API呼び出し試行 {attempt + 1}/{max_retries}")
             resp = chat.send_message(user_text, stream=False)
+            print(f"[DEBUG] API呼び出し成功")
             return (resp.text or "").strip()
         except Exception as e:
             err = str(e)
+            print(f"[DEBUG] API呼び出しエラー: {err}")
+            print(f"[DEBUG] エラー詳細: {repr(e)}")
             if "429" in err or "Resource exhausted" in err:
                 if attempt < max_retries - 1:
                     time.sleep(2)  # 2秒待機に短縮

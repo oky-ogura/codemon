@@ -1006,6 +1006,7 @@ APPEARANCE_TO_CHARACTER = {
 }
 
 # システム選択画面
+@account_session_required
 def system_choice(request):
     # ログインユーザーのAI設定を取得
     account = get_logged_account(request)
@@ -1059,8 +1060,15 @@ def system_choice(request):
     return render(request, 'system/system_choice.html', context)
 
 # システム新規作成画面（システム名、システムの詳細入力など）
+@account_session_required
 def system_create(request):
     if request.method == 'POST':
+        # デバッグ: セッション情報を確認
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f'🔍 system_create POST: セッションキー={list(request.session.keys())}')
+        logger.info(f'🔍 account_user_id={request.session.get("account_user_id")}')
+        
         # POSTデータを取得
         system_name = request.POST.get('system_name', '').strip()
         system_detail = request.POST.get('system_detail', '').strip()
@@ -1077,12 +1085,28 @@ def system_create(request):
             if is_ajax:
                 return JsonResponse({'success': False, 'error': error_msg}, status=400)
             messages.error(request, error_msg)
-            return render(request, 'system/system_create.html')
+            # エラー時もコンテキストを渡す
+            account = get_logged_account(request)
+            context = {
+                'other_systems': [],
+                'algorithms_json': '[]',
+                'is_logged_in': bool(account)
+            }
+            if account:
+                try:
+                    context['other_systems'] = System.objects.filter(user=account).order_by('-created_at')
+                except Exception:
+                    pass
+            return render(request, 'system/system_create.html', context)
 
         # ログインユーザーを取得
+        # @account_session_requiredがあるため、ここではログイン済みのはず
         account = get_logged_account(request)
+        logger.info(f'🔍 get_logged_account結果: {account}')
         if not account:
-            error_msg = 'ログインが必要です。'
+            # 通常ここには到達しないが、念のため
+            error_msg = 'セッションエラーが発生しました。再度ログインしてください。'
+            logger.warning(f'⚠️ セッションエラー')
             if is_ajax:
                 return JsonResponse({'success': False, 'error': error_msg}, status=401)
             messages.error(request, error_msg)
@@ -1102,12 +1126,25 @@ def system_create(request):
                     messages.success(request, success_msg)
             else:
                 # 新規作成モード: 新しいSystemオブジェクトを作成
+                # システム名の重複をチェックして、重複している場合は番号を振る
+                original_name = system_name
+                counter = 1
+                while System.objects.filter(user=account, system_name=system_name).exists():
+                    counter += 1
+                    system_name = f"{original_name}{counter}"
+                
                 system = System.objects.create(
                     user=account,
                     system_name=system_name,
                     system_description=system_detail
                 )
-                success_msg = f'システム「{system_name}」を保存しました。'
+                
+                # システム名が変更された場合はメッセージに含める
+                if system_name != original_name:
+                    success_msg = f'システム名が重複していたため、「{system_name}」として保存しました。'
+                else:
+                    success_msg = f'システム「{system_name}」を保存しました。'
+                    
                 if not is_ajax:
                     messages.success(request, success_msg)
                 
@@ -1169,18 +1206,31 @@ def system_create(request):
             if is_ajax:
                 return JsonResponse({'success': False, 'error': error_msg}, status=404)
             messages.error(request, error_msg)
-            return render(request, 'system/system_create.html')
+            # エラー時もコンテキストを渡す
+            context = {
+                'other_systems': System.objects.filter(user=account).order_by('-created_at') if account else [],
+                'algorithms_json': '[]',
+                'is_logged_in': bool(account)
+            }
+            return render(request, 'system/system_create.html', context)
         except Exception as e:
             error_msg = f'システムの保存に失敗しました: {str(e)}'
             if is_ajax:
                 return JsonResponse({'success': False, 'error': error_msg}, status=500)
             messages.error(request, error_msg)
-            return render(request, 'system/system_create.html')
+            # エラー時もコンテキストを渡す
+            context = {
+                'other_systems': System.objects.filter(user=account).order_by('-created_at') if account else [],
+                'algorithms_json': '[]',
+                'is_logged_in': bool(account)
+            }
+            return render(request, 'system/system_create.html', context)
 
     # GETリクエストの場合: 他のシステム一覧とアルゴリズム一覧を取得してテンプレートに渡す
     account = get_logged_account(request)
     other_systems = []
     algorithms_json = '[]'
+    is_logged_in = bool(account)  # デバッグ用にログイン状態を明示的に渡す
     
     if account:
         try:
@@ -1206,7 +1256,8 @@ def system_create(request):
 
     return render(request, 'system/system_create.html', {
         'other_systems': other_systems,
-        'algorithms_json': algorithms_json
+        'algorithms_json': algorithms_json,
+        'is_logged_in': is_logged_in  # デバッグ用
     })
 
 # システム一覧画面
@@ -1302,27 +1353,36 @@ def system_details(request):
 def system_delete(request):
     # URLパラメータからシステムIDを取得
     system_id = request.GET.get('id')
+    
+    print(f"🔍 system_delete: method={request.method}, system_id={system_id}")
 
     if not system_id:
+        print("❌ システムIDが指定されていません")
         messages.error(request, 'システムIDが指定されていません。')
         return redirect('accounts:system_list')
 
     try:
         # システムIDでデータベースから取得
         system = System.objects.get(system_id=system_id)
+        print(f"✅ システムを取得: {system.system_name}")
 
         # ログインユーザーを取得
         account = get_logged_account(request)
+        print(f"🔍 ログインユーザー: {account.user_id if account else 'None'}")
+        print(f"🔍 システムのユーザー: {system.user.user_id}")
 
         # 自分のシステムかどうか確認（セキュリティ）
         if account and system.user.user_id != account.user_id:
+            print("❌ 削除権限がありません")
             messages.error(request, 'このシステムを削除する権限がありません。')
             return redirect('accounts:system_list')
 
         # POSTリクエストの場合は削除を実行
         if request.method == 'POST':
+            print(f"🗑️ 削除実行: {system.system_name}")
             system_name = system.system_name
             system.delete()
+            print(f"✅ 削除成功: {system_name}")
             messages.success(request, f'システム「{system_name}」を削除しました。')
             return redirect('accounts:system_delete_success')
 
@@ -1337,9 +1397,13 @@ def system_delete(request):
         return render(request, 'system/system_delete.html', context)
 
     except System.DoesNotExist:
+        print("❌ システムが見つかりません")
         messages.error(request, '指定されたシステムが見つかりませんでした。')
         return redirect('accounts:system_list')
     except Exception as e:
+        print(f"❌ エラー発生: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         messages.error(request, f'エラーが発生しました: {str(e)}')
         return redirect('accounts:system_list')
 
@@ -1362,12 +1426,13 @@ def system_roulette_topics(request):
     if account:
         try:
             from .models import AiConfig
-            config = AiConfig.objects.filter(account=account).first()
+            # user_idでフィルタする
+            config = AiConfig.objects.filter(user_id=account.user_id).first()
             if config:
                 appearance = config.appearance or 'イヌ.png'
                 ai_name = config.ai_name or 'うたー'
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"AiConfig取得エラー (roulette): {e}")
     
     # 外見からキャラクターIDを取得
     character = APPEARANCE_TO_CHARACTER.get(appearance, 'inu')
@@ -1445,6 +1510,8 @@ def block_create(request):
     - POSTリクエスト: データベースに保存または更新
     """
     if request.method == 'POST':
+        print(f'🔍 block_create POST受信: {request.POST}')
+        
         algorithm_name = request.POST.get('algorithm_name', '').strip()
         algorithm_description = request.POST.get('algorithm_description', '').strip()
         algorithm_id = request.POST.get('algorithm_id', '').strip()
@@ -1452,9 +1519,23 @@ def block_create(request):
         system_id = request.POST.get('system_id', '').strip()
         button_id = request.POST.get('button_id', '').strip()
 
+        print(f'🔍 algorithm_name: "{algorithm_name}"')
+        print(f'🔍 algorithm_description: "{algorithm_description}"')
+        print(f'🔍 algorithm_id: "{algorithm_id}"')
+        print(f'🔍 blockly_xml length: {len(blockly_xml) if blockly_xml else 0}')
+
         # バリデーション
         if not algorithm_name:
+            print(f'❌ バリデーションエラー: アルゴリズム名が空')
             messages.error(request, 'アルゴリズム名は必須項目です。')
+            return render(request, 'block/block_create.html', {
+                'algorithm_name': algorithm_name,
+                'algorithm_description': algorithm_description,
+            })
+        
+        if not algorithm_description:
+            print(f'❌ バリデーションエラー: アルゴリズム説明が空')
+            messages.error(request, 'アルゴリズムの説明は必須項目です。')
             return render(request, 'block/block_create.html', {
                 'algorithm_name': algorithm_name,
                 'algorithm_description': algorithm_description,
@@ -1548,8 +1629,9 @@ def block_create(request):
                         })
                     request.session.modified = True
 
-            # 保存成功後はsave画面にリダイレクト
-            return redirect('accounts:block_save')
+            # 保存成功後は一覧画面にリダイレクト
+            # メッセージは一覧画面で表示される
+            return redirect('accounts:block_list')
 
         except Algorithm.DoesNotExist:
             messages.error(request, '指定されたアルゴリズムが見つかりません。')

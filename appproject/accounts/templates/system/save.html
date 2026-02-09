@@ -263,3 +263,12 @@
 </script>
 
 {% endblock %}
+
+{% block extra_js %}
+<!-- 既存チュートリアルシステムは削除されました -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ 保存画面ロード完了');
+  });
+</script>
+{% endblock %}

@@ -1,708 +1,315 @@
-{% load static %}
-<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-<div id="character-widget">
+<!-- AI相棒チャット ウィジェット -->
+<div class="ai-chat-widget">
+  <button class="ai-chat-toggle-btn" id="aiChatToggleBtn">
+    <i class="fas fa-robot"></i>
+    <span class="chat-label">AI相棒</span>
+  </button>
   
-  <div class="char-wrapper">
-    <img id="character-image" 
-         src="{% static 'codemon/images/characters/' %}{{ appearance|default:'イヌ.png' }}" 
-         alt="AIキャラクター"
-         data-character="{{ character_code|default:'inu' }}">
-  </div>
-  
-  <div id="chat-bubble">
-    <div class="speech-tail"></div>
-    <div class="resize-handle"></div>
-
-    <div id="minimized-view">
-      <div class="mini-content-row">
-        <div class="mini-text">
-          <p id="initial-message">なにかこまったことある？</p>
-          <span class="click-hint"><i class="fas fa-hand-pointer"></i> クリックではなす</span>
+  <div class="ai-chat-panel" id="aiChatPanel" style="display: none;">
+    <div class="ai-chat-header">
+      <h4><i class="fas fa-robot"></i> AI相棒チャット</h4>
+      <button class="ai-chat-close-btn" id="aiChatCloseBtn">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="ai-chat-messages" id="aiChatMessages">
+      <div class="ai-message">
+        <div class="message-content">
+          こんにちは!学習のサポートをします。何か質問はありますか?
         </div>
       </div>
     </div>
     
-    <div id="expanded-view" style="display: none;">
-      <div id="chat-header">
-        <div class="header-left">
-          <div class="icon-circle"><i class="fas fa-robot"></i></div>
-          <span id="chat-header-title">AIキャラ と おはなし</span>
-        </div>
-        <div class="header-controls">
-          <button id="minimize-btn" type="button"><i class="fas fa-minus"></i></button>
-          <button id="close-btn" type="button"><i class="fas fa-times"></i></button>
-        </div>
-      </div>
-
-      <div id="chat-messages">
-        </div>
-
-      <div id="chat-input-area">
-        <input type="text" id="chat-input" placeholder="ここに入力してね..." autocomplete="off">
-        <button id="chat-send" type="button"><i class="fas fa-paper-plane"></i></button>
-      </div>
+    <div class="ai-chat-input-area">
+      <textarea 
+        id="aiChatInput" 
+        class="ai-chat-input" 
+        placeholder="メッセージを入力..."
+        rows="2"
+      ></textarea>
+      <button class="ai-chat-send-btn" id="aiChatSendBtn">
+        <i class="fas fa-paper-plane"></i>
+      </button>
     </div>
   </div>
-
 </div>
 
 <style>
-  /* --- デザイン変数の定義（ウィジェット内限定） --- */
-  #character-widget {
-    --c-cyan: #3fbcd9;
-    --c-yellow: #FFD200;
-    --c-pink: #ff7675;
-    --c-white: #ffffff;
-    --c-text: #2d3748;
-    --c-bg-dot: #f0f4f8;
-    
-    /* 基本フォント */
-    font-family: "M PLUS Rounded 1c", sans-serif;
-    
-    /* 配置: 画面右下固定 */
-    position: fixed;
-    right: 20px;
-    bottom: 20px;
-    z-index: 10000;
-    
-    /* レイアウト: 縦並び（下がキャラ、上が吹き出し） */
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end; /* 右揃え */
-    pointer-events: none; /* エリア外のクリックを透過 */
-  }
+/* AI相棒チャットウィジェット */
+.ai-chat-widget {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+}
 
-  /* 全要素のボックスサイズ統一 */
-  #character-widget * {
-    box-sizing: border-box;
-  }
+.ai-chat-toggle-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 12px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
 
-  /* --- 1. キャラクター画像 --- */
-  .char-wrapper {
-    display: none; /* karihome.htmlのキャラを使うため非表示 */
-  }
+.ai-chat-toggle-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
 
-  #character-image {
-    display: none; /* karihome.htmlのキャラを使うため非表示 */
-  }
+.ai-chat-toggle-btn i {
+  font-size: 18px;
+}
 
-  @keyframes float-char {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
-  }
+.chat-label {
+  font-weight: 600;
+}
 
-  .char-wrapper:hover #character-image {
-    transform: scale(1.05) rotate(-3deg);
-    animation: none; /* ホバー時は止める */
-  }
+.ai-chat-panel {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  width: 350px;
+  height: 500px;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 
-  /* --- 2. チャット吹き出し（共通枠） --- */
-  #chat-bubble {
-    pointer-events: auto; /* クリック可能 */
-    background: var(--c-white);
-    border: 4px solid var(--c-cyan);
-    border-radius: 24px;
-    box-shadow: 0 8px 0 rgba(63, 188, 217, 0.3), 0 10px 20px rgba(0,0,0,0.1);
-    
-    /* アニメーション基点: 右下 */
-    transform-origin: bottom right;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    
-    /* 初期状態: 非表示（JSでクラス付与して表示） */
+.ai-chat-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ai-chat-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-chat-close-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.ai-chat-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.ai-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  background: #f5f5f5;
+}
+
+.ai-message,
+.user-message {
+  margin-bottom: 15px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
     opacity: 0;
-    transform: scale(0);
-    margin-bottom: -10px; /* キャラに少し被せる位置調整 */
-    position: relative; /* ウィジェット内での相対配置 */
-    overflow: hidden; /* 角丸からはみ出さないように */
+    transform: translateY(10px);
   }
-
-  /* --- しっぽ（吹き出しの下に出る三角） --- */
-  .speech-tail {
-    position: absolute;
-    bottom: -14px; /* 枠線の外に出す */
-    right: 40px;   /* キャラクターの頭上付近に来るように調整 */
-    width: 24px;
-    height: 24px;
-    background: var(--c-white);
-    border-right: 4px solid var(--c-cyan);
-    border-bottom: 4px solid var(--c-cyan);
-    transform: rotate(45deg);
-    z-index: 10003;
-  }
-
-  /* 展開時はしっぽを隠す */
-  #chat-bubble.expanded .speech-tail {
-    display: none;
-  }
-
-  /* --- 3. 最小化モード（.minimized） --- */
-  #chat-bubble.minimized {
+  to {
     opacity: 1;
-    transform: scale(1);
-    width: 260px;
-    padding: 15px;
-    cursor: pointer;
+    transform: translateY(0);
   }
+}
 
-  #minimized-view {
-    display: block;
-  }
+.message-content {
+  padding: 12px 16px;
+  border-radius: 12px;
+  max-width: 85%;
+  word-wrap: break-word;
+}
 
-  .mini-content-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-  }
+.ai-message .message-content {
+  background: white;
+  color: #333;
+  border: 1px solid #e0e0e0;
+}
 
-  .mini-text p {
-    margin: 0 0 5px 0;
-    font-size: 15px;
-    font-weight: 800;
-    color: var(--c-cyan);
-    line-height: 1.4;
-  }
+.user-message {
+  text-align: right;
+}
 
-  .click-hint {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 700;
-    color: #718096;
-    background: #edf2f7;
-    padding: 2px 10px;
-    border-radius: 12px;
-  }
+.user-message .message-content {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: inline-block;
+  margin-left: auto;
+}
 
-  /* --- 4. 展開モード（.expanded） --- */
-  #chat-bubble.expanded {
-    opacity: 1;
-    transform: scale(1);
-    
-    /* 展開時のサイズと配置 */
-    width: 360px;
-    height: 500px;
-    
-    /* スマホなどで画面外に行かないよう固定配置に切り替えるテクニックも可だが
-       ここではウィジェット基準で配置（キャラの上に大きく出る） */
-    position: absolute;
-    bottom: 120px; /* キャラクターの頭上 */
-    right: 0;
-    z-index: 10005;
-    padding: 0; /* 内部コンテナで余白管理 */
-  }
+.ai-chat-input-area {
+  padding: 15px;
+  background: white;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
 
-  /* ★重要修正★
-   内部コンテナを縦並びFlexにし、高さを100%にする 
-   これにより入力欄が最下部に固定されます
-  */
-  #expanded-view {
-    width: 100%;
-    height: 100%;
-    /* JSで display: flex が付きますが、方向指定が必要 */
-    flex-direction: column; 
-    overflow: hidden;
-  }
+.ai-chat-input {
+  flex: 1;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  resize: none;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
 
-  /* ヘッダー */
-  #chat-header {
-    background: var(--c-cyan);
-    padding: 10px 15px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: white;
-    flex-shrink: 0; /* 縮ませない */
-    cursor: move; /* ドラッグ可能を示す */
-    user-select: none; /* テキスト選択を防止 */
-  }
+.ai-chat-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
 
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+.ai-chat-send-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-  .icon-circle {
-    width: 28px; height: 28px;
-    background: rgba(255,255,255,0.2);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-  }
+.ai-chat-send-btn:hover {
+  transform: scale(1.05);
+}
 
-  #chat-header-title {
-    font-weight: 800;
-    font-size: 15px;
-    letter-spacing: 0.05em;
-  }
+.ai-chat-send-btn:active {
+  transform: scale(0.95);
+}
 
-  .header-controls button {
-    background: transparent;
-    border: none;
-    color: white;
-    width: 30px; height: 30px;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: background 0.2s;
-    font-size: 16px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
+/* スクロールバーのスタイル */
+.ai-chat-messages::-webkit-scrollbar {
+  width: 6px;
+}
 
-  .header-controls button:hover {
-    background: rgba(255,255,255,0.2);
-  }
+.ai-chat-messages::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
 
-  /* メッセージエリア */
-  #chat-messages {
-    flex: 1; /* 余白をすべて埋める＝入力欄を下に押し下げる */
-    background-color: var(--c-white);
-    background-image: radial-gradient(var(--c-bg-dot) 2px, transparent 2px);
-    background-size: 20px 20px;
-    padding: 15px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    width: 100%;
-  }
+.ai-chat-messages::-webkit-scrollbar-thumb {
+  background: #667eea;
+  border-radius: 3px;
+}
 
-  /* メッセージ吹き出し */
-  .chat-message {
-    max-width: 85%;
-    padding: 10px 14px;
-    border-radius: 16px;
-    font-size: 14px;
-    line-height: 1.5;
-    font-weight: 700;
-    position: relative;
-    word-break: break-all;
-    animation: msg-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
+.ai-chat-messages::-webkit-scrollbar-thumb:hover {
+  background: #764ba2;
+}
 
-  @keyframes msg-pop {
-    from { opacity: 0; transform: scale(0.8) translateY(10px); }
-    to { opacity: 1; transform: scale(1) translateY(0); }
+/* レスポンシブ対応 */
+@media (max-width: 480px) {
+  .ai-chat-panel {
+    width: calc(100vw - 40px);
+    height: calc(100vh - 120px);
+    right: 20px;
   }
-
-  /* AIのメッセージ */
-  .chat-message.assistant {
-    align-self: flex-start;
-    background: #f1f5f9;
-    color: var(--c-text);
-    border: 2px solid #e2e8f0;
-    border-bottom-left-radius: 4px;
-  }
-
-  /* ユーザーのメッセージ */
-  .chat-message.user {
-    align-self: flex-end;
-    background: var(--c-cyan);
-    color: white;
-    border-bottom-right-radius: 4px;
-    box-shadow: 0 3px 0 rgba(44, 138, 158, 0.4);
-  }
-
-  .role { display: none; }
-
-  /* 入力エリア */
-  #chat-input-area {
-    padding: 12px;
-    background: white;
-    border-top: 2px solid #edf2f7;
-    /* 親要素が角丸を持っているので、ここは四角でもよいが下部合わせ */
-    display: flex;
-    gap: 8px;
-    flex-shrink: 0; /* 縮ませない */
-    width: 100%;
-  }
-
-  #chat-input {
-    flex: 1;
-    border: 2px solid #edf2f7;
-    background: #f7fafc;
-    border-radius: 99px;
-    padding: 0 16px;
-    height: 44px;
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--c-text);
-    outline: none;
-    transition: all 0.2s;
-  }
-
-  #chat-input:focus {
-    background: white;
-    border-color: var(--c-cyan);
-  }
-
-  #chat-send {
-    width: 44px; height: 44px;
-    border-radius: 50%;
-    background: var(--c-yellow);
-    border: none;
-    color: white;
-    font-size: 16px;
-    cursor: pointer;
-    box-shadow: 0 4px 0 #e6bd00;
-    transition: transform 0.1s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  #chat-send:hover { transform: translateY(2px); box-shadow: 0 2px 0 #e6bd00; }
-  #chat-send:active { transform: translateY(4px); box-shadow: none; }
-  #chat-send:disabled { background: #cbd5e0; box-shadow: none; transform: none; cursor: default; }
-
-  /* リサイズハンドル */
-  .resize-handle {
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    background: var(--c-cyan);
-    border-radius: 50%;
-    cursor: nwse-resize;
-    z-index: 10006;
-    opacity: 0.7;
-    transition: opacity 0.2s;
-  }
-  
-  .resize-handle:hover {
-    opacity: 1;
-  }
-  
-  #chat-bubble.expanded .resize-handle {
-    display: block;
-    bottom: 5px;
-    right: 5px;
-  }
-  
-  #chat-bubble:not(.expanded) .resize-handle {
-    display: none;
-  }
-
-  /* スマホ対応 */
-  @media (max-width: 480px) {
-    #character-widget {
-      right: 15px; bottom: 15px;
-    }
-    #chat-bubble.expanded {
-      width: 90vw; /* 画面幅の90% */
-      height: 60vh;
-      bottom: 100px;
-      right: -10px; /* 少し右寄せ補正 */
-    }
-  }
+}
 </style>
 
 <script>
-(function(){
-  // --- 設定 ---
-  const initialMessages = {
-    usagi: 'なにかこまったことある？いっしょにかんがえよう！',
-    kitune: 'よう！オレになにかききたいことでもあるのか？',
-    inu: 'どうした？ おれが ちからになるぞ！',
-    panda: 'ん～？ なにかぼくが やることある～？',
-    risu: 'どうしたの？あたしにまかせて！',
-    fukurou: 'おや、なにかお困りですか？',
-    neko: '...どうしたの。ひまなの？',
-    arupaka: 'あら、わたくしに ごようかしら？',
-    default: 'こんにちは！ なにかてつだおうか？'
-  };
-
-  // --- 要素取得 ---
-  const widget = document.getElementById('character-widget');
-  const characterImg = document.getElementById('character-image');
-  const bubble = document.getElementById('chat-bubble');
-  const minimizedView = document.getElementById('minimized-view');
-  const expandedView = document.getElementById('expanded-view');
-  const messagesEl = document.getElementById('chat-messages');
-  const inputEl = document.getElementById('chat-input');
-  const sendBtn = document.getElementById('chat-send');
-  const initialMessageEl = document.getElementById('initial-message');
-  const headerTitleEl = document.getElementById('chat-header-title');
-  const chatHeader = document.getElementById('chat-header');
-  const resizeHandle = document.querySelector('.resize-handle');
-
-  let conversationId = null;
-  let isExpanded = false;
-  let isMinimized = false;
+document.addEventListener('DOMContentLoaded', function() {
+  const toggleBtn = document.getElementById('aiChatToggleBtn');
+  const closeBtn = document.getElementById('aiChatCloseBtn');
+  const chatPanel = document.getElementById('aiChatPanel');
+  const sendBtn = document.getElementById('aiChatSendBtn');
+  const chatInput = document.getElementById('aiChatInput');
+  const messagesContainer = document.getElementById('aiChatMessages');
   
-  // ドラッグ用の変数
-  let isDragging = false;
-  let dragStartX = 0;
-  let dragStartY = 0;
-  let bubbleStartX = 0;
-  let bubbleStartY = 0;
+  // チャットパネルの開閉
+  toggleBtn.addEventListener('click', function() {
+    const isHidden = chatPanel.style.display === 'none';
+    chatPanel.style.display = isHidden ? 'flex' : 'none';
+  });
   
-  // リサイズ用の変数
-  let isResizing = false;
-  let resizeStartX = 0;
-  let resizeStartY = 0;
-  let bubbleStartWidth = 0;
-  let bubbleStartHeight = 0;
-
-  // --- 初期データ処理 ---
-  const charContainer = document.querySelector('.character-container');
-  const characterCode = (
-    (charContainer && charContainer.dataset.character) || 
-    (characterImg && characterImg.dataset.character) || 
-    'inu'
-  ).trim();
+  closeBtn.addEventListener('click', function() {
+    chatPanel.style.display = 'none';
+  });
   
-  // テーマカラー設定
-  const themeColors = {
-    usagi: { primary: '#F5E3F4', secondary: '#E8C4E8', dark: '#D4A5D4' },
-    kitsune: { primary: '#FCD37D', secondary: '#F5B942', dark: '#E5A020' },
-    inu: { primary: '#FFD700', secondary: '#FFA500', dark: '#FF8C00' },
-    panda: { primary: '#FEF5DB', secondary: '#F5E6B8', dark: '#E5D090' },
-    risu: { primary: '#FFB6C1', secondary: '#FF8FA3', dark: '#FF6B88' },
-    fukurou: { primary: '#92B7D6', secondary: '#6A9BC5', dark: '#4A7BA5' },
-    neko: { primary: '#9CBDB6', secondary: '#7AA59D', dark: '#5A8A80' },
-    arupaka: { primary: '#FFF5CD', secondary: '#F5E8A5', dark: '#E5D580' }
-  };
-  
-  const currentTheme = themeColors[characterCode] || themeColors.inu;
-  
-  // CSS変数を更新
-  if (chatHeader) {
-    chatHeader.style.background = currentTheme.dark;
-  }
-  if (resizeHandle) {
-    resizeHandle.style.background = currentTheme.dark;
-  }
-  
-  // ボーダーカラーを更新
-  bubble.style.borderColor = currentTheme.dark;
-
-  const userName = '{{ user.username|default:"キミ"|escapejs }}';
-  if (headerTitleEl) headerTitleEl.textContent = `${userName} と おはなし`;
-  if (initialMessageEl) initialMessageEl.textContent = initialMessages[characterCode] || initialMessages.default;
-
-  if (!widget) return;
-
-  // --- アクション関数 ---
-
-  // 1. 最小化表示（吹き出しを出す）
-  function showMinimized() {
-    bubble.classList.remove('expanded');
-    bubble.classList.add('minimized');
+  // メッセージ送信
+  function sendMessage() {
+    const message = chatInput.value.trim();
+    if (!message) return;
     
-    expandedView.style.display = 'none';
-    minimizedView.style.display = 'block';
+    // ユーザーメッセージを表示
+    const userMessageDiv = document.createElement('div');
+    userMessageDiv.className = 'user-message';
+    userMessageDiv.innerHTML = `<div class="message-content">${escapeHtml(message)}</div>`;
+    messagesContainer.appendChild(userMessageDiv);
     
-    isMinimized = true;
-    isExpanded = false;
-  }
-
-  // 2. 展開表示（チャット画面を開く）
-  function showExpanded() {
-    bubble.classList.remove('minimized');
-    bubble.classList.add('expanded');
+    chatInput.value = '';
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
     
-    minimizedView.style.display = 'none';
-    
-    // JSでdisplay: flexを付けるが、CSSでflex-direction: columnとheight: 100%を指定してレイアウトを安定させる
-    expandedView.style.display = 'flex'; 
-    
-    isMinimized = false;
-    isExpanded = true;
-
-    // 初回のみ挨拶メッセージを追加
-    if (messagesEl && messagesEl.children.length === 0) {
-      appendMessage('assistant', initialMessages[characterCode] || initialMessages.default);
-    }
-    
-    setTimeout(() => { if(inputEl) inputEl.focus(); }, 300);
-    scrollToBottom();
-  }
-
-  // 3. 閉じる（完全に隠す）
-  function hideBubble() {
-    bubble.classList.remove('minimized', 'expanded');
-    isMinimized = false;
-    isExpanded = false;
-  }
-
-  // --- イベントリスナー設定 ---
-  
-  // ドラッグ機能（ヘッダーをドラッグ）
-  if (chatHeader) {
-    chatHeader.addEventListener('mousedown', (e) => {
-      if (!isExpanded) return;
-      if (e.target.tagName === 'BUTTON' || e.target.tagName === 'I') return; // ボタンは除外
-      
-      isDragging = true;
-      dragStartX = e.clientX;
-      dragStartY = e.clientY;
-      
-      const rect = bubble.getBoundingClientRect();
-      bubbleStartX = rect.left;
-      bubbleStartY = rect.top;
-      
-      e.preventDefault();
-    });
-  }
-  
-  // リサイズ機能
-  if (resizeHandle) {
-    resizeHandle.addEventListener('mousedown', (e) => {
-      if (!isExpanded) return;
-      
-      isResizing = true;
-      resizeStartX = e.clientX;
-      resizeStartY = e.clientY;
-      
-      bubbleStartWidth = bubble.offsetWidth;
-      bubbleStartHeight = bubble.offsetHeight;
-      
-      e.stopPropagation();
-      e.preventDefault();
-    });
-  }
-  
-  // マウス移動
-  document.addEventListener('mousemove', (e) => {
-    if (isDragging) {
-      const deltaX = e.clientX - dragStartX;
-      const deltaY = e.clientY - dragStartY;
-      
-      bubble.style.position = 'fixed';
-      bubble.style.left = (bubbleStartX + deltaX) + 'px';
-      bubble.style.top = (bubbleStartY + deltaY) + 'px';
-      bubble.style.right = 'auto';
-      bubble.style.bottom = 'auto';
-    } else if (isResizing) {
-      const deltaX = e.clientX - resizeStartX;
-      const deltaY = e.clientY - resizeStartY;
-      
-      const newWidth = Math.max(300, bubbleStartWidth + deltaX);
-      const newHeight = Math.max(400, bubbleStartHeight + deltaY);
-      
-      bubble.style.width = newWidth + 'px';
-      bubble.style.height = newHeight + 'px';
-    }
-  });
-  
-  // マウスアップ
-  document.addEventListener('mouseup', () => {
-    isDragging = false;
-    isResizing = false;
-  });
-
-  // キャラ画像クリック
-  if (characterImg) {
-    characterImg.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (!isMinimized && !isExpanded) {
-        showMinimized();
-      } else if (isMinimized) {
-        showExpanded();
-      }
-    });
-  }
-
-  // 吹き出し（最小化時）クリック -> 展開
-  minimizedView.addEventListener('click', (e) => {
-    e.stopPropagation();
-    showExpanded();
-  });
-
-  // ヘッダーボタン
-  document.getElementById('minimize-btn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    showMinimized();
-  });
-  
-  document.getElementById('close-btn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    hideBubble();
-  });
-
-  // 画面外クリックで閉じる
-  document.addEventListener('click', (e) => {
-    if (!isMinimized && !isExpanded) return;
-    if (widget.contains(e.target)) return;
-    hideBubble();
-  });
-
-  // --- チャットロジック ---
-
-  function scrollToBottom() {
-    if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
-  }
-
-  function appendMessage(role, text) {
-    const div = document.createElement('div');
-    div.className = `chat-message ${role}`;
-    div.innerHTML = text.replace(/\n/g, '<br>');
-    messagesEl.appendChild(div);
-    scrollToBottom();
-  }
-
-  async function sendMessage() {
-    const msg = inputEl.value.trim();
-    if (!msg) return;
-
-    appendMessage('user', msg);
-    inputEl.value = '';
-    sendBtn.disabled = true;
-
-    try {
-      const csrfToken = getCsrf();
-      const resp = await fetch('/codemon/api/ai/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': csrfToken
-        },
-        body: JSON.stringify({
-          message: msg,
-          character: characterCode,
-          conversation_id: conversationId
-        })
-      });
-      const data = await resp.json();
-      
-      if (data.error) {
-        appendMessage('assistant', 'エラー: ' + data.error);
-      } else {
-        conversationId = data.conversation_id;
-        appendMessage('assistant', data.reply);
-      }
-    } catch (e) {
-      appendMessage('assistant', '通信エラーがおきちゃった。もういちどためしてね。');
-    } finally {
-      sendBtn.disabled = false;
-      inputEl.focus();
-    }
-  }
-
-  function getCsrf() {
-    const match = document.cookie.match(/csrftoken=([^;]+)/);
-    return match ? match[1] : '';
-  }
-
-  sendBtn.addEventListener('click', sendMessage);
-  inputEl.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') sendMessage();
-  });
-
-  // --- 初期表示ロジック ---
-  const path = window.location.pathname;
-  const isKarihome = path.includes('/karihome/') || path.includes('/accounts/home/');
-  
-  if (!isKarihome) {
+    // AI応答をシミュレート (実際のAPI連携は別途実装)
     setTimeout(() => {
-      showMinimized();
-    }, 800);
+      const aiMessageDiv = document.createElement('div');
+      aiMessageDiv.className = 'ai-message';
+      aiMessageDiv.innerHTML = `<div class="message-content">ご質問ありがとうございます。学習内容について詳しく教えていただけますか?</div>`;
+      messagesContainer.appendChild(aiMessageDiv);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }, 1000);
   }
-
-})();
+  
+  sendBtn.addEventListener('click', sendMessage);
+  
+  chatInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+  
+  // HTMLエスケープ
+  function escapeHtml(text) {
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+  }
+  
+  console.log('✅ AI相棒チャットウィジェット初期化完了');
+});
 </script>
