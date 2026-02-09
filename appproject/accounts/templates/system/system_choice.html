@@ -429,14 +429,323 @@
     // つくったものをみるボタン
     setLink('btn-list', '/accounts/system/list/');
     
-    // つかいかたボタン：通常遷移
-    setLink('btn-tutorial', '/accounts/system/');
+    //つかいかたボタン：モーダル表示に変更
+    const btnTutorial = document.getElementById('btn-tutorial');
+    console.log('🔍 つかいかたボタン:', btnTutorial);
+    console.log('🔍 showTutorial1Plus1Modal関数:', window.showTutorial1Plus1Modal);
+    
+    if (btnTutorial) {
+      btnTutorial.addEventListener('click', function(e) {
+        e.preventDefault();
+        console.log('✅ つかいかたボタンがクリックされました');
+        
+        // チュートリアルモーダルを表示
+        if (window.showTutorial1Plus1Modal) {
+          console.log('✅ モーダル表示関数を呼び出します');
+          window.showTutorial1Plus1Modal();
+        } else {
+          console.error('❌ showTutorial1Plus1Modal関数が見つかりません');
+          alert('チュートリアル機能の読み込みに失敗しました。ページをリロードしてください。');
+        }
+      });
+      console.log('✅ イベントリスナーを設定しました');
+    } else {
+      console.error('❌ つかいかたボタンが見つかりません');
+    }
     
     // おだいルーレットボタン
     setLink('btn-roulette-topics', '/accounts/system/roulette-topics/');
 
   });
 </script>
+
+<!-- チュートリアルモーダル HTML -->
+<div id="tutorial1plus1Modal" class="tutorial-modal" style="display: none;">
+  <div class="tutorial-overlay"></div>
+  <div class="tutorial-panel">
+    <!-- ヘッダー -->
+    <div class="tutorial-header">
+      <h3 id="tutorialTitle">チュートリアル</h3>
+      <button class="tutorial-close" id="tutorialClose" aria-label="閉じる">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <!-- ステップインジケーター -->
+    <div class="tutorial-progress">
+      <span id="tutorialStepIndicator">ステップ 0 / 31</span>
+      <div class="tutorial-progress-bar">
+        <div class="tutorial-progress-fill" id="tutorialProgressFill" style="width: 0%;"></div>
+      </div>
+    </div>
+    
+    <!-- コンテンツ -->
+    <div class="tutorial-body" id="tutorialBody">
+      <!-- ここに各ステップの内容が表示されます -->
+    </div>
+    
+    <!-- フッター（ボタン） -->
+    <div class="tutorial-footer">
+      <button class="tutorial-btn tutorial-btn-secondary" id="tutorialPrev" style="display: none;">
+        <i class="fas fa-arrow-left"></i> 戻る
+      </button>
+      <button class="tutorial-btn tutorial-btn-danger" id="tutorialSkip">
+        スキップ
+      </button>
+      <button class="tutorial-btn tutorial-btn-primary" id="tutorialNext">
+        次へ <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- チュートリアルのCSS -->
+<style>
+/* モーダルオーバーレイ */
+.tutorial-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 20px;
+}
+
+.tutorial-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+/* ツアーガイド風のパネル（画面右側） */
+.tutorial-panel {
+  position: relative;
+  width: 450px;
+  max-height: 90vh;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  animation: slideInRight 0.4s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* ヘッダー */
+.tutorial-header {
+  padding: 20px 25px;
+  border-bottom: 2px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #667eea;
+  color: white;
+  border-radius: 20px 20px 0 0;
+}
+
+.tutorial-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.tutorial-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 18px;
+  transition: all 0.2s;
+}
+
+.tutorial-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+/* プログレスバー */
+.tutorial-progress {
+  padding: 15px 25px;
+  background: #f8f9fa;
+}
+
+.tutorial-progress span {
+  display: block;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.tutorial-progress-bar {
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.tutorial-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  transition: width 0.3s ease;
+  border-radius: 10px;
+}
+
+/* コンテンツエリア */
+.tutorial-body {
+  flex: 1;
+  padding: 25px;
+  overflow-y: auto;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+}
+
+.tutorial-body h3 {
+  color: #333;
+  font-size: 18px;
+  margin: 0 0 15px 0;
+  font-weight: 700;
+}
+
+.tutorial-body p {
+  color: #555;
+  line-height: 1.8;
+  margin: 0 0 12px 0;
+  font-size: 15px;
+}
+
+.tutorial-body ul {
+  margin: 10px 0;
+  padding-left: 25px;
+}
+
+.tutorial-body li {
+  margin: 8px 0;
+  color: #555;
+  font-size: 14px;
+}
+
+.tutorial-body .highlight {
+  background: linear-gradient(transparent 60%, #fff59d 60%);
+  padding: 2px 4px;
+  font-weight: 700;
+  color: #333;
+}
+
+/* スクロールバーのスタイル */
+.tutorial-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.tutorial-body::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 10px;
+}
+
+.tutorial-body::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 10px;
+}
+
+.tutorial-body::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
+}
+
+/* フッター */
+.tutorial-footer {
+  padding: 20px 25px;
+  border-top: 2px solid #f0f0f0;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  background: #fafafa;
+  border-radius: 0 0 20px 20px;
+}
+
+/* ボタン */
+.tutorial-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tutorial-btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  flex: 1;
+}
+
+.tutorial-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.tutorial-btn-secondary {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.tutorial-btn-secondary:hover {
+  background: #d0d0d0;
+}
+
+.tutorial-btn-danger {
+  background: white;
+  color: #999;
+  border: 2px solid #e0e0e0;
+}
+
+.tutorial-btn-danger:hover {
+  background: #f5f5f5;
+  color: #666;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .tutorial-panel {
+    width: 100%;
+    max-width: 90vw;
+    margin: auto;
+  }
+}
+</style>
+
+<!-- チュートリアルステップデータの読み込み -->
+<script src="{% static 'accounts/js/tutorial_1plus1_steps.js' %}"></script>
+
+<!-- チュートリアルJavaScript -->
+<script src="{% static 'accounts/js/tutorial_1plus1_main.js' %}"></script>
 
 <!-- 既存チュートリアルシステムは削除されました -->
 <script>

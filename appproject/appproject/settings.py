@@ -48,9 +48,15 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 CORS_ALLOW_ALL_ORIGINS = True  # 開発時のみTrue
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
     "http://localhost:8001",
     "http://127.0.0.1:8001",
 ]
+
+# チュートリアル設定
+# テンプレートシステムを作成するユーザーIDを指定（あなたのユーザーID）
+TUTORIAL_TEMPLATE_USER_ID = 1  # 管理者のユーザーID（必要に応じて変更）
 
 # Application definition
 
@@ -121,28 +127,28 @@ db_password = str(os.getenv('DB_PASSWORD', 'password'))
 db_host = str(os.getenv('DB_HOST', 'localhost'))
 db_port = str(os.getenv('DB_PORT', '5432'))
 
-# # 一時的にSQLiteを使用（PostgreSQL接続のエンコーディング問題を回避）
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
-# PostgreSQLを使用する場合は以下をコメント解除
+# 一時的にSQLiteを使用（PostgreSQL接続のエンコーディング問題を回避）
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': db_name,
-        'USER': db_user,
-        'PASSWORD': db_password,
-        'HOST': db_host,
-        'PORT': db_port,
-        'OPTIONS': {
-            'client_encoding': 'UTF8',
-        },
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# PostgreSQLを使用する場合は以下をコメント解除
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': db_name,
+#         'USER': db_user,
+#         'PASSWORD': db_password,
+#         'HOST': db_host,
+#         'PORT': db_port,
+#         'OPTIONS': {
+#             'client_encoding': 'UTF8',
+#         },
+#     }
+# }
 
 
 

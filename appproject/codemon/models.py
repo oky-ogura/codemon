@@ -39,6 +39,46 @@ class TutorialProgress(models.Model):
         self.save()
 
 
+class Tutorial1Plus1Progress(models.Model):
+    """「1+1=?」チュートリアル進行状況を管理するモデル"""
+    user = models.OneToOneField('accounts.Account', on_delete=models.CASCADE, verbose_name='ユーザー', related_name='tutorial_1plus1_progress')
+    current_step = models.IntegerField(default=0, verbose_name='現在のステップ（0～31）')
+    is_completed = models.BooleanField(default=False, verbose_name='チュートリアル完了')
+    started_at = models.DateTimeField(auto_now_add=True, verbose_name='開始日時')
+    completed_at = models.DateTimeField(null=True, blank=True, verbose_name='完了日時')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新日時')
+
+    class Meta:
+        db_table = 'tutorial_1plus1_progress'
+        verbose_name = '1+1チュートリアル進行状況'
+        verbose_name_plural = '1+1チュートリアル進行状況'
+
+    def __str__(self):
+        return f"{self.user.user_name}の1+1チュートリアル進行状況 (ステップ{self.current_step}/31)"
+
+    def mark_completed(self):
+        """チュートリアルを完了としてマーク"""
+        self.is_completed = True
+        self.completed_at = timezone.now()
+        self.save()
+
+    def reset_progress(self):
+        """進捗をリセット（最初からやり直し）"""
+        self.current_step = 0
+        self.is_completed = False
+        self.completed_at = None
+        self.save()
+
+    def advance_to_step(self, step_number):
+        """指定したステップに進む"""
+        if 0 <= step_number <= 31:
+            self.current_step = step_number
+            if step_number == 31:
+                self.mark_completed()
+            else:
+                self.save()
+
+
 class System(models.Model):
     # system_id は PostgreSQL のシーケンスで管理（4000001 から開始）
     system_id = models.BigAutoField(primary_key=True)
