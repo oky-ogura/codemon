@@ -89,8 +89,12 @@ window.openPreview = function openPreview(){
     #previewSlideArea textarea { outline: none !important; box-shadow: none !important; }
     #previewSlideArea { -webkit-user-select: text !important; user-select: text !important; box-shadow: 0 6px 30px rgba(0,0,0,0.24); }
     #previewSlideArea .timer-settings-btn { display: none !important; }
-    #previewSlideArea .checkbox-group-label { display: none !important; }
-    #previewSlideArea .radio-group-label { display: none !important; }
+    /* グループラベルは表示する */
+    #previewSlideArea .checkbox-group-label,
+    #previewSlideArea .radio-group-label { 
+      display: block !important;
+      pointer-events: none !important;
+    }
   `;
   overlay.appendChild(previewStyle);
 
@@ -255,6 +259,13 @@ window.loadSystemInPreview = async function loadSystemInPreview(systemId) {
     
     const data = await response.json();
     console.log('📦 受信データ:', data);
+    console.log('📊 詳細:');
+    console.log('  - success:', data.success);
+    console.log('  - system_name:', data.system_name);
+    console.log('  - elements数:', data.elements ? data.elements.length : 0);
+    if (data.elements && data.elements.length > 0) {
+      console.log('  - 最初の要素:', data.elements[0]);
+    }
     
     if (!data.success) {
       throw new Error(data.error || 'システムデータの取得に失敗しました');
@@ -266,7 +277,9 @@ window.loadSystemInPreview = async function loadSystemInPreview(systemId) {
       return;
     }
     
+    // 既存の要素を削除（trashは残す）
     const children = Array.from(previewArea.children);
+    console.log('🗑️ 既存要素を削除中:', children.length, '個');
     children.forEach(child => {
       if (child.id !== 'trash') {
         child.remove();
@@ -276,6 +289,7 @@ window.loadSystemInPreview = async function loadSystemInPreview(systemId) {
     // 読み込んだシステムのIDを記録
     previewArea.dataset.currentSystemId = systemId;
     
+    console.log('🔄 restoreSystemElementsToPreview を呼び出します:', data.elements.length, '個の要素');
     restoreSystemElementsToPreview(data.elements, previewArea);
     console.log(`✅ システムID ${systemId} の読み込み完了`);
     
@@ -287,9 +301,24 @@ window.loadSystemInPreview = async function loadSystemInPreview(systemId) {
 
 // 実行画面に要素を復元する関数
 window.restoreSystemElementsToPreview = function restoreSystemElementsToPreview(elementsData, targetArea) {
-  if (!targetArea) return;
+  console.log('🔧 restoreSystemElementsToPreview開始:', {
+    elementsData: elementsData,
+    要素数: elementsData ? elementsData.length : 0,
+    targetArea: targetArea
+  });
   
-  elementsData.forEach(elem => {
+  if (!targetArea) {
+    console.error('❌ targetAreaがnullです');
+    return;
+  }
+  
+  if (!elementsData || elementsData.length === 0) {
+    console.warn('⚠️ 復元する要素がありません（空のシステム）');
+    return;
+  }
+  
+  elementsData.forEach((elem, index) => {
+    console.log(`🔄 要素[${index}]を復元中:`, elem.element_type, elem);
     try {
       let element = null;
       
@@ -321,15 +350,28 @@ window.restoreSystemElementsToPreview = function restoreSystemElementsToPreview(
         case 'timer':
           element = createPreviewTimer(elem);
           break;
+        case 'shape':
+          element = createPreviewShape(elem);
+          break;
+        case 'image':
+          element = createPreviewImage(elem);
+          break;
+        default:
+          console.warn(`⚠️ 未対応の要素タイプ: ${elem.element_type}`);
       }
       
       if (element) {
         targetArea.appendChild(element);
+        console.log(`✅ 要素[${index}]を追加しました:`, elem.element_type);
+      } else {
+        console.error(`❌ 要素[${index}]の作成に失敗:`, elem.element_type);
       }
     } catch (error) {
-      console.error('要素の復元に失敗:', elem, error);
+      console.error(`❌ 要素[${index}]の復元に失敗:`, elem, error);
     }
   });
+  
+  console.log('✅ restoreSystemElementsToPreview完了');
 }
 
 // 以下、実行画面用の要素作成関数
@@ -406,11 +448,13 @@ function createPreviewCheckboxGroup(elem) {
   const group = document.createElement('div');
   group.className = 'checkbox-group';
   
-  // グループラベルを追加
+  // グループラベルを追加（編集画面と同じクラス名を使用）
   if (elem.element_label) {
     const groupLabel = document.createElement('div');
-    groupLabel.className = 'group-label';
+    groupLabel.className = 'checkbox-group-label';
     groupLabel.textContent = elem.element_label;
+    groupLabel.style.fontWeight = 'bold';
+    groupLabel.style.marginBottom = '4px';
     group.appendChild(groupLabel);
   }
 
@@ -444,11 +488,13 @@ function createPreviewRadioGroup(elem) {
   const group = document.createElement('div');
   group.className = 'radio-group';
   
-  // グループラベルを追加
+  // グループラベルを追加（編集画面と同じクラス名を使用）
   if (elem.element_label) {
     const groupLabel = document.createElement('div');
-    groupLabel.className = 'group-label';
+    groupLabel.className = 'radio-group-label';
     groupLabel.textContent = elem.element_label;
+    groupLabel.style.fontWeight = 'bold';
+    groupLabel.style.marginBottom = '4px';
     group.appendChild(groupLabel);
   }
 
@@ -529,14 +575,23 @@ function createPreviewButton(elem) {
 
 function createPreviewTextBox(elem) {
   const container = document.createElement("div");
-  container.classList.add("text-input-container");
+  // 編集画面との一貫性のため.text-box-containerを使用
+  container.classList.add("text-box-container");
 
   const textDiv = document.createElement("div");
-  textDiv.classList.add("text-input");
+  textDiv.classList.add("text-box");
+  textDiv.style.whiteSpace = "pre-wrap";
+  textDiv.style.wordWrap = "break-word";
+  textDiv.style.padding = "8px";
+  textDiv.style.boxSizing = "border-box";
+  textDiv.style.width = "100%";
+  textDiv.style.height = "100%";
+  textDiv.style.overflow = "auto";
   textDiv.textContent = elem.element_value || "";
 
   container.appendChild(textDiv);
 
+  container.style.position = "absolute";
   container.style.left = elem.position_x + "px";
   container.style.top = elem.position_y + "px";
   if (elem.width) container.style.width = elem.width + "px";
@@ -804,6 +859,127 @@ function formatTimerDisplay(seconds) {
          String(s).padStart(2, '0');
 }
 
+function createPreviewShape(elem) {
+  const shapeType = elem.element_config?.shape_type || 'rectangle';
+  const shapeColor = elem.element_config?.color || '#333333';
+  const shapeFill = elem.element_config?.fill_color || 'transparent';
+
+  const shape = document.createElement('div');
+  shape.className = `shape-element shape-${shapeType}`;
+  shape.style.position = 'absolute';
+  shape.style.left = elem.position_x + 'px';
+  shape.style.top = elem.position_y + 'px';
+
+  // 図形タイプに応じてサイズとスタイルを設定
+  switch (shapeType) {
+    case 'rectangle':
+      shape.style.width = elem.width + 'px';
+      shape.style.height = elem.height + 'px';
+      shape.style.border = `2px solid ${shapeColor}`;
+      shape.style.background = shapeFill;
+      break;
+
+    case 'circle':
+      const circleSize = elem.width || 100;
+      shape.style.width = circleSize + 'px';
+      shape.style.height = circleSize + 'px';
+      shape.style.border = `2px solid ${shapeColor}`;
+      shape.style.background = shapeFill;
+      shape.style.borderRadius = '50%';
+      break;
+
+    case 'triangle':
+      const height = elem.height || 87;
+      const width = elem.width || 100;
+      shape.style.width = '0px';
+      shape.style.height = '0px';
+      shape.style.borderLeft = `${width / 2}px solid transparent`;
+      shape.style.borderRight = `${width / 2}px solid transparent`;
+      shape.style.borderBottom = `${height}px solid ${shapeColor}`;
+      shape.style.borderTop = '0px';
+      break;
+
+    case 'line':
+      shape.style.width = elem.width + 'px';
+      shape.style.height = elem.height || '2px';
+      shape.style.background = shapeColor;
+      shape.style.border = 'none';
+      break;
+
+    case 'arrow':
+      shape.style.width = elem.width + 'px';
+      shape.style.height = (elem.height || 12) + 'px';
+      shape.style.display = 'flex';
+      shape.style.alignItems = 'center';
+      
+      const arrowLine = document.createElement('div');
+      arrowLine.style.flex = '1';
+      arrowLine.style.height = '2px';
+      arrowLine.style.background = shapeColor;
+      
+      const arrowHead = document.createElement('div');
+      arrowHead.style.width = '0';
+      arrowHead.style.height = '0';
+      arrowHead.style.borderLeft = `10px solid ${shapeColor}`;
+      arrowHead.style.borderTop = '6px solid transparent';
+      arrowHead.style.borderBottom = '6px solid transparent';
+      
+      shape.appendChild(arrowLine);
+      shape.appendChild(arrowHead);
+      break;
+  }
+
+  return shape;
+}
+
+// ========================================
+// 画像要素の作成（プレビュー用）
+// ========================================
+function createPreviewImage(elem) {
+  console.log('📷 createPreviewImage() を呼び出します:', elem);
+  
+  const imageSrc = elem.element_value;
+  if (!imageSrc) {
+    console.warn('⚠️ 画像のソースがありません');
+    return null;
+  }
+
+  const container = document.createElement('div');
+  container.className = 'image-element';
+  container.style.position = 'absolute';
+  container.style.left = elem.position_x + 'px';
+  container.style.top = elem.position_y + 'px';
+  
+  if (elem.width) {
+    container.style.width = elem.width + 'px';
+  }
+  if (elem.height) {
+    container.style.height = elem.height + 'px';
+  }
+
+  const img = document.createElement('img');
+  img.src = imageSrc;
+  img.style.width = '100%';
+  img.style.height = '100%';
+  img.style.objectFit = 'contain';
+  img.style.display = 'block';
+  img.style.pointerEvents = 'none';
+
+  // 画像読み込みエラー処理
+  img.onerror = function() {
+    console.error('❌ 画像の読み込みに失敗:', imageSrc.substring(0, 50) + '...');
+  };
+  
+  img.onload = function() {
+    console.log('✅ 画像の読み込み成功');
+  };
+
+  container.appendChild(img);
+
+  console.log('✅ 画像要素を作成しました:', { src: imageSrc.substring(0, 50) + '...', x: elem.position_x, y: elem.position_y });
+  return container;
+}
+
 // 現在のスライドエリアの要素を収集する関数
 window.collectCurrentElements = function collectCurrentElements() {
   console.log('🔍 collectCurrentElements() 開始');
@@ -925,12 +1101,15 @@ window.collectCurrentElements = function collectCurrentElements() {
     });
   });
   
-  // テキストボックス
+  // テキストボックス（.text-box-containerまたは.text-input-containerでtext-inputを持つもの）
+  // 編集画面で作成されたテキストボックスは.text-box-containerクラスを持つ
   slide.querySelectorAll('.text-box-container').forEach(container => {
-    const textInput = container.querySelector('.text-box');
-    const content = textInput ? (textInput.value || textInput.textContent || '').trim() : '';
+    const textInput = container.querySelector('.text-box, textarea');
+    if (!textInput) return;
     
-    console.log('📦 テキストボックスを収集:', { content, position: container.style.left + ',' + container.style.top });
+    const content = textInput.value || textInput.textContent || '';
+    
+    console.log('📦 テキストボックスを収集(.text-box-container):', { content: content.substring(0, 30), position: container.style.left + ',' + container.style.top });
     
     elements.push({
       element_type: 'text_box',
@@ -938,8 +1117,35 @@ window.collectCurrentElements = function collectCurrentElements() {
       element_value: content,
       position_x: parseInt(container.style.left) || 0,
       position_y: parseInt(container.style.top) || 0,
-      width: parseInt(container.style.width) || null,
-      height: parseInt(container.style.height) || null,
+      width: parseInt(container.style.width) || container.offsetWidth || null,
+      height: parseInt(container.style.height) || container.offsetHeight || null,
+      style_data: {},
+      element_config: {}
+    });
+  });
+  
+  // .text-input-containerクラスでtextareaを持つものもテキストボックスとして収集
+  slide.querySelectorAll('.text-input-container').forEach(container => {
+    // ラベルがある場合は通常の入力要素なのでスキップ
+    const label = container.querySelector('.input-label');
+    if (label) return;
+    
+    // textarea要素（.text-input）を持つものがテキストボックス
+    const textInput = container.querySelector('.text-input, textarea');
+    if (!textInput) return;
+    
+    const content = textInput.value || textInput.textContent || '';
+    
+    console.log('📦 テキストボックスを収集(.text-input-container):', { content: content.substring(0, 30), position: container.style.left + ',' + container.style.top });
+    
+    elements.push({
+      element_type: 'text_box',
+      element_label: '',
+      element_value: content,
+      position_x: parseInt(container.style.left) || 0,
+      position_y: parseInt(container.style.top) || 0,
+      width: parseInt(container.style.width) || container.offsetWidth || null,
+      height: parseInt(container.style.height) || container.offsetHeight || null,
       style_data: {},
       element_config: {}
     });
@@ -1080,15 +1286,17 @@ window.executeAlgorithmFromButton = async function executeAlgorithmFromButton(bl
 
   // ⚡ 重要: XMLからブロックを復元する前にsystemsListを設定
   const currentSystemId = {{ system.system_id|default:"null" }};
+  const currentSystemName = '{{ system_name|default:"現在のシステム"|escapejs }}';
   const otherSystems = {{ other_systems_json|safe }};
   window._systemsList = otherSystems || [];
   if (currentSystemId) {
     window._systemsList.unshift({
       system_id: currentSystemId,
-      system_name: '現在のシステム'
+      system_name: currentSystemName
     });
   }
   console.log('✅ window._systemsList設定完了:', window._systemsList.length, '件');
+  console.log('📋 現在のシステム: ID=' + currentSystemId + ', 名前=' + currentSystemName);
 
   try {
     // 非表示のBlocklyワークスペースを作成
@@ -1125,6 +1333,7 @@ window.executeAlgorithmFromButton = async function executeAlgorithmFromButton(bl
         }
         
         const currentSystemId = {{ system.system_id|default:"null" }};
+        const currentSystemName = '{{ system_name|default:"現在のシステム"|escapejs }}';
         const otherSystems = {{ other_systems_json|safe }};
         
         const systems = [
@@ -1132,7 +1341,7 @@ window.executeAlgorithmFromButton = async function executeAlgorithmFromButton(bl
         ];
         
         if (currentSystemId) {
-          systems.push(['現在のシステム', String(currentSystemId)]);
+          systems.push([currentSystemName, String(currentSystemId)]);
         }
         
         if (otherSystems && Array.isArray(otherSystems)) {
@@ -1145,10 +1354,10 @@ window.executeAlgorithmFromButton = async function executeAlgorithmFromButton(bl
         
         // Blockly実行用にグローバル変数に設定
         window._systemsList = otherSystems || [];
-        if (currentSystemId) {
+        if (currentSystemId && currentSystemName) {
           window._systemsList.unshift({
             system_id: currentSystemId,
-            system_name: '現在のシステム'
+            system_name: currentSystemName
           });
         }
         
@@ -1520,11 +1729,14 @@ window.executeAlgorithmFromButton = async function executeAlgorithmFromButton(bl
               const field = block.getField('ITEM_' + i);
               if (field) {
                 const value = field.getValue();
+                console.log(`🔍 ITEM_${i}: "${value}"`);
                 if (value && value !== '' && value !== 'せんたくしてね') {
                   selectedItems.push(value);
                 }
               }
             }
+            
+            console.log('🔍 selectedItemsに追加された項目:', selectedItems);
             
             console.log('🔍 チェックボックス条件:', {
               systemId: sysId,
@@ -1533,6 +1745,8 @@ window.executeAlgorithmFromButton = async function executeAlgorithmFromButton(bl
               logic: logic,
               checkStatus: checkStatus
             });
+            
+            console.log('💡 ヒント: systemIdが"0"の場合、現在のプレビューエリアから検索します');
             
             // 実行画面からチェックされている項目を取得
             const previewArea = document.getElementById('previewSlideArea');
@@ -1579,6 +1793,11 @@ window.executeAlgorithmFromButton = async function executeAlgorithmFromButton(bl
               
               console.log('📍 実際にチェックされている項目:', checkedItems);
               console.log('📍 判定する項目:', selectedItems);
+              
+              // デバッグ: 配列の詳細を表示
+              console.log('📊 詳細比較:');
+              console.log('  - checkedItems:', JSON.stringify(checkedItems));
+              console.log('  - selectedItems:', JSON.stringify(selectedItems));
               
               // 判定ロジック
               if (checkStatus === 'CHECKED') {

@@ -1016,18 +1016,24 @@ function restoreButton(elem) {
 
 function restoreTextBox(elem) {
   const container = document.createElement('div');
-  container.className = 'text-input-container';
+  // 編集画面との一貫性のため.text-box-containerを使用
+  container.className = 'text-box-container';
   
+  container.style.position = 'absolute';
   container.style.left = elem.position_x + 'px';
   container.style.top = elem.position_y + 'px';
   if (elem.width) container.style.width = elem.width + 'px';
   if (elem.height) container.style.height = elem.height + 'px';
 
   const ta = document.createElement('textarea');
-  ta.className = 'text-input';
+  ta.className = 'text-box';
   ta.value = elem.element_value || '';
-  ta.placeholder = 'テキストを入力';
+  ta.placeholder = 'テキストを入力...';
   ta.spellcheck = false;
+  ta.style.width = '100%';
+  ta.style.height = '100%';
+  ta.style.resize = 'none';
+  ta.style.boxSizing = 'border-box';
 
   container.appendChild(ta);
   addDragHandleIfMissing(container);
