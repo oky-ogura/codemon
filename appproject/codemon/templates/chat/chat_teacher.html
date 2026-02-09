@@ -338,6 +338,20 @@ html {
       return hours + ':' + minutes;
     }
 
+    function setReadTooltip(readEl, readers) {
+      if (!readEl) return;
+      if (!readers || readers.length === 0) {
+        readEl.title = '';
+        readEl.style.cursor = '';
+        readEl.style.textDecoration = '';
+        return;
+      }
+      const readerNames = readers.map(reader => reader.user_name || reader.name || '不明').join('\n');
+      readEl.title = readerNames;
+      readEl.style.cursor = 'help';
+      readEl.style.textDecoration = 'underline dotted';
+    }
+
     function addMessage(text, sender = 'user', save = true, messageId = null, senderUserId = null, senderAvatar = null, attachments = [], createdAt = null, readCount = 0, readBy = []) {
       console.log('[DEBUG] addMessage called with:', { messageId, senderUserId, currentUserId, readCount, readBy });
       const messageEl = document.createElement('div');
@@ -469,6 +483,7 @@ html {
       messagesContainer.appendChild(messageEl);
       console.log('[DEBUG] Message appended. Container children count:', messagesContainer.children.length);
       console.log('[DEBUG] Message element:', messageEl);
+      setReadTooltip(messageEl.querySelector('.message-read'), readBy);
       
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
@@ -647,6 +662,7 @@ html {
       if (!readEl) return;
       const readCount = readers.length;
       readEl.textContent = readCount > 0 ? `既読 ${readCount}` : '';
+      setReadTooltip(readEl, readers);
     }
 
     async function markMessagesRead(messageIds) {
