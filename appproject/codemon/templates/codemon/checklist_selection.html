@@ -32,15 +32,14 @@
     overflow: hidden !important;
   }
 
+  /* --- レイアウト構造 --- */
   .content-wrapper {
     overflow: hidden !important;
     padding: 0 !important;
-
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-height: 100vh !important;
-
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
     width: 100%;
   }
 
@@ -372,8 +371,4 @@
 
 {% block ai_chat_widget %}
   {% include 'includes/ai_chat_base.html' %}
-<<<<<<< HEAD
-=======
-
->>>>>>> main
 {% endblock %}

@@ -240,7 +240,6 @@
 {% endblock %}
 
 {% block content %}
-{% include 'partials/navigation.html' %}
 <main>
   
   <div class="detail-panel" role="region" aria-label="システム詳細">
@@ -300,25 +299,6 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-
-    // ナビタブ操作
-    document.querySelectorAll('.nav-tab').forEach(tab => {
-      tab.addEventListener('click', function(e) {
-        document.querySelectorAll('.nav-tab').forEach(t => {
-            t.classList.remove('active');
-            t.setAttribute('aria-pressed', 'false');
-        });
-        this.classList.add('active');
-        this.setAttribute('aria-pressed', 'true');
-
-        if (this.id === 'tab-system') {
-            window.location.href = '/accounts/system/choice/';
-        } else if (this.id === 'tab-algorithm') {
-            window.location.href = '/accounts/block/choice/';
-        }
-      });
-    });
-
     // ボタン遷移設定
     document.getElementById('btn-back').addEventListener('click', function(){
       window.location.href = '/accounts/system/list/';
@@ -333,7 +313,6 @@
       const systemId = '{{ system_id }}';
       window.location.href = '/accounts/system/delete/?id=' + systemId;
     });
-
   });
 </script>
 

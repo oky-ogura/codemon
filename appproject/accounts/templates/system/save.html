@@ -263,3 +263,23 @@
 </script>
 
 {% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'codemon/js/tutorial_overlay.js' %}"></script>
+<script src="{% static 'codemon/js/tutorial_helper.js' %}"></script>
+<script src="{% static 'codemon/js/tutorial_manager.js' %}"></script>
+<script src="{% static 'codemon/js/tutorials/tutorial_save.js' %}"></script>
+<link rel="stylesheet" href="{% static 'codemon/css/tutorial_overlay.css' %}">
+
+<script>
+  // チュートリアル自動開始
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.tutorialManager) {
+      tutorialManager.autoStart();
+    }
+    console.log('🔍 STEP2 保存完了画面: DOMContentLoaded');
+  });
+
+  console.log('🔧 TutorialHelper loaded (Save Page)');
+</script>
+{% endblock %}
