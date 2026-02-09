@@ -25,7 +25,7 @@
   
   <div class="character-container">
     {# キャラクター画像とアクセサリーをラップするコンテナ #}
-    <div class="character-with-accessory">
+    <div class="character-with-accessory" style="width: auto !important;">
       {% if mode == 'karihome' %}
         {# karihomeモード: 通常画像と笑顔画像 #}
         <img src="{% static 'codemon/images/characters/' %}{{ appearance|default:'イヌ.png' }}" 
@@ -622,18 +622,17 @@
     display: flex;
     align-items: flex-end;
     justify-content: flex-end;
-    padding-right: 8%;
+    padding-right: 0%;
     z-index: 100;
   }
   
   .karihome-mode .character-with-accessory {
     position: relative;
-    width: 100%;
+    width: auto;
     height: 100%;
     display: flex;
     align-items: flex-end;
     justify-content: flex-end;
-    padding-right: 2%;
   }
   
   .karihome-mode .character-image {
@@ -644,7 +643,7 @@
     cursor: pointer;
     position: absolute;
     bottom: 0;
-    right: 2%;
+    right: 0%;
   }
   
   .karihome-mode .character-default {
