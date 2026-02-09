@@ -542,31 +542,10 @@
 
 </script>
 
-<!-- チュートリアルスクリプト -->
-<script src="{% static 'codemon/js/tutorial_overlay.js' %}"></script>
-<script src="{% static 'codemon/js/tutorial_helper.js' %}"></script>
-<script src="{% static 'codemon/js/tutorial_manager.js' %}"></script>
-<script src="{% static 'codemon/js/tutorials/tutorial_list.js' %}"></script>
-<script src="{% static 'codemon/js/tutorials/tutorial_test.js' %}"></script>
-<link rel="stylesheet" href="{% static 'codemon/css/tutorial_overlay.css' %}">
-
+<!-- 既存チュートリアルシステムは削除されました -->
 <script>
-  // チュートリアル自動開始
   document.addEventListener('DOMContentLoaded', function() {
-    if (window.tutorialManager) {
-      tutorialManager.autoStart();
-    }
-    console.log('🔍 system_list 読み込み完了');
+    console.log('✅ システムリスト画面ロード完了');
   });
-
-  window.TutorialHelper = {
-    enableDebug: function() {
-      if (window.tutorialManager) {
-        tutorialManager.enableDebugMode();
-      }
-    }
-  };
-
-  console.log('🔧 TutorialHelper loaded (List Page)');
 </script>
 {% endblock %}

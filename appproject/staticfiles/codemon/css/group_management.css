@@ -4,23 +4,27 @@
 
 @import url('submission_box.css');
 
+:root {
+  --chat-max-width: 800px;
+  --chat-position-x: 50px;
+  --chat-position-y: 135px;
+  --chat-border-radius: 12px;
+  --chat-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
 .group-management-container {
   display: flex;
   flex-direction: column;
-  height: var(--chat-max-height) !important;
-  max-width: var(--chat-max-width) !important;
-  margin: var(--chat-margin) !important;
-  padding: var(--chat-padding) !important;
-  margin-top: var(--chat-top-offset) !important;
-  background-color: var(--bg-white);
-  position: var(--chat-position) !important;
-  left: var(--chat-position-x) !important;
-  top: var(--chat-position-y) !important;
-  transform: var(--chat-transform) !important;
-  border-radius: var(--chat-border-radius) !important;
+  position: fixed;
+  left: var(--chat-position-x);
+  top: var(--chat-position-y);
+  width: calc(100% - 100px);
+  max-width: var(--chat-max-width);
+  height: calc(85vh - 100px);
+  background: white;
+  border-radius: var(--chat-border-radius);
+  box-shadow: var(--chat-box-shadow);
   overflow: hidden;
-  box-shadow: var(--chat-box-shadow) !important;
-  width: 100%;
 }
 
 /* ===== ヘッダー ===== */

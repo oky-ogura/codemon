@@ -43,6 +43,6 @@
 /* 既読表示 */
 .message.sent .message-read {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.8);
+  color: #4CAF50;
   margin-top: 2px;
 }

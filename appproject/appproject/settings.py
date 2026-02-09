@@ -121,7 +121,9 @@ db_password = str(os.getenv('DB_PASSWORD', 'password'))
 db_host = str(os.getenv('DB_HOST', 'localhost'))
 db_port = str(os.getenv('DB_PORT', '5432'))
 
+
 # 一時的にSQLiteを使用（PostgreSQL接続のエンコーディング問題を回避）
+
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.sqlite3',
@@ -279,10 +281,11 @@ LOGGING = {
 }
 
 # AI integration settings (external API)
-AI_API_KEY = os.getenv('AI_API_KEY', '')
+# 環境変数よりもこの値を優先する
+AI_API_KEY = 'AIzaSyB6kf6hBJ4tuxnm5W_Ul_XNBUWgprAQzAw'
 # Default model to call for chat completions
 # gemini-2.5-flash は現在利用可能な最新の安定モデル
-AI_MODEL = os.getenv('AI_MODEL', 'gemini-2.5-flash')
+AI_MODEL = 'gemini-2.5-flash'
 # Development-time email backend: print emails to console so password-reset links are visible during development
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

@@ -11,6 +11,7 @@ def global_character_data(request):
     context = {
         'ai_name': 'うたー',
         'character': 'inu',
+        'appearance': 'イヌ.png',  # デフォルトのappearance追加
         'character_img': "/static/codemon/images/characters/イヌ.png",
         'equipped_accessory': None,
     }
