@@ -11,7 +11,6 @@
 {% block title %}システム作成 - Codemon{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'codemon/css/tutorial_overlay.css' %}" rel="stylesheet">
 {% include 'system/_styles.html' %}
 {% endblock %}
 
@@ -27,14 +26,9 @@
 {% include 'system/_element_creators.html' %}
 {% include 'system/_initialization.html' %}
 
-<script src="{% static 'codemon/js/tutorial_overlay.js' %}"></script>
-<script src="{% static 'codemon/js/tutorial_helper.js' %}"></script>
-<script src="{% static 'codemon/js/tutorial_manager.js' %}"></script>
-<script src="{% static 'codemon/js/tutorials/tutorial_seikai.js' %}"></script>
-<script src="{% static 'codemon/js/tutorials/tutorial_fuseikai.js' %}"></script>
-<script src="{% static 'codemon/js/tutorials/tutorial_mondai.js' %}"></script>
+<!-- 既存チュートリアルシステムは削除されました -->
 <script>
-console.log('システム編集画面を読み込みました');
+console.log('✅ システム編集画面を読み込みました');
 
 // getCookie関数を定義（グローバルスコープ）
 function getCookie(name) {
@@ -52,12 +46,8 @@ function getCookie(name) {
   return cookieValue;
 }
 
-// チュートリアル自動開始
-if (window.tutorialManager) {
-  document.addEventListener('DOMContentLoaded', function() {
-    tutorialManager.autoStart();
-  });
-}
+// 既存チュートリアルシステムは削除されました
+console.log('✅ システム編集画面（index.html）ロード完了');
 </script>
 {% endblock %}
 

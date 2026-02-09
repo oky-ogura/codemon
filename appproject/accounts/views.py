@@ -1006,6 +1006,7 @@ APPEARANCE_TO_CHARACTER = {
 }
 
 # システム選択画面
+@account_session_required
 def system_choice(request):
     # ログインユーザーのAI設定を取得
     account = get_logged_account(request)
@@ -1059,8 +1060,15 @@ def system_choice(request):
     return render(request, 'system/system_choice.html', context)
 
 # システム新規作成画面（システム名、システムの詳細入力など）
+@account_session_required
 def system_create(request):
     if request.method == 'POST':
+        # デバッグ: セッション情報を確認
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f'🔍 system_create POST: セッションキー={list(request.session.keys())}')
+        logger.info(f'🔍 account_user_id={request.session.get("account_user_id")}')
+        
         # POSTデータを取得
         system_name = request.POST.get('system_name', '').strip()
         system_detail = request.POST.get('system_detail', '').strip()
@@ -1077,12 +1085,28 @@ def system_create(request):
             if is_ajax:
                 return JsonResponse({'success': False, 'error': error_msg}, status=400)
             messages.error(request, error_msg)
-            return render(request, 'system/system_create.html')
+            # エラー時もコンテキストを渡す
+            account = get_logged_account(request)
+            context = {
+                'other_systems': [],
+                'algorithms_json': '[]',
+                'is_logged_in': bool(account)
+            }
+            if account:
+                try:
+                    context['other_systems'] = System.objects.filter(user=account).order_by('-created_at')
+                except Exception:
+                    pass
+            return render(request, 'system/system_create.html', context)
 
         # ログインユーザーを取得
+        # @account_session_requiredがあるため、ここではログイン済みのはず
         account = get_logged_account(request)
+        logger.info(f'🔍 get_logged_account結果: {account}')
         if not account:
-            error_msg = 'ログインが必要です。'
+            # 通常ここには到達しないが、念のため
+            error_msg = 'セッションエラーが発生しました。再度ログインしてください。'
+            logger.warning(f'⚠️ セッションエラー')
             if is_ajax:
                 return JsonResponse({'success': False, 'error': error_msg}, status=401)
             messages.error(request, error_msg)
@@ -1182,18 +1206,31 @@ def system_create(request):
             if is_ajax:
                 return JsonResponse({'success': False, 'error': error_msg}, status=404)
             messages.error(request, error_msg)
-            return render(request, 'system/system_create.html')
+            # エラー時もコンテキストを渡す
+            context = {
+                'other_systems': System.objects.filter(user=account).order_by('-created_at') if account else [],
+                'algorithms_json': '[]',
+                'is_logged_in': bool(account)
+            }
+            return render(request, 'system/system_create.html', context)
         except Exception as e:
             error_msg = f'システムの保存に失敗しました: {str(e)}'
             if is_ajax:
                 return JsonResponse({'success': False, 'error': error_msg}, status=500)
             messages.error(request, error_msg)
-            return render(request, 'system/system_create.html')
+            # エラー時もコンテキストを渡す
+            context = {
+                'other_systems': System.objects.filter(user=account).order_by('-created_at') if account else [],
+                'algorithms_json': '[]',
+                'is_logged_in': bool(account)
+            }
+            return render(request, 'system/system_create.html', context)
 
     # GETリクエストの場合: 他のシステム一覧とアルゴリズム一覧を取得してテンプレートに渡す
     account = get_logged_account(request)
     other_systems = []
     algorithms_json = '[]'
+    is_logged_in = bool(account)  # デバッグ用にログイン状態を明示的に渡す
     
     if account:
         try:
@@ -1219,7 +1256,8 @@ def system_create(request):
 
     return render(request, 'system/system_create.html', {
         'other_systems': other_systems,
-        'algorithms_json': algorithms_json
+        'algorithms_json': algorithms_json,
+        'is_logged_in': is_logged_in  # デバッグ用
     })
 
 # システム一覧画面
@@ -1388,12 +1426,13 @@ def system_roulette_topics(request):
     if account:
         try:
             from .models import AiConfig
-            config = AiConfig.objects.filter(account=account).first()
+            # user_idでフィルタする
+            config = AiConfig.objects.filter(user_id=account.user_id).first()
             if config:
                 appearance = config.appearance or 'イヌ.png'
                 ai_name = config.ai_name or 'うたー'
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"AiConfig取得エラー (roulette): {e}")
     
     # 外見からキャラクターIDを取得
     character = APPEARANCE_TO_CHARACTER.get(appearance, 'inu')
