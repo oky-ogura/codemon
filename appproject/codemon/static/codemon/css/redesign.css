@@ -94,12 +94,11 @@
   width: auto;
   height: auto;
   filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.2));
-  transition: transform 0.3s ease;
 }
 
 /* キャラクターアニメーション（ホバー時など） */
 .character-image:hover {
-  transform: scale(1.02) translateY(-5px);
+  /* アニメーション無し */
 }
 
 /* ==================== 吹き出し ==================== */
@@ -157,7 +156,6 @@
   border: none;
   background: none;
   cursor: pointer;
-  transition: all 0.3s ease;
   outline: none;
 }
 
@@ -214,7 +212,6 @@
   border: 3px solid #ddd;
   border-radius: 15px;
   font-size: 16px;
-  transition: all 0.3s;
   background: white;
 }
 

@@ -353,11 +353,23 @@ class CodeMonAIEngine:
 
     def _get_api_key(self) -> str:
         """APIキーを取得"""
-        return getattr(settings, 'AI_API_KEY', '') or os.getenv('GEMINI_API_KEY', '')
+        api_key_from_settings = getattr(settings, 'AI_API_KEY', '')
+        api_key_from_env = os.getenv('GEMINI_API_KEY', '')
+        final_key = api_key_from_settings or api_key_from_env
+        print(f"[DEBUG] API Key from settings: {api_key_from_settings[:20] if api_key_from_settings else 'None'}...")
+        print(f"[DEBUG] API Key from env: {api_key_from_env[:20] if api_key_from_env else 'None'}...")
+        print(f"[DEBUG] Final API Key: {final_key[:20] if final_key else 'None'}...")
+        return final_key
     
     def _get_model_name(self) -> str:
         """モデル名を取得"""
-        return getattr(settings, 'AI_MODEL', '') or os.getenv('GEMINI_MODEL', 'gemini-3-flash-preview')
+        model_from_settings = getattr(settings, 'AI_MODEL', '')
+        model_from_env = os.getenv('GEMINI_MODEL', '')
+        final_model = model_from_settings or model_from_env or 'gemini-2.5-flash'
+        print(f"[DEBUG] Model from settings: {model_from_settings}")
+        print(f"[DEBUG] Model from env: {model_from_env}")
+        print(f"[DEBUG] Final model: {final_model}")
+        return final_model
     
     def _create_chat_with_retry(self, user_text: str, history_pairs: List[Tuple[str, str]], character_id: str) -> str:
         """リトライ付きでチャットを実行（tenacity使用時）"""
@@ -365,7 +377,11 @@ class CodeMonAIEngine:
         if not api_key:
             return "[設定エラー] AI APIキーが未設定です。環境変数 `AI_API_KEY` または `GEMINI_API_KEY` を設定してください。"
         
+        print(f"[DEBUG] Configuring genai with API key: {api_key[:20]}...")
         genai.configure(api_key=api_key)
+        
+        model_name = self._get_model_name()
+        print(f"[DEBUG] Using model: {model_name}")
         
         generation_config = {
             "temperature": 0.6,  # 安定性のため少し下げる

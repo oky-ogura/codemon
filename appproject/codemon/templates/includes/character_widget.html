@@ -3,6 +3,7 @@
 {# モード: 'karihome' (デフォルト) または 'sidebar' #}
 {# 使用例: {% include 'includes/character_widget.html' with mode='sidebar' %} #}
 
+<!-- DEBUG: appearance={{ appearance }}, ai_name={{ ai_name }}, mode={{ mode }} -->
 <div class="character-widget {% if mode == 'sidebar' %}sidebar-mode{% else %}karihome-mode{% endif %}" id="characterWidget" data-character="{{ appearance|default:'イヌ.png' }}">
   
   {# karihomeモード: 吹き出し表示 #}
@@ -13,11 +14,7 @@
     </div>
   </div>
   <button class="chat-trigger-btn" id="chatTriggerBtn">
-    💬 話しかける
-    <span class="sparkle">✨</span>
-    <span class="sparkle">⭐</span>
-    <span class="sparkle">✨</span>
-    <span class="sparkle">⭐</span>
+    <i class="fas fa-comment-dots"></i> はなしかける
   </button>
   {% endif %}
   
@@ -29,10 +26,27 @@
   <div class="character-container">
     {# キャラクター画像とアクセサリーをラップするコンテナ #}
     <div class="character-with-accessory">
-      <img src="{% if character_img %}{{ character_img }}{% else %}{% static 'codemon/images/characters/イヌ.png' %}{% endif %}" 
-           alt="AIキャラクター" 
-           class="character-image"
-           onerror="this.onerror=null;this.src='{% static 'codemon/images/characters/イヌ.png' %}';">
+      {% if mode == 'karihome' %}
+        {# karihomeモード: 通常画像と笑顔画像 #}
+        <img src="{% static 'codemon/images/characters/' %}{{ appearance|default:'イヌ.png' }}" 
+             alt="AIキャラクター" 
+             class="character-image character-default"
+             id="characterDefault"
+             onerror="this.onerror=null;this.src='{% static 'codemon/images/characters/イヌ.png' %}';">
+        {% with smile_char=appearance|default:'イヌ.png'|slice:':-4' %}
+        <img src="{% static 'codemon/images/characters/' %}{{ smile_char }} 笑顔.png" 
+             alt="AIキャラクター笑顔" 
+             class="character-image character-hover"
+             id="characterHover"
+             onerror="this.onerror=null;this.src='{% static 'codemon/images/characters/イヌ 笑顔.png' %}';">
+        {% endwith %}
+      {% else %}
+        {# sidebarモード: 通常画像のみ #}
+        <img src="{% static 'codemon/images/characters/' %}{{ appearance|default:'イヌ.png' }}" 
+             alt="AIキャラクター" 
+             class="character-image"
+             onerror="this.onerror=null;this.src='{% static 'codemon/images/characters/イヌ.png' %}';">
+      {% endif %}
       
       {# アクセサリー表示 #}
       {% if equipped_accessory %}
@@ -53,7 +67,7 @@
 {% if mode == 'sidebar' %}
 <div class="character-mini-icon" id="characterMiniIcon" title="キャラクターを表示">
   <div class="mini-icon-wrapper">
-    <img src="{% if character_img %}{{ character_img }}{% else %}{% static 'codemon/images/characters/イヌ.png' %}{% endif %}" 
+    <img src="{% static 'codemon/images/characters/' %}{{ appearance|default:'イヌ.png' }}" 
          alt="AI"
          onerror="this.onerror=null;this.src='{% static 'codemon/images/characters/イヌ.png' %}';">
     
@@ -253,20 +267,20 @@
   
   .character-image {
     pointer-events: auto;
-    transition: transform 0.3s ease;
     transform-origin: bottom center;
     display: block;
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
     cursor: pointer;
+    transition: none !important;
   }
   .character-container img {
     border: none !important;
     outline: none !important;
   }
   .character-image:hover {
-    transform: scale(1.05) rotate(2deg) !important;
+    /* ホバー時の傾きを削除 */
   }
   
   /* ==================== アクセサリー共通スタイル ==================== */
@@ -592,96 +606,120 @@
      karihomeモード（大きい表示）
      ======================================== */
   .karihome-mode {
-    top: 0;
-    left: 0;
+    position: relative;
     width: 100%;
     height: 100%;
-  }
-  .karihome-mode .character-container {
-    position: fixed !important;
-    left: 48%;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 100 !important;
     display: flex;
+    flex-direction: column;
     align-items: center;
-  }
-  .karihome-mode .character-image {
-    max-width: 350px !important;
-    max-height: 450px !important;
-  }
-  .karihome-mode .speech-bubble-container {
-    position: fixed !important;
-    left: 28%;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 101;
-    max-width: 400px;
-    display: flex;
     justify-content: flex-end;
   }
+  
+  .karihome-mode .character-container {
+    position: relative;
+    width: 100%;
+    height: 85vh;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding-right: 8%;
+    z-index: 100;
+  }
+  
+  .karihome-mode .character-with-accessory {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding-right: 2%;
+  }
+  
+  .karihome-mode .character-image {
+    max-height: 100%;
+    width: auto;
+    max-width: 420px;
+    filter: drop-shadow(15px 15px 0 rgba(0,0,0,0.05));
+    cursor: pointer;
+    position: absolute;
+    bottom: 0;
+    right: 2%;
+  }
+  
+  .karihome-mode .character-default {
+    opacity: 1;
+    transition: none !important;
+  }
+  
+  .karihome-mode .character-hover {
+    opacity: 0;
+    transition: none !important;
+  }
+  
+  .karihome-mode .character-with-accessory:hover .character-default {
+    opacity: 0 !important;
+    transition: none !important;
+  }
+  
+  .karihome-mode .character-with-accessory:hover .character-hover {
+    opacity: 1 !important;
+    transition: none !important;
+  }
+  
+  .karihome-mode .speech-bubble-container {
+    position: absolute;
+    top: 120px;
+    left: -30px;
+    z-index: 101;
+  }
+  
   .karihome-mode .speech-bubble {
     background: white;
-    border-radius: 30px;
-    padding: 35px 45px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-    position: relative;
-    font-size: 24px;
-    line-height: 1.8;
+    border: 4px solid var(--theme-primary, #FFD700);
+    padding: 15px 25px;
+    border-radius: 25px;
+    font-weight: 900;
+    box-shadow: 0 10px 0 rgba(0,0,0,0.05);
+    font-size: 18px;
+    line-height: 1.6;
     color: #333;
-    border: 3px solid var(--theme-primary, #FFD700);
-    animation: bubbleFloat 2s ease-in-out infinite;
+    min-width: 150px;
+    text-align: center;
+    animation: bubbleFloat 3s ease-in-out infinite;
   }
+  
   .karihome-mode .speech-bubble::after {
-    content: '';
-    position: absolute;
-    right: -20px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 0;
-    height: 0;
-    border-left: 25px solid white;
-    border-top: 20px solid transparent;
-    border-bottom: 20px solid transparent;
+    /* 吹き出しの△マークを非表示 */
+    display: none;
   }
+  
   .karihome-mode .chat-trigger-btn {
-    position: fixed;
-    left: 31%;
-    top: 65%;
+    position: absolute;
+    bottom: 40px;
+    left: 10px;
     background: linear-gradient(135deg, var(--theme-primary, #FFD700), var(--theme-secondary, #FFA500));
     color: white;
     border: none;
-    padding: 15px 30px;
+    padding: 12px 25px;
     border-radius: 50px;
-    font-size: 18px;
-    font-weight: bold;
+    font-size: 16px;
+    font-weight: 900;
     cursor: pointer;
-    box-shadow: 0 5px 15px var(--theme-shadow, rgba(255, 165, 0, 0.4));
+    box-shadow: 0 6px 0 var(--theme-dark, #FF8C00);
     z-index: 102;
     display: flex;
     align-items: center;
-    gap: 10px;
-    transition: all 0.3s;
+    gap: 8px;
   }
-  .karihome-mode .chat-trigger-btn .sparkle {
-    position: absolute;
-    font-size: 24px;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.3s;
-  }
+  
   .karihome-mode .chat-trigger-btn:hover {
-    transform: scale(1.1);
-    box-shadow: 0 8px 20px var(--theme-shadow-strong, rgba(255, 165, 0, 0.6));
+    box-shadow: 0 10px 0 var(--theme-dark, #FF8C00);
   }
-  .karihome-mode .chat-trigger-btn:hover .sparkle {
-    opacity: 1;
-    animation: sparkleFloat 1.5s ease-in-out infinite;
+  
+  .karihome-mode .chat-trigger-btn .sparkle {
+    display: none;
   }
-  .sparkle:nth-child(1) { top: -10px; left: -10px; animation-delay: 0s; }
-  .sparkle:nth-child(2) { top: -10px; right: -10px; animation-delay: 0.2s; }
-  .sparkle:nth-child(3) { bottom: -10px; left: -10px; animation-delay: 0.4s; }
-  .sparkle:nth-child(4) { bottom: -10px; right: -10px; animation-delay: 0.6s; }
 
   /* ========================================
      sidebarモード（小さい常駐表示）
@@ -719,11 +757,9 @@
     align-items: center;
     justify-content: center;
     z-index: 101;
-    transition: all 0.3s;
     box-shadow: 0 2px 6px rgba(0,0,0,0.2);
   }
   .sidebar-mode .widget-minimize-btn:hover {
-    transform: scale(1.1);
     background: linear-gradient(135deg, var(--theme-secondary, #FFA500), var(--theme-dark, #FF8C00));
   }
 
@@ -742,7 +778,6 @@
     cursor: pointer;
     box-shadow: 0 4px 12px var(--theme-shadow, rgba(255, 165, 0, 0.4));
     z-index: 100;
-    transition: all 0.3s;
     overflow: hidden;
     padding: 5px;
   }
@@ -753,7 +788,6 @@
     border-radius: 50%;
   }
   .character-mini-icon:hover {
-    transform: scale(1.1);
     box-shadow: 0 6px 16px var(--theme-shadow-strong, rgba(255, 165, 0, 0.6));
   }
   .character-mini-icon.active {
@@ -839,12 +873,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s;
     color: var(--theme-dark, #FF8C00);
     font-weight: bold;
   }
   .chat-close-btn:hover {
-    transform: rotate(90deg) scale(1.1);
     background: var(--theme-light, #FFE4B5);
   }
   .chat-messages {
@@ -901,7 +933,6 @@
     border-radius: 25px;
     font-size: 16px;
     outline: none;
-    transition: all 0.3s;
   }
   .chat-input:focus {
     border-color: var(--theme-secondary, #FFA500);
@@ -916,15 +947,12 @@
     font-size: 18px;
     font-weight: bold;
     cursor: pointer;
-    transition: all 0.3s;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
   }
   .chat-send-btn:hover {
-    transform: scale(1.05);
     box-shadow: 0 5px 15px var(--theme-shadow, rgba(255, 165, 0, 0.4));
   }
   .chat-send-btn:active {
-    transform: scale(0.98);
   }
   .chat-loading {
     display: none;
@@ -939,7 +967,12 @@
 
 <script src="{% static 'codemon/js/interactions.js' %}"></script>
 <script>
+(function() {
+  'use strict';
+  
 document.addEventListener('DOMContentLoaded', function() {
+  console.log('🎯 character_widget.html DOMContentLoaded開始');
+  
   const widget = document.getElementById('characterWidget');
   const character = document.querySelector('.character-image');
   const chatModal = document.getElementById('chatModal');
@@ -947,6 +980,48 @@ document.addEventListener('DOMContentLoaded', function() {
   const sendChatBtn = document.getElementById('sendChatBtn');
   const chatInput = document.getElementById('chatInput');
   const chatMessages = document.getElementById('chatMessages');
+  const chatTriggerBtn = document.getElementById('chatTriggerBtn');
+  const chatHeaderTitle = document.getElementById('chatHeaderTitle');
+  const chatLoading = document.querySelector('.chat-loading');
+  const characterMumble = document.getElementById('characterMumble');
+  const minimizeBtn = document.getElementById('widgetMinimizeBtn');
+  const miniIcon = document.getElementById('characterMiniIcon');
+  
+  console.log('🎯 DOM要素取得結果:');
+  console.log('  - widget:', widget);
+  console.log('  - chatModal:', chatModal);
+  console.log('  - chatTriggerBtn:', chatTriggerBtn);
+  console.log('  - closeChatBtn:', closeChatBtn);
+  console.log('  - sendChatBtn:', sendChatBtn);
+  console.log('  - characterMumble:', characterMumble);
+  
+  // モード判定
+  const isSidebarMode = widget ? widget.classList.contains('sidebar-mode') : false;
+  console.log('  - isSidebarMode:', isSidebarMode);
+  
+  // キャラクター別のテーマカラー設定
+  const characterColors = {
+    'ウサギ.png': { primary: '#F5E3F4', secondary: '#E8C4E8', dark: '#D4A5D4' },
+    'キツネ.png': { primary: '#FCD37D', secondary: '#F5B942', dark: '#E5A020' },
+    'イヌ.png': { primary: '#FFD700', secondary: '#FFA500', dark: '#FF8C00' },
+    'パンダ.png': { primary: '#FEF5DB', secondary: '#F5E6B8', dark: '#E5D090' },
+    'リス.png': { primary: '#FEB6AC', secondary: '#F59A8E', dark: '#E57A6E' },
+    'フクロウ.png': { primary: '#92B7D6', secondary: '#6A9BC5', dark: '#4A7BA5' },
+    'ネコ.png': { primary: '#9CBDB6', secondary: '#7AA59D', dark: '#5A8A80' },
+    'アルパカ.png': { primary: '#FFF5CD', secondary: '#F5E8A5', dark: '#E5D580' }
+  };
+  
+  // 現在のキャラクターに基づいてテーマカラーを設定
+  const currentAppearance = widget ? widget.getAttribute('data-character') : 'イヌ.png';
+  const colors = characterColors[currentAppearance] || characterColors['イヌ.png'];
+  
+  document.documentElement.style.setProperty('--theme-primary', colors.primary);
+  document.documentElement.style.setProperty('--theme-secondary', colors.secondary);
+  document.documentElement.style.setProperty('--theme-dark', colors.dark);
+  
+  // ========================================
+  // sidebarモード: 最小化/復元機能
+  // ========================================
     if (isSidebarMode) {
       // ユーザーIDをテンプレートから取得
       const userId = '{{ request.user.id|default:"anon" }}';
@@ -988,8 +1063,25 @@ document.addEventListener('DOMContentLoaded', function() {
         if (miniIcon) miniIcon.classList.remove('active');
       }
     }
+  
+  // ========================================
+  // キャラクター別台詞データ
+  // ========================================
+  const characterDialogues = {
+    // ウサギ（恥ずかしがり屋、やさしい）
+    'ウサギ.png': {
+      mumbles: [
+        'え、えっと…何しようかな…',
+        'ぼ、ぼく、ここにいるよ…',
+        'う、うんと…少し眠いかも…',
+        'あ、あの…誰かいるかな…',
+        'ぼ、ぼくでよければ…話そうよ…',
+        'え、えっと…今日もがんばるね…',
+        'ぼ、ぼく…ちょっと緊張する…',
+        'あ、あの…よかったら声かけてね…'
       ],
-      greeting: 'こ、こんにちは…！ ぼ、ぼくは{{ ai_name }}です。<br>え、えっと…なんでも聞いてね…！'
+      greeting: 'こ、こんにちは…！ ぼ、ぼくは{AI_NAME}です。<br>え、えっと…なんでも聞いてね…！',
+      hoverMessage: 'いっしょに<br>あそぼう！'
     },
     // キツネ（皮肉屋、飄々）
     'キツネ.png': {
@@ -1003,7 +1095,8 @@ document.addEventListener('DOMContentLoaded', function() {
         '誰か構ってくれないかねぇ',
         'ま、気が向いたら話しかけなよ'
       ],
-      greeting: 'よぉ。オレは{{ ai_name }}ってやつさ。<br>なんか聞きたいことあるなら、聞いてやるよ。'
+      greeting: 'よぉ。オレは{AI_NAME}ってやつさ。<br>なんか聞きたいことあるなら、聞いてやるよ。',
+      hoverMessage: 'ま、<br>付き合ってやるか'
     },
     // イヌ（明るく前向き）
     'イヌ.png': {
@@ -1017,7 +1110,8 @@ document.addEventListener('DOMContentLoaded', function() {
         '散歩したいな',
         '話しかけてくれよ！'
       ],
-      greeting: 'こんにちは！おれは{{ ai_name }}だ！<br>なんでも聞いてくれよな！'
+      greeting: 'こんにちは！おれは{AI_NAME}だ！<br>なんでも聞いてくれよな！',
+      hoverMessage: 'いっしょに<br>あそぼう！'
     },
     // パンダ（のんびり癒し）
     'パンダ.png': {
@@ -1031,7 +1125,8 @@ document.addEventListener('DOMContentLoaded', function() {
         '急がなくていいよぉ',
         'ぼく、ここにいるよぉ'
       ],
-      greeting: 'やぁ…ぼくは{{ ai_name }}だよぉ。<br>ゆっくりでいいから、なんでも聞いてねぇ。'
+      greeting: 'やぁ…ぼくは{AI_NAME}だよぉ。<br>ゆっくりでいいから、なんでも聞いてねぇ。',
+      hoverMessage: 'いっしょに<br>まったりしようぉ'
     },
     // リス（ツンデレ世話焼き）
     'リス.png': {
@@ -1045,7 +1140,8 @@ document.addEventListener('DOMContentLoaded', function() {
         'ちょっと、聞いてるの？',
         'まったく、世話が焼けるわね'
       ],
-      greeting: 'ふん、アタシは{{ ai_name }}よ。<br>しょうがないから、質問があれば聞いてあげるわ。'
+      greeting: 'ふん、アタシは{AI_NAME}よ。<br>しょうがないから、質問があれば聞いてあげるわ。',
+      hoverMessage: 'べ、別にアンタの<br>ためじゃないんだから！'
     },
     // フクロウ（知的で穏やか）
     'フクロウ.png': {
@@ -1059,7 +1155,8 @@ document.addEventListener('DOMContentLoaded', function() {
         '学ぶことは楽しいですよ',
         'いつでもお手伝いしますよ'
       ],
-      greeting: 'こんにちは。わたしは{{ ai_name }}です。<br>何かお困りのことがあれば、お気軽にどうぞ。'
+      greeting: 'こんにちは。わたしは{AI_NAME}です。<br>何かお困りのことがあれば、お気軽にどうぞ。',
+      hoverMessage: '知識は力なり。<br>いつでもご相談を'
     },
     // ネコ（けだるげ、気まぐれ）
     'ネコ.png': {
@@ -1073,7 +1170,8 @@ document.addEventListener('DOMContentLoaded', function() {
         '……気が向いたら話す',
         '……別に待ってないし'
       ],
-      greeting: '……ああ、ぼくは{{ ai_name }}。<br>……聞きたいことがあるなら、聞けば？'
+      greeting: '……ああ、ぼくは{AI_NAME}。<br>……聞きたいことがあるなら、聞けば？',
+      hoverMessage: '……気が向いたら<br>答えてあげる'
     },
     // アルパカ（お嬢様）
     'アルパカ.png': {
@@ -1087,19 +1185,26 @@ document.addEventListener('DOMContentLoaded', function() {
         'ついていらっしゃい',
         'さあ、何でもおっしゃって'
       ],
-      greeting: 'ごきげんよう。わたくしは{{ ai_name }}ですわ。<br>何でもお聞きになって。お力になりますわよ。'
+      greeting: 'ごきげんよう。わたくしは{AI_NAME}ですわ。<br>何でもお聞きになって。お力になりますわよ。',
+      hoverMessage: 'わたくしと一緒に<br>頑張りましょう'
     }
   };
   
-  // 現在のキャラクターを取得
-  const currentAppearance = widget ? widget.getAttribute('data-character') : 'イヌ.png';
+  // 現在のキャラクター情報を取得（既に1019行目で宣言済み）
   const currentDialogue = characterDialogues[currentAppearance] || characterDialogues['イヌ.png'];
   const aiName = '{{ ai_name|default:"うたー"|escapejs }}';
+  
+  console.log('DEBUG character_widget.html:');
+  console.log('  - currentAppearance:', currentAppearance);
+  console.log('  - aiName:', aiName);
+  console.log('  - currentDialogue:', currentDialogue);
+  console.log('  - isSidebarMode:', isSidebarMode);
+  console.log('  - characterMumble:', characterMumble);
   
   // 初期挨拶を設定
   const initialGreeting = document.getElementById('initialGreeting');
   if (initialGreeting) {
-    initialGreeting.innerHTML = currentDialogue.greeting.replace(/\{\{ ai_name \}\}/g, aiName);
+    initialGreeting.innerHTML = currentDialogue.greeting.replace(/{AI_NAME}/g, aiName);
   }
   
   // ========================================
@@ -1107,15 +1212,28 @@ document.addEventListener('DOMContentLoaded', function() {
   // ========================================
   if (!isSidebarMode && characterMumble) {
     const mumbles = currentDialogue.mumbles;
+    const greeting = currentDialogue.greeting.replace(/{AI_NAME}/g, aiName);
     let mumbleIndex = 0;
     
+    console.log('DEBUG karihome吹き出し:');
+    console.log('  - mumbles:', mumbles);
+    console.log('  - greeting:', greeting);
+    
+    // 初期メッセージとしてgreetingを表示
+    characterMumble.innerHTML = greeting;
+    console.log('  - 初期メッセージ設定完了:', greeting);
+    
     function showMumble(idx) {
-      characterMumble.textContent = mumbles[idx % mumbles.length];
+      characterMumble.innerHTML = mumbles[idx % mumbles.length];
     }
-    showMumble(mumbleIndex);
-    setInterval(function() {
-      mumbleIndex++;
+    
+    // 5秒後から独り言モードに切り替え
+    setTimeout(function() {
       showMumble(mumbleIndex);
+      setInterval(function() {
+        mumbleIndex++;
+        showMumble(mumbleIndex);
+      }, 5000);
     }, 5000);
     
     // キャラクタークリックで次の会話（karihomeモード）
@@ -1133,6 +1251,25 @@ document.addEventListener('DOMContentLoaded', function() {
       speechBubble.addEventListener('click', function() {
         mumbleIndex++;
         showMumble(mumbleIndex);
+      });
+    }
+    
+    // ホバー時の吹き出し変更（karihomeモード）
+    // 画像切り替えはCSSで処理
+    const characterContainer = document.querySelector('.character-with-accessory');
+    const hoverMessage = currentDialogue.hoverMessage || currentDialogue.greeting;
+    let originalMessage = characterMumble ? characterMumble.innerHTML : '';
+    
+    if (characterContainer && characterMumble) {
+      characterContainer.addEventListener('mouseenter', function() {
+        // 吹き出しメッセージのみ変更（画像切り替えはCSSで処理）
+        originalMessage = characterMumble.innerHTML;
+        characterMumble.innerHTML = hoverMessage;
+      });
+      
+      characterContainer.addEventListener('mouseleave', function() {
+        // 吹き出しメッセージを戻す
+        characterMumble.innerHTML = originalMessage;
       });
     }
   }
@@ -1167,28 +1304,29 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // ========================================
-  // 共通: ホバーエフェクト
+  // 共通: ホバーエフェクト（傾きを削除）
   // ========================================
-  if (character) {
-    character.addEventListener('mouseenter', function() {
-      this.style.transform = 'scale(1.05) rotate(2deg)';
-    });
-    character.addEventListener('mouseleave', function() {
-      this.style.transform = 'scale(1) rotate(0deg)';
-    });
-  }
+  // ホバー時の画像切り替えはCSSで処理
   
   // ========================================
   // 共通: チャット機能
   // ========================================
   function openChat() {
+    console.log('🎯 openChat() called');
+    if (!chatModal) {
+      console.error('❌ chatModal is null!');
+      return;
+    }
     chatModal.classList.add('active');
-    chatInput.focus();
+    if (chatInput) chatInput.focus();
     const navBar = document.querySelector('.top-tabs');
     if (navBar) navBar.style.display = 'none';
+    console.log('✅ チャットモーダル表示完了');
   }
   
   function closeChat() {
+    console.log('🎯 closeChat() called');
+    if (!chatModal) return;
     chatModal.classList.remove('active');
     const navBar = document.querySelector('.top-tabs');
     if (navBar) navBar.style.display = '';
@@ -1196,12 +1334,18 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // 話しかけるボタン（karihomeモード）
   if (chatTriggerBtn) {
+    console.log('✅ chatTriggerBtn イベントリスナー設定');
     chatTriggerBtn.addEventListener('click', openChat);
+  } else {
+    console.warn('⚠️ chatTriggerBtn が見つかりません');
   }
   
   // 閉じるボタン
   if (closeChatBtn) {
+    console.log('✅ closeChatBtn イベントリスナー設定');
     closeChatBtn.addEventListener('click', closeChat);
+  } else {
+    console.warn('⚠️ closeChatBtn が見つかりません');
   }
   
   // 背景クリックで閉じる
@@ -1310,7 +1454,7 @@ document.addEventListener('DOMContentLoaded', function() {
     'リス': 'risu',
     'フクロウ': 'fukurou',
     'ネコ': 'neko',
-    'アルパカ': 'arupaka',
+    'アルパカ': 'arupaka'
   };
   
   // ユーザーの選択したキャラクターを取得
@@ -1372,4 +1516,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+
+})(); // 即時関数の終了
 </script>

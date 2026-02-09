@@ -7,7 +7,6 @@
     {% load static %}
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'codemon/css/tutorial_overlay.css' %}">
     
     <style>
         :root {
@@ -169,28 +168,7 @@
             to { transform: translateY(-8px) rotate(3deg); } 
         }
 
-        /* --- キャラクター領域 --- */
-        .character-area { grid-column: 3 / 4; grid-row: 1 / 4; position: relative; display: flex; align-items: flex-end; justify-content: center; }
-        .character-container { position: relative; width: 100%; height: 85vh; display: flex; align-items: flex-end; justify-content: center; }
-        .character-img { max-height: 100%; width: auto; max-width: 420px; filter: drop-shadow(15px 15px 0 rgba(0,0,0,0.05)); transition: transform 0.3s ease; cursor: pointer; position: absolute; bottom: 0; }
-        .character-img.hover { opacity: 0; }
-
-        /* 吹き出し・ボタン */
-        .speech-bubble { position: absolute; top: 120px; left: -30px; background: white; border: 4px solid var(--theme-primary); padding: 15px 25px; border-radius: 25px; font-weight: 900; box-shadow: 0 10px 0 rgba(0,0,0,0.05); z-index: 100; animation: float 3s ease-in-out infinite; color: #333; min-width: 150px; text-align: center; }
-        .speech-bubble::after { content: ''; position: absolute; bottom: -15px; right: 30px; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 15px solid var(--theme-primary); }
-        
-        .chat-trigger-btn { 
-            position: absolute; bottom: 40px; left: 10px; 
-            background: linear-gradient(135deg, var(--theme-primary), var(--theme-secondary)); color: white; 
-            border: none; padding: 12px 25px; border-radius: 50px; font-weight: 900; 
-            cursor: pointer; box-shadow: 0 6px 0 var(--theme-dark); transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-            z-index: 110; display: flex; align-items: center; gap: 8px; 
-        }
-        .chat-trigger-btn:hover { transform: translateY(-5px) scale(1.08); box-shadow: 0 10px 0 var(--theme-dark); }
-
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-
-        /* 下部ボタン */
+        /* --- 下部ボタン --- */
         .bottom-area { grid-column: 1 / 3; grid-row: 3 / 4; display: flex; gap: 15px; align-items: center; }
         .panel-small { flex: 1; border-radius: 50px; height: 75px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 900; box-shadow: 0 6px 0 rgba(0,0,0,0.1); transition: all 0.2s; }
         .panel-small:hover { transform: translateY(-3px); }
@@ -274,187 +252,17 @@
             {% endif %}
         </div>
 
-        <div class="character-area">
-            <div class="speech-bubble" id="charSpeech">
-                おかえり！✨<br>なにする？
-            </div>
-
-            <div class="character-container" id="charContainer">
-                <img src="{% static 'codemon/images/characters/' %}{{ appearance }}" class="character-img" id="characterDefault">
-                <img src="{% static 'codemon/images/characters/' %}{{ appearance|slice:':-4' }} 笑顔.png" class="character-img hover" id="characterHover">
-            </div>
-
-            <button class="chat-trigger-btn" id="chatTriggerBtn">
-                <i class="fas fa-comment-dots"></i> はなしかける
-            </button>
+        <!-- キャラクターウィジェット（karihomeモード） -->
+        <div style="grid-column: 3 / 4; grid-row: 1 / 4; position: relative;">
+            {% load accessory_filters %}
+            {% include 'includes/character_widget.html' with mode='karihome' %}
         </div>
     </div>
 
+    <!-- 既存チュートリアルシステムは削除されました -->
     <script>
-        // ========================================
-        // キャラクター別台詞と色の設定
-        // ========================================
-        const characterDialogues = {
-            'ウサギ.png': {
-                mumbles: ['え、えっと…何しようかな…', 'ぼ、ぼく、ここにいるよ…', 'う、うんと…少し眠いかも…', 'あ、あの…誰かいるかな…', 'ぼ、ぼくでよければ…話そうよ…', 'え、えっと…今日もがんばるね…', 'ぼ、ぼく…ちょっと緊張する…', 'あ、あの…よかったら声かけてね…'],
-                greeting: 'おかえり！✨<br>なにする？',
-                hoverMessage: 'いっしょに<br>あそぼう！',
-                chatGreeting: 'こ、こんにちは…！ ぼ、ぼくは{{ user.ai_name|default:"うたー"|escapejs }}です。<br>え、えっと…なんでも聞いてね…！',
-                colors: { primary: '#F5E3F4', secondary: '#E8C4E8', dark: '#D4A5D4' }
-            },
-            'キツネ.png': {
-                mumbles: ['ふぁ…退屈だなぁ', 'なんか面白いことないかね', 'ま、暇つぶしにはなるか', 'おまえ、そこにいるんだろ？', 'へぇ…見てるのさ', 'あくびが出ちゃうな', '誰か構ってくれないかねぇ', 'ま、気が向いたら話しかけなよ'],
-                greeting: 'よぉ。<br>何する？',
-                hoverMessage: 'ま、<br>付き合ってやるか',
-                chatGreeting: 'よぉ、オレは{{ user.ai_name|default:"うたー"|escapejs }}さ。<br>何か用かい？',
-                colors: { primary: '#FCD37D', secondary: '#F5B942', dark: '#E5A020' }
-            },
-            'イヌ.png': {
-                mumbles: ['今日もいい天気だな！', '誰か遊びに来ないかな', 'お腹すいてきたぞ', 'よし、やる気出てきた！', 'なんかワクワクするな', 'ちょっと眠くなってきた…', '散歩したいな', '話しかけてくれよ！'],
-                greeting: 'おかえり！✨<br>なにする？',
-                hoverMessage: 'いっしょに<br>あそぼう！',
-                chatGreeting: 'やぁ！ボクは{{ user.ai_name|default:"うたー"|escapejs }}だよ！<br>なんでも聞いてね！✨',
-                colors: { primary: '#FFD700', secondary: '#FFA500', dark: '#FF8C00' }
-            },
-            'パンダ.png': {
-                mumbles: ['ふぁぁ…のんびりするねぇ', 'お昼寝したいなぁ', 'ゆっくりでいいよぉ', '笹が食べたいなぁ', 'まったりしてるねぇ', 'あったかいねぇ…', '急がなくていいよぉ', 'ぼく、ここにいるよぉ'],
-                greeting: 'やぁ…<br>ゆっくりでいいよぉ',
-                hoverMessage: 'いっしょに<br>まったりしようぉ',
-                chatGreeting: 'やぁ…ぼくは{{ user.ai_name|default:"うたー"|escapejs }}だよぉ。<br>ゆっくりでいいから、なんでも聞いてねぇ。',
-                colors: { primary: '#FEF5DB', secondary: '#F5E6B8', dark: '#E5D090' }
-            },
-            'リス.png': {
-                mumbles: ['もう、何してるのよ', 'ちゃんとやってる？', 'しょうがないわね…', 'アタシに任せなさいよ', 'ふん、別に暇じゃないし', '何か手伝ってあげようか？', 'ちょっと、聞いてるの？', 'まったく、世話が焼けるわね'],
-                greeting: 'ふん、おかえり。<br>なによ？',
-                hoverMessage: 'しょうがないわね…<br>遊んであげる',
-                chatGreeting: 'アタシは{{ user.ai_name|default:"うたー"|escapejs }}よ。<br>何か用？ まぁ、聞いてあげるわ。',
-                colors: { primary: '#FEB6AC', secondary: '#F59A8E', dark: '#E57A6E' }
-            },
-            'フクロウ.png': {
-                mumbles: ['ふむ…考え事をしていました', '静かで落ち着きますね', '知識は宝ですよ', '何かお困りですか？', 'ゆっくり考えましょう', 'なるほど…興味深いですね', '学ぶことは楽しいですよ', 'いつでもお手伝いしますよ'],
-                greeting: 'おかえりなさい。<br>いかがいたしましょう',
-                hoverMessage: 'お話ししましょうか',
-                chatGreeting: 'こんにちは。私は{{ user.ai_name|default:"うたー"|escapejs }}と申します。<br>何なりとお尋ねください。',
-                colors: { primary: '#92B7D6', secondary: '#6A9BC5', dark: '#4A7BA5' }
-            },
-            'ネコ.png': {
-                mumbles: ['……ふぁ', '……眠い', '……なに？', '……ま、いいけど', '……暇だな', '……そこにいるの？', '……気が向いたら話す', '……別に待ってないし'],
-                greeting: '……おかえり<br>……なに？',
-                hoverMessage: '……ま、いいけど',
-                chatGreeting: '……{{ user.ai_name|default:"うたー"|escapejs }}。<br>……聞きたいことあるの？',
-                colors: { primary: '#9CBDB6', secondary: '#7AA59D', dark: '#5A8A80' }
-            },
-            'アルパカ.png': {
-                mumbles: ['ごきげんよう', 'お紅茶が飲みたいですわ', 'よくってよ', 'わたくしに任せなさい', 'ふふ、素敵ですわね', '何かお手伝いしましょうか？', 'ついていらっしゃい', 'さあ、何でもおっしゃって'],
-                greeting: 'ごきげんよう<br>なんでしょう？',
-                hoverMessage: 'お話ししましょう',
-                chatGreeting: 'ごきげんよう。わたくしは{{ user.ai_name|default:"うたー"|escapejs }}ですわ。<br>どうぞお気軽にお話しください。',
-                colors: { primary: '#FFF5CD', secondary: '#F5E8A5', dark: '#E5D580' }
-            }
-        };
-
-        const charContainer = document.getElementById('charContainer');
-        const defaultImg = document.getElementById('characterDefault');
-        const hoverImg = document.getElementById('characterHover');
-        const speech = document.getElementById('charSpeech');
-        const chatTriggerBtn = document.getElementById('chatTriggerBtn');
-        
-        // キャラクター設定を取得
-        const appearance = '{{ appearance|default:"イヌ.png"|escapejs }}';
-        const charData = characterDialogues[appearance] || characterDialogues['イヌ.png'];
-        
-        // キャラクターコードを取得（例: 'ネコ.png' -> 'neko'）
-        const characterCodeMap = {
-            'ウサギ.png': 'usagi',
-            'キツネ.png': 'kitsune',
-            'イヌ.png': 'inu',
-            'パンダ.png': 'panda',
-            'リス.png': 'risu',
-            'フクロウ.png': 'fukurou',
-            'ネコ.png': 'neko',
-            'アルパカ.png': 'arupaka'
-        };
-        const characterCode = characterCodeMap[appearance] || 'inu';
-        
-        // character-containerにdata-character属性を追加（ai_chat_base.htmlで使用）
-        charContainer.setAttribute('data-character', characterCode);
-        console.log('設定されたキャラクター:', appearance, 'コード:', characterCode);
-        
-        // テーマカラーを適用
-        document.documentElement.style.setProperty('--theme-primary', charData.colors.primary);
-        document.documentElement.style.setProperty('--theme-secondary', charData.colors.secondary);
-        document.documentElement.style.setProperty('--theme-dark', charData.colors.dark);
-        document.documentElement.style.setProperty('--theme-light', charData.colors.primary + '20'); // 透明度20%
-        
-        // 初期メッセージを設定
-        let mumbleIndex = 0;
-        speech.innerHTML = charData.greeting;
-        
-        // 定期的に独り言を変更（5秒ごと）
-        setInterval(() => {
-            if (defaultImg.style.opacity !== '0') { // ホバーしていない時のみ
-                speech.innerHTML = charData.mumbles[mumbleIndex % charData.mumbles.length];
-                mumbleIndex++;
-            }
-        }, 5000);
-        
-        // ホバー時の処理
-        charContainer.addEventListener('mouseenter', () => {
-            defaultImg.style.opacity = '0';
-            hoverImg.style.opacity = '1';
-            speech.innerHTML = charData.hoverMessage;
-        });
-        charContainer.addEventListener('mouseleave', () => {
-            defaultImg.style.opacity = '1';
-            hoverImg.style.opacity = '0';
-            speech.innerHTML = charData.greeting;
-        });
-        
-        // キャラクタークリックで次の独り言
-        charContainer.addEventListener('click', () => {
-            speech.innerHTML = charData.mumbles[mumbleIndex % charData.mumbles.length];
-            mumbleIndex++;
-        });
-        
-        // 「はなしかける」ボタンでAIチャットウィジェットを開く
-        if (chatTriggerBtn) {
-            chatTriggerBtn.addEventListener('click', function(event) {
-                event.stopPropagation(); // イベント伝播を止める（documentのクリックイベントを防止）
-                console.log('はなしかけるボタンがクリックされました');
-                // ai_chat_base.htmlのopenAIChat()関数を呼び出す
-                if (typeof window.openAIChat === 'function') {
-                    console.log('window.openAIChat関数を呼び出します');
-                    window.openAIChat();
-                } else {
-                    console.error('window.openAIChat関数が見つかりません');
-                    // フォールバック: ウィジェットを直接表示
-                    const widget = document.getElementById('character-widget');
-                    const bubble = document.getElementById('chat-bubble');
-                    if (widget && bubble) {
-                        widget.style.display = 'block';
-                        bubble.className = 'expanded';
-                        const expandedView = document.getElementById('expanded-view');
-                        const minimizedView = document.getElementById('minimized-view');
-                        if (expandedView && minimizedView) {
-                            minimizedView.style.display = 'none';
-                            expandedView.style.display = 'flex';
-                            expandedView.style.flexDirection = 'column';
-                        }
-                    }
-                }
-            });
-        }
-    </script>
-
-    <!-- チュートリアルスクリプト -->
-    <script src="{% static 'codemon/js/tutorial_overlay.js' %}"></script>
-    <script>
-        // ========================================
-        // STEP1チュートリアル: メイン画面 → システム選択
-        // ========================================
         document.addEventListener('DOMContentLoaded', function() {
-            // 初回ログインまたは手動起動の判定
-            const startTutorial = {{ start_tutorial|default:'false'|lower }};
+            console.log('✅ ホーム画面ロード完了');
             
             console.log('DEBUG: start_tutorial =', startTutorial, 'type:', typeof startTutorial);
             
@@ -483,28 +291,10 @@
                     message: 'わたしは、きみのなかまだよ！<br>いつでもいっしょにがんばろうね！😊',
                     requireClick: false,
                     showSkip: true
-                },
-                {
-                    target: '.panel-system',
-                    message: 'さいしょに、「システム」をつくってみよう！<br>したの<strong>システムボタン</strong>をおしてね！💻',
-                    requireClick: true,
-                    showSkip: true,
-                    onNext: function() {
-                        console.log('🎯 システムボタンがクリックされました');
-                        // システムボタンがクリックされた後、次の画面でチュートリアルを続けるフラグをセット
-                        sessionStorage.setItem('tutorial_step1_continue', 'true');
-                        console.log('📝 tutorial_step1_continue フラグを設定しました');
-                    }
-                }
             ];
 
-            tutorialOverlay.init(steps, {
-                onComplete: function() {
-                    console.log('STEP1チュートリアル完了');
-                },
-                onSkip: function() {
-                    // スキップ時はSTEP1を完了扱いにする
-                    fetch('/accounts/skip-tutorial-step/', {
+            // 既存チュートリアルシステムは削除されました
+            console.log('✅ ホーム画面ロード完了');
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -540,8 +330,5 @@
             // 将来的にSTEP2, STEP3も追加予定
         }
     </script>
-
-    <!-- AI会話機能（右下ウィジェット） -->
-    {% include 'includes/ai_chat_base.html' %}
 </body>
 </html>
