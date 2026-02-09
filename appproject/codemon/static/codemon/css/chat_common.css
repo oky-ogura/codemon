@@ -522,6 +522,16 @@ body.no-scroll {
   display: none;
 }
 
+.message-read[title] {
+  cursor: help;
+  border-bottom: 1px dotted #4CAF50;
+}
+
+.message-read[title]:hover {
+  background-color: rgba(76, 175, 80, 0.1);
+  border-radius: 2px;
+}
+
 /* ファイル・画像添付 */
 .file-attachment,
 .image-attachment {
