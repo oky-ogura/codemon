@@ -148,6 +148,144 @@ def get_logged_account(request):
         return None
 
 
+def create_tutorial_systems(user):
+    """
+    チュートリアル用の正解・不正解システムを作成
+    
+    方式1: テンプレートシステムが存在する場合、それを複製
+    方式2: テンプレートが無い場合、デフォルトのシステムを自動生成
+    
+    テンプレートシステムの作成方法:
+    1. 管理者アカウント（settings.TUTORIAL_TEMPLATE_USER_ID）でログイン
+    2. 「正解」「不正解」という名前でシステムを作成
+    3. 好きなレイアウト・要素を配置
+    4. 以降の新規ユーザーに自動的にコピーされる
+    """
+    try:
+        from django.conf import settings
+        
+        # テンプレートユーザーIDを取得
+        template_user_id = getattr(settings, 'TUTORIAL_TEMPLATE_USER_ID', None)
+        
+        # テンプレートシステムを探す
+        template_correct = None
+        template_incorrect = None
+        
+        if template_user_id:
+            try:
+                template_user = Account.objects.get(user_id=template_user_id)
+                template_correct = System.objects.filter(
+                    user=template_user,
+                    system_name="正解"
+                ).first()
+                template_incorrect = System.objects.filter(
+                    user=template_user,
+                    system_name="不正解"
+                ).first()
+            except Account.DoesNotExist:
+                pass
+        
+        # 正解システムの作成または複製
+        correct_system, created = System.objects.get_or_create(
+            user=user,
+            system_name="正解",
+            defaults={
+                'system_description': template_correct.system_description if template_correct else "チュートリアル用の正解画面"
+            }
+        )
+        
+        if created:
+            if template_correct:
+                # テンプレートから要素をコピー
+                template_elements = SystemElement.objects.filter(system=template_correct)
+                for elem in template_elements:
+                    SystemElement.objects.create(
+                        system=correct_system,
+                        element_type=elem.element_type,
+                        element_label=elem.element_label,
+                        element_value=elem.element_value,
+                        position_x=elem.position_x,
+                        position_y=elem.position_y,
+                        width=elem.width,
+                        height=elem.height,
+                        style_data=elem.style_data,
+                        element_config=elem.element_config,
+                        sort_order=elem.sort_order
+                    )
+            else:
+                # デフォルトの正解ラベルを作成
+                SystemElement.objects.create(
+                    system=correct_system,
+                    element_type="label",
+                    element_label="せいかい！",
+                    position_x=400,
+                    position_y=300,
+                    width=300,
+                    height=100,
+                    style_data={
+                        'fontSize': '48px',
+                        'color': '#00ff00',
+                        'fontWeight': 'bold',
+                        'textAlign': 'center'
+                    },
+                    element_config={}
+                )
+        
+        # 不正解システムの作成または複製
+        incorrect_system, created = System.objects.get_or_create(
+            user=user,
+            system_name="不正解",
+            defaults={
+                'system_description': template_incorrect.system_description if template_incorrect else "チュートリアル用の不正解画面"
+            }
+        )
+        
+        if created:
+            if template_incorrect:
+                # テンプレートから要素をコピー
+                template_elements = SystemElement.objects.filter(system=template_incorrect)
+                for elem in template_elements:
+                    SystemElement.objects.create(
+                        system=incorrect_system,
+                        element_type=elem.element_type,
+                        element_label=elem.element_label,
+                        element_value=elem.element_value,
+                        position_x=elem.position_x,
+                        position_y=elem.position_y,
+                        width=elem.width,
+                        height=elem.height,
+                        style_data=elem.style_data,
+                        element_config=elem.element_config,
+                        sort_order=elem.sort_order
+                    )
+            else:
+                # デフォルトの不正解ラベルを作成
+                SystemElement.objects.create(
+                    system=incorrect_system,
+                    element_type="label",
+                    element_label="ざんねん...もういちど！",
+                    position_x=400,
+                    position_y=300,
+                    width=400,
+                    height=100,
+                    style_data={
+                        'fontSize': '36px',
+                        'color': '#ff0000',
+                        'fontWeight': 'bold',
+                        'textAlign': 'center'
+                    },
+                    element_config={}
+                )
+        
+        return correct_system, incorrect_system
+    except Exception as e:
+        # エラーが発生してもユーザー登録は継続させる
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"チュートリアルシステム作成エラー: {e}")
+        return None, None
+
+
 def teacher_signup(request):
     if request.method == 'POST':
         form = TeacherSignupForm(request.POST)
@@ -182,6 +320,16 @@ def teacher_signup(request):
                     pass
             except Exception:
                 pass
+            
+            # チュートリアル用システムを自動作成
+            try:
+                create_tutorial_systems(instance)
+            except Exception as e:
+                # エラーが発生してもログインフローは継続
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"チュートリアルシステム作成エラー: {e}")
+            
             # 登録後は AI 外見設定へ遷移
             return redirect('accounts:ai_appearance')
     else:
@@ -217,6 +365,16 @@ def student_signup(request):
                     pass
             except Exception:
                 pass
+            
+            # チュートリアル用システムを自動作成
+            try:
+                create_tutorial_systems(instance)
+            except Exception as e:
+                # エラーが発生してもログインフローは継続
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"チュートリアルシステム作成エラー: {e}")
+            
             # サインアップ後は AI 外見設定へ遷移
             return redirect('accounts:ai_appearance')
     else:
@@ -1629,9 +1787,14 @@ def block_create(request):
                         })
                     request.session.modified = True
 
-            # 保存成功後は一覧画面にリダイレクト
-            # メッセージは一覧画面で表示される
-            return redirect('accounts:block_list')
+            # 保存成功後のリダイレクト先を判定
+            # system_idがある場合はsystem編集画面に戻る
+            if system_id:
+                print(f'✅ system_idが存在するため、system編集画面にリダイレクト: system_id={system_id}')
+                return redirect(f'/accounts/system/?id={system_id}')
+            else:
+                # それ以外は一覧画面にリダイレクト
+                return redirect('accounts:block_list')
 
         except Algorithm.DoesNotExist:
             messages.error(request, '指定されたアルゴリズムが見つかりません。')
@@ -1645,7 +1808,13 @@ def block_create(request):
 
     # GETリクエスト: フォームを表示（編集モード対応）
     algorithm_id = request.GET.get('id')
-    context = {}
+    system_id = request.GET.get('system_id')  # system_idを受け取る
+    button_id = request.GET.get('button_id')  # button_idを受け取る
+    
+    context = {
+        'system_id': system_id,
+        'button_id': button_id,
+    }
 
     if algorithm_id:
         try:

@@ -38,13 +38,29 @@ document.getElementById('saveBtn').addEventListener('click', function() {
     sessionStorage.setItem('return_button_id', buttonId);
   }
   
+  // URLパラメータを構築
+  let url = '/accounts/block/create/';
+  const params = new URLSearchParams();
+  
   // 編集モードの場合はIDをURLパラメータとして渡す
   if (existingAlgorithmData.algorithmId) {
-    window.location.href = `/accounts/block/create/?id=${existingAlgorithmData.algorithmId}`;
-  } else {
-    // 新規作成の場合
-    window.location.href = '/accounts/block/create/';
+    params.append('id', existingAlgorithmData.algorithmId);
   }
+  
+  // system_idとbutton_idもURLパラメータとして渡す
+  if (systemId) {
+    params.append('system_id', systemId);
+  }
+  if (buttonId) {
+    params.append('button_id', buttonId);
+  }
+  
+  // パラメータがある場合はURLに追加
+  if (params.toString()) {
+    url += '?' + params.toString();
+  }
+  
+  window.location.href = url;
 });
 
 // 未保存の変更を追跡

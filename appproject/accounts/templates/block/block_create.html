@@ -293,6 +293,8 @@
     <div id="formTitle" style="display:none">アルゴリズム作成フォーム</div>
     <input type="hidden" id="algorithmId" name="algorithm_id" value="{{ algorithm_id|default:'' }}" />
     <input type="hidden" id="blocklyXml" name="blockly_xml" value="" />
+    <input type="hidden" name="system_id" value="{{ system_id|default:'' }}" />
+    <input type="hidden" name="button_id" value="{{ button_id|default:'' }}" />
 
     <div class="panel-header">
       <h1 class="panel-title">
@@ -478,9 +480,16 @@
     
     console.log('📤 フォームをsubmitします');
     window.isDirty = false;
+    
+    // system画面から来た場合は、戻る際のフラグを設定
+    const systemIdInput = document.querySelector('input[name="system_id"]');
+    if (systemIdInput && systemIdInput.value) {
+      console.log('🔗 system画面から遷移してきたため、returnFromCreateフラグを設定');
+      sessionStorage.setItem('returnFromCreate', 'true');
+    }
+    
     // セッションクリア
     sessionStorage.removeItem('blockly_xml');
-    sessionStorage.removeItem('returnFromCreate');
     sessionStorage.removeItem('navigatingToCreate');
     sessionStorage.removeItem('algorithmId');
     sessionStorage.removeItem('algorithmName');
