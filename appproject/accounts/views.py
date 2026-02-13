@@ -195,41 +195,47 @@ def create_tutorial_systems(user):
         )
         
         if created:
-            if template_correct:
-                # テンプレートから要素をコピー
-                template_elements = SystemElement.objects.filter(system=template_correct)
-                for elem in template_elements:
+            try:
+                if template_correct:
+                    # テンプレートから要素をコピー
+                    template_elements = SystemElement.objects.filter(system=template_correct)
+                    for elem in template_elements:
+                        SystemElement.objects.create(
+                            system=correct_system,
+                            element_type=elem.element_type,
+                            element_label=elem.element_label,
+                            element_value=elem.element_value,
+                            position_x=elem.position_x,
+                            position_y=elem.position_y,
+                            width=elem.width,
+                            height=elem.height,
+                            style_data=elem.style_data,
+                            element_config=elem.element_config,
+                            sort_order=elem.sort_order
+                        )
+                else:
+                    # デフォルトの正解ラベルを作成
                     SystemElement.objects.create(
                         system=correct_system,
-                        element_type=elem.element_type,
-                        element_label=elem.element_label,
-                        element_value=elem.element_value,
-                        position_x=elem.position_x,
-                        position_y=elem.position_y,
-                        width=elem.width,
-                        height=elem.height,
-                        style_data=elem.style_data,
-                        element_config=elem.element_config,
-                        sort_order=elem.sort_order
+                        element_type="label",
+                        element_label="せいかい！",
+                        position_x=400,
+                        position_y=300,
+                        width=300,
+                        height=100,
+                        style_data={
+                            'fontSize': '48px',
+                            'color': '#00ff00',
+                            'fontWeight': 'bold',
+                            'textAlign': 'center'
+                        },
+                        element_config={}
                     )
-            else:
-                # デフォルトの正解ラベルを作成
-                SystemElement.objects.create(
-                    system=correct_system,
-                    element_type="label",
-                    element_label="せいかい！",
-                    position_x=400,
-                    position_y=300,
-                    width=300,
-                    height=100,
-                    style_data={
-                        'fontSize': '48px',
-                        'color': '#00ff00',
-                        'fontWeight': 'bold',
-                        'textAlign': 'center'
-                    },
-                    element_config={}
-                )
+            except Exception as e:
+                # SystemElement作成エラーをキャッチ（systemは作成済み）
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"正解システム要素作成エラー（システムは作成済み）: {e}")
         
         # 不正解システムの作成または複製
         incorrect_system, created = System.objects.get_or_create(
@@ -241,41 +247,47 @@ def create_tutorial_systems(user):
         )
         
         if created:
-            if template_incorrect:
-                # テンプレートから要素をコピー
-                template_elements = SystemElement.objects.filter(system=template_incorrect)
-                for elem in template_elements:
+            try:
+                if template_incorrect:
+                    # テンプレートから要素をコピー
+                    template_elements = SystemElement.objects.filter(system=template_incorrect)
+                    for elem in template_elements:
+                        SystemElement.objects.create(
+                            system=incorrect_system,
+                            element_type=elem.element_type,
+                            element_label=elem.element_label,
+                            element_value=elem.element_value,
+                            position_x=elem.position_x,
+                            position_y=elem.position_y,
+                            width=elem.width,
+                            height=elem.height,
+                            style_data=elem.style_data,
+                            element_config=elem.element_config,
+                            sort_order=elem.sort_order
+                        )
+                else:
+                    # デフォルトの不正解ラベルを作成
                     SystemElement.objects.create(
                         system=incorrect_system,
-                        element_type=elem.element_type,
-                        element_label=elem.element_label,
-                        element_value=elem.element_value,
-                        position_x=elem.position_x,
-                        position_y=elem.position_y,
-                        width=elem.width,
-                        height=elem.height,
-                        style_data=elem.style_data,
-                        element_config=elem.element_config,
-                        sort_order=elem.sort_order
+                        element_type="label",
+                        element_label="ざんねん...もういちど！",
+                        position_x=400,
+                        position_y=300,
+                        width=400,
+                        height=100,
+                        style_data={
+                            'fontSize': '36px',
+                            'color': '#ff0000',
+                            'fontWeight': 'bold',
+                            'textAlign': 'center'
+                        },
+                        element_config={}
                     )
-            else:
-                # デフォルトの不正解ラベルを作成
-                SystemElement.objects.create(
-                    system=incorrect_system,
-                    element_type="label",
-                    element_label="ざんねん...もういちど！",
-                    position_x=400,
-                    position_y=300,
-                    width=400,
-                    height=100,
-                    style_data={
-                        'fontSize': '36px',
-                        'color': '#ff0000',
-                        'fontWeight': 'bold',
-                        'textAlign': 'center'
-                    },
-                    element_config={}
-                )
+            except Exception as e:
+                # SystemElement作成エラーをキャッチ（systemは作成済み）
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"不正解システム要素作成エラー（システムは作成済み）: {e}")
         
         return correct_system, incorrect_system
     except Exception as e:
@@ -960,21 +972,28 @@ def system_index(request):
             context['system_description'] = system.system_description or ''
 
             # システム要素を取得してJSON化
-            elements = SystemElement.objects.filter(system=system).order_by('sort_order', 'element_id')
-            elements_list = []
-            for elem in elements:
-                elements_list.append({
-                    'element_type': elem.element_type,
-                    'element_label': elem.element_label or '',
-                    'element_value': elem.element_value or '',
-                    'position_x': elem.position_x,
-                    'position_y': elem.position_y,
-                    'width': elem.width,
-                    'height': elem.height,
-                    'style_data': elem.style_data or {},
-                    'element_config': elem.element_config or {}
-                })
-            context['elements_json'] = json.dumps(elements_list, ensure_ascii=False)
+            try:
+                elements = SystemElement.objects.filter(system=system).order_by('sort_order', 'element_id')
+                elements_list = []
+                for elem in elements:
+                    elements_list.append({
+                        'element_type': elem.element_type,
+                        'element_label': elem.element_label or '',
+                        'element_value': elem.element_value or '',
+                        'position_x': elem.position_x,
+                        'position_y': elem.position_y,
+                        'width': elem.width,
+                        'height': elem.height,
+                        'style_data': elem.style_data or {},
+                        'element_config': elem.element_config or {}
+                    })
+                context['elements_json'] = json.dumps(elements_list, ensure_ascii=False)
+            except Exception as e:
+                # system_elementテーブルが存在しない場合など
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"システム要素取得エラー（空の要素リストを使用）: {e}")
+                context['elements_json'] = json.dumps([], ensure_ascii=False)
         except System.DoesNotExist:
             messages.error(request, '指定されたシステムが見つかりません。')
 
@@ -1008,22 +1027,25 @@ def get_system_elements(request):
         logger.info(f"System found: {system.system_name}")
 
         # システム要素を取得
-        elements = SystemElement.objects.filter(system=system).order_by('sort_order', 'element_id')
-        logger.info(f"Found {elements.count()} elements")
-        
         elements_list = []
-        for elem in elements:
-            elements_list.append({
-                'element_type': elem.element_type,
-                'element_label': elem.element_label or '',
-                'element_value': elem.element_value or '',
-                'position_x': elem.position_x,
-                'position_y': elem.position_y,
-                'width': elem.width,
-                'height': elem.height,
-                'style_data': elem.style_data or {},
-                'element_config': elem.element_config or {}
-            })
+        try:
+            elements = SystemElement.objects.filter(system=system).order_by('sort_order', 'element_id')
+            logger.info(f"Found {elements.count()} elements")
+            
+            for elem in elements:
+                elements_list.append({
+                    'element_type': elem.element_type,
+                    'element_label': elem.element_label or '',
+                    'element_value': elem.element_value or '',
+                    'position_x': elem.position_x,
+                    'position_y': elem.position_y,
+                    'width': elem.width,
+                    'height': elem.height,
+                    'style_data': elem.style_data or {},
+                    'element_config': elem.element_config or {}
+                })
+        except Exception as elem_error:
+            logger.warning(f"システム要素取得エラー（空リストを返却）: {elem_error}")
 
         return JsonResponse({
             'success': True,
@@ -1060,23 +1082,26 @@ def api_get_system_elements(request, system_id):
         logger.info(f"System found: {system.system_name}")
 
         # システム要素を取得
-        elements = SystemElement.objects.filter(system=system).order_by('sort_order', 'element_id')
-        logger.info(f"Found {elements.count()} elements")
-        
         elements_list = []
-        for elem in elements:
-            elements_list.append({
-                'element_id': elem.element_id,
-                'element_type': elem.element_type,
-                'element_label': elem.element_label or '',
-                'element_value': elem.element_value or '',
-                'position_x': elem.position_x,
-                'position_y': elem.position_y,
-                'width': elem.width,
-                'height': elem.height,
-                'style_data': elem.style_data or {},
-                'element_config': elem.element_config or {}
-            })
+        try:
+            elements = SystemElement.objects.filter(system=system).order_by('sort_order', 'element_id')
+            logger.info(f"Found {elements.count()} elements")
+            
+            for elem in elements:
+                elements_list.append({
+                    'element_id': elem.element_id,
+                    'element_type': elem.element_type,
+                    'element_label': elem.element_label or '',
+                    'element_value': elem.element_value or '',
+                    'position_x': elem.position_x,
+                    'position_y': elem.position_y,
+                    'width': elem.width,
+                    'height': elem.height,
+                    'style_data': elem.style_data or {},
+                    'element_config': elem.element_config or {}
+                })
+        except Exception as elem_error:
+            logger.warning(f"システム要素取得エラー（空リストを返却）: {elem_error}")
 
         return JsonResponse({
             'success': True,

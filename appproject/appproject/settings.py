@@ -127,21 +127,7 @@ db_password = str(os.getenv('DB_PASSWORD', 'password'))
 db_host = str(os.getenv('DB_HOST', 'localhost'))
 db_port = str(os.getenv('DB_PORT', '5432'))
 
-<<<<<<< HEAD
-
 # 一時的にSQLiteを使用（PostgreSQL接続のエンコーディング問題を回避）
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
-# PostgreSQLを使用する場合は以下をコメント解除
-=======
-# 一時的にSQLiteを使用（PostgreSQL接続のエンコーディング問題を回避）
->>>>>>> main
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
